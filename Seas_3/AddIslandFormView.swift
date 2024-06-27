@@ -1,4 +1,3 @@
-//
 //  AddIslandFormView.swift
 //  Seas_3
 //
@@ -73,11 +72,11 @@ struct AddIslandFormView: View {
                     .pickerStyle(SegmentedPickerStyle())
                     
                     TextField("Links", text: $gymWebsite, onEditingChanged: { _ in
-                        if !gymWebsite.isEmpty {
+                        if (!gymWebsite.isEmpty) {
                             let strippedURL = stripProtocol(from: gymWebsite)
                             let fullURLString = selectedProtocol + strippedURL
                             
-                            if validateURL(fullURLString) {
+                            if (validateURL(fullURLString)) {
                                 gymWebsiteURL = URL(string: fullURLString)
                             } else {
                                 showAlert = true
@@ -108,7 +107,7 @@ struct AddIslandFormView: View {
                 }
                 .disabled(!isSaveEnabled) // Ensure button is enabled when isSaveEnabled is true
             }
-            .navigationTitle("Add Gym/Dojo/Training Center")
+            .navigationTitle("Add Gym/Dojo Here")
             .navigationBarItems(leading: cancelButton, trailing: EmptyView())
             .alert(isPresented: $showAlert) {
                 Alert(title: Text("Error"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
@@ -185,6 +184,8 @@ struct AddIslandFormView: View {
                     alertMessage = "Failed to get valid coordinates for the island location."
                     return
                 }
+                assert(!latitude.isNaN, "Encountered NaN value for latitude")
+                assert(!longitude.isNaN, "Encountered NaN value for longitude")
                 saveIsland(latitude: latitude, longitude: longitude)
             case .failure(let error):
                 print("Geocoding failed: \(error.localizedDescription)")
@@ -208,6 +209,9 @@ struct AddIslandFormView: View {
             alertMessage = "Invalid coordinates received. Please check the island location."
             return
         }
+        
+        assert(!latitude.isNaN, "Encountered NaN value for latitude")
+        assert(!longitude.isNaN, "Encountered NaN value for longitude")
         
         newIsland.latitude = latitude
         newIsland.longitude = longitude

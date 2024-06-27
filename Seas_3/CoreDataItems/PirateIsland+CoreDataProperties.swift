@@ -11,8 +11,6 @@ import CoreData
 import CoreLocation
 import MapKit
 
-
-
 extension PirateIsland {
 
     @nonobjc public class func fetchRequest() -> NSFetchRequest<PirateIsland> {
@@ -31,8 +29,8 @@ extension PirateIsland {
     @NSManaged public var lastModifiedByUserId: String?
     @NSManaged public var lastModifiedTimestamp: Date?
 
-    // Relationship to AppDayOfWeek
-    @NSManaged public var daysOfWeek: NSSet?
+    // Updated relationship to AppDayOfWeek
+    @NSManaged public var appDayOfWeeks: NSSet?
 }
 
 // MARK: Generated accessors for appDayOfWeeks

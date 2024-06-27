@@ -37,17 +37,30 @@ struct AddNewIsland: View {
             Form {
                 Section(header: Text("Island Details")) {
                     TextField("Island Name", text: $islandName)
+                        .onChange(of: islandName) { _ in validateFields() }
                     TextField("Street", text: $street)
+                        .onChange(of: street) { _ in
+                            updateIslandLocation()
+                            validateFields()
+                        }
                     TextField("City", text: $city)
+                        .onChange(of: city) { _ in
+                            updateIslandLocation()
+                            validateFields()
+                        }
                     TextField("State", text: $state)
+                        .onChange(of: state) { _ in
+                            updateIslandLocation()
+                            validateFields()
+                        }
                     TextField("Zip", text: $zip)
+                        .onChange(of: zip) { _ in
+                            updateIslandLocation()
+                            validateFields()
+                        }
                 }
-                .onChange(of: street) { _ in updateIslandLocation() }
-                .onChange(of: city) { _ in updateIslandLocation() }
-                .onChange(of: state) { _ in updateIslandLocation() }
-                .onChange(of: zip) { _ in updateIslandLocation() }
                 
-                Section(header: Text("Instagram link/Facebook/Website(if applicable)")) {
+                Section(header: Text("Instagram link/Facebook/Website (if applicable)")) {
                     Picker("Protocol", selection: $selectedProtocol) {
                         Text("http://").tag("http://")
                         Text("https://").tag("https://")
@@ -78,18 +91,21 @@ struct AddNewIsland: View {
                 
                 Section(header: Text("Entered By")) {
                     TextField("Your Name", text: $createdByUserId)
+                        .onChange(of: createdByUserId) { _ in validateFields() }
                 }
                 
                 Button("Save") {
                     if isSaveEnabled {
+                        print("Save button tapped")
                         geocodeIslandLocation()
                     } else {
+                        print("Save button disabled")
                         print("Error: Required fields are empty or URL is invalid")
                     }
                 }
                 .disabled(!isSaveEnabled)
             }
-            .navigationBarTitle("Add Island", displayMode: .inline)
+            .navigationBarTitle("Add Gym/Dojo Here", displayMode: .inline)
             .navigationBarItems(leading: Button("Cancel") {
                 presentationMode.wrappedValue.dismiss()
             })
@@ -97,17 +113,14 @@ struct AddNewIsland: View {
                 Alert(title: Text("Error"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
             }
         }
-        .onReceive(Just(())) { _ in
-            validateFields()
+        .onAppear {
+            validateFields() // Initial validation check
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 20) // Add top padding
     }
     
     private func updateIslandLocation() {
-        let updatedLocation = "\(street), \(city), \(state) \(zip)"
-        islandLocation = updatedLocation
-        print("Updated Island Location: \(updatedLocation)")
+        islandLocation = "\(street), \(city), \(state) \(zip)"
+        print("Updated Island Location: \(islandLocation)")
     }
 
     private func validateFields() {
@@ -117,8 +130,18 @@ struct AddNewIsland: View {
                       !state.isEmpty &&
                       !zip.isEmpty &&
                       !createdByUserId.isEmpty &&
-                      (gymWebsite.isEmpty || gymWebsiteURL != nil)
-        isSaveEnabled = isValid
+                      (gymWebsite.isEmpty || validateURL(selectedProtocol + stripProtocol(from: gymWebsite)))
+        print("islandName: \(islandName)")
+        print("street: \(street)")
+        print("city: \(city)")
+        print("state: \(state)")
+        print("zip: \(zip)")
+        print("createdByUserId: \(createdByUserId)")
+        print("gymWebsite: \(gymWebsite)")
+        print("gymWebsiteURL: \(String(describing: gymWebsiteURL))")
+        print("isValid: \(isValid)")
+        
+        isSaveEnabled = isValid // Update isSaveEnabled based on validation
     }
 
     private func clearFields() {
@@ -129,8 +152,8 @@ struct AddNewIsland: View {
         city = ""
         state = ""
         zip = ""
-        gymWebsite = "" // Reset to empty string
-        gymWebsiteURL = nil // Reset to nil
+        gymWebsite = ""
+        gymWebsiteURL = nil
     }
     
     private func geocodeIslandLocation() {
@@ -147,6 +170,8 @@ struct AddNewIsland: View {
                     alertMessage = "Failed to get valid coordinates for the island location."
                     return
                 }
+                assert(!latitude.isNaN, "Encountered NaN value for latitude")
+                assert(!longitude.isNaN, "Encountered NaN value for longitude")
                 saveIsland(latitude: latitude, longitude: longitude)
             case .failure(let error):
                 print("Geocoding failed: \(error.localizedDescription)")
@@ -163,9 +188,6 @@ struct AddNewIsland: View {
         newIsland.createdByUserId = createdByUserId
         newIsland.createdTimestamp = Date()
         
-        // Logging latitude and longitude
-        print("Saving Island with coordinates - Latitude: \(latitude), Longitude: \(longitude)")
-        
         // Validate latitude and longitude
         if latitude.isNaN || longitude.isNaN {
             print("Error: Invalid latitude (\(latitude)) or longitude (\(longitude))")
@@ -173,6 +195,9 @@ struct AddNewIsland: View {
             alertMessage = "Invalid coordinates received. Please check the island location."
             return
         }
+        
+        assert(!latitude.isNaN, "Encountered NaN value for latitude")
+        assert(!longitude.isNaN, "Encountered NaN value for longitude")
         
         newIsland.latitude = latitude
         newIsland.longitude = longitude
@@ -191,7 +216,9 @@ struct AddNewIsland: View {
 
     private func validateURL(_ urlString: String) -> Bool {
         let urlPattern = #"^(https?:\/\/)?(www\.)?(facebook\.com|instagram\.com|[\w\-]+\.[\w\-]+)(\/[\w\-\.]*)*\/?$"#
-        return NSPredicate(format: "SELF MATCHES %@", urlPattern).evaluate(with: urlString)
+        let result = NSPredicate(format: "SELF MATCHES %@", urlPattern).evaluate(with: urlString)
+        print("URL Validation: \(urlString) is \(result ? "valid" : "invalid")")
+        return result
     }
 
     private func stripProtocol(from urlString: String) -> String {
@@ -199,6 +226,7 @@ struct AddNewIsland: View {
         if let range = strippedString.range(of: "://") {
             strippedString = String(strippedString[range.upperBound...])
         }
+        print("Stripped URL: \(strippedString)")
         return strippedString
     }
 }

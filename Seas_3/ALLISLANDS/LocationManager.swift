@@ -23,6 +23,8 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         checkLocationAuthorization()
     }
     
+    
+    
     private func checkLocationAuthorization() {
         switch CLLocationManager.authorizationStatus() {
         case .notDetermined:

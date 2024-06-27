@@ -1,11 +1,8 @@
 //
-//  AllEnteredLocations.swift
-//  Seas_3
+// AllEnteredLocations.swift
+// Seas2
 //
-//  Created by Brian Romero on 6/26/24.
-//
-
-import Foundation
+// Created by Brian Romero on 6/17/24.
 import SwiftUI
 import CoreData
 import CoreLocation
@@ -76,7 +73,7 @@ struct AllEnteredLocations: View {
             print("Failed to fetch PirateIsland: \(error)")
         }
     }
-
+    
     private func updateRegion() {
         guard !pirateMarkers.isEmpty else {
             region = MKCoordinateRegion(
