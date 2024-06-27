@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="22758" systemVersion="23G5052d" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+    <entity name="AppDayOfWeek" representedClassName="AppDayOfWeek" syncable="YES">
+        <attribute name="friday" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="gi" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="goodForBeginners" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="matTime" optional="YES" attributeType="String"/>
+        <attribute name="monday" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="noGi" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="op_friday" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="op_monday" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="op_saturday" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="op_sunday" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="op_thursday" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="op_tuesday" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="op_wednesday" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="openMat" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="restrictionDescription" optional="YES" attributeType="String"/>
+        <attribute name="restrictions" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="saturday" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="sunday" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="thursday" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="tuesday" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="wednesday" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <relationship name="pirateIsland" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PirateIsland" inverseName="daysOfWeek" inverseEntity="PirateIsland"/>
+    </entity>
+    <entity name="PirateIsland" representedClassName="PirateIsland" syncable="YES">
+        <attribute name="coordinate" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="createdByUserId" attributeType="String"/>
+        <attribute name="createdTimestamp" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="gymWebsite" optional="YES" attributeType="URI"/>
+        <attribute name="islandID" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="islandLocation" attributeType="String"/>
+        <attribute name="islandName" attributeType="String"/>
+        <attribute name="lastModifiedByUserId" attributeType="String"/>
+        <attribute name="lastModifiedTimestamp" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="latitude" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="longitude" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <relationship name="daysOfWeek" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="AppDayOfWeek" inverseName="pirateIsland" inverseEntity="AppDayOfWeek"/>
+    </entity>
+    <entity name="UserInfo" representedClassName="UserInfo" syncable="YES">
+        <attribute name="belt" optional="YES" attributeType="String"/>
+        <attribute name="email" optional="YES" attributeType="String"/>
+        <attribute name="name" optional="YES" attributeType="String"/>
+        <attribute name="userID" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="userName" optional="YES" attributeType="String"/>
+    </entity>
+</model>

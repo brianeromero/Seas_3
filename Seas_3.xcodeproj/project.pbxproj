@@ -1,0 +1,884 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0C07B0712C2CFD0300D0BFB2 /* IslandMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0702C2CFD0300D0BFB2 /* IslandMenu.swift */; };
+		0C07B0732C2CFD2800D0BFB2 /* AddNewIsland.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0722C2CFD2800D0BFB2 /* AddNewIsland.swift */; };
+		0C07B0752C2CFD4900D0BFB2 /* EditExistingIslandList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0742C2CFD4900D0BFB2 /* EditExistingIslandList.swift */; };
+		0C07B0772C2CFD6700D0BFB2 /* EditExistingIsland.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0762C2CFD6700D0BFB2 /* EditExistingIsland.swift */; };
+		0C07B0792C2CFDBB00D0BFB2 /* PirateIslandView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0782C2CFDBB00D0BFB2 /* PirateIslandView.swift */; };
+		0C07B07B2C2CFDDE00D0BFB2 /* AddIslandFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B07A2C2CFDDE00D0BFB2 /* AddIslandFormView.swift */; };
+		0C07B07D2C2CFDFE00D0BFB2 /* IslandMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B07C2C2CFDFE00D0BFB2 /* IslandMapView.swift */; };
+		0C07B07F2C2CFE1C00D0BFB2 /* IslandDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B07E2C2CFE1C00D0BFB2 /* IslandDetailView.swift */; };
+		0C07B0812C2CFE3600D0BFB2 /* IslandMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0802C2CFE3600D0BFB2 /* IslandMap.swift */; };
+		0C07B0832C2CFE5000D0BFB2 /* GeocodingUtility.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0822C2CFE5000D0BFB2 /* GeocodingUtility.swift */; };
+		0C07B0852C2CFE6200D0BFB2 /* AdditionalGymInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0842C2CFE6200D0BFB2 /* AdditionalGymInfo.swift */; };
+		0C07B0882C2CFE9F00D0BFB2 /* ViewOpenMatByDay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0872C2CFE9F00D0BFB2 /* ViewOpenMatByDay.swift */; };
+		0C07B08A2C2CFEB800D0BFB2 /* DaysOfWeekFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0892C2CFEB800D0BFB2 /* DaysOfWeekFormView.swift */; };
+		0C07B08C2C2CFED400D0BFB2 /* AppDayOfWeekViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B08B2C2CFED400D0BFB2 /* AppDayOfWeekViewModel.swift */; };
+		0C07B08E2C2CFEF200D0BFB2 /* SearchByDayoftheWeek.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B08D2C2CFEF200D0BFB2 /* SearchByDayoftheWeek.swift */; };
+		0C07B0902C2CFF0B00D0BFB2 /* DayOfWeekView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B08F2C2CFF0B00D0BFB2 /* DayOfWeekView.swift */; };
+		0C07B0922C2CFF2A00D0BFB2 /* SavedConfirmationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0912C2CFF2A00D0BFB2 /* SavedConfirmationView.swift */; };
+		0C07B0942C2CFF3B00D0BFB2 /* AddClassScheduleFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0932C2CFF3B00D0BFB2 /* AddClassScheduleFormView.swift */; };
+		0C07B0962C2CFF5A00D0BFB2 /* AddOpenMatFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0952C2CFF5A00D0BFB2 /* AddOpenMatFormView.swift */; };
+		0C07B0992C2CFF8500D0BFB2 /* GymMatReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0982C2CFF8500D0BFB2 /* GymMatReviewView.swift */; };
+		0C07B09C2C2CFFA500D0BFB2 /* AllEnteredLocations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B09B2C2CFFA500D0BFB2 /* AllEnteredLocations.swift */; };
+		0C07B09E2C2CFFC400D0BFB2 /* AllIslandMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B09D2C2CFFC400D0BFB2 /* AllIslandMapView.swift */; };
+		0C07B0A02C2CFFE000D0BFB2 /* AllMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B09F2C2CFFE000D0BFB2 /* AllMapView.swift */; };
+		0C07B0A22C2CFFFD00D0BFB2 /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0A12C2CFFFD00D0BFB2 /* LocationManager.swift */; };
+		0C07B0A42C2D002000D0BFB2 /* EnterZipCodeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0A32C2D002000D0BFB2 /* EnterZipCodeView.swift */; };
+		0C07B0A62C2D002D00D0BFB2 /* SceneLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0A52C2D002D00D0BFB2 /* SceneLoader.swift */; };
+		0C07B0A82C2D004900D0BFB2 /* RenderingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0A72C2D004900D0BFB2 /* RenderingManager.swift */; };
+		0C07B0AA2C2D007000D0BFB2 /* GIFBackgroundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0A92C2D007000D0BFB2 /* GIFBackgroundView.swift */; };
+		0C07B0AC2C2D009300D0BFB2 /* SwiftGIF.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0AB2C2D009300D0BFB2 /* SwiftGIF.swift */; };
+		0C07B0AE2C2D00A900D0BFB2 /* SharedTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0AD2C2D00A900D0BFB2 /* SharedTypes.swift */; };
+		0C07B0B02C2D00BE00D0BFB2 /* CustomMarkerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0AF2C2D00BE00D0BFB2 /* CustomMarkerView.swift */; };
+		0C07B0B22C2D00DC00D0BFB2 /* CustomMapMarker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0B12C2D00DC00D0BFB2 /* CustomMapMarker.swift */; };
+		0C07B0B42C2D00F300D0BFB2 /* CustomPin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0B32C2D00F300D0BFB2 /* CustomPin.swift */; };
+		0C07B0B72C2D015C00D0BFB2 /* FAQnDisclaimerMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0B62C2D015C00D0BFB2 /* FAQnDisclaimerMenu.swift */; };
+		0C07B0B92C2D017500D0BFB2 /* WhoWeAre.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0B82C2D017500D0BFB2 /* WhoWeAre.swift */; };
+		0C07B0BB2C2D018D00D0BFB2 /* Disclaimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0BA2C2D018D00D0BFB2 /* Disclaimer.swift */; };
+		0C07B0BD2C2D01AB00D0BFB2 /* FAQ.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0BC2C2D01AB00D0BFB2 /* FAQ.swift */; };
+		0C07B0BF2C2D01D700D0BFB2 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0BE2C2D01D700D0BFB2 /* Logger.swift */; };
+		0C07B0C12C2D01F300D0BFB2 /* CustomUnarchiveTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0C02C2D01F300D0BFB2 /* CustomUnarchiveTransformer.swift */; };
+		0C07B0C32C2D020C00D0BFB2 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0C22C2D020C00D0BFB2 /* AppDelegate.swift */; };
+		0C07B0CB2C2D022D00D0BFB2 /* flashing.gif in Resources */ = {isa = PBXBuildFile; fileRef = 0C07B0C42C2D022C00D0BFB2 /* flashing.gif */; };
+		0C07B0CC2C2D022D00D0BFB2 /* calendar Image.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C07B0C52C2D022C00D0BFB2 /* calendar Image.png */; };
+		0C07B0CD2C2D022D00D0BFB2 /* MF_little .png in Resources */ = {isa = PBXBuildFile; fileRef = 0C07B0C62C2D022C00D0BFB2 /* MF_little .png */; };
+		0C07B0CE2C2D022D00D0BFB2 /* YOu are HEre2.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C07B0C72C2D022C00D0BFB2 /* YOu are HEre2.png */; };
+		0C07B0CF2C2D022D00D0BFB2 /* YOu are HEre.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C07B0C82C2D022C00D0BFB2 /* YOu are HEre.png */; };
+		0C07B0D02C2D022D00D0BFB2 /* flashing2.gif in Resources */ = {isa = PBXBuildFile; fileRef = 0C07B0C92C2D022D00D0BFB2 /* flashing2.gif */; };
+		0C07B0D12C2D022D00D0BFB2 /* MF_little_trans .png in Resources */ = {isa = PBXBuildFile; fileRef = 0C07B0CA2C2D022D00D0BFB2 /* MF_little_trans .png */; };
+		0C07B0D32C2D033700D0BFB2 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0D22C2D033700D0BFB2 /* AppState.swift */; };
+		0CEB03962C2B9B73007CA3CC /* PirateIslandViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CEB03952C2B9B73007CA3CC /* PirateIslandViewModel.swift */; };
+		0CEB03982C2B9C83007CA3CC /* CoreDataStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CEB03972C2B9C83007CA3CC /* CoreDataStack.swift */; };
+		0CEB039A2C2BA58F007CA3CC /* AppDayOfWeekRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CEB03992C2BA58F007CA3CC /* AppDayOfWeekRepository.swift */; };
+		0CF13E452C2A326700D714C0 /* Seas_3App.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E442C2A326700D714C0 /* Seas_3App.swift */; };
+		0CF13E472C2A326700D714C0 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E462C2A326700D714C0 /* ContentView.swift */; };
+		0CF13E492C2A326A00D714C0 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0CF13E482C2A326A00D714C0 /* Assets.xcassets */; };
+		0CF13E4C2C2A326A00D714C0 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0CF13E4B2C2A326A00D714C0 /* Preview Assets.xcassets */; };
+		0CF13E4E2C2A326A00D714C0 /* Persistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E4D2C2A326A00D714C0 /* Persistence.swift */; };
+		0CF13E512C2A326A00D714C0 /* Seas_3.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E4F2C2A326A00D714C0 /* Seas_3.xcdatamodeld */; };
+		0CF13E5B2C2A326A00D714C0 /* Seas_3Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E5A2C2A326A00D714C0 /* Seas_3Tests.swift */; };
+		0CF13E652C2A326A00D714C0 /* Seas_3UITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E642C2A326A00D714C0 /* Seas_3UITests.swift */; };
+		0CF13E672C2A326A00D714C0 /* Seas_3UITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E662C2A326A00D714C0 /* Seas_3UITestsLaunchTests.swift */; };
+		0CF13E792C2A36B500D714C0 /* AppDayOfWeek+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E732C2A36B500D714C0 /* AppDayOfWeek+CoreDataClass.swift */; };
+		0CF13E7A2C2A36B500D714C0 /* AppDayOfWeek+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E742C2A36B500D714C0 /* AppDayOfWeek+CoreDataProperties.swift */; };
+		0CF13E7B2C2A36B500D714C0 /* PirateIsland+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E752C2A36B500D714C0 /* PirateIsland+CoreDataClass.swift */; };
+		0CF13E7C2C2A36B500D714C0 /* PirateIsland+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E762C2A36B500D714C0 /* PirateIsland+CoreDataProperties.swift */; };
+		0CF13E7D2C2A36B500D714C0 /* UserInfo+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E772C2A36B500D714C0 /* UserInfo+CoreDataClass.swift */; };
+		0CF13E7E2C2A36B500D714C0 /* UserInfo+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E782C2A36B500D714C0 /* UserInfo+CoreDataProperties.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		0CF13E572C2A326A00D714C0 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0CF13E392C2A326700D714C0 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 0CF13E402C2A326700D714C0;
+			remoteInfo = Seas_3;
+		};
+		0CF13E612C2A326A00D714C0 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0CF13E392C2A326700D714C0 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 0CF13E402C2A326700D714C0;
+			remoteInfo = Seas_3;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		0C07B0702C2CFD0300D0BFB2 /* IslandMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandMenu.swift; sourceTree = "<group>"; };
+		0C07B0722C2CFD2800D0BFB2 /* AddNewIsland.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddNewIsland.swift; sourceTree = "<group>"; };
+		0C07B0742C2CFD4900D0BFB2 /* EditExistingIslandList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditExistingIslandList.swift; sourceTree = "<group>"; };
+		0C07B0762C2CFD6700D0BFB2 /* EditExistingIsland.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditExistingIsland.swift; sourceTree = "<group>"; };
+		0C07B0782C2CFDBB00D0BFB2 /* PirateIslandView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PirateIslandView.swift; sourceTree = "<group>"; };
+		0C07B07A2C2CFDDE00D0BFB2 /* AddIslandFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddIslandFormView.swift; sourceTree = "<group>"; };
+		0C07B07C2C2CFDFE00D0BFB2 /* IslandMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandMapView.swift; sourceTree = "<group>"; };
+		0C07B07E2C2CFE1C00D0BFB2 /* IslandDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandDetailView.swift; sourceTree = "<group>"; };
+		0C07B0802C2CFE3600D0BFB2 /* IslandMap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandMap.swift; sourceTree = "<group>"; };
+		0C07B0822C2CFE5000D0BFB2 /* GeocodingUtility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeocodingUtility.swift; sourceTree = "<group>"; };
+		0C07B0842C2CFE6200D0BFB2 /* AdditionalGymInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdditionalGymInfo.swift; sourceTree = "<group>"; };
+		0C07B0872C2CFE9F00D0BFB2 /* ViewOpenMatByDay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewOpenMatByDay.swift; sourceTree = "<group>"; };
+		0C07B0892C2CFEB800D0BFB2 /* DaysOfWeekFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DaysOfWeekFormView.swift; sourceTree = "<group>"; };
+		0C07B08B2C2CFED400D0BFB2 /* AppDayOfWeekViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDayOfWeekViewModel.swift; sourceTree = "<group>"; };
+		0C07B08D2C2CFEF200D0BFB2 /* SearchByDayoftheWeek.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchByDayoftheWeek.swift; sourceTree = "<group>"; };
+		0C07B08F2C2CFF0B00D0BFB2 /* DayOfWeekView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayOfWeekView.swift; sourceTree = "<group>"; };
+		0C07B0912C2CFF2A00D0BFB2 /* SavedConfirmationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedConfirmationView.swift; sourceTree = "<group>"; };
+		0C07B0932C2CFF3B00D0BFB2 /* AddClassScheduleFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddClassScheduleFormView.swift; sourceTree = "<group>"; };
+		0C07B0952C2CFF5A00D0BFB2 /* AddOpenMatFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddOpenMatFormView.swift; sourceTree = "<group>"; };
+		0C07B0982C2CFF8500D0BFB2 /* GymMatReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GymMatReviewView.swift; sourceTree = "<group>"; };
+		0C07B09B2C2CFFA500D0BFB2 /* AllEnteredLocations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AllEnteredLocations.swift; sourceTree = "<group>"; };
+		0C07B09D2C2CFFC400D0BFB2 /* AllIslandMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AllIslandMapView.swift; sourceTree = "<group>"; };
+		0C07B09F2C2CFFE000D0BFB2 /* AllMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AllMapView.swift; sourceTree = "<group>"; };
+		0C07B0A12C2CFFFD00D0BFB2 /* LocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
+		0C07B0A32C2D002000D0BFB2 /* EnterZipCodeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnterZipCodeView.swift; sourceTree = "<group>"; };
+		0C07B0A52C2D002D00D0BFB2 /* SceneLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneLoader.swift; sourceTree = "<group>"; };
+		0C07B0A72C2D004900D0BFB2 /* RenderingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderingManager.swift; sourceTree = "<group>"; };
+		0C07B0A92C2D007000D0BFB2 /* GIFBackgroundView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GIFBackgroundView.swift; sourceTree = "<group>"; };
+		0C07B0AB2C2D009300D0BFB2 /* SwiftGIF.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftGIF.swift; sourceTree = "<group>"; };
+		0C07B0AD2C2D00A900D0BFB2 /* SharedTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedTypes.swift; sourceTree = "<group>"; };
+		0C07B0AF2C2D00BE00D0BFB2 /* CustomMarkerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomMarkerView.swift; sourceTree = "<group>"; };
+		0C07B0B12C2D00DC00D0BFB2 /* CustomMapMarker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomMapMarker.swift; sourceTree = "<group>"; };
+		0C07B0B32C2D00F300D0BFB2 /* CustomPin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomPin.swift; sourceTree = "<group>"; };
+		0C07B0B62C2D015C00D0BFB2 /* FAQnDisclaimerMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FAQnDisclaimerMenu.swift; sourceTree = "<group>"; };
+		0C07B0B82C2D017500D0BFB2 /* WhoWeAre.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhoWeAre.swift; sourceTree = "<group>"; };
+		0C07B0BA2C2D018D00D0BFB2 /* Disclaimer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Disclaimer.swift; sourceTree = "<group>"; };
+		0C07B0BC2C2D01AB00D0BFB2 /* FAQ.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FAQ.swift; sourceTree = "<group>"; };
+		0C07B0BE2C2D01D700D0BFB2 /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
+		0C07B0C02C2D01F300D0BFB2 /* CustomUnarchiveTransformer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomUnarchiveTransformer.swift; sourceTree = "<group>"; };
+		0C07B0C22C2D020C00D0BFB2 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		0C07B0C42C2D022C00D0BFB2 /* flashing.gif */ = {isa = PBXFileReference; lastKnownFileType = image.gif; path = flashing.gif; sourceTree = "<group>"; };
+		0C07B0C52C2D022C00D0BFB2 /* calendar Image.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "calendar Image.png"; sourceTree = "<group>"; };
+		0C07B0C62C2D022C00D0BFB2 /* MF_little .png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "MF_little .png"; sourceTree = "<group>"; };
+		0C07B0C72C2D022C00D0BFB2 /* YOu are HEre2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "YOu are HEre2.png"; sourceTree = "<group>"; };
+		0C07B0C82C2D022C00D0BFB2 /* YOu are HEre.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "YOu are HEre.png"; sourceTree = "<group>"; };
+		0C07B0C92C2D022D00D0BFB2 /* flashing2.gif */ = {isa = PBXFileReference; lastKnownFileType = image.gif; path = flashing2.gif; sourceTree = "<group>"; };
+		0C07B0CA2C2D022D00D0BFB2 /* MF_little_trans .png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "MF_little_trans .png"; sourceTree = "<group>"; };
+		0C07B0D22C2D033700D0BFB2 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		0C07B0D82C2DD8DD00D0BFB2 /* Seas-3-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Seas-3-Info.plist"; sourceTree = SOURCE_ROOT; };
+		0CEB03952C2B9B73007CA3CC /* PirateIslandViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PirateIslandViewModel.swift; sourceTree = "<group>"; };
+		0CEB03972C2B9C83007CA3CC /* CoreDataStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataStack.swift; sourceTree = "<group>"; };
+		0CEB03992C2BA58F007CA3CC /* AppDayOfWeekRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDayOfWeekRepository.swift; sourceTree = "<group>"; };
+		0CF13E412C2A326700D714C0 /* Seas_3.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Seas_3.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		0CF13E442C2A326700D714C0 /* Seas_3App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Seas_3App.swift; sourceTree = "<group>"; };
+		0CF13E462C2A326700D714C0 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		0CF13E482C2A326A00D714C0 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		0CF13E4B2C2A326A00D714C0 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		0CF13E4D2C2A326A00D714C0 /* Persistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Persistence.swift; sourceTree = "<group>"; };
+		0CF13E502C2A326A00D714C0 /* Seas_3.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = Seas_3.xcdatamodel; sourceTree = "<group>"; };
+		0CF13E562C2A326A00D714C0 /* Seas_3Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Seas_3Tests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		0CF13E5A2C2A326A00D714C0 /* Seas_3Tests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Seas_3Tests.swift; sourceTree = "<group>"; };
+		0CF13E602C2A326A00D714C0 /* Seas_3UITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Seas_3UITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		0CF13E642C2A326A00D714C0 /* Seas_3UITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Seas_3UITests.swift; sourceTree = "<group>"; };
+		0CF13E662C2A326A00D714C0 /* Seas_3UITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Seas_3UITestsLaunchTests.swift; sourceTree = "<group>"; };
+		0CF13E732C2A36B500D714C0 /* AppDayOfWeek+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppDayOfWeek+CoreDataClass.swift"; sourceTree = "<group>"; };
+		0CF13E742C2A36B500D714C0 /* AppDayOfWeek+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppDayOfWeek+CoreDataProperties.swift"; sourceTree = "<group>"; };
+		0CF13E752C2A36B500D714C0 /* PirateIsland+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PirateIsland+CoreDataClass.swift"; sourceTree = "<group>"; };
+		0CF13E762C2A36B500D714C0 /* PirateIsland+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PirateIsland+CoreDataProperties.swift"; sourceTree = "<group>"; };
+		0CF13E772C2A36B500D714C0 /* UserInfo+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UserInfo+CoreDataClass.swift"; sourceTree = "<group>"; };
+		0CF13E782C2A36B500D714C0 /* UserInfo+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UserInfo+CoreDataProperties.swift"; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		0CF13E3E2C2A326700D714C0 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		0CF13E532C2A326A00D714C0 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		0CF13E5D2C2A326A00D714C0 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		0C07B0862C2CFE8200D0BFB2 /* SearchByDayOfWeek */ = {
+			isa = PBXGroup;
+			children = (
+				0C07B0872C2CFE9F00D0BFB2 /* ViewOpenMatByDay.swift */,
+				0C07B0892C2CFEB800D0BFB2 /* DaysOfWeekFormView.swift */,
+				0C07B08B2C2CFED400D0BFB2 /* AppDayOfWeekViewModel.swift */,
+				0C07B08D2C2CFEF200D0BFB2 /* SearchByDayoftheWeek.swift */,
+				0C07B08F2C2CFF0B00D0BFB2 /* DayOfWeekView.swift */,
+				0C07B0912C2CFF2A00D0BFB2 /* SavedConfirmationView.swift */,
+				0C07B0932C2CFF3B00D0BFB2 /* AddClassScheduleFormView.swift */,
+				0C07B0952C2CFF5A00D0BFB2 /* AddOpenMatFormView.swift */,
+			);
+			path = SearchByDayOfWeek;
+			sourceTree = "<group>";
+		};
+		0C07B0972C2CFF7000D0BFB2 /* MatReview */ = {
+			isa = PBXGroup;
+			children = (
+				0C07B0982C2CFF8500D0BFB2 /* GymMatReviewView.swift */,
+			);
+			path = MatReview;
+			sourceTree = "<group>";
+		};
+		0C07B09A2C2CFF9400D0BFB2 /* ALLISLANDS */ = {
+			isa = PBXGroup;
+			children = (
+				0C07B09B2C2CFFA500D0BFB2 /* AllEnteredLocations.swift */,
+				0C07B09D2C2CFFC400D0BFB2 /* AllIslandMapView.swift */,
+				0C07B09F2C2CFFE000D0BFB2 /* AllMapView.swift */,
+				0C07B0A12C2CFFFD00D0BFB2 /* LocationManager.swift */,
+				0C07B0A32C2D002000D0BFB2 /* EnterZipCodeView.swift */,
+				0C07B0A52C2D002D00D0BFB2 /* SceneLoader.swift */,
+				0C07B0A72C2D004900D0BFB2 /* RenderingManager.swift */,
+				0C07B0A92C2D007000D0BFB2 /* GIFBackgroundView.swift */,
+				0C07B0AB2C2D009300D0BFB2 /* SwiftGIF.swift */,
+				0C07B0AD2C2D00A900D0BFB2 /* SharedTypes.swift */,
+				0C07B0AF2C2D00BE00D0BFB2 /* CustomMarkerView.swift */,
+				0C07B0B12C2D00DC00D0BFB2 /* CustomMapMarker.swift */,
+				0C07B0B32C2D00F300D0BFB2 /* CustomPin.swift */,
+				0C07B0972C2CFF7000D0BFB2 /* MatReview */,
+			);
+			path = ALLISLANDS;
+			sourceTree = "<group>";
+		};
+		0C07B0B52C2D013A00D0BFB2 /* FAQnDisclaimer */ = {
+			isa = PBXGroup;
+			children = (
+				0C07B0B62C2D015C00D0BFB2 /* FAQnDisclaimerMenu.swift */,
+				0C07B0B82C2D017500D0BFB2 /* WhoWeAre.swift */,
+				0C07B0BA2C2D018D00D0BFB2 /* Disclaimer.swift */,
+				0C07B0BC2C2D01AB00D0BFB2 /* FAQ.swift */,
+			);
+			path = FAQnDisclaimer;
+			sourceTree = "<group>";
+		};
+		0CF13E382C2A326700D714C0 = {
+			isa = PBXGroup;
+			children = (
+				0CF13E432C2A326700D714C0 /* Seas_3 */,
+				0CF13E592C2A326A00D714C0 /* Seas_3Tests */,
+				0CF13E632C2A326A00D714C0 /* Seas_3UITests */,
+				0CF13E422C2A326700D714C0 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		0CF13E422C2A326700D714C0 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				0CF13E412C2A326700D714C0 /* Seas_3.app */,
+				0CF13E562C2A326A00D714C0 /* Seas_3Tests.xctest */,
+				0CF13E602C2A326A00D714C0 /* Seas_3UITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		0CF13E432C2A326700D714C0 /* Seas_3 */ = {
+			isa = PBXGroup;
+			children = (
+				0C07B0D82C2DD8DD00D0BFB2 /* Seas-3-Info.plist */,
+				0CF13E442C2A326700D714C0 /* Seas_3App.swift */,
+				0C07B0702C2CFD0300D0BFB2 /* IslandMenu.swift */,
+				0C07B0722C2CFD2800D0BFB2 /* AddNewIsland.swift */,
+				0C07B0742C2CFD4900D0BFB2 /* EditExistingIslandList.swift */,
+				0CEB03952C2B9B73007CA3CC /* PirateIslandViewModel.swift */,
+				0CF13E462C2A326700D714C0 /* ContentView.swift */,
+				0CF13E482C2A326A00D714C0 /* Assets.xcassets */,
+				0CF13E4D2C2A326A00D714C0 /* Persistence.swift */,
+				0C07B0762C2CFD6700D0BFB2 /* EditExistingIsland.swift */,
+				0C07B0782C2CFDBB00D0BFB2 /* PirateIslandView.swift */,
+				0C07B07A2C2CFDDE00D0BFB2 /* AddIslandFormView.swift */,
+				0C07B07C2C2CFDFE00D0BFB2 /* IslandMapView.swift */,
+				0C07B07E2C2CFE1C00D0BFB2 /* IslandDetailView.swift */,
+				0C07B0802C2CFE3600D0BFB2 /* IslandMap.swift */,
+				0C07B0822C2CFE5000D0BFB2 /* GeocodingUtility.swift */,
+				0C07B0842C2CFE6200D0BFB2 /* AdditionalGymInfo.swift */,
+				0C07B0C22C2D020C00D0BFB2 /* AppDelegate.swift */,
+				0C07B0C02C2D01F300D0BFB2 /* CustomUnarchiveTransformer.swift */,
+				0C07B0BE2C2D01D700D0BFB2 /* Logger.swift */,
+				0C07B0C52C2D022C00D0BFB2 /* calendar Image.png */,
+				0C07B0C42C2D022C00D0BFB2 /* flashing.gif */,
+				0C07B0C92C2D022D00D0BFB2 /* flashing2.gif */,
+				0C07B0C62C2D022C00D0BFB2 /* MF_little .png */,
+				0C07B0C72C2D022C00D0BFB2 /* YOu are HEre2.png */,
+				0C07B0CA2C2D022D00D0BFB2 /* MF_little_trans .png */,
+				0C07B0C82C2D022C00D0BFB2 /* YOu are HEre.png */,
+				0C07B0862C2CFE8200D0BFB2 /* SearchByDayOfWeek */,
+				0C07B0B52C2D013A00D0BFB2 /* FAQnDisclaimer */,
+				0CF13E7F2C2A36C000D714C0 /* CoreDataItems */,
+				0C07B09A2C2CFF9400D0BFB2 /* ALLISLANDS */,
+				0CF13E4A2C2A326A00D714C0 /* Preview Content */,
+				0C07B0D22C2D033700D0BFB2 /* AppState.swift */,
+			);
+			path = Seas_3;
+			sourceTree = "<group>";
+		};
+		0CF13E4A2C2A326A00D714C0 /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+				0CF13E4B2C2A326A00D714C0 /* Preview Assets.xcassets */,
+			);
+			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		0CF13E592C2A326A00D714C0 /* Seas_3Tests */ = {
+			isa = PBXGroup;
+			children = (
+				0CF13E5A2C2A326A00D714C0 /* Seas_3Tests.swift */,
+			);
+			path = Seas_3Tests;
+			sourceTree = "<group>";
+		};
+		0CF13E632C2A326A00D714C0 /* Seas_3UITests */ = {
+			isa = PBXGroup;
+			children = (
+				0CF13E642C2A326A00D714C0 /* Seas_3UITests.swift */,
+				0CF13E662C2A326A00D714C0 /* Seas_3UITestsLaunchTests.swift */,
+			);
+			path = Seas_3UITests;
+			sourceTree = "<group>";
+		};
+		0CF13E7F2C2A36C000D714C0 /* CoreDataItems */ = {
+			isa = PBXGroup;
+			children = (
+				0CF13E4F2C2A326A00D714C0 /* Seas_3.xcdatamodeld */,
+				0CEB03972C2B9C83007CA3CC /* CoreDataStack.swift */,
+				0CF13E732C2A36B500D714C0 /* AppDayOfWeek+CoreDataClass.swift */,
+				0CF13E742C2A36B500D714C0 /* AppDayOfWeek+CoreDataProperties.swift */,
+				0CF13E752C2A36B500D714C0 /* PirateIsland+CoreDataClass.swift */,
+				0CF13E762C2A36B500D714C0 /* PirateIsland+CoreDataProperties.swift */,
+				0CF13E772C2A36B500D714C0 /* UserInfo+CoreDataClass.swift */,
+				0CF13E782C2A36B500D714C0 /* UserInfo+CoreDataProperties.swift */,
+				0CEB03992C2BA58F007CA3CC /* AppDayOfWeekRepository.swift */,
+			);
+			path = CoreDataItems;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		0CF13E402C2A326700D714C0 /* Seas_3 */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0CF13E6A2C2A326A00D714C0 /* Build configuration list for PBXNativeTarget "Seas_3" */;
+			buildPhases = (
+				0CF13E3D2C2A326700D714C0 /* Sources */,
+				0CF13E3E2C2A326700D714C0 /* Frameworks */,
+				0CF13E3F2C2A326700D714C0 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Seas_3;
+			productName = Seas_3;
+			productReference = 0CF13E412C2A326700D714C0 /* Seas_3.app */;
+			productType = "com.apple.product-type.application";
+		};
+		0CF13E552C2A326A00D714C0 /* Seas_3Tests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0CF13E6D2C2A326A00D714C0 /* Build configuration list for PBXNativeTarget "Seas_3Tests" */;
+			buildPhases = (
+				0CF13E522C2A326A00D714C0 /* Sources */,
+				0CF13E532C2A326A00D714C0 /* Frameworks */,
+				0CF13E542C2A326A00D714C0 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				0CF13E582C2A326A00D714C0 /* PBXTargetDependency */,
+			);
+			name = Seas_3Tests;
+			productName = Seas_3Tests;
+			productReference = 0CF13E562C2A326A00D714C0 /* Seas_3Tests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		0CF13E5F2C2A326A00D714C0 /* Seas_3UITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0CF13E702C2A326A00D714C0 /* Build configuration list for PBXNativeTarget "Seas_3UITests" */;
+			buildPhases = (
+				0CF13E5C2C2A326A00D714C0 /* Sources */,
+				0CF13E5D2C2A326A00D714C0 /* Frameworks */,
+				0CF13E5E2C2A326A00D714C0 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				0CF13E622C2A326A00D714C0 /* PBXTargetDependency */,
+			);
+			name = Seas_3UITests;
+			productName = Seas_3UITests;
+			productReference = 0CF13E602C2A326A00D714C0 /* Seas_3UITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		0CF13E392C2A326700D714C0 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1540;
+				LastUpgradeCheck = 1540;
+				TargetAttributes = {
+					0CF13E402C2A326700D714C0 = {
+						CreatedOnToolsVersion = 15.4;
+					};
+					0CF13E552C2A326A00D714C0 = {
+						CreatedOnToolsVersion = 15.4;
+						TestTargetID = 0CF13E402C2A326700D714C0;
+					};
+					0CF13E5F2C2A326A00D714C0 = {
+						CreatedOnToolsVersion = 15.4;
+						TestTargetID = 0CF13E402C2A326700D714C0;
+					};
+				};
+			};
+			buildConfigurationList = 0CF13E3C2C2A326700D714C0 /* Build configuration list for PBXProject "Seas_3" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 0CF13E382C2A326700D714C0;
+			productRefGroup = 0CF13E422C2A326700D714C0 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				0CF13E402C2A326700D714C0 /* Seas_3 */,
+				0CF13E552C2A326A00D714C0 /* Seas_3Tests */,
+				0CF13E5F2C2A326A00D714C0 /* Seas_3UITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		0CF13E3F2C2A326700D714C0 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0C07B0CB2C2D022D00D0BFB2 /* flashing.gif in Resources */,
+				0C07B0CD2C2D022D00D0BFB2 /* MF_little .png in Resources */,
+				0CF13E4C2C2A326A00D714C0 /* Preview Assets.xcassets in Resources */,
+				0C07B0CC2C2D022D00D0BFB2 /* calendar Image.png in Resources */,
+				0CF13E492C2A326A00D714C0 /* Assets.xcassets in Resources */,
+				0C07B0D12C2D022D00D0BFB2 /* MF_little_trans .png in Resources */,
+				0C07B0CE2C2D022D00D0BFB2 /* YOu are HEre2.png in Resources */,
+				0C07B0CF2C2D022D00D0BFB2 /* YOu are HEre.png in Resources */,
+				0C07B0D02C2D022D00D0BFB2 /* flashing2.gif in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		0CF13E542C2A326A00D714C0 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		0CF13E5E2C2A326A00D714C0 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		0CF13E3D2C2A326700D714C0 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0CF13E4E2C2A326A00D714C0 /* Persistence.swift in Sources */,
+				0CEB039A2C2BA58F007CA3CC /* AppDayOfWeekRepository.swift in Sources */,
+				0C07B0902C2CFF0B00D0BFB2 /* DayOfWeekView.swift in Sources */,
+				0C07B0D32C2D033700D0BFB2 /* AppState.swift in Sources */,
+				0C07B0A62C2D002D00D0BFB2 /* SceneLoader.swift in Sources */,
+				0C07B07D2C2CFDFE00D0BFB2 /* IslandMapView.swift in Sources */,
+				0CF13E512C2A326A00D714C0 /* Seas_3.xcdatamodeld in Sources */,
+				0C07B0B22C2D00DC00D0BFB2 /* CustomMapMarker.swift in Sources */,
+				0C07B0A02C2CFFE000D0BFB2 /* AllMapView.swift in Sources */,
+				0C07B08C2C2CFED400D0BFB2 /* AppDayOfWeekViewModel.swift in Sources */,
+				0CEB03982C2B9C83007CA3CC /* CoreDataStack.swift in Sources */,
+				0C07B0812C2CFE3600D0BFB2 /* IslandMap.swift in Sources */,
+				0C07B0A82C2D004900D0BFB2 /* RenderingManager.swift in Sources */,
+				0C07B0AA2C2D007000D0BFB2 /* GIFBackgroundView.swift in Sources */,
+				0C07B0AC2C2D009300D0BFB2 /* SwiftGIF.swift in Sources */,
+				0C07B09C2C2CFFA500D0BFB2 /* AllEnteredLocations.swift in Sources */,
+				0C07B07F2C2CFE1C00D0BFB2 /* IslandDetailView.swift in Sources */,
+				0C07B0C12C2D01F300D0BFB2 /* CustomUnarchiveTransformer.swift in Sources */,
+				0C07B0792C2CFDBB00D0BFB2 /* PirateIslandView.swift in Sources */,
+				0CF13E472C2A326700D714C0 /* ContentView.swift in Sources */,
+				0C07B0BD2C2D01AB00D0BFB2 /* FAQ.swift in Sources */,
+				0CF13E452C2A326700D714C0 /* Seas_3App.swift in Sources */,
+				0CF13E792C2A36B500D714C0 /* AppDayOfWeek+CoreDataClass.swift in Sources */,
+				0C07B0942C2CFF3B00D0BFB2 /* AddClassScheduleFormView.swift in Sources */,
+				0C07B0712C2CFD0300D0BFB2 /* IslandMenu.swift in Sources */,
+				0C07B0772C2CFD6700D0BFB2 /* EditExistingIsland.swift in Sources */,
+				0CF13E7A2C2A36B500D714C0 /* AppDayOfWeek+CoreDataProperties.swift in Sources */,
+				0C07B0BF2C2D01D700D0BFB2 /* Logger.swift in Sources */,
+				0C07B0882C2CFE9F00D0BFB2 /* ViewOpenMatByDay.swift in Sources */,
+				0CF13E7B2C2A36B500D714C0 /* PirateIsland+CoreDataClass.swift in Sources */,
+				0C07B07B2C2CFDDE00D0BFB2 /* AddIslandFormView.swift in Sources */,
+				0CF13E7C2C2A36B500D714C0 /* PirateIsland+CoreDataProperties.swift in Sources */,
+				0C07B08A2C2CFEB800D0BFB2 /* DaysOfWeekFormView.swift in Sources */,
+				0C07B0B72C2D015C00D0BFB2 /* FAQnDisclaimerMenu.swift in Sources */,
+				0CF13E7D2C2A36B500D714C0 /* UserInfo+CoreDataClass.swift in Sources */,
+				0CEB03962C2B9B73007CA3CC /* PirateIslandViewModel.swift in Sources */,
+				0C07B0AE2C2D00A900D0BFB2 /* SharedTypes.swift in Sources */,
+				0C07B0922C2CFF2A00D0BFB2 /* SavedConfirmationView.swift in Sources */,
+				0C07B08E2C2CFEF200D0BFB2 /* SearchByDayoftheWeek.swift in Sources */,
+				0CF13E7E2C2A36B500D714C0 /* UserInfo+CoreDataProperties.swift in Sources */,
+				0C07B0852C2CFE6200D0BFB2 /* AdditionalGymInfo.swift in Sources */,
+				0C07B0732C2CFD2800D0BFB2 /* AddNewIsland.swift in Sources */,
+				0C07B0752C2CFD4900D0BFB2 /* EditExistingIslandList.swift in Sources */,
+				0C07B0B42C2D00F300D0BFB2 /* CustomPin.swift in Sources */,
+				0C07B0B02C2D00BE00D0BFB2 /* CustomMarkerView.swift in Sources */,
+				0C07B09E2C2CFFC400D0BFB2 /* AllIslandMapView.swift in Sources */,
+				0C07B0832C2CFE5000D0BFB2 /* GeocodingUtility.swift in Sources */,
+				0C07B0BB2C2D018D00D0BFB2 /* Disclaimer.swift in Sources */,
+				0C07B0B92C2D017500D0BFB2 /* WhoWeAre.swift in Sources */,
+				0C07B0A42C2D002000D0BFB2 /* EnterZipCodeView.swift in Sources */,
+				0C07B0992C2CFF8500D0BFB2 /* GymMatReviewView.swift in Sources */,
+				0C07B0962C2CFF5A00D0BFB2 /* AddOpenMatFormView.swift in Sources */,
+				0C07B0A22C2CFFFD00D0BFB2 /* LocationManager.swift in Sources */,
+				0C07B0C32C2D020C00D0BFB2 /* AppDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		0CF13E522C2A326A00D714C0 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0CF13E5B2C2A326A00D714C0 /* Seas_3Tests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		0CF13E5C2C2A326A00D714C0 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0CF13E672C2A326A00D714C0 /* Seas_3UITestsLaunchTests.swift in Sources */,
+				0CF13E652C2A326A00D714C0 /* Seas_3UITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		0CF13E582C2A326A00D714C0 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 0CF13E402C2A326700D714C0 /* Seas_3 */;
+			targetProxy = 0CF13E572C2A326A00D714C0 /* PBXContainerItemProxy */;
+		};
+		0CF13E622C2A326A00D714C0 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 0CF13E402C2A326700D714C0 /* Seas_3 */;
+			targetProxy = 0CF13E612C2A326A00D714C0 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		0CF13E682C2A326A00D714C0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		0CF13E692C2A326A00D714C0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		0CF13E6B2C2A326A00D714C0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"Seas_3/Preview Content\"";
+				DEVELOPMENT_TEAM = 84463TFCZ4;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Seas-3-Info.plist";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "MF-inder.Seas-3";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		0CF13E6C2C2A326A00D714C0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"Seas_3/Preview Content\"";
+				DEVELOPMENT_TEAM = 84463TFCZ4;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Seas-3-Info.plist";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "MF-inder.Seas-3";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		0CF13E6E2C2A326A00D714C0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 84463TFCZ4;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "MF-inder.Seas-3Tests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Seas_3.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Seas_3";
+			};
+			name = Debug;
+		};
+		0CF13E6F2C2A326A00D714C0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 84463TFCZ4;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "MF-inder.Seas-3Tests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Seas_3.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Seas_3";
+			};
+			name = Release;
+		};
+		0CF13E712C2A326A00D714C0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 84463TFCZ4;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "MF-inder.Seas-3UITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Seas_3;
+			};
+			name = Debug;
+		};
+		0CF13E722C2A326A00D714C0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 84463TFCZ4;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "MF-inder.Seas-3UITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Seas_3;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		0CF13E3C2C2A326700D714C0 /* Build configuration list for PBXProject "Seas_3" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0CF13E682C2A326A00D714C0 /* Debug */,
+				0CF13E692C2A326A00D714C0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		0CF13E6A2C2A326A00D714C0 /* Build configuration list for PBXNativeTarget "Seas_3" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0CF13E6B2C2A326A00D714C0 /* Debug */,
+				0CF13E6C2C2A326A00D714C0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		0CF13E6D2C2A326A00D714C0 /* Build configuration list for PBXNativeTarget "Seas_3Tests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0CF13E6E2C2A326A00D714C0 /* Debug */,
+				0CF13E6F2C2A326A00D714C0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		0CF13E702C2A326A00D714C0 /* Build configuration list for PBXNativeTarget "Seas_3UITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0CF13E712C2A326A00D714C0 /* Debug */,
+				0CF13E722C2A326A00D714C0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCVersionGroup section */
+		0CF13E4F2C2A326A00D714C0 /* Seas_3.xcdatamodeld */ = {
+			isa = XCVersionGroup;
+			children = (
+				0CF13E502C2A326A00D714C0 /* Seas_3.xcdatamodel */,
+			);
+			currentVersion = 0CF13E502C2A326A00D714C0 /* Seas_3.xcdatamodel */;
+			path = Seas_3.xcdatamodeld;
+			sourceTree = "<group>";
+			versionGroupType = wrapper.xcdatamodel;
+		};
+/* End XCVersionGroup section */
+	};
+	rootObject = 0CF13E392C2A326700D714C0 /* Project object */;
+}
