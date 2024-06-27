@@ -1,11 +1,9 @@
+// ConsolidatedIslandMapView.swift
+// Seas_3
 //
-//  AllIslandMapView.swift
-//  Seas_3
-//
-//  Created by Brian Romero on 6/26/24.
+// Created by Brian Romero on 6/26/24.
 //
 
-import Foundation
 import SwiftUI
 import CoreData
 import CoreLocation
@@ -42,7 +40,7 @@ struct ConsolidatedIslandMapView: View {
         NavigationView {
             VStack {
                 if let userLocation = locationManager.userLocation {
-                    Map(coordinateRegion: $region, annotationItems: pirateMarkers) { location in
+                    Map(coordinateRegion: $region, showsUserLocation: true, annotationItems: pirateMarkers) { location in
                         MapAnnotation(coordinate: location.coordinate) {
                             VStack {
                                 Text(location.title)
@@ -59,7 +57,6 @@ struct ConsolidatedIslandMapView: View {
                     .frame(height: 300)
                     .padding()
                     
-                    // Add radius picker here
                     RadiusPicker(selectedRadius: $selectedRadius)
                         .padding()
 
@@ -97,47 +94,37 @@ struct ConsolidatedIslandMapView: View {
             }
         }
     }
-
+    
     private func fetchPirateIslandsNear(_ location: CLLocation, within distance: CLLocationDistance) {
-        // Fetch pirate islands near the user's location
-        let context = viewContext
-        
-        do {
-            let markers = islands.compactMap { island -> CustomMapMarker? in
-                guard let title = island.islandName else {
-                    return nil
-                }
-                
-                // Ensure latitude and longitude are valid
-                if island.latitude != 0.0 && island.longitude != 0.0 {
-                    let islandLocation = CLLocation(latitude: island.latitude, longitude: island.longitude)
-                    let distanceInMeters = location.distance(from: islandLocation)
-                    // Check if the island is within the selected radius
-                    if distanceInMeters <= distance {
-                        return CustomMapMarker(coordinate: islandLocation.coordinate, title: title)
-                    }
-                }
-                
+        let markers = islands.compactMap { island -> CustomMapMarker? in
+            guard let title = island.islandName else {
                 return nil
             }
             
-            // Add current location marker
-            if let userLocation = locationManager.userLocation {
-                let currentLocationMarker = CustomMapMarker(coordinate: userLocation.coordinate, title: "You are Here")
-                pirateMarkers.append(currentLocationMarker)
+            // Ensure latitude and longitude are valid
+            if island.latitude != 0.0 && island.longitude != 0.0 {
+                let islandLocation = CLLocation(latitude: island.latitude, longitude: island.longitude)
+                let distanceInMeters = location.distance(from: islandLocation)
+                // Check if the island is within the selected radius
+                if distanceInMeters <= distance {
+                    return CustomMapMarker(coordinate: islandLocation.coordinate, title: title)
+                }
             }
             
-            self.pirateMarkers = markers
-            
-        } catch {
-            print("Failed to fetch PirateIsland: \(error)")
+            return nil
         }
+        
+        // Add current location marker
+        if let userLocation = locationManager.userLocation {
+            let currentLocationMarker = CustomMapMarker(coordinate: userLocation.coordinate, title: "You are Here")
+            pirateMarkers.append(currentLocationMarker)
+        }
+        
+        self.pirateMarkers = markers
     }
 
     private func updateRegion(_ userLocation: CLLocation, radius: Double) {
-        // Calculate the span based on radius
         let span = MKCoordinateSpan(latitudeDelta: radius / 69.0, longitudeDelta: radius / 69.0)
-        // Update the map region
         region = MKCoordinateRegion(center: userLocation.coordinate, span: span)
     }
 }

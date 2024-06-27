@@ -55,6 +55,8 @@
 		0C07B0D02C2D022D00D0BFB2 /* flashing2.gif in Resources */ = {isa = PBXBuildFile; fileRef = 0C07B0C92C2D022D00D0BFB2 /* flashing2.gif */; };
 		0C07B0D12C2D022D00D0BFB2 /* MF_little_trans .png in Resources */ = {isa = PBXBuildFile; fileRef = 0C07B0CA2C2D022D00D0BFB2 /* MF_little_trans .png */; };
 		0C07B0D32C2D033700D0BFB2 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0D22C2D033700D0BFB2 /* AppState.swift */; };
+		0CA9C9692C2E04E300E87BB1 /* UserLocationMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA9C9682C2E04E300E87BB1 /* UserLocationMapView.swift */; };
+		0CA9C96B2C2E059B00E87BB1 /* TESTMAPLOCATIONVIEW.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA9C96A2C2E059B00E87BB1 /* TESTMAPLOCATIONVIEW.swift */; };
 		0CEB03962C2B9B73007CA3CC /* PirateIslandViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CEB03952C2B9B73007CA3CC /* PirateIslandViewModel.swift */; };
 		0CEB03982C2B9C83007CA3CC /* CoreDataStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CEB03972C2B9C83007CA3CC /* CoreDataStack.swift */; };
 		0CEB039A2C2BA58F007CA3CC /* AppDayOfWeekRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CEB03992C2BA58F007CA3CC /* AppDayOfWeekRepository.swift */; };
@@ -142,6 +144,8 @@
 		0C07B0CA2C2D022D00D0BFB2 /* MF_little_trans .png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "MF_little_trans .png"; sourceTree = "<group>"; };
 		0C07B0D22C2D033700D0BFB2 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		0C07B0D82C2DD8DD00D0BFB2 /* Seas-3-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Seas-3-Info.plist"; sourceTree = SOURCE_ROOT; };
+		0CA9C9682C2E04E300E87BB1 /* UserLocationMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserLocationMapView.swift; sourceTree = "<group>"; };
+		0CA9C96A2C2E059B00E87BB1 /* TESTMAPLOCATIONVIEW.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TESTMAPLOCATIONVIEW.swift; sourceTree = "<group>"; };
 		0CEB03952C2B9B73007CA3CC /* PirateIslandViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PirateIslandViewModel.swift; sourceTree = "<group>"; };
 		0CEB03972C2B9C83007CA3CC /* CoreDataStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataStack.swift; sourceTree = "<group>"; };
 		0CEB03992C2BA58F007CA3CC /* AppDayOfWeekRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDayOfWeekRepository.swift; sourceTree = "<group>"; };
@@ -230,6 +234,8 @@
 				0C07B0B12C2D00DC00D0BFB2 /* CustomMapMarker.swift */,
 				0C07B0B32C2D00F300D0BFB2 /* CustomPin.swift */,
 				0C07B0972C2CFF7000D0BFB2 /* MatReview */,
+				0CA9C9682C2E04E300E87BB1 /* UserLocationMapView.swift */,
+				0CA9C96A2C2E059B00E87BB1 /* TESTMAPLOCATIONVIEW.swift */,
 			);
 			path = ALLISLANDS;
 			sourceTree = "<group>";
@@ -489,6 +495,7 @@
 				0C07B0D32C2D033700D0BFB2 /* AppState.swift in Sources */,
 				0C07B0A62C2D002D00D0BFB2 /* SceneLoader.swift in Sources */,
 				0C07B07D2C2CFDFE00D0BFB2 /* IslandMapView.swift in Sources */,
+				0CA9C96B2C2E059B00E87BB1 /* TESTMAPLOCATIONVIEW.swift in Sources */,
 				0CF13E512C2A326A00D714C0 /* Seas_3.xcdatamodeld in Sources */,
 				0C07B0B22C2D00DC00D0BFB2 /* CustomMapMarker.swift in Sources */,
 				0C07B0A02C2CFFE000D0BFB2 /* AllMapView.swift in Sources */,
@@ -503,6 +510,7 @@
 				0C07B0C12C2D01F300D0BFB2 /* CustomUnarchiveTransformer.swift in Sources */,
 				0C07B0792C2CFDBB00D0BFB2 /* PirateIslandView.swift in Sources */,
 				0CF13E472C2A326700D714C0 /* ContentView.swift in Sources */,
+				0CA9C9692C2E04E300E87BB1 /* UserLocationMapView.swift in Sources */,
 				0C07B0BD2C2D01AB00D0BFB2 /* FAQ.swift in Sources */,
 				0CF13E452C2A326700D714C0 /* Seas_3App.swift in Sources */,
 				0CF13E792C2A36B500D714C0 /* AppDayOfWeek+CoreDataClass.swift in Sources */,

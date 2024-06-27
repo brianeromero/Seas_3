@@ -22,7 +22,7 @@
         <attribute name="thursday" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="tuesday" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="wednesday" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
-        <relationship name="pirateIsland" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PirateIsland" inverseName="daysOfWeek" inverseEntity="PirateIsland"/>
+        <relationship name="pIsland" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PirateIsland" inverseName="appDayOfWeeks" inverseEntity="PirateIsland"/>
     </entity>
     <entity name="PirateIsland" representedClassName="PirateIsland" syncable="YES">
         <attribute name="coordinate" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
@@ -36,7 +36,7 @@
         <attribute name="lastModifiedTimestamp" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="latitude" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="longitude" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
-        <relationship name="daysOfWeek" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="AppDayOfWeek" inverseName="pirateIsland" inverseEntity="AppDayOfWeek"/>
+        <relationship name="appDayOfWeeks" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="AppDayOfWeek" inverseName="pIsland" inverseEntity="AppDayOfWeek"/>
     </entity>
     <entity name="UserInfo" representedClassName="UserInfo" syncable="YES">
         <attribute name="belt" optional="YES" attributeType="String"/>

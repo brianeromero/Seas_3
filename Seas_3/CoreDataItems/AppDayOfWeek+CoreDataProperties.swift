@@ -37,8 +37,8 @@ extension AppDayOfWeek {
     @NSManaged public var restrictions: Bool
     @NSManaged public var restrictionDescription: String?
     @NSManaged public var openMat: Bool
-    @NSManaged public var pirateIsland: PirateIsland?
-    
+    @NSManaged public var pIsland: PirateIsland? // Renamed from pirateIsland
+
     enum DayOfWeek: Int16, CaseIterable {
         case sunday, monday, tuesday, wednesday, thursday, friday, saturday
     }
