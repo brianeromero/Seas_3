@@ -7,11 +7,12 @@
 import CoreData
 import Combine
 
-
 class PersistenceController: ObservableObject {
     static let shared = PersistenceController()
 
-    @Published var container: NSPersistentContainer // Use @Published to trigger updates
+    let container: NSPersistentContainer
+
+    @Published private(set) var viewContext: NSManagedObjectContext // Expose viewContext for observation
 
     private init() {
         container = NSPersistentContainer(name: "Seas_3")
@@ -21,6 +22,8 @@ class PersistenceController: ObservableObject {
                 fatalError("Unresolved error \(error), \(error.userInfo)")
             }
         }
+
+        viewContext = container.viewContext // Initialize viewContext
     }
 
     func saveContext() {
@@ -37,10 +40,36 @@ class PersistenceController: ObservableObject {
 
     // Preview context setup
     static var preview: PersistenceController = {
-        let result = PersistenceController(inMemory: true)
-        let viewContext = result.container.viewContext
-        // Populate with dummy data for previews if needed
-        return result
+        let controller = PersistenceController(inMemory: true)
+
+        // Seed some test data for preview
+        for i in 0..<5 {
+            // Inside the preview initializer of PersistenceController
+            for i in 0..<5 {
+                let island = PirateIsland(context: controller.viewContext)
+                island.islandName = "Island \(i)"
+                island.latitude = 37.7749 + Double(i)
+                island.longitude = -122.4194 + Double(i)
+                
+                // Set required attributes
+                island.createdByUserId = "sampleUserId" // Replace with actual user ID logic
+                island.createdTimestamp = Date() // Set the current date and time
+                island.islandLocation = "Sample Location" // Set the location details
+                island.lastModifiedByUserId = "sampleUserId" // Replace with actual user ID logic
+                island.lastModifiedTimestamp = Date() // Set the current date and time
+                
+                // Ensure all required attributes are set appropriately
+            }
+            // Set other required attributes
+        }
+
+        do {
+            try controller.viewContext.save()
+        } catch {
+            fatalError("Failed to seed preview context: \(error)")
+        }
+
+        return controller
     }()
 
     private init(inMemory: Bool) {
@@ -53,5 +82,7 @@ class PersistenceController: ObservableObject {
                 fatalError("Unresolved error \(error), \(error.userInfo)")
             }
         }
+
+        viewContext = container.viewContext // Initialize viewContext
     }
 }
