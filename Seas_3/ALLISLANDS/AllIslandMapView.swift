@@ -3,11 +3,24 @@
 //
 // Created by Brian Romero on 6/26/24.
 //
-
 import SwiftUI
 import CoreData
 import CoreLocation
 import MapKit
+
+// Mock LocationManager for preview
+class MockLocationManager: ObservableObject {
+    @Published var userLocation: CLLocation?
+    
+    init() {
+        // Provide a default location for preview
+        self.userLocation = CLLocation(latitude: 33.783550, longitude: -118.035652)
+    }
+    
+    func requestLocation() {
+        // No action needed for preview
+    }
+}
 
 struct RadiusPicker: View {
     @Binding var selectedRadius: Double
@@ -28,7 +41,7 @@ struct ConsolidatedIslandMapView: View {
         sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.createdTimestamp, ascending: true)]
     ) private var islands: FetchedResults<PirateIsland>
     
-    @StateObject private var locationManager = LocationManager()
+    @StateObject private var locationManager = MockLocationManager() // Use MockLocationManager for preview
     @State private var selectedRadius: Double = 5.0
     @State private var region: MKCoordinateRegion = MKCoordinateRegion(
         center: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
@@ -49,11 +62,12 @@ struct ConsolidatedIslandMapView: View {
                                     .background(Color.white)
                                     .cornerRadius(5)
                                     .shadow(radius: 3)
-                                Image(systemName: location.title == "You are Here" ? "figure.wrestling" : "mappin.circle.fill")
+                                Image(systemName: "figure.wrestling")
                                     .foregroundColor(location.title == "You are Here" ? .red : .blue)
                             }
                         }
                     }
+
                     .frame(height: 300)
                     .padding()
                     
@@ -126,5 +140,19 @@ struct ConsolidatedIslandMapView: View {
     private func updateRegion(_ userLocation: CLLocation, radius: Double) {
         let span = MKCoordinateSpan(latitudeDelta: radius / 69.0, longitudeDelta: radius / 69.0)
         region = MKCoordinateRegion(center: userLocation.coordinate, span: span)
+    }
+}
+
+struct ConsolidatedIslandMapView_Previews: PreviewProvider {
+    static var previews: some View {
+        // Ensure the preview works with a valid managed object context and mock data
+        let context = PersistenceController.preview.container.viewContext
+        let previewIsland = PirateIsland(context: context)
+        previewIsland.islandName = "Sample Island"
+        previewIsland.latitude = 37.7749
+        previewIsland.longitude = -122.4194
+        
+        return ConsolidatedIslandMapView()
+            .environment(\.managedObjectContext, context)
     }
 }

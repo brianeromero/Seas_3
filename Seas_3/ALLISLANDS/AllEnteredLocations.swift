@@ -103,9 +103,13 @@ struct AllEnteredLocations: View {
 
 struct AllEnteredLocations_Previews: PreviewProvider {
     static var previews: some View {
-        let persistenceController = PersistenceController.shared
-
-        return AllEnteredLocations()
-            .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
+        let persistenceController = PersistenceController.preview
+        let context = persistenceController.container.viewContext
+        
+        let previewLocations = AllEnteredLocations().environment(\.managedObjectContext, context)
+        
+        return Group {
+            previewLocations.previewDisplayName("All Entered Locations Preview")
+        }
     }
 }

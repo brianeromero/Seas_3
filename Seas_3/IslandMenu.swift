@@ -117,8 +117,14 @@ struct IslandMenu: View {
 
 struct IslandMenu_Previews: PreviewProvider {
     static var previews: some View {
-        IslandMenu()
-            .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
+        let persistenceController = PersistenceController.preview
+        let context = persistenceController.container.viewContext
+        
+        let previewMenu = IslandMenu().environment(\.managedObjectContext, context)
+        
+        return Group {
+            previewMenu.previewDisplayName("Island Menu Preview")
+        }
     }
 }
 

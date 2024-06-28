@@ -10,7 +10,7 @@ import CoreData
 
 struct ContentView: View {
     @ObservedObject var persistenceController = PersistenceController.shared
-    @StateObject var viewModel: PirateIslandViewModel // Assuming you have this defined
+    @StateObject var viewModel: PirateIslandViewModel
 
     @State private var showAddIslandForm = false
     @State private var islandName = ""
@@ -19,7 +19,11 @@ struct ContentView: View {
     @State private var gymWebsite = ""
     @State private var gymWebsiteURL: URL?
 
-    @State private var pirateIslands: [PirateIsland] = [] // Define pirateIslands array
+    // Use @FetchRequest to automatically update the view when data changes
+    @FetchRequest(
+        entity: PirateIsland.entity(),
+        sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.createdTimestamp, ascending: true)]
+    ) private var pirateIslands: FetchedResults<PirateIsland>
 
     init() {
         let context = PersistenceController.shared.container.viewContext
@@ -50,7 +54,6 @@ struct ContentView: View {
             }
             .navigationTitle("Islands")
         }
-        .onAppear(perform: fetchIslands) // Fetch islands when view appears
     }
 
     private func islandRowView(island: PirateIsland) -> some View {
@@ -75,17 +78,6 @@ struct ContentView: View {
             } catch {
                 print("Error deleting island: \(error.localizedDescription)")
             }
-        }
-    }
-
-    private func fetchIslands() {
-        let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
-        fetchRequest.sortDescriptors = [NSSortDescriptor(keyPath: \PirateIsland.createdTimestamp, ascending: true)]
-
-        do {
-            pirateIslands = try persistenceController.container.viewContext.fetch(fetchRequest)
-        } catch {
-            print("Failed to fetch PirateIsland: \(error.localizedDescription)")
         }
     }
 
