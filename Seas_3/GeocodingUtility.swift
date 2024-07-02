@@ -10,10 +10,25 @@ import CoreData
 import Combine
 import CoreLocation
 import Foundation
-import MapKit
+
+var lastRequestTime: Date?
 
 func geocodeAddress(_ address: String, completion: @escaping (Result<(latitude: Double, longitude: Double), Error>) -> Void) {
-    let apiKey = "AIzaSyBSGUnuzggEBdGQXuk-6G06OyD7kXxu1VM" // Your Google Maps API key
+    // Check last request time for throttling
+    if let lastRequestTime = lastRequestTime, Date().timeIntervalSince(lastRequestTime) < 60 {
+        // If within the throttling window, wait for the remaining time
+        let timeToWait = Int(ceil(60 - Date().timeIntervalSince(lastRequestTime)))
+        DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(timeToWait)) {
+            geocodeAddress(address, completion: completion) // Retry the request after waiting
+        }
+        return
+    }
+    
+    guard let apiKey = Bundle.main.infoDictionary?["GoogleMapsAPIKey"] as? String else {
+        completion(.failure(NSError(domain: "GeocodingError", code: 0, userInfo: [NSLocalizedDescriptionKey: "API key not found"])))
+        return
+    }
+    
     let encodedAddress = address.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
     let urlString = "https://maps.googleapis.com/maps/api/geocode/json?address=\(encodedAddress)&key=\(apiKey)"
     
@@ -23,6 +38,9 @@ func geocodeAddress(_ address: String, completion: @escaping (Result<(latitude: 
     }
     
     URLSession.shared.dataTask(with: url) { data, response, error in
+        // Update last request time regardless of success or failure
+        lastRequestTime = Date()
+        
         if let error = error {
             completion(.failure(error))
             return

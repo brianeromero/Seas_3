@@ -5,234 +5,217 @@
 //  Created by Brian Romero on 6/26/24.
 //
 
-import Foundation
 import SwiftUI
 import CoreData
-import CoreLocation
 import Combine
 
 struct AddNewIsland: View {
     @Environment(\.managedObjectContext) private var viewContext
     
+    // MARK: - State Variables
     @State private var islandName = ""
-    @State private var islandLocation = ""
-    @State private var createdByUserId = ""
-    @State private var gymWebsite: String = ""
-    @State private var gymWebsiteURL: URL?
-
     @State private var street = ""
     @State private var city = ""
     @State private var state = ""
     @State private var zip = ""
+    @State private var createdByUserId = ""
+    @State private var gymWebsite = ""
+    @State private var gymWebsiteURL: URL?
     
     @State private var isSaveEnabled = false
     @State private var showAlert = false
     @State private var alertMessage = ""
+    @State private var showConfirmation = false
     @State private var selectedProtocol = "http://"
-
+    
     @Environment(\.presentationMode) private var presentationMode
-
+    
+    // MARK: - Toast Message State
+    @State private var toastMessage = ""
+    @State private var showToast = false
+    
+    // MARK: - Body
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Island Details")) {
-                    TextField("Island Name", text: $islandName)
-                        .onChange(of: islandName) { _ in validateFields() }
-                    TextField("Street", text: $street)
-                        .onChange(of: street) { _ in
-                            updateIslandLocation()
-                            validateFields()
-                        }
-                    TextField("City", text: $city)
-                        .onChange(of: city) { _ in
-                            updateIslandLocation()
-                            validateFields()
-                        }
-                    TextField("State", text: $state)
-                        .onChange(of: state) { _ in
-                            updateIslandLocation()
-                            validateFields()
-                        }
-                    TextField("Zip", text: $zip)
-                        .onChange(of: zip) { _ in
-                            updateIslandLocation()
-                            validateFields()
-                        }
-                }
-                
-                Section(header: Text("Instagram link/Facebook/Website (if applicable)")) {
-                    Picker("Protocol", selection: $selectedProtocol) {
-                        Text("http://").tag("http://")
-                        Text("https://").tag("https://")
-                        Text("ftp://").tag("ftp://")
-                    }
-                    .pickerStyle(SegmentedPickerStyle())
-
-                    TextField("Links", text: $gymWebsite, onEditingChanged: { _ in
-                        if !gymWebsite.isEmpty {
-                            let strippedURL = stripProtocol(from: gymWebsite)
-                            let fullURLString = selectedProtocol + strippedURL
-
-                            if validateURL(fullURLString) {
-                                gymWebsiteURL = URL(string: fullURLString)
-                            } else {
-                                showAlert = true
-                                alertMessage = "Invalid link entry"
-                                gymWebsite = ""
-                                gymWebsiteURL = nil
-                            }
-                        } else {
-                            gymWebsiteURL = nil
-                        }
-                        validateFields()
-                    })
-                    .keyboardType(.URL)
-                }
-                
-                Section(header: Text("Entered By")) {
-                    TextField("Your Name", text: $createdByUserId)
-                        .onChange(of: createdByUserId) { _ in validateFields() }
-                }
-                
-                Button("Save") {
-                    if isSaveEnabled {
-                        print("Save button tapped")
-                        geocodeIslandLocation()
-                    } else {
-                        print("Save button disabled")
-                        print("Error: Required fields are empty or URL is invalid")
-                    }
-                }
-                .disabled(!isSaveEnabled)
+                islandDetailsSection
+                websiteSection
+                enteredBySection
+                saveButton
             }
-            .navigationBarTitle("Add Gym/Dojo Here", displayMode: .inline)
-            .navigationBarItems(leading: Button("Cancel") {
-                presentationMode.wrappedValue.dismiss()
-            })
+            .navigationBarTitle("Add New Island", displayMode: .inline)
+            .navigationBarItems(leading: cancelButton)
             .alert(isPresented: $showAlert) {
                 Alert(title: Text("Error"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
             }
-        }
-        .onAppear {
-            validateFields() // Initial validation check
+            .onAppear {
+                validateFields()
+            }
+            .overlay(
+                Group {
+                    if showToast {
+                        ToastView(message: toastMessage)
+                            .transition(.move(edge: .bottom))
+                            .animation(.default)
+                            .onAppear {
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                    showToast = false
+                                }
+                            }
+                    }
+                }
+            )
         }
     }
     
-    private func updateIslandLocation() {
-        islandLocation = "\(street), \(city), \(state) \(zip)"
-        print("Updated Island Location: \(islandLocation)")
+    // MARK: - Sections
+    
+    private var islandDetailsSection: some View {
+        Section(header: Text("Island Details")) {
+            TextField("Island Name", text: $islandName)
+                .onChange(of: islandName) { _ in validateFields() }
+            TextField("Street", text: $street)
+                .onChange(of: street) { _ in updateIslandLocation() }
+            TextField("City", text: $city)
+                .onChange(of: city) { _ in updateIslandLocation() }
+            TextField("State", text: $state)
+                .onChange(of: state) { _ in updateIslandLocation() }
+            TextField("Zip", text: $zip)
+                .onChange(of: zip) { _ in updateIslandLocation() }
+        }
     }
-
-    private func validateFields() {
-        let isValid = !islandName.isEmpty &&
-                      !street.isEmpty &&
-                      !city.isEmpty &&
-                      !state.isEmpty &&
-                      !zip.isEmpty &&
-                      !createdByUserId.isEmpty &&
-                      (gymWebsite.isEmpty || validateURL(selectedProtocol + stripProtocol(from: gymWebsite)))
-        print("islandName: \(islandName)")
-        print("street: \(street)")
-        print("city: \(city)")
-        print("state: \(state)")
-        print("zip: \(zip)")
-        print("createdByUserId: \(createdByUserId)")
-        print("gymWebsite: \(gymWebsite)")
-        print("gymWebsiteURL: \(String(describing: gymWebsiteURL))")
-        print("isValid: \(isValid)")
+    
+    private var websiteSection: some View {
+        Section(header: Text("Website")) {
+            Picker("Protocol", selection: $selectedProtocol) {
+                Text("http://").tag("http://")
+                Text("https://").tag("https://")
+            }
+            .pickerStyle(SegmentedPickerStyle())
+            
+            TextField("Website URL", text: $gymWebsite, onEditingChanged: { _ in
+                if !gymWebsite.isEmpty {
+                    let strippedURL = stripProtocol(from: gymWebsite)
+                    let fullURLString = selectedProtocol + strippedURL
+                    
+                    if validateURL(fullURLString) {
+                        gymWebsiteURL = URL(string: fullURLString)
+                    } else {
+                        showAlert = true
+                        alertMessage = "Invalid URL format"
+                        gymWebsite = ""
+                        gymWebsiteURL = nil
+                    }
+                } else {
+                    gymWebsiteURL = nil
+                }
+                validateFields()
+            })
+            .keyboardType(.URL)
+        }
+    }
+    
+    private var enteredBySection: some View {
+        Section(header: Text("Entered By")) {
+            TextField("Your Name", text: $createdByUserId)
+                .onChange(of: createdByUserId) { _ in validateFields() }
+        }
+    }
+    
+    private var saveButton: some View {
+        Button("Save") {
+            saveIsland()
+        }
+        .disabled(!isSaveEnabled)
+    }
+    
+    private var cancelButton: some View {
+        Button("Cancel") {
+            presentationMode.wrappedValue.dismiss()
+        }
+    }
+    
+    // MARK: - Private Methods
+    
+    private func saveIsland() {
+        let newIsland = PirateIsland(context: viewContext)
+        newIsland.islandName = islandName
+        newIsland.createdByUserId = createdByUserId
+        newIsland.gymWebsite = gymWebsiteURL
+        newIsland.createdTimestamp = Date()
         
-        isSaveEnabled = isValid // Update isSaveEnabled based on validation
+        // Assuming islandLocation is a property in PirateIsland, you set it here
+        newIsland.islandLocation = "\(street), \(city), \(state) \(zip)"
+        
+        do {
+            try viewContext.save()
+            isSaveEnabled = false
+            showToast = true
+            toastMessage = "Island added successfully!"
+            clearFields()
+        } catch {
+            let nsError = error as NSError
+            fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
+        }
     }
-
+    
+    private func validateFields() {
+        let nameValid = !islandName.isEmpty
+        let locationValid = !street.isEmpty && !city.isEmpty && !state.isEmpty && !zip.isEmpty
+        let websiteValid = gymWebsiteURL != nil
+        let createdByValid = !createdByUserId.isEmpty
+        
+        isSaveEnabled = nameValid && locationValid && websiteValid && createdByValid
+    }
+    
     private func clearFields() {
         islandName = ""
-        islandLocation = ""
-        createdByUserId = ""
         street = ""
         city = ""
         state = ""
         zip = ""
+        createdByUserId = ""
         gymWebsite = ""
         gymWebsiteURL = nil
     }
     
-    private func geocodeIslandLocation() {
-        let address = "\(street), \(city), \(state) \(zip)"
-        print("Geocoding Island Location: \(address)")
-        
-        geocodeAddress(address) { result in
-            switch result {
-            case .success(let (latitude, longitude)):
-                print("Geocoded coordinates - Latitude: \(latitude), Longitude: \(longitude)")
-                guard !latitude.isNaN && !longitude.isNaN else {
-                    print("Error: Invalid latitude (\(latitude)) or longitude (\(longitude))")
-                    showAlert = true
-                    alertMessage = "Failed to get valid coordinates for the island location."
-                    return
-                }
-                assert(!latitude.isNaN, "Encountered NaN value for latitude")
-                assert(!longitude.isNaN, "Encountered NaN value for longitude")
-                saveIsland(latitude: latitude, longitude: longitude)
-            case .failure(let error):
-                print("Geocoding failed: \(error.localizedDescription)")
-                showAlert = true
-                alertMessage = "Failed to geocode the island location."
-            }
-        }
+    private func updateIslandLocation() {
+        // Perform geocoding or any other location updates if needed
+        validateFields()
     }
-
-    private func saveIsland(latitude: Double, longitude: Double) {
-        let newIsland = PirateIsland(context: viewContext)
-        newIsland.islandName = islandName
-        newIsland.islandLocation = islandLocation
-        newIsland.createdByUserId = createdByUserId
-        newIsland.createdTimestamp = Date()
-        
-        // Validate latitude and longitude
-        if latitude.isNaN || longitude.isNaN {
-            print("Error: Invalid latitude (\(latitude)) or longitude (\(longitude))")
-            showAlert = true
-            alertMessage = "Invalid coordinates received. Please check the island location."
-            return
-        }
-        
-        assert(!latitude.isNaN, "Encountered NaN value for latitude")
-        assert(!longitude.isNaN, "Encountered NaN value for longitude")
-        
-        newIsland.latitude = latitude
-        newIsland.longitude = longitude
-        newIsland.gymWebsite = gymWebsiteURL
-        
-        do {
-            try viewContext.save()
-            print("Successfully saved new island")
-            clearFields() // Clear form after successful save
-        } catch {
-            print("Failed to save new island: \(error.localizedDescription)")
-            showAlert = true
-            alertMessage = "Failed to save the island. Please try again."
-        }
-    }
-
-    private func validateURL(_ urlString: String) -> Bool {
-        let urlPattern = #"^(https?:\/\/)?(www\.)?(facebook\.com|instagram\.com|[\w\-]+\.[\w\-]+)(\/[\w\-\.]*)*\/?$"#
-        let result = NSPredicate(format: "SELF MATCHES %@", urlPattern).evaluate(with: urlString)
-        print("URL Validation: \(urlString) is \(result ? "valid" : "invalid")")
-        return result
-    }
-
+    
     private func stripProtocol(from urlString: String) -> String {
-        var strippedString = urlString
-        if let range = strippedString.range(of: "://") {
-            strippedString = String(strippedString[range.upperBound...])
+        if urlString.lowercased().starts(with: "http://") {
+            return String(urlString.dropFirst(7))
+        } else if urlString.lowercased().starts(with: "https://") {
+            return String(urlString.dropFirst(8))
         }
-        print("Stripped URL: \(strippedString)")
-        return strippedString
+        return urlString
+    }
+    
+    private func validateURL(_ urlString: String) -> Bool {
+        guard let url = URL(string: urlString) else { return false }
+        return UIApplication.shared.canOpenURL(url)
     }
 }
 
-struct AddNewIsland_Previews: PreviewProvider {
-    static var previews: some View {
-        AddNewIsland()
+struct ToastView: View {
+    var message: String
+    
+    var body: some View {
+        VStack {
+            Spacer()
+            HStack {
+                Spacer()
+                Text(message)
+                    .padding()
+                    .background(Color.black.opacity(0.7))
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
+                    .padding()
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.clear)
     }
 }

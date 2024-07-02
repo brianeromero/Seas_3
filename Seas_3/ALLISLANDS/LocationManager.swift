@@ -6,53 +6,81 @@
 //
 
 import Foundation
+import SwiftUI
+import MapKit
 import CoreLocation
+import Combine
 
-class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
-    private var locationManager = CLLocationManager()
+// Import MapDetails if it's defined in a separate file
+// import MapDetails
+
+class UserLocationMapViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
+    @Published var region = MKCoordinateRegion(
+        center: MapDetails.startingLocation,
+        span: MapDetails.defaultSpan
+    )
     @Published var userLocation: CLLocation?
+    private let locationManager = CLLocationManager()
 
     override init() {
         super.init()
-        self.locationManager.delegate = self
-        self.locationManager.requestWhenInUseAuthorization()
-        self.locationManager.startUpdatingLocation()
+        locationManager.delegate = self
+        locationManager.desiredAccuracy = kCLLocationAccuracyBest
+    }
+
+    func startLocationServices() {
+        DispatchQueue.global().async {
+            if CLLocationManager.locationServicesEnabled() {
+                DispatchQueue.main.async {
+                    self.locationManager.requestWhenInUseAuthorization()
+                }
+            } else {
+                DispatchQueue.main.async {
+                    print("Alert: Your location services are off and must be turned on.")
+                }
+            }
+        }
     }
 
     func requestLocation() {
-        checkLocationAuthorization()
+        locationManager.requestLocation()
     }
-    
-    
-    
-    private func checkLocationAuthorization() {
-        switch CLLocationManager.authorizationStatus() {
+
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard let location = locations.last else { return }
+        DispatchQueue.main.async {
+            self.userLocation = location
+            self.updateRegion()
+        }
+    }
+
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        print("Failed to get user location: \(error.localizedDescription)")
+    }
+
+    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        switch manager.authorizationStatus {
         case .notDetermined:
             locationManager.requestWhenInUseAuthorization()
-        case .restricted, .denied:
-            print("Location services are not allowed.")
-            // Handle the case where the user has denied location services
-        case .authorizedWhenInUse, .authorizedAlways:
+        case .restricted:
+            print("Your location appears to be restricted - perhaps due to Parent Controls(?)")
+        case .denied:
+            print("You have denied this app's location permissions. Go into settings to change this.")
+        case .authorizedAlways, .authorizedWhenInUse:
             locationManager.startUpdatingLocation()
         @unknown default:
             break
         }
     }
-    
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        guard let location = locations.last else { return }
-        DispatchQueue.main.async {
-            self.userLocation = location
-        }
-    }
-    
-    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        print("Failed to get user location: \(error.localizedDescription)")
-    }
-    
-    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        DispatchQueue.main.async {
-            self.checkLocationAuthorization()
+
+    private func updateRegion() {
+        if let location = userLocation {
+            DispatchQueue.main.async {
+                self.region = MKCoordinateRegion(
+                    center: location.coordinate,
+                    span: MapDetails.defaultSpan
+                )
+            }
         }
     }
 }

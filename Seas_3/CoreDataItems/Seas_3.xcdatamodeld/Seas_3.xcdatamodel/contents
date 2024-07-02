@@ -6,6 +6,7 @@
         <attribute name="goodForBeginners" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="matTime" optional="YES" attributeType="String"/>
         <attribute name="monday" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="name" optional="YES" attributeType="String"/>
         <attribute name="noGi" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="op_friday" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="op_monday" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
@@ -26,16 +27,17 @@
     </entity>
     <entity name="PirateIsland" representedClassName="PirateIsland" syncable="YES">
         <attribute name="coordinate" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
-        <attribute name="createdByUserId" attributeType="String"/>
+        <attribute name="createdByUserId" optional="YES" attributeType="String"/>
         <attribute name="createdTimestamp" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="gymWebsite" optional="YES" attributeType="URI"/>
         <attribute name="islandID" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="islandLocation" attributeType="String"/>
         <attribute name="islandName" attributeType="String"/>
-        <attribute name="lastModifiedByUserId" attributeType="String"/>
-        <attribute name="lastModifiedTimestamp" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="lastModifiedByUserId" optional="YES" attributeType="String"/>
+        <attribute name="lastModifiedTimestamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="latitude" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="longitude" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="name" optional="YES" attributeType="String"/>
         <relationship name="appDayOfWeeks" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="AppDayOfWeek" inverseName="pIsland" inverseEntity="AppDayOfWeek"/>
     </entity>
     <entity name="UserInfo" representedClassName="UserInfo" syncable="YES">

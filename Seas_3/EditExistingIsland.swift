@@ -21,6 +21,7 @@ struct EditExistingIsland: View {
     @State private var showAlert = false
     @State private var alertMessage = ""
     @State private var gymWebsiteURL: URL?
+    @State private var lastModifiedByUserId: String
 
     init(island: PirateIsland) {
         self.island = island
@@ -28,6 +29,7 @@ struct EditExistingIsland: View {
         _islandLocation = State(initialValue: island.islandLocation ?? "")
         _createdByUserId = State(initialValue: island.createdByUserId ?? "")
         _gymWebsite = State(initialValue: island.gymWebsite?.absoluteString ?? "")
+        _lastModifiedByUserId = State(initialValue: island.lastModifiedByUserId ?? "")
     }
     
     var body: some View {
@@ -35,7 +37,11 @@ struct EditExistingIsland: View {
             Section(header: Text("Island Details")) {
                 TextField("Island Name", text: $islandName)
                 TextField("Island Location", text: $islandLocation)
+                TextField("Last Modified By", text: $lastModifiedByUserId)
                 TextField("Entered By", text: $createdByUserId)
+
+                    .disabled(true) // Make it non-editable
+                    .foregroundColor(.gray)
             }
 
             Section(header: Text("Instagram link/Facebook/Website (if applicable)")) {
@@ -92,11 +98,14 @@ struct EditExistingIsland: View {
         context.performAndWait {
             island.islandName = islandName
             island.islandLocation = islandLocation
-            island.createdByUserId = createdByUserId
+            island.lastModifiedByUserId = lastModifiedByUserId // Save lastModifiedByUserId here
             
             if let url = gymWebsiteURL {
                 island.gymWebsite = url
             }
+            
+            // Update last modified timestamp
+            island.lastModifiedTimestamp = Date()
             
             do {
                 try context.save()
@@ -133,7 +142,8 @@ struct EditExistingIsland_Previews: PreviewProvider {
         let island = PirateIsland(context: context)
         island.islandName = "Sample Island"
         island.islandLocation = "123 Main St, City, State, 12345"
-        island.createdByUserId = "User"
+        island.createdByUserId = "UserCreated"
+        island.lastModifiedByUserId = "" // Set lastModifiedByUserId for preview
         island.gymWebsite = URL(string: "https://www.example.com")
         
         return NavigationView {

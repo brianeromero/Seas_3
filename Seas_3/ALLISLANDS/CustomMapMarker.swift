@@ -9,7 +9,7 @@ import Foundation
 import CoreLocation
 
 struct CustomMapMarker: Identifiable, Equatable {
-    let id = UUID()
+    let id: UUID
     let coordinate: CLLocationCoordinate2D
     let title: String
 }
