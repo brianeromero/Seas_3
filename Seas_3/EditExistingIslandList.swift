@@ -19,7 +19,7 @@ struct EditExistingIslandList: View {
     @State private var searchQuery: String = ""
     @State private var showNoMatchAlert: Bool = false
     @State private var filteredIslands: [PirateIsland] = []
-    
+
     var body: some View {
         NavigationView {
             VStack(alignment: .leading) {
@@ -27,11 +27,11 @@ struct EditExistingIslandList: View {
                     .font(.headline)
                     .padding(.bottom, 4)
                     .foregroundColor(.gray)
-                
+
                 HStack {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(.gray)
-                    
+
                     TextField("Search...", text: $searchQuery)
                         .padding(.vertical, 8)
                         .padding(.horizontal, 12)
@@ -43,7 +43,7 @@ struct EditExistingIslandList: View {
                         }
                 }
                 .padding(.bottom, 16)
-                
+
                 List {
                     ForEach(filteredIslands) { island in
                         NavigationLink(destination: EditExistingIsland(island: island)) {
@@ -60,7 +60,6 @@ struct EditExistingIslandList: View {
                         dismissButton: .default(Text("OK"))
                     )
                 }
-                .padding(.horizontal, -20) // Remove extra padding
             }
             .padding()
             .onAppear {
@@ -69,12 +68,12 @@ struct EditExistingIslandList: View {
             }
         }
     }
-    
+
     private func updateFilteredIslands() {
         let lowercasedQuery = searchQuery.lowercased()
         filteredIslands = islands.filter { island in
-            (island.islandName?.lowercased().contains(lowercasedQuery) ?? false) ||
-            (island.islandLocation?.lowercased().contains(lowercasedQuery) ?? false) ||
+            (island.islandName.lowercased().contains(lowercasedQuery)) ||
+            (island.islandLocation.lowercased().contains(lowercasedQuery)) ||
             (island.gymWebsite?.absoluteString.lowercased().contains(lowercasedQuery) ?? false) ||
             (String(island.latitude).contains(lowercasedQuery)) ||
             (String(island.longitude).contains(lowercasedQuery))
@@ -82,7 +81,7 @@ struct EditExistingIslandList: View {
         showNoMatchAlert = filteredIslands.isEmpty && !searchQuery.isEmpty
     }
 
-    
+
     private func logFetch() {
         let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
         do {

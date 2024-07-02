@@ -5,14 +5,13 @@
 //  Created by Brian Romero on 6/24/24.
 //
 
-
 import Foundation
 import SwiftUI
 import CoreData
 import Combine
 
 @main
-struct Seas3pp: App {
+struct Seas3App: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate // Link to your AppDelegate
     
     private let persistenceController = PersistenceController.shared
@@ -30,7 +29,7 @@ struct Seas3pp: App {
                         }
                 } else {
                     IslandMenu() // Use IslandMenu as the main view
-                        .environment(\.managedObjectContext, persistenceController.container.viewContext)
+                        .environment(\.managedObjectContext, persistenceController.viewContext)
                         .environmentObject(appState) // Inject AppState as environment object
                         .onAppear {
                             let sceneLoader = SceneLoader()

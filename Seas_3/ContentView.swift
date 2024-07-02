@@ -8,9 +8,10 @@
 import SwiftUI
 import CoreData
 
+
 struct ContentView: View {
-    @ObservedObject var persistenceController = PersistenceController.shared
-    @StateObject var viewModel: PirateIslandViewModel
+    @EnvironmentObject var persistenceController: PersistenceController
+    @StateObject var viewModel = PirateIslandViewModel(context: PersistenceController.shared.container.viewContext)
 
     @State private var showAddIslandForm = false
     @State private var islandName = ""
@@ -19,51 +20,51 @@ struct ContentView: View {
     @State private var gymWebsite = ""
     @State private var gymWebsiteURL: URL?
 
-    // Use @FetchRequest to automatically update the view when data changes
     @FetchRequest(
         entity: PirateIsland.entity(),
         sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.createdTimestamp, ascending: true)]
     ) private var pirateIslands: FetchedResults<PirateIsland>
 
-    init() {
-        let context = PersistenceController.shared.container.viewContext
-        _viewModel = StateObject(wrappedValue: PirateIslandViewModel(context: context))
-    }
-
     var body: some View {
         NavigationView {
             List {
-                ForEach(pirateIslands) { island in
-                    NavigationLink(destination: IslandDetailView(island: island, selectedDestination: .constant(nil))) {
+                ForEach(pirateIslands, id: \.self) { island in
+                    NavigationLink(destination: IslandDetailView(island: island, selectedDestination: $viewModel.selectedDestination)) {
                         islandRowView(island: island)
                     }
                 }
                 .onDelete(perform: deleteItems)
             }
+            .navigationTitle("Islands")
             .toolbar {
-                // Your toolbar items...
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: {
+                        showAddIslandForm.toggle()
+                    }) {
+                        Image(systemName: "plus")
+                    }
+                }
             }
             .sheet(isPresented: $showAddIslandForm) {
                 AddIslandFormView(
                     islandName: $islandName,
-                    islandLocation: $islandLocation,
+                    fullAddress: $islandLocation,
                     createdByUserId: $createdByUserId,
                     gymWebsite: $gymWebsite,
                     gymWebsiteURL: $gymWebsiteURL
                 )
+                .environment(\.managedObjectContext, persistenceController.container.viewContext)
             }
-            .navigationTitle("Islands")
+
         }
     }
 
     private func islandRowView(island: PirateIsland) -> some View {
         VStack(alignment: .leading) {
-            Text("Gym: \(island.islandName ?? "Unknown")")
-            if let createdTimestamp = island.createdTimestamp {
-                Text("Added: \(createdTimestamp, formatter: dateFormatter)")
-            } else {
-                Text("Unknown Added Date")
-            }
+            Text("Gym: \(island.islandName)")
+            Text("Added: \(island.formattedTimestamp)")
+                .font(.caption)
+                .foregroundColor(.gray)
         }
     }
 
@@ -80,20 +81,13 @@ struct ContentView: View {
             }
         }
     }
-
-    private let dateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .short
-        formatter.timeStyle = .medium
-        return formatter
-    }()
 }
 
 #if DEBUG
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         ContentView()
-            .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
+            .environmentObject(PersistenceController.preview)
     }
 }
 #endif

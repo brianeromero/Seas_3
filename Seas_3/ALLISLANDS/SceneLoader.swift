@@ -1,10 +1,8 @@
-//
 //  SceneLoader.swift
 //  Seas_3
 //
 //  Created by Brian Romero on 6/26/24.
 //
-
 import Foundation
 import SwiftUI
 
@@ -20,13 +18,16 @@ class SceneLoader {
 
     // Function to load tiles (placeholder)
     private func loadTiles() {
-        // Logic to load and initialize tiles
-        // This should populate the tiles array
+        // Ensure the keys match those in the error message
         tiles = [
-            Tile(key: "654.1583.12.255", meshInstances: [MeshInstance(id: "1"), MeshInstance(id: "2")]),
-            Tile(key: "655.1582.12.255", meshInstances: [MeshInstance(id: "3"), MeshInstance(id: "4")]),
-            Tile(key: "654.1582.12.255", meshInstances: [MeshInstance(id: "5"), MeshInstance(id: "6")]),
-            Tile(key: "655.1583.12.255", meshInstances: [MeshInstance(id: "7"), MeshInstance(id: "8")])
+            Tile(key: "164.395.10.255", meshInstances: [MeshInstance(id: "1"), MeshInstance(id: "2")]),
+            Tile(key: "163.395.10.255", meshInstances: [MeshInstance(id: "3"), MeshInstance(id: "4")]),
+            // Add more tiles as needed to match all keys in the error message
         ]
+        
+        // Debug statements to confirm tiles are loaded
+        for tile in tiles {
+            print("Loaded tile with key: \(tile.key)")
+        }
     }
 }

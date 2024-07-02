@@ -5,11 +5,8 @@
 //  Created by Brian Romero on 6/26/24.
 //
 
-import Foundation
 import SwiftUI
 import CoreData
-import CoreLocation
-import MapKit
 
 struct MenuItem: Identifiable {
     let id = UUID()
@@ -18,7 +15,7 @@ struct MenuItem: Identifiable {
 }
 
 struct IslandMenu: View {
-    @StateObject private var locationManager = LocationManager()
+    @StateObject private var locationManager = UserLocationMapViewModel()
     @Environment(\.managedObjectContext) private var viewContext
 
     @State private var showAlert = false
@@ -35,7 +32,6 @@ struct IslandMenu: View {
                 GIFView(name: "flashing2")
                     .frame(width: 500, height: 450)
                     .offset(x: 100, y: -150)
-                
                 
                 VStack(alignment: .leading, spacing: 20) {
                     Text("Main Menu")
@@ -54,11 +50,11 @@ struct IslandMenu: View {
                                     NavigationLink(destination: destinationView(for: subMenuItem)) {
                                         Text(subMenuItem)
                                             .foregroundColor(.blue)
-                                            .fixedSize(horizontal: false, vertical: true) // Allow multiline text to wrap
-                                            .frame(maxWidth: .infinity, alignment: .leading) // Align text to the left
+                                            .fixedSize(horizontal: false, vertical: true)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
                                     }
-                                    .padding(.leading, 10) // Adjusted padding to align all links to the left
-                                    .padding(.top, 5) // Add top padding for spacing between items
+                                    .padding(.leading, 10)
+                                    .padding(.top, 5)
                                 }
                             }
                         }
@@ -68,20 +64,19 @@ struct IslandMenu: View {
                     NavigationLink(destination: ContentView()) {
                         Text("ContentView")
                             .foregroundColor(.blue)
-                            .padding(.leading, 0) // Adjusted padding to align all links to the left
-                            .padding(.top, 10) // Add some top padding to separate from menu items
+                            .padding(.leading, 0)
+                            .padding(.top, 10)
                     }
 
                     NavigationLink(destination: FAQnDisclaimerMenuView()) {
                         Text("FAQ & Disclaimer")
                             .foregroundColor(.blue)
-                            .padding(.leading, 0) // Adjusted padding to align all links to the left
                     }
-                    .padding(.top, 10) // Add some top padding to separate from menu items
+                    .padding(.top, 10)
                 }
                 .padding(.horizontal, 20)
                 .navigationBarTitle("Welcome to Mat_Finder", displayMode: .inline)
-                .padding(.leading, 50) // Adjusted leading padding to move content closer to the left edge
+                .padding(.leading, 50)
             }
         }
         .edgesIgnoringSafeArea(.all)
@@ -93,7 +88,6 @@ struct IslandMenu: View {
         }
     }
 
-
     @ViewBuilder
     private func destinationView(for menuItem: String) -> some View {
         switch menuItem {
@@ -102,11 +96,12 @@ struct IslandMenu: View {
         case "Update Existing Gyms":
             EditExistingIslandList()
         case "All Entered Locations":
-            AllEnteredLocations()
+            AllEnteredLocations(context: viewContext)
         case "Near Me (use current location)":
             ConsolidatedIslandMapView()
         case "Enter Zip Code":
-            EnterZipCodeView()
+            let viewModel = EnterZipCodeViewModel(context: viewContext)
+            EnterZipCodeView(viewModel: viewModel)
         case "Add/Edit Class or Open Mat":
             DaysOfWeekFormView(viewModel: AppDayOfWeekViewModel())
         default:

@@ -12,6 +12,7 @@ import CoreLocation
 import Foundation
 import MapKit
 
+
 struct IslandMapView: View {
     let islands: [PirateIsland]
 
@@ -20,42 +21,53 @@ struct IslandMapView: View {
     var body: some View {
         NavigationView {
             VStack(alignment: .leading) {
-                ForEach(islands, id: \.self) { island in
-                    VStack(alignment: .leading) {
-                        // Island details
-                        Text("Gym: \(island.islandName ?? "Unknown")")
-                        Text("Location: \(island.islandLocation ?? "Unknown")")
-                        // Other island details...
+                if islands.isEmpty {
+                    Text("No islands available.")
+                        .padding()
+                } else {
+                    ForEach(islands, id: \.self) { island in
+                        VStack(alignment: .leading) {
+                            // Island details
+                            Text("Gym: \(island.islandName ?? "Unknown")")
+                            Text("Location: \(island.islandLocation ?? "Unknown")")
+                            // Other island details...
 
-                        // Handle map here
-                        if island.latitude != 0 && island.longitude != 0 {
-                            IslandMapViewMap(
-                                coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude),
-                                islandName: island.islandName ?? "",
-                                islandLocation: island.islandLocation ?? "",
-                                onTap: {
+                            // Handle map here
+                            if island.latitude != 0 && island.longitude != 0 {
+                                IslandMapViewMap(
+                                    coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude),
+                                    islandName: island.islandName ?? "",
+                                    islandLocation: island.islandLocation ?? "",
+                                    onTap: {
+                                        selectedIsland = island
+                                        openInMaps(island: island)
+                                    }
+                                )
+                                .frame(height: 300)
+                                .padding()
+
+                                Button("Open in Maps") {
                                     selectedIsland = island
                                     openInMaps(island: island)
                                 }
-                            )
-                            .frame(height: 300)
-                            .padding()
-
-                            Button("Open in Maps") {
-                                selectedIsland = island
-                                openInMaps(island: island)
+                                .padding(.top, 5)
+                                .foregroundColor(.blue)
+                            } else {
+                                Text("Island location not available")
                             }
-                            .padding(.top, 5)
-                            .foregroundColor(.blue)
-                        } else {
-                            Text("Island location not available")
                         }
+                        .padding()
                     }
-                    .padding()
                 }
             }
             .padding()
             .navigationTitle("Island Details")
+        }
+        .onAppear {
+            print("IslandMapView appeared with islands count: \(islands.count)")
+            for island in islands {
+                print("Island: \(island.islandName ?? "Unknown"), Location: \(island.islandLocation ?? "Unknown"), Latitude: \(island.latitude), Longitude: \(island.longitude)")
+            }
         }
     }
 
@@ -74,6 +86,7 @@ struct IslandMapView: View {
         }
     }
 }
+
 
 struct IslandMapView_Previews: PreviewProvider {
     static var previews: some View {

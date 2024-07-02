@@ -1,4 +1,4 @@
-// ConsolidatedIslandMapView.swift
+// AllIslandMapView.swift
 // Seas_3
 //
 // Created by Brian Romero on 6/26/24.
@@ -34,18 +34,31 @@ struct RadiusPicker: View {
     }
 }
 
+struct EquatableMKCoordinateRegion: Equatable {
+    var region: MKCoordinateRegion
+    
+    static func == (lhs: EquatableMKCoordinateRegion, rhs: EquatableMKCoordinateRegion) -> Bool {
+        return lhs.region.center.latitude == rhs.region.center.latitude &&
+               lhs.region.center.longitude == rhs.region.center.longitude &&
+               lhs.region.span.latitudeDelta == rhs.region.span.latitudeDelta &&
+               lhs.region.span.longitudeDelta == rhs.region.span.longitudeDelta
+    }
+}
+
 struct ConsolidatedIslandMapView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @FetchRequest(
         entity: PirateIsland.entity(),
         sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.createdTimestamp, ascending: true)]
     ) private var islands: FetchedResults<PirateIsland>
-    
-    @StateObject private var locationManager = MockLocationManager() // Use MockLocationManager for preview
+
+    @ObservedObject private var locationManager = MockLocationManager()
     @State private var selectedRadius: Double = 5.0
-    @State private var region: MKCoordinateRegion = MKCoordinateRegion(
-        center: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
-        span: MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1)
+    @State private var equatableRegion: EquatableMKCoordinateRegion = EquatableMKCoordinateRegion(
+        region: MKCoordinateRegion(
+            center: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
+            span: MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1)
+        )
     )
     @State private var pirateMarkers: [CustomMapMarker] = []
 
@@ -53,7 +66,10 @@ struct ConsolidatedIslandMapView: View {
         NavigationView {
             VStack {
                 if let userLocation = locationManager.userLocation {
-                    Map(coordinateRegion: $region, showsUserLocation: true, annotationItems: pirateMarkers) { location in
+                    Map(coordinateRegion: Binding(
+                        get: { equatableRegion.region },
+                        set: { equatableRegion.region = $0 }
+                    ), showsUserLocation: true, annotationItems: pirateMarkers) { location in
                         MapAnnotation(coordinate: location.coordinate) {
                             VStack {
                                 Text(location.title)
@@ -62,15 +78,14 @@ struct ConsolidatedIslandMapView: View {
                                     .background(Color.white)
                                     .cornerRadius(5)
                                     .shadow(radius: 3)
-                                Image(systemName: "figure.wrestling")
+                                Image(systemName: location.title == "You are Here" ? "figure.wrestling" : "mappin.circle.fill")
                                     .foregroundColor(location.title == "You are Here" ? .red : .blue)
                             }
                         }
                     }
-
-                    .frame(height: 300)
+                    .frame(height: 300) // Adjust as needed
                     .padding()
-                    
+
                     RadiusPicker(selectedRadius: $selectedRadius)
                         .padding()
 
@@ -83,10 +98,8 @@ struct ConsolidatedIslandMapView: View {
             .onAppear {
                 if let userLocation = locationManager.userLocation {
                     updateRegion(userLocation, radius: selectedRadius)
-                    fetchPirateIslandsNear(userLocation, within: selectedRadius * 1609.34) // Convert miles to meters
-                    // Add current location to markers
-                    let currentLocationMarker = CustomMapMarker(coordinate: userLocation.coordinate, title: "You are Here")
-                    pirateMarkers.append(currentLocationMarker)
+                    fetchPirateIslandsNear(userLocation, within: selectedRadius * 1609.34)
+                    addCurrentLocationMarker(userLocation)
                 } else {
                     locationManager.requestLocation()
                 }
@@ -95,10 +108,11 @@ struct ConsolidatedIslandMapView: View {
                 if let newUserLocation = newUserLocation {
                     updateRegion(newUserLocation, radius: selectedRadius)
                     fetchPirateIslandsNear(newUserLocation, within: selectedRadius * 1609.34)
-                    // Update current location marker
-                    let currentLocationMarker = CustomMapMarker(coordinate: newUserLocation.coordinate, title: "You are Here")
-                    pirateMarkers.append(currentLocationMarker)
+                    addCurrentLocationMarker(newUserLocation)
                 }
+            }
+            .onChange(of: equatableRegion) { newRegion in
+                updateMarkersForRegion(newRegion.region)
             }
             .onChange(of: selectedRadius) { newRadius in
                 if let userLocation = locationManager.userLocation {
@@ -108,38 +122,37 @@ struct ConsolidatedIslandMapView: View {
             }
         }
     }
-    
+
     private func fetchPirateIslandsNear(_ location: CLLocation, within distance: CLLocationDistance) {
-        let markers = islands.compactMap { island -> CustomMapMarker? in
-            guard let title = island.islandName else {
-                return nil
-            }
-            
-            // Ensure latitude and longitude are valid
-            if island.latitude != 0.0 && island.longitude != 0.0 {
-                let islandLocation = CLLocation(latitude: island.latitude, longitude: island.longitude)
-                let distanceInMeters = location.distance(from: islandLocation)
-                // Check if the island is within the selected radius
-                if distanceInMeters <= distance {
-                    return CustomMapMarker(coordinate: islandLocation.coordinate, title: title)
-                }
-            }
-            
-            return nil
+        // Implement your logic to fetch pirate islands near a location
+        // For now, mock implementation with preview data
+        pirateMarkers = islands.map { island in
+            CustomMapMarker(id: island.islandID ?? UUID(), coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude), title: island.islandName)
         }
-        
-        // Add current location marker
-        if let userLocation = locationManager.userLocation {
-            let currentLocationMarker = CustomMapMarker(coordinate: userLocation.coordinate, title: "You are Here")
-            pirateMarkers.append(currentLocationMarker)
-        }
-        
-        self.pirateMarkers = markers
     }
 
     private func updateRegion(_ userLocation: CLLocation, radius: Double) {
         let span = MKCoordinateSpan(latitudeDelta: radius / 69.0, longitudeDelta: radius / 69.0)
-        region = MKCoordinateRegion(center: userLocation.coordinate, span: span)
+        equatableRegion.region = MKCoordinateRegion(center: userLocation.coordinate, span: span)
+    }
+
+    private func addCurrentLocationMarker(_ userLocation: CLLocation) {
+        let currentLocationMarker = CustomMapMarker(id: UUID(), coordinate: userLocation.coordinate, title: "You are Here")
+        pirateMarkers.append(currentLocationMarker)
+    }
+
+    private func updateMarkersForRegion(_ newRegion: MKCoordinateRegion) {
+        // Clear existing markers
+        pirateMarkers.removeAll()
+
+        // Fetch new markers based on the current region
+        let center = CLLocation(latitude: newRegion.center.latitude, longitude: newRegion.center.longitude)
+        fetchPirateIslandsNear(center, within: selectedRadius * 1609.34)
+
+        // Add current location marker if available
+        if let userLocation = locationManager.userLocation {
+            addCurrentLocationMarker(userLocation)
+        }
     }
 }
 
@@ -151,7 +164,7 @@ struct ConsolidatedIslandMapView_Previews: PreviewProvider {
         previewIsland.islandName = "Sample Island"
         previewIsland.latitude = 37.7749
         previewIsland.longitude = -122.4194
-        
+
         return ConsolidatedIslandMapView()
             .environment(\.managedObjectContext, context)
     }

@@ -30,7 +30,6 @@
 		0C07B09C2C2CFFA500D0BFB2 /* AllEnteredLocations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B09B2C2CFFA500D0BFB2 /* AllEnteredLocations.swift */; };
 		0C07B09E2C2CFFC400D0BFB2 /* AllIslandMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B09D2C2CFFC400D0BFB2 /* AllIslandMapView.swift */; };
 		0C07B0A02C2CFFE000D0BFB2 /* AllMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B09F2C2CFFE000D0BFB2 /* AllMapView.swift */; };
-		0C07B0A22C2CFFFD00D0BFB2 /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0A12C2CFFFD00D0BFB2 /* LocationManager.swift */; };
 		0C07B0A42C2D002000D0BFB2 /* EnterZipCodeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0A32C2D002000D0BFB2 /* EnterZipCodeView.swift */; };
 		0C07B0A62C2D002D00D0BFB2 /* SceneLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0A52C2D002D00D0BFB2 /* SceneLoader.swift */; };
 		0C07B0A82C2D004900D0BFB2 /* RenderingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0A72C2D004900D0BFB2 /* RenderingManager.swift */; };
@@ -45,25 +44,30 @@
 		0C07B0BB2C2D018D00D0BFB2 /* Disclaimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0BA2C2D018D00D0BFB2 /* Disclaimer.swift */; };
 		0C07B0BD2C2D01AB00D0BFB2 /* FAQ.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0BC2C2D01AB00D0BFB2 /* FAQ.swift */; };
 		0C07B0BF2C2D01D700D0BFB2 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0BE2C2D01D700D0BFB2 /* Logger.swift */; };
-		0C07B0C12C2D01F300D0BFB2 /* CustomUnarchiveTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0C02C2D01F300D0BFB2 /* CustomUnarchiveTransformer.swift */; };
-		0C07B0C32C2D020C00D0BFB2 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0C22C2D020C00D0BFB2 /* AppDelegate.swift */; };
-		0C07B0CB2C2D022D00D0BFB2 /* flashing.gif in Resources */ = {isa = PBXBuildFile; fileRef = 0C07B0C42C2D022C00D0BFB2 /* flashing.gif */; };
-		0C07B0CC2C2D022D00D0BFB2 /* calendar Image.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C07B0C52C2D022C00D0BFB2 /* calendar Image.png */; };
-		0C07B0CD2C2D022D00D0BFB2 /* MF_little .png in Resources */ = {isa = PBXBuildFile; fileRef = 0C07B0C62C2D022C00D0BFB2 /* MF_little .png */; };
-		0C07B0CE2C2D022D00D0BFB2 /* YOu are HEre2.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C07B0C72C2D022C00D0BFB2 /* YOu are HEre2.png */; };
-		0C07B0CF2C2D022D00D0BFB2 /* YOu are HEre.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C07B0C82C2D022C00D0BFB2 /* YOu are HEre.png */; };
-		0C07B0D02C2D022D00D0BFB2 /* flashing2.gif in Resources */ = {isa = PBXBuildFile; fileRef = 0C07B0C92C2D022D00D0BFB2 /* flashing2.gif */; };
-		0C07B0D12C2D022D00D0BFB2 /* MF_little_trans .png in Resources */ = {isa = PBXBuildFile; fileRef = 0C07B0CA2C2D022D00D0BFB2 /* MF_little_trans .png */; };
 		0C07B0D32C2D033700D0BFB2 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0D22C2D033700D0BFB2 /* AppState.swift */; };
-		0CA9C9692C2E04E300E87BB1 /* UserLocationMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA9C9682C2E04E300E87BB1 /* UserLocationMapView.swift */; };
-		0CA9C96B2C2E059B00E87BB1 /* TESTMAPLOCATIONVIEW.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA9C96A2C2E059B00E87BB1 /* TESTMAPLOCATIONVIEW.swift */; };
+		0C524E8C2C2F408F008D6623 /* ExampleUsuageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C524E8B2C2F408F008D6623 /* ExampleUsuageView.swift */; };
+		0C524E8E2C2F4241008D6623 /* DayOfWeek.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C524E8D2C2F4241008D6623 /* DayOfWeek.swift */; };
+		0C524E8F2C2F8592008D6623 /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0A12C2CFFFD00D0BFB2 /* LocationManager.swift */; };
+		0C524E902C2F85B5008D6623 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0C22C2D020C00D0BFB2 /* AppDelegate.swift */; };
+		0C524E912C2F85B8008D6623 /* CustomUnarchiveTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0C02C2D01F300D0BFB2 /* CustomUnarchiveTransformer.swift */; };
+		0C524E932C308DB9008D6623 /* AllEnteredLocationsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C524E922C308DB9008D6623 /* AllEnteredLocationsViewModel.swift */; };
+		0C524E952C308E4A008D6623 /* EnterZipCodeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C524E942C308E4A008D6623 /* EnterZipCodeViewModel.swift */; };
+		0C524E972C30E859008D6623 /* AppDayOfWeek+Extensions..swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C524E962C30E859008D6623 /* AppDayOfWeek+Extensions..swift */; };
+		0C8817752C3371B7008FE469 /* MapDetails.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8817742C3371B7008FE469 /* MapDetails.swift */; };
+		0CD930AB2C33D4D90051E923 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0CF13E482C2A326A00D714C0 /* Assets.xcassets */; };
+		0CD930AC2C33D4DD0051E923 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0CF13E4B2C2A326A00D714C0 /* Preview Assets.xcassets */; };
+		0CD930AD2C33D4F00051E923 /* calendar Image.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C07B0C52C2D022C00D0BFB2 /* calendar Image.png */; };
+		0CD930AE2C33D4F30051E923 /* flashing.gif in Resources */ = {isa = PBXBuildFile; fileRef = 0C07B0C42C2D022C00D0BFB2 /* flashing.gif */; };
+		0CD930AF2C33D4F60051E923 /* flashing2.gif in Resources */ = {isa = PBXBuildFile; fileRef = 0C07B0C92C2D022D00D0BFB2 /* flashing2.gif */; };
+		0CD930B02C33D4F80051E923 /* MF_little .png in Resources */ = {isa = PBXBuildFile; fileRef = 0C07B0C62C2D022C00D0BFB2 /* MF_little .png */; };
+		0CD930B12C33D4FB0051E923 /* YOu are HEre2.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C07B0C72C2D022C00D0BFB2 /* YOu are HEre2.png */; };
+		0CD930B22C33D4FE0051E923 /* MF_little_trans .png in Resources */ = {isa = PBXBuildFile; fileRef = 0C07B0CA2C2D022D00D0BFB2 /* MF_little_trans .png */; };
+		0CD930B32C33D5020051E923 /* YOu are HEre.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C07B0C82C2D022C00D0BFB2 /* YOu are HEre.png */; };
+		0CD930C32C33DF3C0051E923 /* Info3.plist in Resources */ = {isa = PBXBuildFile; fileRef = 0CD930C22C33DF3C0051E923 /* Info3.plist */; };
 		0CEB03962C2B9B73007CA3CC /* PirateIslandViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CEB03952C2B9B73007CA3CC /* PirateIslandViewModel.swift */; };
-		0CEB03982C2B9C83007CA3CC /* CoreDataStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CEB03972C2B9C83007CA3CC /* CoreDataStack.swift */; };
 		0CEB039A2C2BA58F007CA3CC /* AppDayOfWeekRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CEB03992C2BA58F007CA3CC /* AppDayOfWeekRepository.swift */; };
 		0CF13E452C2A326700D714C0 /* Seas_3App.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E442C2A326700D714C0 /* Seas_3App.swift */; };
 		0CF13E472C2A326700D714C0 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E462C2A326700D714C0 /* ContentView.swift */; };
-		0CF13E492C2A326A00D714C0 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0CF13E482C2A326A00D714C0 /* Assets.xcassets */; };
-		0CF13E4C2C2A326A00D714C0 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0CF13E4B2C2A326A00D714C0 /* Preview Assets.xcassets */; };
 		0CF13E4E2C2A326A00D714C0 /* Persistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E4D2C2A326A00D714C0 /* Persistence.swift */; };
 		0CF13E512C2A326A00D714C0 /* Seas_3.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E4F2C2A326A00D714C0 /* Seas_3.xcdatamodeld */; };
 		0CF13E5B2C2A326A00D714C0 /* Seas_3Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E5A2C2A326A00D714C0 /* Seas_3Tests.swift */; };
@@ -143,11 +147,14 @@
 		0C07B0C92C2D022D00D0BFB2 /* flashing2.gif */ = {isa = PBXFileReference; lastKnownFileType = image.gif; path = flashing2.gif; sourceTree = "<group>"; };
 		0C07B0CA2C2D022D00D0BFB2 /* MF_little_trans .png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "MF_little_trans .png"; sourceTree = "<group>"; };
 		0C07B0D22C2D033700D0BFB2 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
-		0C07B0D82C2DD8DD00D0BFB2 /* Seas-3-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Seas-3-Info.plist"; sourceTree = SOURCE_ROOT; };
-		0CA9C9682C2E04E300E87BB1 /* UserLocationMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserLocationMapView.swift; sourceTree = "<group>"; };
-		0CA9C96A2C2E059B00E87BB1 /* TESTMAPLOCATIONVIEW.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TESTMAPLOCATIONVIEW.swift; sourceTree = "<group>"; };
+		0C524E8B2C2F408F008D6623 /* ExampleUsuageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExampleUsuageView.swift; sourceTree = "<group>"; };
+		0C524E8D2C2F4241008D6623 /* DayOfWeek.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayOfWeek.swift; sourceTree = "<group>"; };
+		0C524E922C308DB9008D6623 /* AllEnteredLocationsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AllEnteredLocationsViewModel.swift; sourceTree = "<group>"; };
+		0C524E942C308E4A008D6623 /* EnterZipCodeViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnterZipCodeViewModel.swift; sourceTree = "<group>"; };
+		0C524E962C30E859008D6623 /* AppDayOfWeek+Extensions..swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppDayOfWeek+Extensions..swift"; sourceTree = "<group>"; };
+		0C8817742C3371B7008FE469 /* MapDetails.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapDetails.swift; sourceTree = "<group>"; };
+		0CD930C22C33DF3C0051E923 /* Info3.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info3.plist; sourceTree = "<group>"; };
 		0CEB03952C2B9B73007CA3CC /* PirateIslandViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PirateIslandViewModel.swift; sourceTree = "<group>"; };
-		0CEB03972C2B9C83007CA3CC /* CoreDataStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataStack.swift; sourceTree = "<group>"; };
 		0CEB03992C2BA58F007CA3CC /* AppDayOfWeekRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDayOfWeekRepository.swift; sourceTree = "<group>"; };
 		0CF13E412C2A326700D714C0 /* Seas_3.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Seas_3.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0CF13E442C2A326700D714C0 /* Seas_3App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Seas_3App.swift; sourceTree = "<group>"; };
@@ -197,12 +204,15 @@
 		0C07B0862C2CFE8200D0BFB2 /* SearchByDayOfWeek */ = {
 			isa = PBXGroup;
 			children = (
+				0C524E962C30E859008D6623 /* AppDayOfWeek+Extensions..swift */,
 				0C07B0872C2CFE9F00D0BFB2 /* ViewOpenMatByDay.swift */,
 				0C07B0892C2CFEB800D0BFB2 /* DaysOfWeekFormView.swift */,
 				0C07B08B2C2CFED400D0BFB2 /* AppDayOfWeekViewModel.swift */,
+				0C524E8D2C2F4241008D6623 /* DayOfWeek.swift */,
 				0C07B08D2C2CFEF200D0BFB2 /* SearchByDayoftheWeek.swift */,
 				0C07B08F2C2CFF0B00D0BFB2 /* DayOfWeekView.swift */,
 				0C07B0912C2CFF2A00D0BFB2 /* SavedConfirmationView.swift */,
+				0C524E8B2C2F408F008D6623 /* ExampleUsuageView.swift */,
 				0C07B0932C2CFF3B00D0BFB2 /* AddClassScheduleFormView.swift */,
 				0C07B0952C2CFF5A00D0BFB2 /* AddOpenMatFormView.swift */,
 			);
@@ -220,10 +230,12 @@
 		0C07B09A2C2CFF9400D0BFB2 /* ALLISLANDS */ = {
 			isa = PBXGroup;
 			children = (
+				0C524E922C308DB9008D6623 /* AllEnteredLocationsViewModel.swift */,
 				0C07B09B2C2CFFA500D0BFB2 /* AllEnteredLocations.swift */,
 				0C07B09D2C2CFFC400D0BFB2 /* AllIslandMapView.swift */,
 				0C07B09F2C2CFFE000D0BFB2 /* AllMapView.swift */,
 				0C07B0A12C2CFFFD00D0BFB2 /* LocationManager.swift */,
+				0C524E942C308E4A008D6623 /* EnterZipCodeViewModel.swift */,
 				0C07B0A32C2D002000D0BFB2 /* EnterZipCodeView.swift */,
 				0C07B0A52C2D002D00D0BFB2 /* SceneLoader.swift */,
 				0C07B0A72C2D004900D0BFB2 /* RenderingManager.swift */,
@@ -234,8 +246,6 @@
 				0C07B0B12C2D00DC00D0BFB2 /* CustomMapMarker.swift */,
 				0C07B0B32C2D00F300D0BFB2 /* CustomPin.swift */,
 				0C07B0972C2CFF7000D0BFB2 /* MatReview */,
-				0CA9C9682C2E04E300E87BB1 /* UserLocationMapView.swift */,
-				0CA9C96A2C2E059B00E87BB1 /* TESTMAPLOCATIONVIEW.swift */,
 			);
 			path = ALLISLANDS;
 			sourceTree = "<group>";
@@ -254,6 +264,7 @@
 		0CF13E382C2A326700D714C0 = {
 			isa = PBXGroup;
 			children = (
+				0CD930C22C33DF3C0051E923 /* Info3.plist */,
 				0CF13E432C2A326700D714C0 /* Seas_3 */,
 				0CF13E592C2A326A00D714C0 /* Seas_3Tests */,
 				0CF13E632C2A326A00D714C0 /* Seas_3UITests */,
@@ -274,7 +285,6 @@
 		0CF13E432C2A326700D714C0 /* Seas_3 */ = {
 			isa = PBXGroup;
 			children = (
-				0C07B0D82C2DD8DD00D0BFB2 /* Seas-3-Info.plist */,
 				0CF13E442C2A326700D714C0 /* Seas_3App.swift */,
 				0C07B0702C2CFD0300D0BFB2 /* IslandMenu.swift */,
 				0C07B0722C2CFD2800D0BFB2 /* AddNewIsland.swift */,
@@ -301,12 +311,13 @@
 				0C07B0C72C2D022C00D0BFB2 /* YOu are HEre2.png */,
 				0C07B0CA2C2D022D00D0BFB2 /* MF_little_trans .png */,
 				0C07B0C82C2D022C00D0BFB2 /* YOu are HEre.png */,
-				0C07B0862C2CFE8200D0BFB2 /* SearchByDayOfWeek */,
-				0C07B0B52C2D013A00D0BFB2 /* FAQnDisclaimer */,
 				0CF13E7F2C2A36C000D714C0 /* CoreDataItems */,
 				0C07B09A2C2CFF9400D0BFB2 /* ALLISLANDS */,
+				0C07B0862C2CFE8200D0BFB2 /* SearchByDayOfWeek */,
+				0C07B0B52C2D013A00D0BFB2 /* FAQnDisclaimer */,
 				0CF13E4A2C2A326A00D714C0 /* Preview Content */,
 				0C07B0D22C2D033700D0BFB2 /* AppState.swift */,
+				0C8817742C3371B7008FE469 /* MapDetails.swift */,
 			);
 			path = Seas_3;
 			sourceTree = "<group>";
@@ -340,7 +351,6 @@
 			isa = PBXGroup;
 			children = (
 				0CF13E4F2C2A326A00D714C0 /* Seas_3.xcdatamodeld */,
-				0CEB03972C2B9C83007CA3CC /* CoreDataStack.swift */,
 				0CF13E732C2A36B500D714C0 /* AppDayOfWeek+CoreDataClass.swift */,
 				0CF13E742C2A36B500D714C0 /* AppDayOfWeek+CoreDataProperties.swift */,
 				0CF13E752C2A36B500D714C0 /* PirateIsland+CoreDataClass.swift */,
@@ -361,7 +371,7 @@
 			buildPhases = (
 				0CF13E3D2C2A326700D714C0 /* Sources */,
 				0CF13E3E2C2A326700D714C0 /* Frameworks */,
-				0CF13E3F2C2A326700D714C0 /* Resources */,
+				0CD930AA2C33D4100051E923 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -452,19 +462,20 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		0CF13E3F2C2A326700D714C0 /* Resources */ = {
+		0CD930AA2C33D4100051E923 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0C07B0CB2C2D022D00D0BFB2 /* flashing.gif in Resources */,
-				0C07B0CD2C2D022D00D0BFB2 /* MF_little .png in Resources */,
-				0CF13E4C2C2A326A00D714C0 /* Preview Assets.xcassets in Resources */,
-				0C07B0CC2C2D022D00D0BFB2 /* calendar Image.png in Resources */,
-				0CF13E492C2A326A00D714C0 /* Assets.xcassets in Resources */,
-				0C07B0D12C2D022D00D0BFB2 /* MF_little_trans .png in Resources */,
-				0C07B0CE2C2D022D00D0BFB2 /* YOu are HEre2.png in Resources */,
-				0C07B0CF2C2D022D00D0BFB2 /* YOu are HEre.png in Resources */,
-				0C07B0D02C2D022D00D0BFB2 /* flashing2.gif in Resources */,
+				0CD930C32C33DF3C0051E923 /* Info3.plist in Resources */,
+				0CD930AB2C33D4D90051E923 /* Assets.xcassets in Resources */,
+				0CD930B02C33D4F80051E923 /* MF_little .png in Resources */,
+				0CD930B22C33D4FE0051E923 /* MF_little_trans .png in Resources */,
+				0CD930AD2C33D4F00051E923 /* calendar Image.png in Resources */,
+				0CD930AF2C33D4F60051E923 /* flashing2.gif in Resources */,
+				0CD930B12C33D4FB0051E923 /* YOu are HEre2.png in Resources */,
+				0CD930AC2C33D4DD0051E923 /* Preview Assets.xcassets in Resources */,
+				0CD930B32C33D5020051E923 /* YOu are HEre.png in Resources */,
+				0CD930AE2C33D4F30051E923 /* flashing.gif in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -495,23 +506,25 @@
 				0C07B0D32C2D033700D0BFB2 /* AppState.swift in Sources */,
 				0C07B0A62C2D002D00D0BFB2 /* SceneLoader.swift in Sources */,
 				0C07B07D2C2CFDFE00D0BFB2 /* IslandMapView.swift in Sources */,
-				0CA9C96B2C2E059B00E87BB1 /* TESTMAPLOCATIONVIEW.swift in Sources */,
 				0CF13E512C2A326A00D714C0 /* Seas_3.xcdatamodeld in Sources */,
+				0C8817752C3371B7008FE469 /* MapDetails.swift in Sources */,
 				0C07B0B22C2D00DC00D0BFB2 /* CustomMapMarker.swift in Sources */,
 				0C07B0A02C2CFFE000D0BFB2 /* AllMapView.swift in Sources */,
 				0C07B08C2C2CFED400D0BFB2 /* AppDayOfWeekViewModel.swift in Sources */,
-				0CEB03982C2B9C83007CA3CC /* CoreDataStack.swift in Sources */,
 				0C07B0812C2CFE3600D0BFB2 /* IslandMap.swift in Sources */,
 				0C07B0A82C2D004900D0BFB2 /* RenderingManager.swift in Sources */,
 				0C07B0AA2C2D007000D0BFB2 /* GIFBackgroundView.swift in Sources */,
+				0C524E952C308E4A008D6623 /* EnterZipCodeViewModel.swift in Sources */,
 				0C07B0AC2C2D009300D0BFB2 /* SwiftGIF.swift in Sources */,
 				0C07B09C2C2CFFA500D0BFB2 /* AllEnteredLocations.swift in Sources */,
+				0C524E8E2C2F4241008D6623 /* DayOfWeek.swift in Sources */,
 				0C07B07F2C2CFE1C00D0BFB2 /* IslandDetailView.swift in Sources */,
-				0C07B0C12C2D01F300D0BFB2 /* CustomUnarchiveTransformer.swift in Sources */,
 				0C07B0792C2CFDBB00D0BFB2 /* PirateIslandView.swift in Sources */,
 				0CF13E472C2A326700D714C0 /* ContentView.swift in Sources */,
-				0CA9C9692C2E04E300E87BB1 /* UserLocationMapView.swift in Sources */,
+				0C524E972C30E859008D6623 /* AppDayOfWeek+Extensions..swift in Sources */,
+				0C524E902C2F85B5008D6623 /* AppDelegate.swift in Sources */,
 				0C07B0BD2C2D01AB00D0BFB2 /* FAQ.swift in Sources */,
+				0C524E912C2F85B8008D6623 /* CustomUnarchiveTransformer.swift in Sources */,
 				0CF13E452C2A326700D714C0 /* Seas_3App.swift in Sources */,
 				0CF13E792C2A36B500D714C0 /* AppDayOfWeek+CoreDataClass.swift in Sources */,
 				0C07B0942C2CFF3B00D0BFB2 /* AddClassScheduleFormView.swift in Sources */,
@@ -541,10 +554,11 @@
 				0C07B0BB2C2D018D00D0BFB2 /* Disclaimer.swift in Sources */,
 				0C07B0B92C2D017500D0BFB2 /* WhoWeAre.swift in Sources */,
 				0C07B0A42C2D002000D0BFB2 /* EnterZipCodeView.swift in Sources */,
+				0C524E8F2C2F8592008D6623 /* LocationManager.swift in Sources */,
 				0C07B0992C2CFF8500D0BFB2 /* GymMatReviewView.swift in Sources */,
 				0C07B0962C2CFF5A00D0BFB2 /* AddOpenMatFormView.swift in Sources */,
-				0C07B0A22C2CFFFD00D0BFB2 /* LocationManager.swift in Sources */,
-				0C07B0C32C2D020C00D0BFB2 /* AppDelegate.swift in Sources */,
+				0C524E8C2C2F408F008D6623 /* ExampleUsuageView.swift in Sources */,
+				0C524E932C308DB9008D6623 /* AllEnteredLocationsViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -711,7 +725,9 @@
 				DEVELOPMENT_TEAM = 84463TFCZ4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "Seas-3-Info.plist";
+				INFOPLIST_FILE = Info3.plist;
+				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "We need your location to show nearby locations.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We need your location to show nearby locations.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -740,7 +756,9 @@
 				DEVELOPMENT_TEAM = 84463TFCZ4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "Seas-3-Info.plist";
+				INFOPLIST_FILE = Info3.plist;
+				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "We need your location to show nearby locations.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We need your location to show nearby locations.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
