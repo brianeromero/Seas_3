@@ -5,7 +5,6 @@
 //  Created by Brian Romero on 6/26/24.
 //
 
-import Foundation
 import SwiftUI
 
 struct DayOfWeekView: View {
@@ -15,7 +14,8 @@ struct DayOfWeekView: View {
     var body: some View {
         NavigationView {
             VStack {
-                ForEach(viewModel.daysOfWeek, id: \.self) { day in
+                ForEach(viewModel.daysOfWeek.indices, id: \.self) { index in
+                    let day = viewModel.daysOfWeek[index]
                     Toggle(LocalizedStringKey(String(day.rawValue)), isOn: viewModel.binding(for: day))
                 }
 
@@ -33,10 +33,16 @@ struct DayOfWeekView: View {
                     })
             }
             .onAppear {
-                viewModel.fetchCurrentDayOfWeek()
+                viewModel.fetchCurrentDayOfWeek() // Correct method invocation
                 Logger.log("View appeared", view: "DayOfWeekView")
             }
             .navigationTitle("Day of Week Settings")
         }
+    }
+}
+
+struct DayOfWeekView_Previews: PreviewProvider {
+    static var previews: some View {
+        DayOfWeekView()
     }
 }

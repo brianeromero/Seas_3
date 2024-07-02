@@ -12,6 +12,7 @@ import CoreLocation
 import Foundation
 import MapKit
 
+
 struct IslandMap: View {
     let islands: [PirateIsland]
     @State private var region: MKCoordinateRegion
@@ -19,7 +20,6 @@ struct IslandMap: View {
     init(islands: [PirateIsland]) {
         self.islands = islands
 
-        // Calculate the center and span of the map
         var centerCoordinate = CLLocationCoordinate2D(latitude: 0, longitude: 0)
         var minLat: Double?
         var maxLat: Double?
@@ -27,7 +27,6 @@ struct IslandMap: View {
         var maxLon: Double?
 
         for island in islands {
-            // Ensure latitude and longitude are not nil
             guard island.latitude != 0.0 && island.longitude != 0.0 else {
                 continue
             }
@@ -45,7 +44,6 @@ struct IslandMap: View {
             }
         }
 
-        // Calculate the center coordinates
         if let minLat = minLat, let maxLat = maxLat, let minLon = minLon, let maxLon = maxLon {
             centerCoordinate = CLLocationCoordinate2D(latitude: (minLat + maxLat) / 2, longitude: (minLon + maxLon) / 2)
         }
@@ -55,26 +53,49 @@ struct IslandMap: View {
     }
 
     var body: some View {
-        Map(coordinateRegion: $region, annotationItems: islands.compactMap { island -> Marker? in
-            // Check if latitude and longitude are not zero
+        Map(coordinateRegion: $region, interactionModes: [], showsUserLocation: false, userTrackingMode: nil, annotationItems: islands.compactMap { island -> MapAnnotationItem? in
             guard island.latitude != 0.0 && island.longitude != 0.0 else {
                 return nil
             }
-            return Marker(coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude))
-        }) { marker in
-            MapAnnotation(coordinate: marker.coordinate) {
-                Image(systemName: "mappin.circle.fill")
-                    .resizable()
-                    .foregroundColor(.red)
-                    .frame(width: 30, height: 30)
-            }
+            return MapAnnotationItem(coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude))
+        }) { item in
+            item.mapAnnotation() // Use mapAnnotation method to create MapAnnotation
         }
         .navigationTitle("Island Map")
+        .onAppear {
+            print("IslandMap appeared with islands count: \(islands.count)")
+            for island in islands {
+                print("Island: \(island.islandName), Location: \(island.islandLocation), Latitude: \(island.latitude), Longitude: \(island.longitude)")
+            }
+        }
     }
 }
 
-// Define Marker conforming to Identifiable protocol
-struct Marker: Identifiable {
-    let id = UUID()
+// Define MapAnnotationItem conforming to MapAnnotationProtocol
+struct MapAnnotationItem: Identifiable {
+    var id = UUID() // Provide a default ID
     var coordinate: CLLocationCoordinate2D
+
+    // Implement mapAnnotation method to conform to MapAnnotationProtocol
+    func mapAnnotation() -> MapAnnotation<MapAnnotationContent> {
+        MapAnnotation(coordinate: coordinate) {
+            MapAnnotationContent()
+        }
+    }
+}
+
+// Define MapAnnotationContent as a View conforming to View protocol
+struct MapAnnotationContent: View {
+    var body: some View {
+        Image(systemName: "mappin.circle.fill")
+            .resizable()
+            .frame(width: 30, height: 30)
+            .foregroundColor(.red)
+    }
+}
+
+struct IslandMap_Previews: PreviewProvider {
+    static var previews: some View {
+        IslandMap(islands: [])
+    }
 }

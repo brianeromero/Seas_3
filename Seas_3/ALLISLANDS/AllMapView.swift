@@ -34,11 +34,11 @@ struct AllMapView: View {
 
     var body: some View {
         Map(coordinateRegion: $region, annotationItems: islands.compactMap { island -> CustomMapMarker? in
-            guard let title = island.islandName else { return nil }
+            let title = island.islandName
             let latitude = island.latitude
             let longitude = island.longitude
             
-            return CustomMapMarker(coordinate: CLLocationCoordinate2D(latitude: latitude, longitude: longitude), title: title)
+            return CustomMapMarker(id: island.islandID ?? UUID(), coordinate: CLLocationCoordinate2D(latitude: latitude, longitude: longitude), title: title)
         }) { location in
             MapAnnotation(coordinate: location.coordinate) {
                 VStack {
@@ -53,8 +53,7 @@ struct AllMapView: View {
                 }
             }
         }
-
-        .frame(height: 300)
+        .frame(height: 300) // Adjust as needed
         .padding()
         .onAppear {
             updateRegion()
@@ -64,6 +63,7 @@ struct AllMapView: View {
             print("Region center changed to: \(newCenter.latitude), \(newCenter.longitude)")
         }
     }
+
     
     private func updateRegion() {
         region = MKCoordinateRegion(

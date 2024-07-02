@@ -8,13 +8,13 @@
 import Foundation
 import SwiftUI
 
+
 struct AddClassScheduleView: View {
     @ObservedObject var viewModel: AppDayOfWeekViewModel
-    
 
     // Computed property to determine if the Save button should be enabled
     private var isSaveEnabled: Bool {
-        return viewModel.isFormValid // Assuming isFormValid is a property in your viewModel
+        return viewModel.isFormValid
     }
 
     var body: some View {
@@ -23,7 +23,7 @@ struct AddClassScheduleView: View {
                 // Days of Week Section
                 Section(header: Text("Days of Week")) {
                     ForEach(viewModel.daysOfWeek, id: \.self) { day in
-                        Toggle(LocalizedStringKey(String(day.rawValue)), isOn: viewModel.binding(for: day))
+                        Toggle(day.displayName, isOn: viewModel.binding(for: day))
                     }
                 }
                 
@@ -33,10 +33,10 @@ struct AddClassScheduleView: View {
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .autocapitalization(.none)
                         .disableAutocorrection(true)
-                        .keyboardType(.asciiCapable) // Allows only ASCII characters
-                        .onChange(of: viewModel.matTime, perform: { newValue in
+                        .keyboardType(.asciiCapable)
+                        .onChange(of: viewModel.matTime) { newValue in
                             viewModel.validateTime()
-                        })
+                        }
                 }
 
                 // Gi or NoGi Section
@@ -66,9 +66,9 @@ struct AddClassScheduleView: View {
                 
                 // Save Button Section
                 Button("Save") {
-                    viewModel.saveDayOfWeek() // Call saveDayOfWeek directly
+                    viewModel.saveDayOfWeek()
                 }
-                .disabled(!isSaveEnabled) // Ensure button is enabled when isSaveEnabled is true
+                .disabled(!isSaveEnabled)
             }
             .navigationBarTitle("Add Open Mat Times / Class Schedule", displayMode: .inline)
         }
@@ -81,7 +81,6 @@ struct AddClassScheduleView: View {
         }
     }
 }
-
 
 struct AddClassScheduleView_Previews: PreviewProvider {
     static var previews: some View {
