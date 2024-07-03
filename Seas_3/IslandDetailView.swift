@@ -49,7 +49,7 @@ struct IslandDetailContent: View {
 
     var body: some View {
         VStack(alignment: .leading) {
-            Text(island.islandName ?? "Unknown Island")
+            Text(island.islandName)
                 .font(.headline)
                 .bold()
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -93,7 +93,7 @@ struct IslandDetailContent: View {
                     }
 
                 } else if destination == .schedule {
-                    NavigationLink(destination: AdditionalGymInfo(islandName: island.islandName ?? "Unknown Island")) {
+                    NavigationLink(destination: AdditionalGymInfo(islandName: island.islandName)) {
                         Text("Go to \(destination.rawValue)")
                             .padding()
                             .frame(maxWidth: .infinity, alignment: .leading)
