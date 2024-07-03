@@ -6,6 +6,7 @@
 //
 
 import Foundation
+
 import SwiftUI
 
 struct DaysOfWeekFormView: View {
@@ -46,6 +47,10 @@ struct DaysOfWeekFormView: View {
                 }
                 .navigationBarTitle("Add Open Mat Times / Class Schedule", displayMode: .inline)
             }
+        }
+        .onDisappear {
+            // Reset selectedIsland when navigating back to IslandMenu
+            self.selectedIsland = nil
         }
     }
 }
@@ -113,7 +118,8 @@ struct InsertIslandSearch: View {
     }
 
     private func updateFilteredIslands() {
-        let lowercasedQuery = searchQuery.lowercased();filteredIslands = islands.filter { island in
+        let lowercasedQuery = searchQuery.lowercased()
+        filteredIslands = islands.filter { island in
             (island.islandName.lowercased().contains(lowercasedQuery)) ||
             (island.islandLocation.lowercased().contains(lowercasedQuery)) ||
             (island.gymWebsite?.absoluteString.lowercased().contains(lowercasedQuery) ?? false) ||
@@ -131,17 +137,16 @@ struct InsertIslandSearch: View {
 
 struct DaysOfWeekFormView_Previews: PreviewProvider {
     static var previews: some View {
-        let viewModel = AppDayOfWeekViewModel(selectedIsland: nil) // Pass a valid PirateIsland? instance here
-     
+        let viewModel = AppDayOfWeekViewModel(selectedIsland: nil) // Initialize your view model with a nil selected island
+
         // Create a mock PirateIsland instance for preview
         let mockIsland = PirateIsland()
         mockIsland.islandName = "Mock Island"
 
         return DaysOfWeekFormViewWrapper(viewModel: viewModel, initialIsland: mockIsland)
+            .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext) // Inject the managed object context for the FetchRequest
     }
 }
-
-
 
 struct DaysOfWeekFormViewWrapper: View {
     @State private var selectedIsland: PirateIsland?
