@@ -7,10 +7,8 @@
 
 import Foundation
 
-enum DayOfWeek: Int16, CaseIterable, Identifiable {
+enum DayOfWeek: CaseIterable {
     case sunday, monday, tuesday, wednesday, thursday, friday, saturday
-    
-    var id: Int16 { self.rawValue }
     
     var displayName: String {
         switch self {

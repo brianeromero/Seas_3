@@ -8,71 +8,44 @@
 import Foundation
 import CoreData
 
-enum AppDayOfWeekRepositoryError: Error {
-    case fetchError(String)
-    case saveError(String)
-    case deleteError(String)
-}
-
 class AppDayOfWeekRepository {
     static let shared = AppDayOfWeekRepository()
+    
+    let persistence: PersistenceController
 
-    private let context: NSManagedObjectContext
-
-    private init(context: NSManagedObjectContext = PersistenceController.shared.container.viewContext) {
-        self.context = context
+    private init() {
+        self.persistence = PersistenceController.shared
     }
-
-    func fetchAppDayOfWeek() throws -> [AppDayOfWeek] {
-        let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
-        do {
-            let result = try context.fetch(fetchRequest)
-            print("Fetched \(result.count) AppDayOfWeek objects.")
-            return result
-        } catch {
-            let errorMessage = "Failed to fetch AppDayOfWeek: \(error.localizedDescription)"
-            print(errorMessage)
-            throw AppDayOfWeekRepositoryError.fetchError(errorMessage)
-        }
+    
+    func saveContext() {
+        persistence.saveContext()
     }
-
-    func addAppDayOfWeek(name: String) throws {
-        let newDayOfWeek = AppDayOfWeek(context: context)
-        newDayOfWeek.name = name
-
-        do {
-            try context.save()
-            print("AppDayOfWeek saved successfully.")
-        } catch {
-            let errorMessage = "Failed to save AppDayOfWeek: \(error.localizedDescription)"
-            print(errorMessage)
-            throw AppDayOfWeekRepositoryError.saveError(errorMessage)
-        }
+    
+    // Fetch all AppDayOfWeeks
+    func fetchAllAppDayOfWeeks() -> [AppDayOfWeek] {
+        return persistence.fetchAllAppDayOfWeeks()
     }
-
-    func deleteAppDayOfWeek(_ dayOfWeek: AppDayOfWeek) throws {
-        context.delete(dayOfWeek)
-
-        do {
-            try context.save()
-            print("AppDayOfWeek deleted successfully.")
-        } catch {
-            let errorMessage = "Failed to delete AppDayOfWeek: \(error.localizedDescription)"
-            print(errorMessage)
-            throw AppDayOfWeekRepositoryError.deleteError(errorMessage)
-        }
+    
+    // Fetch specific AppDayOfWeek for a given island and day
+    func fetchAppDayOfWeek(for island: PirateIsland, day: DayOfWeek, fetchFirstOnly: Bool = false) -> [AppDayOfWeek] {
+        return persistence.fetchAppDayOfWeek(for: island, day: day, fetchFirstOnly: fetchFirstOnly)
     }
-
-    func updateAppDayOfWeek(_ dayOfWeek: AppDayOfWeek, newName: String) throws {
-        dayOfWeek.name = newName
-
-        do {
-            try context.save()
-            print("AppDayOfWeek updated successfully.")
-        } catch {
-            let errorMessage = "Failed to update AppDayOfWeek: \(error.localizedDescription)"
-            print(errorMessage)
-            throw AppDayOfWeekRepositoryError.saveError(errorMessage)
+    
+    // Optional: Implement fetchOrCreateAppDayOfWeek as needed
+    // Example:
+    func fetchOrCreateAppDayOfWeek(for island: PirateIsland, day: DayOfWeek) -> AppDayOfWeek {
+        return persistence.fetchOrCreateAppDayOfWeek(for: island, day: day)
+    }
+    
+    func deleteSchedule(at offsets: IndexSet, for day: DayOfWeek, island: PirateIsland) {
+        let daySchedules = persistence.fetchAppDayOfWeek(for: island, day: day)
+        
+        for index in offsets {
+            let scheduleToDelete = daySchedules[index]
+            persistence.container.viewContext.delete(scheduleToDelete)
         }
+        
+        persistence.saveContext()
     }
 }
+

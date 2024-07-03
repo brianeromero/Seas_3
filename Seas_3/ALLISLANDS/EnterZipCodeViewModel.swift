@@ -4,6 +4,7 @@
 //
 //  Created by Brian Romero on 6/29/24.
 //
+
 import Foundation
 import SwiftUI
 import CoreData
@@ -12,7 +13,13 @@ import CoreLocation
 import MapKit
 
 class EnterZipCodeViewModel: ObservableObject {
-    @Published var region: MKCoordinateRegion = MKCoordinateRegion()
+    @Published var region: MKCoordinateRegion {
+        didSet {
+            DispatchQueue.main.async {
+                self.objectWillChange.send()
+            }
+        }
+    }
     @Published var enteredLocation: CustomMapMarker?
     @Published var pirateIslands: [CustomMapMarker] = []
     @Published var address: String = ""
@@ -24,7 +31,8 @@ class EnterZipCodeViewModel: ObservableObject {
 
     init(context: NSManagedObjectContext) {
         self.context = context
-        
+        self.region = MKCoordinateRegion() // Initialize here
+
         // Combine Publishers to fetch location when address or currentRadius changes
         $address
             .debounce(for: .seconds(0.5), scheduler: RunLoop.main)
@@ -93,12 +101,14 @@ class EnterZipCodeViewModel: ObservableObject {
                 return distance <= radius // already in meters
             }
 
-            self.pirateIslands = filteredIslands.map { island in
-                CustomMapMarker(
-                    id: island.islandID ?? UUID(),
-                    coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude),
-                    title: island.islandName
-                )
+            DispatchQueue.main.async {
+                self.pirateIslands = filteredIslands.map { island in
+                    CustomMapMarker(
+                        id: island.islandID ?? UUID(),
+                        coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude),
+                        title: island.islandName
+                    )
+                }
             }
         } catch {
             print("Error fetching pirate islands: \(error)")
@@ -107,6 +117,8 @@ class EnterZipCodeViewModel: ObservableObject {
 
     func updateRegion(_ userLocation: CLLocation, radius: Double) {
         let span = MKCoordinateSpan(latitudeDelta: radius / 69.0, longitudeDelta: radius / 69.0)
-        region = MKCoordinateRegion(center: userLocation.coordinate, span: span)
+        DispatchQueue.main.async {
+            self.region = MKCoordinateRegion(center: userLocation.coordinate, span: span)
+        }
     }
 }

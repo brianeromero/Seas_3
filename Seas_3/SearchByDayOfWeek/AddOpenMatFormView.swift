@@ -4,84 +4,78 @@
 //
 //  Created by Brian Romero on 6/26/24.
 //
+//
 
+
+import Foundation
 import SwiftUI
+
 
 struct AddOpenMatFormView: View {
     @ObservedObject var viewModel: AppDayOfWeekViewModel
-    
-    // Computed property to determine if the Save button should be enabled
+    @Binding var selectedIsland: PirateIsland?
+
     private var isSaveEnabled: Bool {
-        return viewModel.isFormValid
+        viewModel.selectedDays.count > 0
     }
 
     var body: some View {
         NavigationView {
             Form {
-                // Days of Week Section
-                Section(header: Text("Days of Week")) {
-                    ForEach(viewModel.daysOfWeek, id: \.self) { day in
-                        Toggle(day.displayName, isOn: viewModel.binding(for: day))
-                    }
-                }
-                
-                // Time per Day Section
-                Section(header: Text("Time per Day")) {
-                    TextField("Enter Time (e.g., 7:00 PM)", text: $viewModel.matTime)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .autocapitalization(.none)
-                        .disableAutocorrection(true)
-                        .keyboardType(.asciiCapable)
-                        .onChange(of: viewModel.matTime) { newValue in
-                            viewModel.validateTime()
-                        }
-                }
-
-                // Gi or NoGi Section
-                giOrNoGiSection
-                
-                // Open to All Levels Section
-                Section(header: Text("Open to All Levels")) {
-                    Toggle("Open to All Levels", isOn: $viewModel.goodForBeginners)
-                }
-                
-                // Restrictions Section
-                Section(header: Text("Restrictions")) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("e.g. White Gis Only")
-                            .foregroundColor(.secondary)
-                        Text("Must Wear Rashguard underneath...")
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.top, 8)
-                    
-                    Toggle("Any Restrictions?", isOn: $viewModel.restrictions.animation())
-                    
-                    if viewModel.restrictions {
-                        TextField("Description", text: $viewModel.restrictionDescription)
-                    }
-                }
-                
-                // Save Button Section
-                Button("Save") {
-                    viewModel.saveDayOfWeek()
-                }
-                .disabled(!isSaveEnabled)
+                daysOfWeekSection
             }
             .navigationBarTitle("Add Open Mat Times / Class Schedule", displayMode: .inline)
         }
     }
-    
-    private var giOrNoGiSection: some View {
-        Section(header: Text("Gi or NoGi")) {
-            Toggle("Gi", isOn: $viewModel.gi.animation())
-            Toggle("NoGi", isOn: $viewModel.noGi.animation())
+
+    private var daysOfWeekSection: some View {
+        Section(header: Text("Days")) {
+            ForEach(DayOfWeek.allCases, id: \.self) { day in
+                VStack(alignment: .leading) {
+                    Text(day.displayName)
+                        .font(.headline)
+                        .padding(.vertical, 8)
+
+                    // List of schedules for the day
+                    ForEach(viewModel.getSchedules(for: day), id: \.self) { schedule in
+                        ClassScheduleRow(schedule: schedule)
+                    }
+
+                    // Add schedule button
+                    Button(action: {
+                        viewModel.addSchedule(for: day)
+                    }) {
+                        Label("Add \(day.displayName) Schedule", systemImage: "plus.circle.fill")
+                    }
+                    .padding(.vertical, 8)
+
+                    Divider()
+                }
+            }
+
+            Button("Save") {
+                saveSchedule()
+            }
+            .disabled(!isSaveEnabled)
         }
+    }
+
+    private func saveSchedule() {
+        guard selectedIsland != nil else {
+            print("Error: Selected island is nil.")
+            return
+        }
+
+        // Save details for each selected day
+        viewModel.saveAllSchedules()
     }
 }
 
+
 struct AddOpenMatFormView_Previews: PreviewProvider {
+    @State static var selectedIsland: PirateIsland? = PirateIsland() // Provide a dummy PirateIsland object
+
     static var previews: some View {
-        AddOpenMatFormView(viewModel: AppDayOfWeekViewModel())
+        AddOpenMatFormView(viewModel: AppDayOfWeekViewModel(selectedIsland: selectedIsland), selectedIsland: $selectedIsland)
     }
 }

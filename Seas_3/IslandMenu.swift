@@ -21,14 +21,16 @@ struct IslandMenu: View {
     @State private var showAlert = false
     @State private var alertMessage = ""
 
+    // Define a binding to selectedIsland
+    @State private var selectedIsland: PirateIsland? = nil
+
     let menuItems: [MenuItem] = [
         MenuItem(title: "Search For Gyms/ Open Mats By", subMenuItems: ["Day of Week", "All Entered Locations", "Near Me (use current location)", "Enter Zip Code"]),
         MenuItem(title: "Manage Gyms", subMenuItems: ["Add New Gym", "Update Existing Gyms", "Add/Edit Class or Open Mat"]),
     ]
 
     var body: some View {
-        NavigationView {
-            ZStack {
+        NavigationView {            ZStack {
                 GIFView(name: "flashing2")
                     .frame(width: 500, height: 450)
                     .offset(x: 100, y: -150)
@@ -103,7 +105,8 @@ struct IslandMenu: View {
             let viewModel = EnterZipCodeViewModel(context: viewContext)
             EnterZipCodeView(viewModel: viewModel)
         case "Add/Edit Class or Open Mat":
-            DaysOfWeekFormView(viewModel: AppDayOfWeekViewModel())
+            // Pass selectedIsland binding to AppDayOfWeekViewModel
+            DaysOfWeekFormView(viewModel: AppDayOfWeekViewModel(selectedIsland: selectedIsland), selectedIsland: $selectedIsland)
         default:
             EmptyView()
         }

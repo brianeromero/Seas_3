@@ -25,14 +25,13 @@ struct AddNewIsland: View {
     @State private var isSaveEnabled = false
     @State private var showAlert = false
     @State private var alertMessage = ""
-    @State private var showConfirmation = false
     @State private var selectedProtocol = "http://"
     
     @Environment(\.presentationMode) private var presentationMode
     
     // MARK: - Toast Message State
-    @State private var toastMessage = ""
     @State private var showToast = false
+    @State private var toastMessage = ""
     
     // MARK: - Body
     var body: some View {
@@ -54,14 +53,10 @@ struct AddNewIsland: View {
             .overlay(
                 Group {
                     if showToast {
-                        ToastView(message: toastMessage)
-                            .transition(.move(edge: .bottom))
-                            .animation(.default)
-                            .onAppear {
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                    showToast = false
-                                }
-                            }
+                        withAnimation {
+                            ToastView(showToast: $showToast, message: toastMessage)
+                                .transition(.move(edge: .bottom))
+                        }
                     }
                 }
             )
@@ -196,26 +191,5 @@ struct AddNewIsland: View {
     private func validateURL(_ urlString: String) -> Bool {
         guard let url = URL(string: urlString) else { return false }
         return UIApplication.shared.canOpenURL(url)
-    }
-}
-
-struct ToastView: View {
-    var message: String
-    
-    var body: some View {
-        VStack {
-            Spacer()
-            HStack {
-                Spacer()
-                Text(message)
-                    .padding()
-                    .background(Color.black.opacity(0.7))
-                    .foregroundColor(.white)
-                    .cornerRadius(10)
-                    .padding()
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.clear)
     }
 }

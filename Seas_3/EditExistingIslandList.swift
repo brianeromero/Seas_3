@@ -47,7 +47,7 @@ struct EditExistingIslandList: View {
                 List {
                     ForEach(filteredIslands) { island in
                         NavigationLink(destination: EditExistingIsland(island: island)) {
-                            Text(island.islandName ?? "Unnamed Island")
+                            Text(island.islandName)
                         }
                     }
                 }
@@ -81,15 +81,8 @@ struct EditExistingIslandList: View {
         showNoMatchAlert = filteredIslands.isEmpty && !searchQuery.isEmpty
     }
 
-
     private func logFetch() {
-        let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
-        do {
-            let results = try viewContext.fetch(fetchRequest)
-            print("Fetched \(results.count) PirateIsland objects.")
-        } catch {
-            print("Failed to fetch PirateIsland: \(error)")
-        }
+        print("Fetched \(islands.count) PirateIsland objects.")
     }
 }
 
