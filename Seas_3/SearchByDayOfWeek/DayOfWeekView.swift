@@ -8,15 +8,18 @@
 import SwiftUI
 
 struct DayOfWeekView: View {
-    @ObservedObject var viewModel = AppDayOfWeekViewModel()
+    @ObservedObject var viewModel: AppDayOfWeekViewModel // Pass selectedIsland to the view model
     @State private var isSaved = false // Track whether the data is saved
+
+    init(selectedIsland: PirateIsland?) {
+        self.viewModel = AppDayOfWeekViewModel(selectedIsland: selectedIsland)
+    }
 
     var body: some View {
         NavigationView {
             VStack {
-                ForEach(viewModel.daysOfWeek.indices, id: \.self) { index in
-                    let day = viewModel.daysOfWeek[index]
-                    Toggle(LocalizedStringKey(String(day.rawValue)), isOn: viewModel.binding(for: day))
+                ForEach(DayOfWeek.allCases, id: \.self) { day in
+                    Toggle(day.displayName, isOn: viewModel.binding(for: day))
                 }
 
                 Button("Save Day of Week") {
@@ -43,6 +46,6 @@ struct DayOfWeekView: View {
 
 struct DayOfWeekView_Previews: PreviewProvider {
     static var previews: some View {
-        DayOfWeekView()
+        DayOfWeekView(selectedIsland: nil) // Pass selectedIsland here for preview or testing
     }
 }

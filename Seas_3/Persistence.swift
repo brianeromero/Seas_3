@@ -1,13 +1,9 @@
-//
-//  Persistence.swift
-//  Seas_3
-//
-//  Created by Brian Romero on 6/24/24.
-//
+// Persistence.swift
+// Seas_3
+// Created by Brian Romero on 6/24/24.
 
 import Foundation
 import CoreData
-
 import Combine
 
 class PersistenceController: ObservableObject {
@@ -98,45 +94,38 @@ class PersistenceController: ObservableObject {
 
     // MARK: - Fetch Specific AppDayOfWeek by ID
 
-    func fetchAppDayOfWeek(byID id: NSManagedObjectID) -> AppDayOfWeek? {
+    func fetchAppDayOfWeek(for island: PirateIsland, day: DayOfWeek, fetchFirstOnly: Bool = false) -> [AppDayOfWeek] {
+        let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "pIsland == %@ AND name == %@", island, day.displayName)
+
         do {
-            guard let object = try container.viewContext.existingObject(with: id) as? AppDayOfWeek else {
-                print("Object with ID \(id) does not exist or cannot be cast to AppDayOfWeek")
-                return nil
+            let results = try container.viewContext.fetch(fetchRequest)
+            if fetchFirstOnly {
+                return results.isEmpty ? [] : [results.first!]
+            } else {
+                return results
             }
-            return object
         } catch {
-            print("Error fetching AppDayOfWeek by ID: \(error)")
-            return nil
+            print("Error fetching AppDayOfWeek: \(error)")
+            return []
         }
     }
 
     // MARK: - Create New AppDayOfWeek
 
-    func createAppDayOfWeek(sunday: Bool, monday: Bool, tuesday: Bool, wednesday: Bool, thursday: Bool, friday: Bool, saturday: Bool, matTime: String?, restrictions: Bool, restrictionDescription: String?, op_sunday: Bool, op_monday: Bool, op_tuesday: Bool, op_wednesday: Bool, op_thursday: Bool, op_friday: Bool, op_saturday: Bool, gi: Bool, noGi: Bool, selectedDays: [String]) -> AppDayOfWeek {
+    func createAppDayOfWeek(pIsland: PirateIsland, dayOfWeek: DayOfWeek, matTime: String?, gi: Bool, noGi: Bool, openMat: Bool, restrictions: Bool, restrictionDescription: String?) -> AppDayOfWeek {
         let newAppDayOfWeek = AppDayOfWeek(context: container.viewContext)
-        newAppDayOfWeek.sunday = sunday
-        newAppDayOfWeek.monday = monday
-        newAppDayOfWeek.tuesday = tuesday
-        newAppDayOfWeek.wednesday = wednesday
-        newAppDayOfWeek.thursday = thursday
-        newAppDayOfWeek.friday = friday
-        newAppDayOfWeek.saturday = saturday
+        newAppDayOfWeek.pIsland = pIsland
+        newAppDayOfWeek.name = dayOfWeek.displayName // Assuming name is used to identify the day
         newAppDayOfWeek.matTime = matTime
-        newAppDayOfWeek.restrictions = restrictions
-        newAppDayOfWeek.restrictionDescription = restrictionDescription
-        newAppDayOfWeek.op_sunday = op_sunday
-        newAppDayOfWeek.op_monday = op_monday
-        newAppDayOfWeek.op_tuesday = op_tuesday
-        newAppDayOfWeek.op_wednesday = op_wednesday
-        newAppDayOfWeek.op_thursday = op_thursday
-        newAppDayOfWeek.op_friday = op_friday
-        newAppDayOfWeek.op_saturday = op_saturday
         newAppDayOfWeek.gi = gi
         newAppDayOfWeek.noGi = noGi
-
+        newAppDayOfWeek.openMat = openMat
+        newAppDayOfWeek.restrictions = restrictions
+        newAppDayOfWeek.restrictionDescription = restrictionDescription
+        
         saveContext()
-
+        
         return newAppDayOfWeek
     }
 
@@ -145,19 +134,24 @@ class PersistenceController: ObservableObject {
     static var preview: PersistenceController = {
         let result = PersistenceController(inMemory: true)
         let viewContext = result.container.viewContext
-        // Create sample data for preview
-        let newPirateIsland = PirateIsland(context: viewContext)
-        newPirateIsland.islandName = "Preview Island"
-        newPirateIsland.latitude = 37.7749
-        newPirateIsland.longitude = -122.4194
-
+        
+        for _ in 0..<10 {
+            let newIsland = PirateIsland(context: viewContext)
+            newIsland.islandName = "Preview Island"
+            newIsland.latitude = 37.7749
+            newIsland.longitude = -122.4194
+            newIsland.createdTimestamp = Date()
+            newIsland.islandLocation = "San Francisco, CA"
+            // Set other required attributes as needed
+        }
+        
         do {
             try viewContext.save()
         } catch {
             let nsError = error as NSError
             fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
         }
-
+        
         return result
     }()
 
@@ -174,4 +168,24 @@ class PersistenceController: ObservableObject {
 
         container.viewContext.automaticallyMergesChangesFromParent = true
     }
+    
+    func fetchOrCreateAppDayOfWeek(for island: PirateIsland, day: DayOfWeek) -> AppDayOfWeek {
+        let request: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
+        request.predicate = NSPredicate(format: "pIsland == %@ AND name == %@", island, day.displayName) // Use displayName
+        
+        do {
+            if let existingDay = try container.viewContext.fetch(request).first {
+                return existingDay
+            } else {
+                let newDay = AppDayOfWeek(context: container.viewContext)
+                newDay.pIsland = island
+                newDay.name = day.displayName // Use displayName
+                return newDay
+            }
+        } catch {
+            print("Error fetching or creating AppDayOfWeek: \(error.localizedDescription)")
+            fatalError("Failed to fetch or create AppDayOfWeek: \(error)")
+        }
+    }
+    
 }

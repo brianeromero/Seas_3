@@ -28,16 +28,16 @@ struct IslandMapView: View {
                     ForEach(islands, id: \.self) { island in
                         VStack(alignment: .leading) {
                             // Island details
-                            Text("Gym: \(island.islandName ?? "Unknown")")
-                            Text("Location: \(island.islandLocation ?? "Unknown")")
+                            Text("Gym: \(island.islandName)")
+                            Text("Location: \(island.islandLocation)")
                             // Other island details...
 
                             // Handle map here
                             if island.latitude != 0 && island.longitude != 0 {
                                 IslandMapViewMap(
                                     coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude),
-                                    islandName: island.islandName ?? "",
-                                    islandLocation: island.islandLocation ?? "",
+                                    islandName: island.islandName,
+                                    islandLocation: island.islandLocation,
                                     onTap: {
                                         selectedIsland = island
                                         openInMaps(island: island)
@@ -66,17 +66,17 @@ struct IslandMapView: View {
         .onAppear {
             print("IslandMapView appeared with islands count: \(islands.count)")
             for island in islands {
-                print("Island: \(island.islandName ?? "Unknown"), Location: \(island.islandLocation ?? "Unknown"), Latitude: \(island.latitude), Longitude: \(island.longitude)")
+                print("Island: \(island.islandName), Location: \(island.islandLocation), Latitude: \(island.latitude), Longitude: \(island.longitude)")
             }
         }
     }
 
     private func openInMaps(island: PirateIsland) {
         if island.latitude != 0 && island.longitude != 0 {
-            let coordinate = CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude)
+            _ = CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude)
             let baseUrl = "http://maps.apple.com/?"
             let locationString = "\(island.latitude),\(island.longitude)"
-            let nameAndLocation = "\(island.islandName ?? ""), \(island.islandLocation ?? "")"
+            let nameAndLocation = "\(island.islandName), \(island.islandLocation)"
             let encodedLocation = locationString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
             let encodedNameAndLocation = nameAndLocation.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
             let finalUrlString = baseUrl + "q=\(encodedNameAndLocation)&ll=\(encodedLocation)"

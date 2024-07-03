@@ -8,20 +8,6 @@ import CoreData
 import CoreLocation
 import MapKit
 
-// Mock LocationManager for preview
-class MockLocationManager: ObservableObject {
-    @Published var userLocation: CLLocation?
-    
-    init() {
-        // Provide a default location for preview
-        self.userLocation = CLLocation(latitude: 33.783550, longitude: -118.035652)
-    }
-    
-    func requestLocation() {
-        // No action needed for preview
-    }
-}
-
 struct RadiusPicker: View {
     @Binding var selectedRadius: Double
     
@@ -52,7 +38,7 @@ struct ConsolidatedIslandMapView: View {
         sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.createdTimestamp, ascending: true)]
     ) private var islands: FetchedResults<PirateIsland>
 
-    @ObservedObject private var locationManager = MockLocationManager()
+    @ObservedObject private var locationManager = UserLocationMapViewModel() // Use real UserLocationMapViewModel
     @State private var selectedRadius: Double = 5.0
     @State private var equatableRegion: EquatableMKCoordinateRegion = EquatableMKCoordinateRegion(
         region: MKCoordinateRegion(
@@ -65,7 +51,7 @@ struct ConsolidatedIslandMapView: View {
     var body: some View {
         NavigationView {
             VStack {
-                if let userLocation = locationManager.userLocation {
+                if locationManager.userLocation != nil {
                     Map(coordinateRegion: Binding(
                         get: { equatableRegion.region },
                         set: { equatableRegion.region = $0 }
@@ -83,7 +69,7 @@ struct ConsolidatedIslandMapView: View {
                             }
                         }
                     }
-                    .frame(height: 300) // Adjust as needed
+                    .frame(height: 300)
                     .padding()
 
                     RadiusPicker(selectedRadius: $selectedRadius)
@@ -96,13 +82,7 @@ struct ConsolidatedIslandMapView: View {
             }
             .navigationTitle("Locations Near Me")
             .onAppear {
-                if let userLocation = locationManager.userLocation {
-                    updateRegion(userLocation, radius: selectedRadius)
-                    fetchPirateIslandsNear(userLocation, within: selectedRadius * 1609.34)
-                    addCurrentLocationMarker(userLocation)
-                } else {
-                    locationManager.requestLocation()
-                }
+                locationManager.startLocationServices()
             }
             .onChange(of: locationManager.userLocation) { newUserLocation in
                 if let newUserLocation = newUserLocation {
