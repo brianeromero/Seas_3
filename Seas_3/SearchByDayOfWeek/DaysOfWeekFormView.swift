@@ -5,8 +5,6 @@
 //  Created by Brian Romero on 6/26/24.
 //
 
-import Foundation
-
 import SwiftUI
 
 struct DaysOfWeekFormView: View {
@@ -14,6 +12,7 @@ struct DaysOfWeekFormView: View {
     @Binding var selectedIsland: PirateIsland?
     @State private var showClassScheduleModal = false
     @State private var showOpenMatModal = false
+    @State private var selectedAppDayOfWeek: AppDayOfWeek? // Add this state variable
 
     var body: some View {
         NavigationView {
@@ -41,8 +40,19 @@ struct DaysOfWeekFormView: View {
                             Text("Add Open Mat")
                         }
                         .sheet(isPresented: $showOpenMatModal) {
-                            AddOpenMatFormView(viewModel: self.viewModel, selectedIsland: self.$selectedIsland)
+                            AddOpenMatFormView(
+                                viewModel: self.viewModel,
+                                selectedAppDayOfWeek: self.$selectedAppDayOfWeek,
+                                pIsland: self.$selectedIsland,
+                                goodForBeginners: .constant(""),
+                                matTime: .constant(nil),
+                                openMat: .constant(false),
+                                restrictions: .constant(false),
+                                restrictionDescription: .constant(nil),
+                                name: .constant(nil)
+                            )
                         }
+
                     }
                 }
                 .navigationBarTitle("Add Open Mat Times / Class Schedule", displayMode: .inline)
@@ -91,13 +101,11 @@ struct InsertIslandSearch: View {
             }
             .padding(.bottom, 16)
 
-            List {
-                ForEach(filteredIslands) { island in
-                    Button(action: {
-                        self.selectedIsland = island
-                    }) {
-                        Text(island.islandName)
-                    }
+            List(filteredIslands) { island in
+                Button(action: {
+                    self.selectedIsland = island
+                }) {
+                    Text(island.islandName)
                 }
             }
             .listStyle(PlainListStyle())
@@ -137,26 +145,20 @@ struct InsertIslandSearch: View {
 
 struct DaysOfWeekFormView_Previews: PreviewProvider {
     static var previews: some View {
-        let viewModel = AppDayOfWeekViewModel(selectedIsland: nil) // Initialize your view model with a nil selected island
-
-        // Create a mock PirateIsland instance for preview
-        let mockIsland = PirateIsland()
+        // Create a mock selectedIsland
+        let context = PersistenceController.preview.container.viewContext
+        let mockIsland = PirateIsland(context: context)
         mockIsland.islandName = "Mock Island"
-
-        return DaysOfWeekFormViewWrapper(viewModel: viewModel, initialIsland: mockIsland)
-            .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext) // Inject the managed object context for the FetchRequest
-    }
-}
-
-struct DaysOfWeekFormViewWrapper: View {
-    @State private var selectedIsland: PirateIsland?
-    var viewModel: AppDayOfWeekViewModel
-    var initialIsland: PirateIsland?
-
-    var body: some View {
-        DaysOfWeekFormView(viewModel: viewModel, selectedIsland: $selectedIsland)
-            .onAppear {
-                self.selectedIsland = initialIsland
-            }
+        mockIsland.islandLocation = "Mock Location"
+        mockIsland.latitude = 0.0
+        mockIsland.longitude = 0.0
+        mockIsland.gymWebsite = URL(string: "https://mockisland.com")
+        
+        // Create a mock AppDayOfWeekViewModel with mockIsland
+        let viewModel = AppDayOfWeekViewModel(selectedIsland: mockIsland)
+        
+        // Provide a constant binding for selectedIsland
+        return DaysOfWeekFormView(viewModel: viewModel, selectedIsland: .constant(mockIsland))
+            .environment(\.managedObjectContext, context)
     }
 }
