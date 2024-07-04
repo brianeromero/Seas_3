@@ -21,16 +21,17 @@ struct IslandMenu: View {
     @State private var showAlert = false
     @State private var alertMessage = ""
 
-    // Define a binding to selectedIsland
     @State private var selectedIsland: PirateIsland? = nil
 
     let menuItems: [MenuItem] = [
-        MenuItem(title: "Search For Gyms/ Open Mats By", subMenuItems: ["Day of Week", "All Entered Locations", "Near Me (use current location)", "Enter Zip Code"]),
+        MenuItem(title: "Search For Gyms/ Open Mats By", subMenuItems: ["OpenMats (by Day of Week)", "All Entered Locations", "Near Me (use current location)", "Enter Zip Code"]),
         MenuItem(title: "Manage Gyms", subMenuItems: ["Add New Gym", "Update Existing Gyms", "Add/Edit Class or Open Mat"]),
+        MenuItem(title: "Reviews", subMenuItems: ["Add Gym/Open Mat Review"]),
     ]
 
     var body: some View {
-        NavigationView {            ZStack {
+        NavigationView {
+            ZStack {
                 GIFView(name: "flashing2")
                     .frame(width: 500, height: 450)
                     .offset(x: 100, y: -150)
@@ -54,9 +55,9 @@ struct IslandMenu: View {
                                             .foregroundColor(.blue)
                                             .fixedSize(horizontal: false, vertical: true)
                                             .frame(maxWidth: .infinity, alignment: .leading)
+                                            .padding(.leading, 10)
+                                            .padding(.top, 5)
                                     }
-                                    .padding(.leading, 10)
-                                    .padding(.top, 5)
                                 }
                             }
                         }
@@ -73,8 +74,8 @@ struct IslandMenu: View {
                     NavigationLink(destination: FAQnDisclaimerMenuView()) {
                         Text("FAQ & Disclaimer")
                             .foregroundColor(.blue)
+                            .padding(.top, 10)
                     }
-                    .padding(.top, 10)
                 }
                 .padding(.horizontal, 20)
                 .navigationBarTitle("Welcome to Mat_Finder", displayMode: .inline)
@@ -93,6 +94,8 @@ struct IslandMenu: View {
     @ViewBuilder
     private func destinationView(for menuItem: String) -> some View {
         switch menuItem {
+        case "OpenMats (by Day of Week)":
+            OpenMatsByDayOfWeekView()
         case "Add New Gym":
             AddNewIsland()
         case "Update Existing Gyms":
@@ -105,7 +108,6 @@ struct IslandMenu: View {
             let viewModel = EnterZipCodeViewModel(context: viewContext)
             EnterZipCodeView(viewModel: viewModel)
         case "Add/Edit Class or Open Mat":
-            // Pass selectedIsland binding to AppDayOfWeekViewModel
             DaysOfWeekFormView(viewModel: AppDayOfWeekViewModel(selectedIsland: selectedIsland), selectedIsland: $selectedIsland)
         default:
             EmptyView()
