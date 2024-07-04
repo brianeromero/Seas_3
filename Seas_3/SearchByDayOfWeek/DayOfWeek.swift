@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum DayOfWeek: CaseIterable {
+enum DayOfWeek: String, CaseIterable {
     case sunday, monday, tuesday, wednesday, thursday, friday, saturday
     
     var displayName: String {
@@ -22,3 +22,10 @@ enum DayOfWeek: CaseIterable {
         }
     }
 }
+
+// Example usage within a function or computed property:
+func exampleUsage() {
+    let currentDayOfWeek = DayOfWeek.monday
+    print("Today is \(currentDayOfWeek.displayName)") // Prints: "Today is Monday"
+}
+

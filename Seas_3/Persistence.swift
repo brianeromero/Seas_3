@@ -113,10 +113,9 @@ class PersistenceController: ObservableObject {
 
     // MARK: - Create New AppDayOfWeek
 
-    func createAppDayOfWeek(pIsland: PirateIsland, dayOfWeek: DayOfWeek, matTime: String?, gi: Bool, noGi: Bool, openMat: Bool, restrictions: Bool, restrictionDescription: String?) -> AppDayOfWeek {
+    func createAppDayOfWeek(pIsland: PirateIsland, dayOfWeek: String, matTime: String?, gi: Bool, noGi: Bool, openMat: Bool, restrictions: Bool, restrictionDescription: String?) -> AppDayOfWeek {
         let newAppDayOfWeek = AppDayOfWeek(context: container.viewContext)
         newAppDayOfWeek.pIsland = pIsland
-        newAppDayOfWeek.name = dayOfWeek.displayName // Assuming name is used to identify the day
         newAppDayOfWeek.matTime = matTime
         newAppDayOfWeek.gi = gi
         newAppDayOfWeek.noGi = noGi
@@ -124,8 +123,27 @@ class PersistenceController: ObservableObject {
         newAppDayOfWeek.restrictions = restrictions
         newAppDayOfWeek.restrictionDescription = restrictionDescription
         
+        // Set the day of the week based on the provided dayOfWeek string
+        switch dayOfWeek {
+        case DayOfWeek.sunday.displayName:
+            newAppDayOfWeek.sunday = true
+        case DayOfWeek.monday.displayName:
+            newAppDayOfWeek.monday = true
+        case DayOfWeek.tuesday.displayName:
+            newAppDayOfWeek.tuesday = true
+        case DayOfWeek.wednesday.displayName:
+            newAppDayOfWeek.wednesday = true
+        case DayOfWeek.thursday.displayName:
+            newAppDayOfWeek.thursday = true
+        case DayOfWeek.friday.displayName:
+            newAppDayOfWeek.friday = true
+        case DayOfWeek.saturday.displayName:
+            newAppDayOfWeek.saturday = true
+        default:
+            break
+        }
+
         saveContext()
-        
         return newAppDayOfWeek
     }
 

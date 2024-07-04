@@ -14,27 +14,70 @@ struct ClassScheduleRow: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("\(schedule.matTime ?? "")")
+            if let matTime = schedule.matTime {
+                Text(matTime)
+                    .font(.headline)
+            } else {
+                Text("No time set")
+                    .font(.headline)
+                    .foregroundColor(.gray)
+            }
+            
             Text("Gi: \(schedule.gi ? "T" : "F"), NoGi: \(schedule.noGi ? "T" : "F"), Open Mat: \(schedule.openMat ? "T" : "F")")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+            
             if schedule.restrictions {
-                Text("Restrictions: \(schedule.restrictionDescription ?? "")")
+                if let restrictionDescription = schedule.restrictionDescription {
+                    Text("Restrictions: \(restrictionDescription)")
+                        .font(.subheadline)
+                        .foregroundColor(.red)
+                } else {
+                    Text("Restrictions: Not specified")
+                        .font(.subheadline)
+                        .foregroundColor(.red)
+                }
             }
         }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(8.0)
+        .shadow(radius: 1)
     }
 }
 
 struct ClassScheduleRow_Previews: PreviewProvider {
     static var previews: some View {
-        let previewSchedule = AppDayOfWeek() // Create a preview instance of AppDayOfWeek
+        // Create an NSManagedObjectContext for preview
+        let context = PersistenceController.preview.container.viewContext
+        
+        // Create a preview instance of AppDayOfWeek
+        let previewSchedule = AppDayOfWeek(context: context)
         previewSchedule.matTime = "10:00 AM"
         previewSchedule.gi = true
         previewSchedule.noGi = false
         previewSchedule.openMat = true
         previewSchedule.restrictions = true
         previewSchedule.restrictionDescription = "No kids allowed"
-
-        return ClassScheduleRow(schedule: previewSchedule)
-            .previewLayout(.sizeThatFits)
-            .padding()
+        
+        // Create another preview instance without restrictions
+        let previewScheduleWithoutRestrictions = AppDayOfWeek(context: context)
+        previewScheduleWithoutRestrictions.matTime = "2:00 PM"
+        previewScheduleWithoutRestrictions.gi = false
+        previewScheduleWithoutRestrictions.noGi = true
+        previewScheduleWithoutRestrictions.openMat = false
+        previewScheduleWithoutRestrictions.restrictions = false
+        
+        return Group {
+            ClassScheduleRow(schedule: previewSchedule)
+                .previewLayout(.sizeThatFits)
+                .padding()
+                .previewDisplayName("With Restrictions")
+            
+            ClassScheduleRow(schedule: previewScheduleWithoutRestrictions)
+                .previewLayout(.sizeThatFits)
+                .padding()
+                .previewDisplayName("Without Restrictions")
+        }
     }
 }

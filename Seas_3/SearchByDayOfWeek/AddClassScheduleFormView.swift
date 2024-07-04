@@ -5,12 +5,12 @@
 //  Created by Brian Romero on 6/26/24.
 //
 
-import Foundation
 import SwiftUI
 
 struct AddClassScheduleView: View {
     @ObservedObject var viewModel: AppDayOfWeekViewModel
     @Binding var selectedIsland: PirateIsland?
+    var onSave: ((_ selectedAppDayOfWeek: DayOfWeek, _ pIsland: PirateIsland?, _ goodForBeginners: Bool, _ matTime: String?, _ openMat: Bool, _ restrictions: Bool, _ restrictionDescription: String?) -> Void)?
 
     private var isSaveEnabled: Bool {
         viewModel.selectedDays.count > 0
@@ -21,7 +21,7 @@ struct AddClassScheduleView: View {
             Form {
                 daysOfWeekSection
             }
-            .navigationBarTitle("Add Open Mat Times / Class Schedule", displayMode: .inline)
+            .navigationBarTitle("Add Class Schedule", displayMode: .inline)
         }
     }
 
@@ -50,29 +50,47 @@ struct AddClassScheduleView: View {
                 }
             }
 
-            Button("Save") {
+            Button(action: {
                 saveSchedule()
+            }) {
+                Text("Save")
             }
             .disabled(!isSaveEnabled)
         }
     }
 
     private func saveSchedule() {
-        guard selectedIsland != nil else {
+        guard let selectedIsland = selectedIsland else {
             print("Error: Selected island is nil.")
             return
         }
 
-        // Save details for each selected day
-        viewModel.saveAllSchedules()
+        // Perform validation and save for each selected day
+        for day in viewModel.selectedDays {
+            onSave?(day, selectedIsland, viewModel.goodForBeginners, viewModel.matTime, viewModel.openMat, viewModel.restrictions, viewModel.restrictionDescription)
+        }
     }
 }
 
-
 struct AddClassScheduleView_Previews: PreviewProvider {
-    @State static var selectedIsland: PirateIsland? = PirateIsland() // Provide a dummy PirateIsland object
-
     static var previews: some View {
-        AddClassScheduleView(viewModel: AppDayOfWeekViewModel(selectedIsland: selectedIsland), selectedIsland: $selectedIsland)
+        // Create a mock selectedIsland
+        let context = PersistenceController.preview.container.viewContext
+        let mockIsland = PirateIsland(context: context)
+        mockIsland.islandName = "Mock Island"
+        mockIsland.islandLocation = "Mock Location"
+        mockIsland.latitude = 0.0
+        mockIsland.longitude = 0.0
+        mockIsland.gymWebsite = URL(string: "https://mockisland.com")
+        
+        // Create a mock AppDayOfWeekViewModel with mockIsland
+        let viewModel = AppDayOfWeekViewModel(selectedIsland: mockIsland)
+        
+        // Provide a constant binding for selectedIsland
+        return AddClassScheduleView(viewModel: viewModel, selectedIsland: .constant(mockIsland)) { selectedAppDayOfWeek, pIsland, goodForBeginners, matTime, openMat, restrictions, restrictionDescription in
+            // Perform any action needed with the saved data
+            print("Saved schedule for \(selectedAppDayOfWeek.displayName)")
+        }
+        .environment(\.managedObjectContext, context)
     }
 }
