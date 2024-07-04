@@ -11,7 +11,7 @@ import CoreData
 
 class AppDayOfWeekViewModel: ObservableObject {
     private let persistence = PersistenceController.shared // Reference to PersistenceController
-
+    
     // Published properties for each day of the week
     @Published var matTimeForDay: [DayOfWeek: String] = [:]
     @Published var selectedTimeForDay: [DayOfWeek: Date] = [:]
@@ -83,23 +83,22 @@ class AppDayOfWeekViewModel: ObservableObject {
     }
     
     func saveAllSchedules() {
-        guard selectedIsland != nil else {
+        guard let selectedIsland = selectedIsland else {
             print("Error: Selected island is nil.")
             return
         }
-        
+
         for day in selectedDays {
             saveDayDetails(for: day)
         }
-        
-        // Optionally, you can clear selected days or perform any other necessary cleanup
+
         selectedDays.removeAll()
     }
     
     func saveDayDetails(for day: DayOfWeek) {
-        guard let pIsland = selectedIsland else { return }
+        guard let selectedIsland = selectedIsland else { return }
 
-        let dayEntity = fetchOrCreateAppDayOfWeek(for: pIsland, day: day)
+        let dayEntity = fetchOrCreateAppDayOfWeek(for: selectedIsland, day: day)
 
         dayEntity.matTime = matTimeForDay[day] ?? ""
         dayEntity.goodForBeginners = goodForBeginnersForDay[day] ?? false
@@ -112,12 +111,11 @@ class AppDayOfWeekViewModel: ObservableObject {
         repository.saveContext()
     }
 
-    
     func fetchDayDetails(for day: DayOfWeek) {
-        guard let pIsland = selectedIsland else { return }
-        
-        let dayEntity = fetchOrCreateAppDayOfWeek(for: pIsland, day: day)
-        
+        guard let selectedIsland = selectedIsland else { return }
+
+        let dayEntity = fetchOrCreateAppDayOfWeek(for: selectedIsland, day: day)
+
         matTimeForDay[day] = dayEntity.matTime
         goodForBeginnersForDay[day] = dayEntity.goodForBeginners
         giForDay[day] = dayEntity.gi
@@ -125,22 +123,19 @@ class AppDayOfWeekViewModel: ObservableObject {
         openMatForDay[day] = dayEntity.openMat
         restrictionsForDay[day] = dayEntity.restrictions
         restrictionDescriptionForDay[day] = dayEntity.restrictionDescription
-        
-        let daySchedules = persistence.fetchAppDayOfWeek(for: pIsland, day: day)
+
+        let daySchedules = persistence.fetchAppDayOfWeek(for: selectedIsland, day: day)
         schedules[day] = daySchedules
     }
-    
+
     func fetchCurrentDayOfWeek() {
-        guard let pIsland = selectedIsland else {
+        guard let selectedIsland = selectedIsland else {
             print("Error: Selected island is nil.")
             return
         }
         
-        if let currentDayOfWeeks = persistence.fetchAppDayOfWeek(for: pIsland, day: .monday).first {
-            // Assuming fetchDayOfWeek(for:) returns an array of AppDayOfWeek objects
-            
-            // Update properties from the first fetched day
-            updateProperties(from: currentDayOfWeeks, day: .monday)
+        if let currentDayOfWeek = persistence.fetchAppDayOfWeek(for: selectedIsland, day: .monday).first {
+            updateProperties(from: currentDayOfWeek, day: .monday)
         } else {
             print("Error: Failed to fetch current day of week.")
             // Optionally handle what to do if fetch fails or no current day found
@@ -156,10 +151,8 @@ class AppDayOfWeekViewModel: ObservableObject {
         noGiForDay[day] = dayOfWeek.noGi
         openMatForDay[day] = dayOfWeek.openMat
         
-        // Update selected days based on fetched data
-        selectedDays.insert(day) // Assuming selectedDays is a Set<DayOfWeek>
+        selectedDays.insert(day)
         
-        // Debug statement
         print("Properties updated for \(day.displayName) successfully.")
     }
     
@@ -169,16 +162,13 @@ class AppDayOfWeekViewModel: ObservableObject {
             return
         }
         
-        // Fetch the AppDayOfWeek object for the selected island and DayOfWeek.monday
         let fetchedDayOfWeek = repository.fetchAppDayOfWeek(for: selectedIsland, day: .monday)
         
-        // Ensure there's exactly one AppDayOfWeek object matching the criteria
         guard let currentDayOfWeek = fetchedDayOfWeek.first else {
             print("Error: No AppDayOfWeek found for the selected island and Monday.")
             return
         }
         
-        // Update the properties of the currentDayOfWeek object
         currentDayOfWeek.matTime = matTime
         currentDayOfWeek.restrictions = restrictions
         currentDayOfWeek.restrictionDescription = restrictions ? restrictionDescription : ""
@@ -187,32 +177,36 @@ class AppDayOfWeekViewModel: ObservableObject {
         currentDayOfWeek.noGi = noGi
         currentDayOfWeek.openMat = openMat
         
-        // Update the selected days
         for day in DayOfWeek.allCases {
             currentDayOfWeek.setSelected(day: day, selected: selectedDays.contains(day))
         }
         
-        // Save the context
         repository.saveContext()
     }
 
-    
-    // MARK: - Methods for managing multiple schedules per day
-    
     func getSchedules(for day: DayOfWeek) -> [AppDayOfWeek] {
         return schedules[day] ?? []
     }
-    
+
     func addSchedule(for day: DayOfWeek) {
-        guard let island = selectedIsland else { return }
+        guard let selectedIsland = selectedIsland else {
+            print("Error: No island selected.")
+            return
+        }
         
         let newSchedule = AppDayOfWeek(context: persistence.container.viewContext)
-        newSchedule.pIsland = island
-        newSchedule.name = day.displayName // Assuming name is used to identify the day
+        newSchedule.pIsland = selectedIsland
+        newSchedule.name = day.displayName
         
-        // Set other properties as needed
-        schedules[day, default: []].append(newSchedule)
-        repository.saveContext()
+        let someValidMatTime = "10:00 AM" // Replace with your logic to determine matTime
+        newSchedule.matTime = someValidMatTime
+        
+        do {
+            try persistence.container.viewContext.save()
+            print("Schedule added successfully.")
+        } catch {
+            print("Failed to add schedule: \(error)")
+        }
     }
     
     func deleteSchedule(at offsets: IndexSet, for day: DayOfWeek) {
@@ -220,58 +214,14 @@ class AppDayOfWeekViewModel: ObservableObject {
         
         repository.deleteSchedule(at: offsets, for: day, island: selectedIsland)
     }
-    
-    func createExampleSchedules() {
-        guard let pIsland = persistence.fetchLastPirateIsland() else {
-            print("Error: No pirate island found.")
-            return
-        }
 
-        // Example schedules
-        _ = persistence.createAppDayOfWeek(
-            pIsland: pIsland,
-            dayOfWeek: .monday,
-            matTime: "10:00 AM",  // Ensure this matches the optional String? parameter
-            gi: true,             // Boolean parameters follow after matTime
-            noGi: false,
-            openMat: true,
-            restrictions: false,
-            restrictionDescription: nil  // Optional String parameter
-        )
-
-        _ = persistence.createAppDayOfWeek(
-            pIsland: pIsland,
-            dayOfWeek: .tuesday,
-            matTime: "12:00 PM",
-            gi: false,
-            noGi: true,
-            openMat: true,
-            restrictions: false,
-            restrictionDescription: nil
-        )
-
-        _ = persistence.createAppDayOfWeek(
-            pIsland: pIsland,
-            dayOfWeek: .wednesday,
-            matTime: "05:00 PM",
-            gi: true,
-            noGi: false,
-            openMat: false,
-            restrictions: true,
-            restrictionDescription: "Advanced students only."
-        )
-    }
-
-    
-    // MARK: - Private methods
-    
-    private func fetchOrCreateAppDayOfWeek(for pIsland: PirateIsland, day: DayOfWeek) -> AppDayOfWeek {
-        if let existingDay = persistence.fetchAppDayOfWeek(for: pIsland, day: day).first {
+    private func fetchOrCreateAppDayOfWeek(for selectedIsland: PirateIsland, day: DayOfWeek) -> AppDayOfWeek {
+        if let existingDay = persistence.fetchAppDayOfWeek(for: selectedIsland, day: day).first {
             return existingDay
         } else {
             let newDay = AppDayOfWeek(context: persistence.container.viewContext)
-            newDay.pIsland = pIsland
-            newDay.name = day.displayName // Assuming name is used to identify the day
+            newDay.pIsland = selectedIsland
+            newDay.name = day.displayName
             persistence.saveContext()
             return newDay
         }

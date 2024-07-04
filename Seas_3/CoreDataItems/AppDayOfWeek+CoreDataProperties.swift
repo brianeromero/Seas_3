@@ -38,6 +38,7 @@ extension AppDayOfWeek {
     @NSManaged public var wednesday: Bool
     @NSManaged public var pIsland: PirateIsland?
     @NSManaged public var name: String?
+    @NSManaged public var dayOfWeek: String? // Add this attribute for day of the week
 
     
 }
