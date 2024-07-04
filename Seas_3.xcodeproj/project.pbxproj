@@ -47,6 +47,7 @@
 		0C1635512C35D686008FC297 /* ClassScheduleRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1635502C35D686008FC297 /* ClassScheduleRow.swift */; };
 		0C1635522C35D6E2008FC297 /* AddOpenMatFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0952C2CFF5A00D0BFB2 /* AddOpenMatFormView.swift */; };
 		0C1635542C3613A2008FC297 /* ToastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1635532C3613A2008FC297 /* ToastView.swift */; };
+		0C1635562C361CBB008FC297 /* OpenMats (by Day of Week).swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1635552C361CBB008FC297 /* OpenMats (by Day of Week).swift */; };
 		0C524E8C2C2F408F008D6623 /* ExampleUsuageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C524E8B2C2F408F008D6623 /* ExampleUsuageView.swift */; };
 		0C524E8E2C2F4241008D6623 /* DayOfWeek.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C524E8D2C2F4241008D6623 /* DayOfWeek.swift */; };
 		0C524E8F2C2F8592008D6623 /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0A12C2CFFFD00D0BFB2 /* LocationManager.swift */; };
@@ -150,6 +151,7 @@
 		0C07B0D22C2D033700D0BFB2 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		0C1635502C35D686008FC297 /* ClassScheduleRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClassScheduleRow.swift; sourceTree = "<group>"; };
 		0C1635532C3613A2008FC297 /* ToastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastView.swift; sourceTree = "<group>"; };
+		0C1635552C361CBB008FC297 /* OpenMats (by Day of Week).swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OpenMats (by Day of Week).swift"; sourceTree = "<group>"; };
 		0C524E8B2C2F408F008D6623 /* ExampleUsuageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExampleUsuageView.swift; sourceTree = "<group>"; };
 		0C524E8D2C2F4241008D6623 /* DayOfWeek.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayOfWeek.swift; sourceTree = "<group>"; };
 		0C524E922C308DB9008D6623 /* AllEnteredLocationsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AllEnteredLocationsViewModel.swift; sourceTree = "<group>"; };
@@ -219,6 +221,7 @@
 				0C07B0932C2CFF3B00D0BFB2 /* AddClassScheduleFormView.swift */,
 				0C07B0952C2CFF5A00D0BFB2 /* AddOpenMatFormView.swift */,
 				0C1635502C35D686008FC297 /* ClassScheduleRow.swift */,
+				0C1635552C361CBB008FC297 /* OpenMats (by Day of Week).swift */,
 			);
 			path = SearchByDayOfWeek;
 			sourceTree = "<group>";
@@ -504,6 +507,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0C1635562C361CBB008FC297 /* OpenMats (by Day of Week).swift in Sources */,
 				0CF13E4E2C2A326A00D714C0 /* Persistence.swift in Sources */,
 				0CEB039A2C2BA58F007CA3CC /* AppDayOfWeekRepository.swift in Sources */,
 				0C07B0902C2CFF0B00D0BFB2 /* DayOfWeekView.swift in Sources */,
