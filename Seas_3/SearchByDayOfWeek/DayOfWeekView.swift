@@ -8,11 +8,11 @@
 import SwiftUI
 
 struct DayOfWeekView: View {
-    @StateObject var viewModel: AppDayOfWeekViewModel // Use @StateObject for view model
-    @State private var isSaved = false // Track whether the data is saved
+    @StateObject var viewModel: AppDayOfWeekViewModel
+    @State private var isSaved = false
 
-    init(selectedIsland: PirateIsland?) {
-        _viewModel = StateObject(wrappedValue: AppDayOfWeekViewModel(selectedIsland: selectedIsland))
+    init(selectedIsland: PirateIsland?, repository: AppDayOfWeekRepository = AppDayOfWeekRepository.shared) {
+        _viewModel = StateObject(wrappedValue: AppDayOfWeekViewModel(selectedIsland: selectedIsland, repository: repository))
     }
 
     var body: some View {
@@ -24,7 +24,7 @@ struct DayOfWeekView: View {
 
                 Button("Save Day of Week") {
                     viewModel.saveAllSchedules()
-                    isSaved = true // Set state to indicate data is saved
+                    isSaved = true
                 }
                 .padding()
 
@@ -33,10 +33,11 @@ struct DayOfWeekView: View {
                     isActive: $isSaved,
                     label: {
                         EmptyView()
-                    })
+                    }
+                )
             }
             .onAppear {
-                viewModel.fetchCurrentDayOfWeek() // Correct method invocation
+                viewModel.fetchCurrentDayOfWeek()
                 Logger.log("View appeared", view: "DayOfWeekView")
             }
             .navigationTitle("Day of Week Settings")
@@ -46,6 +47,15 @@ struct DayOfWeekView: View {
 
 struct DayOfWeekView_Previews: PreviewProvider {
     static var previews: some View {
-        DayOfWeekView(selectedIsland: nil) // Pass selectedIsland here for preview or testing
+        let context = PersistenceController.preview.container.viewContext
+        let mockIsland = PirateIsland(context: context)
+        mockIsland.islandName = "Mock Island"
+        mockIsland.islandLocation = "Mock Location"
+        mockIsland.latitude = 0.0
+        mockIsland.longitude = 0.0
+        mockIsland.gymWebsite = URL(string: "")
+
+        return DayOfWeekView(selectedIsland: mockIsland)
+            .environment(\.managedObjectContext, context)
     }
 }

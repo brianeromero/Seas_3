@@ -6,8 +6,6 @@ import Foundation
 import CoreData
 import Combine
 
-
-
 class PersistenceController: ObservableObject {
     static let shared = PersistenceController()
 
@@ -193,5 +191,4 @@ class PersistenceController: ObservableObject {
         let dayEntity = self.fetchAppDayOfWeek(for: island, day: day, fetchFirstOnly: true).first
         return dayEntity ?? self.createAppDayOfWeek(pIsland: island, dayOfWeek: day.displayName, matTime: nil, gi: false, noGi: false, openMat: false, restrictions: false, restrictionDescription: nil)
     }
-    
 }
