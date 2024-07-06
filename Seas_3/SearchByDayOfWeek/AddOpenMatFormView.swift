@@ -10,143 +10,195 @@ import SwiftUI
 struct AddOpenMatFormView: View {
     @ObservedObject var viewModel: AppDayOfWeekViewModel
     @Binding var selectedAppDayOfWeek: AppDayOfWeek?
-    @Binding var pIsland: PirateIsland?
-    @Binding var goodForBeginners: String
-    @Binding var matTime: String?
-    @Binding var openMat: Bool
-    @Binding var restrictions: Bool
-    @Binding var restrictionDescription: String?
-    @Binding var name: String?
+    var pIsland: PirateIsland?
 
     @State private var showAlert = false
     @State private var alertMessage = ""
+    @State private var selectedTime = Date()
+    @State private var selectedDay: DayOfWeek?
 
-    private var isSaveEnabled: Bool {
-        guard let island = pIsland else { return false }
-        return !goodForBeginners.isEmpty && (matTime ?? "").isEmpty == false
-    }
+    @State private var showTimePicker = false
+    @State private var saveEnabled = false
 
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Select Schedule and Details")) {
-                    TextField("Time", text: Binding<String>(
-                        get: { matTime ?? "" },
-                        set: { matTime = $0 }
-                    ))
-                    .onChange(of: matTime ?? "") { _ in validateFields() }
-
-                    TextField("Details", text: $goodForBeginners)
-                    .onChange(of: goodForBeginners) { _ in validateFields() }
-                }
-
-                Section(header: Text("More Details")) {
-                    Toggle("Restrictions", isOn: $restrictions)
-                    if restrictions {
-                        TextField("Description", text: Binding<String>(
-                            get: { restrictionDescription ?? "" },
-                            set: { restrictionDescription = $0 }
-                        ))
-                        .onChange(of: restrictionDescription ?? "") { _ in validateFields() }
+                // Section: Add Open Mat Details
+                Section(header: Text("Add Open Mat Details")) {
+                    ForEach(DayOfWeek.allCases, id: \.self) { day in
+                        HStack {
+                            Text(day.displayName)
+                            Spacer()
+                            Button(action: {
+                                self.selectedDay = day
+                            }) {
+                                Image(systemName: "plus.circle")
+                                    .foregroundColor(.blue)
+                                    .accessibility(label: Text("Select \(day.displayName)"))
+                            }
+                        }
                     }
                 }
 
-                Section(header: Text("Name (if applicable)")) {
-                    TextField("Name", text: Binding<String>(
-                        get: { name ?? "" },
-                        set: { name = $0 }
-                    ))
-                    .onChange(of: name ?? "") { _ in validateFields() }
+                // Section: Selected Day
+                Section(header: Text("Selected Day")) {
+                    if let selectedDay = selectedDay {
+                        VStack(alignment: .leading) {
+                            Text("Selected Day: \(selectedDay.displayName)")
+                                .foregroundColor(.blue)
+
+                            // Section: Schedule Details
+                            Section(header: Text("Schedule Details")) {
+                                TextField("Time", text: Binding<String>(
+                                    get: { viewModel.matTime ?? "" },
+                                    set: { newValue in viewModel.matTime = newValue }
+                                ))
+                                .onTapGesture {
+                                    showTimePicker = true
+                                }
+                                .sheet(isPresented: $showTimePicker) {
+                                    VStack {
+                                        DatePicker("Select Time", selection: $selectedTime, displayedComponents: .hourAndMinute)
+                                            .datePickerStyle(WheelDatePickerStyle())
+                                            .onChange(of: selectedTime) { newValue in
+                                                viewModel.matTime = DateFormatter.localizedString(from: newValue, dateStyle: .none, timeStyle: .short)
+                                                validateFields()
+                                                showTimePicker = false
+                                            }
+                                        Button("Done") {
+                                            showTimePicker = false
+                                        }
+                                        .padding(.top, 10)
+                                    }
+                                }
+
+                                Toggle("Open Mat", isOn: $viewModel.openMat)
+                                Toggle("GI", isOn: $viewModel.gi)
+                                Toggle("No GI", isOn: $viewModel.noGi)
+
+                                // Section: Additional Information
+                                Section(header: Text("Additional Information")) {
+                                    Toggle("Restrictions", isOn: $viewModel.restrictions)
+                                    if viewModel.restrictions {
+                                        TextField("Description", text: Binding<String>(
+                                            get: { viewModel.restrictionDescription ?? "" },
+                                            set: { newValue in viewModel.restrictionDescription = newValue }
+                                        ))
+                                        .onChange(of: viewModel.restrictionDescription ?? "") { _ in
+                                            validateFields()
+                                        }
+                                    }
+
+                                    Toggle("Good For Beginners", isOn: $viewModel.goodForBeginners)
+
+                                    TextField("Name", text: Binding<String>(
+                                        get: { viewModel.name ?? "" },
+                                        set: { newValue in viewModel.name = newValue }
+                                    ))
+                                    .onChange(of: viewModel.name ?? "") { _ in
+                                        validateFields()
+                                    }
+                                }
+                            }
+
+                            // Save Button
+                            Button("Save") {
+                                saveSchedule(for: selectedDay)
+                            }
+                            .disabled(!saveEnabled)
+                            .padding(.top, 10)
+                        }
+                    } else {
+                        Text("Please select a day to continue.")
+                            .foregroundColor(.red)
+                    }
                 }
             }
             .navigationBarTitle("Add Open Mat", displayMode: .inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Save") {
-                        saveSchedule()
-                    }
-                    .disabled(!isSaveEnabled)
-                }
-            }
             .alert(isPresented: $showAlert) {
                 Alert(title: Text("Error"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
             }
         }
         .onAppear {
-            validateFields() // Initial validation check
+            viewModel.fetchDayDetails(for: selectedDay ?? .monday) // Initial validation check
+        }
+        .onDisappear {
+            resetState() // Reset state variables when the view disappears
         }
     }
 
-    private func saveSchedule() {
+    private func saveSchedule(for day: DayOfWeek?) {
+        guard let day = day else { return }
         guard let island = pIsland else {
             print("Error: Selected island is nil.")
             return
         }
 
-        // Ensure selectedAppDayOfWeek is set correctly
-        guard let selectedAppDayOfWeek = selectedAppDayOfWeek else {
-            print("Error: Selected AppDayOfWeek is nil.")
-            return
-        }
-
-        // Get the display name of the day of the week
-        let dayOfWeekName = selectedAppDayOfWeek.dayOfWeek ?? ""
-
-        // Save the schedule details
-        let newAppDayOfWeek = PersistenceController.shared.createAppDayOfWeek(
+        _ = PersistenceController.shared.createAppDayOfWeek(
             pIsland: island,
-            dayOfWeek: dayOfWeekName,
-            matTime: matTime,
-            gi: viewModel.gi, // Access gi through viewModel
-            noGi: viewModel.noGi, // Access noGi through viewModel
-            openMat: openMat,
-            restrictions: restrictions,
-            restrictionDescription: restrictionDescription
+            dayOfWeek: day.displayName,
+            matTime: viewModel.matTime,
+            gi: viewModel.gi,
+            noGi: viewModel.noGi,
+            openMat: viewModel.openMat,
+            restrictions: viewModel.restrictions,
+            restrictionDescription: viewModel.restrictionDescription
         )
 
-        // Optionally do something with newAppDayOfWeek
-
-        // Close the form or perform any other action upon saving
         showAlert = true
-        alertMessage = "Schedule saved successfully."
+        alertMessage = "Schedule saved successfully for \(day.displayName) at \(viewModel.matTime ?? "")."
     }
 
     private func validateFields() {
-        // Implement validation logic if needed
+        saveEnabled = isSaveEnabled
+    }
+
+    private var isSaveEnabled: Bool {
+        guard let matTime = viewModel.matTime, !matTime.isEmpty,
+              (viewModel.gi || viewModel.noGi), selectedDay != nil else {
+            return false
+        }
+        return true
+    }
+
+    private func resetState() {
+        selectedDay = nil
+        viewModel.matTime = nil
+        viewModel.openMat = false
+        viewModel.gi = false
+        viewModel.noGi = false
+        viewModel.restrictions = false
+        viewModel.restrictionDescription = nil
+        viewModel.goodForBeginners = false
+        viewModel.name = nil
     }
 }
+
 
 struct AddOpenMatFormView_Previews: PreviewProvider {
     static var previews: some View {
         // Create a mock selectedAppDayOfWeek and selectedIsland
         let context = PersistenceController.preview.container.viewContext
         let mockAppDayOfWeek = AppDayOfWeek(context: context)
-        mockAppDayOfWeek.dayOfWeek = "Monday" // Set the dayOfWeek property
+        mockAppDayOfWeek.day = "Monday" // Ensure dayOfWeek is set as a String
+
+        // Ensure pIsland is optional for the preview
         let mockIsland = PirateIsland(context: context)
         mockIsland.islandName = "Mock Island"
         mockIsland.islandLocation = "Mock Location"
         mockIsland.latitude = 0.0
         mockIsland.longitude = 0.0
-        mockIsland.gymWebsite = URL(string: "https://mockisland.com")
-        
+        mockIsland.gymWebsite = URL(string: "")
+
         // Create a mock AppDayOfWeekViewModel with mockIsland
         let viewModel = AppDayOfWeekViewModel(selectedIsland: mockIsland)
-        viewModel.gi = true // Example assignment
-        viewModel.noGi = false // Example assignment
-        
+
         // Provide constant bindings for selectedAppDayOfWeek and selectedIsland
         return AddOpenMatFormView(
             viewModel: viewModel,
             selectedAppDayOfWeek: .constant(mockAppDayOfWeek),
-            pIsland: .constant(mockIsland),
-            goodForBeginners: .constant(""),
-            matTime: .constant(nil),
-            openMat: .constant(false),
-            restrictions: .constant(false),
-            restrictionDescription: .constant(nil),
-            name: .constant(nil)
+            pIsland: mockIsland
         )
         .environment(\.managedObjectContext, context)
     }
 }
-
