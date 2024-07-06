@@ -250,6 +250,7 @@
 				0C07B0AB2C2D009300D0BFB2 /* SwiftGIF.swift */,
 				0C07B0AD2C2D00A900D0BFB2 /* SharedTypes.swift */,
 				0C07B0AF2C2D00BE00D0BFB2 /* CustomMarkerView.swift */,
+				0CEB03992C2BA58F007CA3CC /* AppDayOfWeekRepository.swift */,
 				0C07B0B12C2D00DC00D0BFB2 /* CustomMapMarker.swift */,
 				0C07B0B32C2D00F300D0BFB2 /* CustomPin.swift */,
 			);
@@ -365,7 +366,6 @@
 				0CF13E762C2A36B500D714C0 /* PirateIsland+CoreDataProperties.swift */,
 				0CF13E772C2A36B500D714C0 /* UserInfo+CoreDataClass.swift */,
 				0CF13E782C2A36B500D714C0 /* UserInfo+CoreDataProperties.swift */,
-				0CEB03992C2BA58F007CA3CC /* AppDayOfWeekRepository.swift */,
 			);
 			path = CoreDataItems;
 			sourceTree = "<group>";

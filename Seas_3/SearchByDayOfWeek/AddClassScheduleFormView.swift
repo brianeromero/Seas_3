@@ -1,5 +1,5 @@
 //
-//  AddClassScheduleView.swift
+//  AddClassScheduleFormView.swift
 //  Seas_3
 //
 //  Created by Brian Romero on 6/26/24.
@@ -9,88 +9,86 @@ import SwiftUI
 
 struct AddClassScheduleView: View {
     @ObservedObject var viewModel: AppDayOfWeekViewModel
+    @Binding var selectedAppDayOfWeek: AppDayOfWeek?
+    var pIsland: PirateIsland
+    @Binding var goodForBeginners: Bool
+    @Binding var matTime: String
+    @Binding var openMat: Bool
+    @Binding var restrictions: Bool
+    @Binding var restrictionDescription: String
     @Binding var selectedIsland: PirateIsland?
-    var onSave: ((_ selectedAppDayOfWeek: DayOfWeek, _ pIsland: PirateIsland?, _ goodForBeginners: Bool, _ matTime: String?, _ openMat: Bool, _ restrictions: Bool, _ restrictionDescription: String?) -> Void)?
-
-    private var isSaveEnabled: Bool {
-        viewModel.selectedDays.count > 0
-    }
+    @Environment(\.presentationMode) var presentationMode
+    @State private var selectedDay: DayOfWeek = .monday
 
     var body: some View {
-        NavigationView {
-            Form {
-                daysOfWeekSection
-            }
-            .navigationBarTitle("Add Class Schedule", displayMode: .inline)
-        }
-    }
-
-    private var daysOfWeekSection: some View {
-        Section(header: Text("Days")) {
-            ForEach(DayOfWeek.allCases, id: \.self) { day in
-                VStack(alignment: .leading) {
-                    Text(day.displayName)
-                        .font(.headline)
-                        .padding(.vertical, 8)
-
-                    // List of schedules for the day
-                    ForEach(viewModel.getSchedules(for: day), id: \.self) { schedule in
-                        ClassScheduleRow(schedule: schedule)
-                    }
-
-                    // Add schedule button
-                    Button(action: {
-                        viewModel.addSchedule(for: day)
-                    }) {
-                        Label("Add \(day.displayName) Schedule", systemImage: "plus.circle.fill")
-                    }
-                    .padding(.vertical, 8)
-
-                    Divider()
+        VStack {
+            Text("Select Day:")
+            Picker("Day", selection: $selectedDay) {
+                ForEach(DayOfWeek.allCases, id: \.self) { day in
+                    Text(day.displayName).tag(day)
                 }
             }
+            .pickerStyle(MenuPickerStyle())
 
-            Button(action: {
-                saveSchedule()
+            Form {
+                Section(header: Text("Class Schedule Details")) {
+                    TextField("Mat Time", text: Binding(
+                        get: { viewModel.matTimeForDay[selectedDay] ?? "" },
+                        set: { viewModel.matTimeForDay[selectedDay] = $0 }
+                    ))
+                    Toggle("Gi", isOn: Binding(
+                        get: { viewModel.giForDay[selectedDay] ?? false },
+                        set: { viewModel.giForDay[selectedDay] = $0 }
+                    ))
+                    Toggle("No-Gi", isOn: Binding(
+                        get: { viewModel.noGiForDay[selectedDay] ?? false },
+                        set: { viewModel.noGiForDay[selectedDay] = $0 }
+                    ))
+                    Toggle("Good for Beginners", isOn: Binding(
+                        get: { viewModel.goodForBeginnersForDay[selectedDay] ?? false },
+                        set: { viewModel.goodForBeginnersForDay[selectedDay] = $0 }
+                    ))
+                    Toggle("Open Mat", isOn: Binding(
+                        get: { viewModel.openMatForDay[selectedDay] ?? false },
+                        set: { viewModel.openMatForDay[selectedDay] = $0 }
+                    ))
+                    Toggle("Restrictions", isOn: Binding(
+                        get: { viewModel.restrictionsForDay[selectedDay] ?? false },
+                        set: { viewModel.restrictionsForDay[selectedDay] = $0 }
+                    ))
+                    TextField("Restriction Description", text: Binding(
+                        get: { viewModel.restrictionDescriptionForDay[selectedDay] ?? "" },
+                        set: { viewModel.restrictionDescriptionForDay[selectedDay] = $0 }
+                    ))
+                }
+            }
+            .navigationTitle("Add Class Schedule")
+            .navigationBarItems(trailing: Button(action: {
+                viewModel.saveDayDetails(for: selectedDay)
+                presentationMode.wrappedValue.dismiss()
             }) {
                 Text("Save")
-            }
-            .disabled(!isSaveEnabled)
-        }
-    }
-
-    private func saveSchedule() {
-        guard let selectedIsland = selectedIsland else {
-            print("Error: Selected island is nil.")
-            return
-        }
-
-        // Perform validation and save for each selected day
-        for day in viewModel.selectedDays {
-            onSave?(day, selectedIsland, viewModel.goodForBeginners, viewModel.matTime, viewModel.openMat, viewModel.restrictions, viewModel.restrictionDescription)
+            })
         }
     }
 }
 
 struct AddClassScheduleView_Previews: PreviewProvider {
     static var previews: some View {
-        // Create a mock selectedIsland
-        let context = PersistenceController.preview.container.viewContext
-        let mockIsland = PirateIsland(context: context)
-        mockIsland.islandName = "Mock Island"
-        mockIsland.islandLocation = "Mock Location"
-        mockIsland.latitude = 0.0
-        mockIsland.longitude = 0.0
-        mockIsland.gymWebsite = URL(string: "https://mockisland.com")
-        
-        // Create a mock AppDayOfWeekViewModel with mockIsland
-        let viewModel = AppDayOfWeekViewModel(selectedIsland: mockIsland)
-        
-        // Provide a constant binding for selectedIsland
-        return AddClassScheduleView(viewModel: viewModel, selectedIsland: .constant(mockIsland)) { selectedAppDayOfWeek, pIsland, goodForBeginners, matTime, openMat, restrictions, restrictionDescription in
-            // Perform any action needed with the saved data
-            print("Saved schedule for \(selectedAppDayOfWeek.displayName)")
-        }
-        .environment(\.managedObjectContext, context)
+        // Create a mock AppDayOfWeekViewModel with a selected island
+        let viewModel = AppDayOfWeekViewModel(selectedIsland: PirateIsland())
+
+        // Provide bindings for all required properties
+        return AddClassScheduleView(
+            viewModel: viewModel,
+            selectedAppDayOfWeek: .constant(nil),
+            pIsland: PirateIsland(), // Provide a mock PirateIsland instance
+            goodForBeginners: .constant(false),
+            matTime: .constant(""),
+            openMat: .constant(false),
+            restrictions: .constant(false),
+            restrictionDescription: .constant(""),
+            selectedIsland: .constant(nil) // Add the selectedIsland binding
+        )
     }
 }

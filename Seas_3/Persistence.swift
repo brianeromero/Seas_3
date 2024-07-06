@@ -6,6 +6,8 @@ import Foundation
 import CoreData
 import Combine
 
+
+
 class PersistenceController: ObservableObject {
     static let shared = PersistenceController()
 
@@ -188,22 +190,8 @@ class PersistenceController: ObservableObject {
     }
     
     func fetchOrCreateAppDayOfWeek(for island: PirateIsland, day: DayOfWeek) -> AppDayOfWeek {
-        let request: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
-        request.predicate = NSPredicate(format: "pIsland == %@ AND name == %@", island, day.displayName) // Use displayName
-        
-        do {
-            if let existingDay = try container.viewContext.fetch(request).first {
-                return existingDay
-            } else {
-                let newDay = AppDayOfWeek(context: container.viewContext)
-                newDay.pIsland = island
-                newDay.name = day.displayName // Use displayName
-                return newDay
-            }
-        } catch {
-            print("Error fetching or creating AppDayOfWeek: \(error.localizedDescription)")
-            fatalError("Failed to fetch or create AppDayOfWeek: \(error)")
-        }
+        let dayEntity = self.fetchAppDayOfWeek(for: island, day: day, fetchFirstOnly: true).first
+        return dayEntity ?? self.createAppDayOfWeek(pIsland: island, dayOfWeek: day.displayName, matTime: nil, gi: false, noGi: false, openMat: false, restrictions: false, restrictionDescription: nil)
     }
     
 }

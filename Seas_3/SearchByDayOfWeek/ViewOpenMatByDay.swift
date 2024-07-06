@@ -17,16 +17,21 @@ class DaysOfWeekMenu: ObservableObject {
         case thursday = "Thursday"
         case friday = "Friday"
         case saturday = "Saturday"
-        
+
         var id: String { self.rawValue }
-    }
-    
-    @Published var selectedDay: DayOfWeek? = nil {
-        didSet {
-            print("Selected day changed to: \(selectedDay?.rawValue ?? "nil")")
+
+        var displayName: String {
+            return self.rawValue
         }
     }
     
+    
+    @Published var selectedDay: DayOfWeek? = nil {
+        didSet {
+            print("Selected day changed to: \(selectedDay?.displayName ?? "nil")")
+        }
+    }
+
     var contentView: some View {
         switch selectedDay {
         case .sunday:
@@ -51,17 +56,15 @@ class DaysOfWeekMenu: ObservableObject {
 
 struct DayDetailView: View {
     let day: DaysOfWeekMenu.DayOfWeek
-    
+
     var body: some View {
         // Print statement to log the day being displayed
-        print("Rendering detail view for \(day.rawValue)")
-        
-        return Text("Detail view for \(day.rawValue)")
+        print("Rendering detail view for \(day.displayName)")
+        return Text("Detail view for \(day.displayName)")
             .font(.title)
             .padding()
     }
 }
-
 
 struct DaysOfWeekView: View {
     @ObservedObject var menu = DaysOfWeekMenu()
@@ -69,7 +72,6 @@ struct DaysOfWeekView: View {
     var body: some View {
         NavigationView {
             VStack(alignment: .leading) {
-
                 Text("Select a day to find Open Mats held on a specific day of the week")
                     .font(.subheadline)
                     .foregroundColor(.gray)
@@ -83,7 +85,7 @@ struct DaysOfWeekView: View {
                             selection: $menu.selectedDay
                         ) {
                             HStack {
-                                Text(day.rawValue)
+                                Text(day.displayName) // Use displayName here
                                     .padding(.leading, 10)
                             }
                         }
@@ -102,6 +104,7 @@ struct DaysOfWeekView: View {
         }
     }
 }
+
 
 struct DaysOfWeekView_Previews: PreviewProvider {
     static var previews: some View {
