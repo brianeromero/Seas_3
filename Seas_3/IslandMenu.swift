@@ -24,8 +24,8 @@ struct IslandMenu: View {
     @State private var selectedIsland: PirateIsland? = nil
 
     let menuItems: [MenuItem] = [
-        MenuItem(title: "Search For Gyms/ Open Mats By", subMenuItems: ["OpenMats (by Day of Week)", "All Entered Locations", "Near Me (use current location)", "Enter Zip Code"]),
-        MenuItem(title: "Manage Gyms", subMenuItems: ["Add New Gym", "Update Existing Gyms", "Add/Edit Class or Open Mat"]),
+        MenuItem(title: "Search For Gyms/ Open Mats using", subMenuItems: ["Day of Week", "All Entered Locations", "Current Location", "Zip Code"]),
+        MenuItem(title: "Manage Gyms", subMenuItems: ["Add New Gym", "Update Existing Gyms", "Add or Edit Schedule/Open Mat"]),
         MenuItem(title: "Reviews", subMenuItems: ["Add Gym/Open Mat Review"]),
     ]
 
@@ -94,7 +94,7 @@ struct IslandMenu: View {
     @ViewBuilder
     private func destinationView(for menuItem: String) -> some View {
         switch menuItem {
-        case "OpenMats (by Day of Week)":
+        case "Day of Week":
             OpenMatsByDayOfWeekView()
         case "Add New Gym":
             AddNewIsland()
@@ -102,12 +102,12 @@ struct IslandMenu: View {
             EditExistingIslandList()
         case "All Entered Locations":
             AllEnteredLocations(context: viewContext)
-        case "Near Me (use current location)":
+        case "Current Location)":
             ConsolidatedIslandMapView()
-        case "Enter Zip Code":
+        case "Zip Code":
             let viewModel = EnterZipCodeViewModel(context: viewContext)
             EnterZipCodeView(viewModel: viewModel)
-        case "Add/Edit Class or Open Mat":
+        case "Add or Edit Schedule/Open Mat":
             DaysOfWeekFormView(viewModel: AppDayOfWeekViewModel(selectedIsland: selectedIsland), selectedIsland: $selectedIsland)
         default:
             EmptyView()
