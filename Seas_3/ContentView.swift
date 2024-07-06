@@ -8,29 +8,37 @@
 import SwiftUI
 import CoreData
 
-
 struct ContentView: View {
     @EnvironmentObject var persistenceController: PersistenceController
     @StateObject var viewModel = PirateIslandViewModel(context: PersistenceController.shared.container.viewContext)
-
+    
     @State private var showAddIslandForm = false
     @State private var islandName = ""
     @State private var islandLocation = ""
     @State private var createdByUserId = ""
     @State private var gymWebsite = ""
     @State private var gymWebsiteURL: URL?
-
+    
+    @State private var selectedIsland: PirateIsland? = nil // Add this property
+    
     @FetchRequest(
         entity: PirateIsland.entity(),
         sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.createdTimestamp, ascending: true)]
     ) private var pirateIslands: FetchedResults<PirateIsland>
-
+    
     var body: some View {
         NavigationView {
             List {
                 ForEach(pirateIslands, id: \.self) { island in
                     NavigationLink(destination: IslandDetailView(island: island, selectedDestination: $viewModel.selectedDestination)) {
                         islandRowView(island: island)
+                    }
+                    .contextMenu {
+                        Button(action: {
+                            selectedIsland = island
+                        }) {
+                            Text("Manage Schedule")
+                        }
                     }
                 }
                 .onDelete(perform: deleteItems)
@@ -44,6 +52,13 @@ struct ContentView: View {
                         Image(systemName: "plus")
                     }
                 }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    if let selectedIsland = selectedIsland {
+                        NavigationLink(destination: DaysOfWeekFormView(viewModel: AppDayOfWeekViewModel(selectedIsland: selectedIsland), selectedIsland: $selectedIsland)) {
+                            Text("Manage Schedule")
+                        }
+                    }
+                }
             }
             .sheet(isPresented: $showAddIslandForm) {
                 AddIslandFormView(
@@ -55,10 +70,9 @@ struct ContentView: View {
                 )
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
             }
-
         }
     }
-
+    
     private func islandRowView(island: PirateIsland) -> some View {
         VStack(alignment: .leading) {
             Text("Gym: \(island.islandName)")
@@ -67,13 +81,13 @@ struct ContentView: View {
                 .foregroundColor(.gray)
         }
     }
-
+    
     private func deleteItems(offsets: IndexSet) {
         withAnimation {
             offsets.map { pirateIslands[$0] }.forEach { island in
                 persistenceController.container.viewContext.delete(island)
             }
-
+            
             do {
                 try persistenceController.container.viewContext.save()
             } catch {

@@ -8,11 +8,11 @@
 import SwiftUI
 
 struct DayOfWeekView: View {
-    @ObservedObject var viewModel: AppDayOfWeekViewModel // Pass selectedIsland to the view model
+    @StateObject var viewModel: AppDayOfWeekViewModel // Use @StateObject for view model
     @State private var isSaved = false // Track whether the data is saved
 
     init(selectedIsland: PirateIsland?) {
-        self.viewModel = AppDayOfWeekViewModel(selectedIsland: selectedIsland)
+        _viewModel = StateObject(wrappedValue: AppDayOfWeekViewModel(selectedIsland: selectedIsland))
     }
 
     var body: some View {
@@ -23,7 +23,7 @@ struct DayOfWeekView: View {
                 }
 
                 Button("Save Day of Week") {
-                    viewModel.saveDayOfWeek()
+                    viewModel.saveAllSchedules()
                     isSaved = true // Set state to indicate data is saved
                 }
                 .padding()
