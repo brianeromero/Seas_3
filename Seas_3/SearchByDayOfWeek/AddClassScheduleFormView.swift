@@ -1,5 +1,5 @@
 //
-//  AddClassScheduleFormView.swift
+//  AddClassScheduleView.swift
 //  Seas_3
 //
 //  Created by Brian Romero on 6/26/24.
@@ -10,13 +10,7 @@ import SwiftUI
 struct AddClassScheduleView: View {
     @ObservedObject var viewModel: AppDayOfWeekViewModel
     @Binding var selectedAppDayOfWeek: AppDayOfWeek?
-    var pIsland: PirateIsland
-    @Binding var goodForBeginners: Bool
-    @Binding var matTime: String
-    @Binding var openMat: Bool
-    @Binding var restrictions: Bool
-    @Binding var restrictionDescription: String
-    @Binding var selectedIsland: PirateIsland?
+    var pIsland: PirateIsland  // Ensure this parameter is defined
     @Environment(\.presentationMode) var presentationMode
     @State private var selectedDay: DayOfWeek = .monday
 
@@ -34,42 +28,46 @@ struct AddClassScheduleView: View {
                 Section(header: Text("Class Schedule Details")) {
                     TextField("Mat Time", text: Binding(
                         get: { viewModel.matTimeForDay[selectedDay] ?? "" },
-                        set: { viewModel.matTimeForDay[selectedDay] = $0 }
+                        set: { newValue in viewModel.matTimeForDay[selectedDay] = newValue }
                     ))
                     Toggle("Gi", isOn: Binding(
                         get: { viewModel.giForDay[selectedDay] ?? false },
-                        set: { viewModel.giForDay[selectedDay] = $0 }
+                        set: { newValue in viewModel.giForDay[selectedDay] = newValue }
                     ))
                     Toggle("No-Gi", isOn: Binding(
                         get: { viewModel.noGiForDay[selectedDay] ?? false },
-                        set: { viewModel.noGiForDay[selectedDay] = $0 }
+                        set: { newValue in viewModel.noGiForDay[selectedDay] = newValue }
                     ))
                     Toggle("Good for Beginners", isOn: Binding(
                         get: { viewModel.goodForBeginnersForDay[selectedDay] ?? false },
-                        set: { viewModel.goodForBeginnersForDay[selectedDay] = $0 }
+                        set: { newValue in viewModel.goodForBeginnersForDay[selectedDay] = newValue }
                     ))
                     Toggle("Open Mat", isOn: Binding(
                         get: { viewModel.openMatForDay[selectedDay] ?? false },
-                        set: { viewModel.openMatForDay[selectedDay] = $0 }
+                        set: { newValue in viewModel.openMatForDay[selectedDay] = newValue }
                     ))
                     Toggle("Restrictions", isOn: Binding(
                         get: { viewModel.restrictionsForDay[selectedDay] ?? false },
-                        set: { viewModel.restrictionsForDay[selectedDay] = $0 }
+                        set: { newValue in viewModel.restrictionsForDay[selectedDay] = newValue }
                     ))
                     TextField("Restriction Description", text: Binding(
                         get: { viewModel.restrictionDescriptionForDay[selectedDay] ?? "" },
-                        set: { viewModel.restrictionDescriptionForDay[selectedDay] = $0 }
+                        set: { newValue in viewModel.restrictionDescriptionForDay[selectedDay] = newValue }
                     ))
                 }
             }
             .navigationTitle("Add Class Schedule")
-            .navigationBarItems(trailing: Button(action: {
-                viewModel.saveDayDetails(for: selectedDay)
-                presentationMode.wrappedValue.dismiss()
-            }) {
-                Text("Save")
-            })
+            .navigationBarItems(trailing:
+                Button("Save") {
+                    saveAction()
+                }
+            )
         }
+    }
+    
+    private func saveAction() {
+        viewModel.updateSchedulesForSelectedDays() // Example method from AppDayOfWeekViewModel
+        presentationMode.wrappedValue.dismiss()
     }
 }
 
@@ -82,13 +80,7 @@ struct AddClassScheduleView_Previews: PreviewProvider {
         return AddClassScheduleView(
             viewModel: viewModel,
             selectedAppDayOfWeek: .constant(nil),
-            pIsland: PirateIsland(), // Provide a mock PirateIsland instance
-            goodForBeginners: .constant(false),
-            matTime: .constant(""),
-            openMat: .constant(false),
-            restrictions: .constant(false),
-            restrictionDescription: .constant(""),
-            selectedIsland: .constant(nil) // Add the selectedIsland binding
+            pIsland: PirateIsland() // Ensure correct initialization of PirateIsland
         )
     }
 }
