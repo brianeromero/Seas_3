@@ -8,23 +8,26 @@
 import SwiftUI
 
 struct DayOfWeekView: View {
-    @StateObject var viewModel: AppDayOfWeekViewModel
-    @State private var isSaved = false
+    @ObservedObject var viewModel: AppDayOfWeekViewModel
+    @Binding var selectedAppDayOfWeek: AppDayOfWeek?
+    var pIsland: PirateIsland?
 
-    init(selectedIsland: PirateIsland?, repository: AppDayOfWeekRepository = AppDayOfWeekRepository.shared) {
-        _viewModel = StateObject(wrappedValue: AppDayOfWeekViewModel(selectedIsland: selectedIsland, repository: repository))
-    }
+    @State private var showAlert = false
+    @State private var alertMessage = ""
+    @State private var selectedTimeText = ""
+    @State private var selectedDay: DayOfWeek?
+
+    @State private var showTimePicker = false
+    @State private var saveEnabled = false
+    @State private var selectedDate = Date()
+    @State private var isSaved = false  // Add this line
+
 
     var body: some View {
         NavigationView {
             VStack {
                 ForEach(DayOfWeek.allCases, id: \.self) { day in
                     Toggle(day.displayName, isOn: viewModel.binding(for: day))
-                }
-
-                Button("Save Day of Week") {
-                    viewModel.saveAllSchedules()
-                    isSaved = true
                 }
                 .padding()
 
@@ -50,12 +53,10 @@ struct DayOfWeekView_Previews: PreviewProvider {
         let context = PersistenceController.preview.container.viewContext
         let mockIsland = PirateIsland(context: context)
         mockIsland.islandName = "Mock Island"
-        mockIsland.islandLocation = "Mock Location"
-        mockIsland.latitude = 0.0
-        mockIsland.longitude = 0.0
-        mockIsland.gymWebsite = URL(string: "")
 
-        return DayOfWeekView(selectedIsland: mockIsland)
+        let viewModel = AppDayOfWeekViewModel(selectedIsland: mockIsland)
+
+        return DayOfWeekView(viewModel: viewModel, selectedAppDayOfWeek: .constant(nil), pIsland: mockIsland)
             .environment(\.managedObjectContext, context)
     }
 }
