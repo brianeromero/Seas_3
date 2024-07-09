@@ -122,30 +122,12 @@ class PersistenceController: ObservableObject {
         newAppDayOfWeek.openMat = openMat
         newAppDayOfWeek.restrictions = restrictions
         newAppDayOfWeek.restrictionDescription = restrictionDescription
-        
-        // Set the day of the week based on the provided dayOfWeek string
-        switch dayOfWeek {
-        case DayOfWeek.sunday.displayName:
-            newAppDayOfWeek.sunday = true
-        case DayOfWeek.monday.displayName:
-            newAppDayOfWeek.monday = true
-        case DayOfWeek.tuesday.displayName:
-            newAppDayOfWeek.tuesday = true
-        case DayOfWeek.wednesday.displayName:
-            newAppDayOfWeek.wednesday = true
-        case DayOfWeek.thursday.displayName:
-            newAppDayOfWeek.thursday = true
-        case DayOfWeek.friday.displayName:
-            newAppDayOfWeek.friday = true
-        case DayOfWeek.saturday.displayName:
-            newAppDayOfWeek.saturday = true
-        default:
-            break
-        }
+        newAppDayOfWeek.day = dayOfWeek
 
         saveContext()
         return newAppDayOfWeek
     }
+
 
     // MARK: - Preview Persistence Controller
 

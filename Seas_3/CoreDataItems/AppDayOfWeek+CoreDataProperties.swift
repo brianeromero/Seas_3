@@ -37,10 +37,35 @@ extension AppDayOfWeek {
     @NSManaged public var tuesday: Bool
     @NSManaged public var wednesday: Bool
     @NSManaged public var pIsland: PirateIsland?
-    @NSManaged public var name: String?
+    @NSManaged public var name: String? // Directly use existing property for dynamic name
+
     @NSManaged public var day: String? // Add this attribute for day of the week
 
-    
+    public override func awakeFromFetch() {
+        super.awakeFromFetch()
+        updateName()
+    }
+
+    public override func awakeFromInsert() {
+        super.awakeFromInsert()
+        updateName()
+    }
+
+    private func updateName() {
+        var nameComponents: [String] = []
+
+        if gi {
+            nameComponents.append("gi")
+        }
+        if noGi {
+            nameComponents.append("noGi")
+        }
+        if let matTime = matTime {
+            nameComponents.append(matTime)
+        }
+
+        name = nameComponents.joined(separator: " ")
+    }
 }
 
 extension AppDayOfWeek : Identifiable {
