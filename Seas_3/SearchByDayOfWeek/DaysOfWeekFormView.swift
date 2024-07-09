@@ -23,19 +23,24 @@ struct DaysOfWeekFormView: View {
     @State private var showOpenMatModal = false
     @State private var selectedAppDayOfWeek: AppDayOfWeek?
 
+    @Environment(\.managedObjectContext) private var viewContext  // Ensure this environment variable is declared
+
     var body: some View {
         NavigationView {
             List {
                 if let selectedIsland = selectedIsland {
+                    // Section for selected island
                     Section(header: Text("Island")) {
                         Text("Selected Island: \(selectedIsland.islandName)")
                     }
                 } else {
+                    // Section for inserting island search
                     Section(header: Text("Search by: gym name, zip code, or address/location")) {
                         InsertIslandSearch(selectedIsland: $selectedIsland)
                     }
                 }
 
+                // Section for adding class schedule
                 Section(header: Text("Add Class Schedule")) {
                     if let island = selectedIsland {
                         Button(action: {
@@ -49,10 +54,12 @@ struct DaysOfWeekFormView: View {
                                 selectedAppDayOfWeek: $selectedAppDayOfWeek,
                                 pIsland: island
                             )
+                            .environment(\.managedObjectContext, viewContext)  // Pass viewContext to child view
                         }
                     }
                 }
 
+                // Section for adding open mat
                 Section(header: Text("Add Open Mat")) {
                     if let island = selectedIsland {
                         Button(action: {
@@ -66,19 +73,26 @@ struct DaysOfWeekFormView: View {
                                 selectedAppDayOfWeek: $selectedAppDayOfWeek,
                                 pIsland: island
                             )
-
+                            .environment(\.managedObjectContext, viewContext)  // Pass viewContext to child view
                         }
                     }
                 }
 
             }
             .onDisappear {
+                do {
+                    try viewContext.save()  // Save changes in managed object context
+                } catch {
+                    let nsError = error as NSError
+                    fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
+                }
                 self.selectedIsland = nil
             }
             .navigationBarTitle("Add Open Mat Times / Class Schedule", displayMode: .inline)
         }
     }
 }
+
 
 
 struct InsertIslandSearch: View {
@@ -137,17 +151,22 @@ struct InsertIslandSearch: View {
 
     private func updateFilteredIslands() {
         let lowercasedQuery = searchQuery.lowercased()
-        filteredIslands = islands.filter { island in
-            (island.islandName.lowercased().contains(lowercasedQuery)) ||
-            (island.islandLocation.lowercased().contains(lowercasedQuery)) ||
-            (island.gymWebsite?.absoluteString.lowercased().contains(lowercasedQuery) ?? false) ||
-            (String(island.latitude).contains(lowercasedQuery)) ||
-            (String(island.longitude).contains(lowercasedQuery))
+        if !searchQuery.isEmpty {
+            filteredIslands = islands.filter { island in
+                return (island.islandName.lowercased().contains(lowercasedQuery)) ||
+                (island.islandLocation.lowercased().contains(lowercasedQuery)) ||
+                       (island.gymWebsite?.absoluteString.lowercased().contains(lowercasedQuery) ?? false) ||
+                       (String(island.latitude).contains(lowercasedQuery)) ||
+                       (String(island.longitude).contains(lowercasedQuery))
+            }
+        } else {
+            filteredIslands = Array(islands)
         }
 
         showNoMatchAlert = filteredIslands.isEmpty && !searchQuery.isEmpty
     }
 }
+
 
 struct DaysOfWeekFormView_Previews: PreviewProvider {
     static var previews: some View {

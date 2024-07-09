@@ -47,5 +47,18 @@ class AppDayOfWeekRepository {
         
         persistence.saveContext()
     }
+    
+    func fetchSchedules(for island: PirateIsland) -> [AppDayOfWeek] {
+        let request: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
+        request.predicate = NSPredicate(format: "pIsland == %@", island)
+        do {
+            let context = PersistenceController.shared.container.viewContext
+            return try context.fetch(request)
+        } catch {
+            print("Failed to fetch schedules: \(error)")
+            return []
+        }
+    }
+    
 }
 
