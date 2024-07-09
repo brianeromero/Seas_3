@@ -44,10 +44,11 @@ class AppDayOfWeekViewModel: ObservableObject {
         initializeDaySettings()
 
         if let island = selectedIsland {
-            fetchCurrentDayOfWeek()
+            fetchCurrentDayOfWeek() // Fetches AppDayOfWeek items for the selected island upon initialization
             loadSchedules(for: island)
         }
     }
+
 
     private func initializeDaySettings() {
         DayOfWeek.allCases.forEach { day in
@@ -78,7 +79,7 @@ class AppDayOfWeekViewModel: ObservableObject {
     func updateSchedulesForSelectedDays() {
         guard let island = selectedIsland else { return }
         selectedDays.forEach { day in
-            let dayEntity = persistenceController.fetchOrCreateAppDayOfWeek(for: island, day: day)
+            let dayEntity = repository.fetchOrCreateAppDayOfWeek(for: island, day: day)
             dayEntity.goodForBeginners = goodForBeginnersForDay[day] ?? false
             dayEntity.matTime = matTimeForDay[day]
             dayEntity.gi = giForDay[day] ?? false
@@ -91,7 +92,7 @@ class AppDayOfWeekViewModel: ObservableObject {
                 dayEntity.matTime = dateFormatter.string(from: selectedTime)
             }
 
-            saveContext()
+            repository.saveContext()
         }
     }
 
@@ -123,7 +124,10 @@ class AppDayOfWeekViewModel: ObservableObject {
     }
 
     func fetchCurrentDayOfWeek() {
-        guard let island = selectedIsland else { return }
+        guard let island = selectedIsland else {
+            print("selectedIsland is nil")
+            return
+        }
 
         let request: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
         request.predicate = NSPredicate(format: "pIsland == %@", island)
@@ -139,14 +143,17 @@ class AppDayOfWeekViewModel: ObservableObject {
         }
     }
 
+
+    func fetchAppDayOfWeek(for island: PirateIsland, day: DayOfWeek) {
+        self.appDayOfWeekList = repository.fetchAppDayOfWeek(for: island, day: day)
+    }
+
+    func saveChanges() {
+        repository.saveContext()
+    }
+
     func saveAllSchedules() {
-        do {
-            try context.save()
-            Logger.log("All schedules saved successfully.", view: "AppDayOfWeekViewModel")
-        } catch {
-            let nsError = error as NSError
-            fatalError("Failed to save schedules: \(nsError), \(nsError.userInfo)")
-        }
+        repository.saveContext()
     }
 
     func deleteSchedule(at offsets: IndexSet, for day: DayOfWeek, island: PirateIsland) {

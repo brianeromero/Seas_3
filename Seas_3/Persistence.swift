@@ -2,16 +2,14 @@
 // Seas_3
 // Created by Brian Romero on 6/24/24.
 
+import Combine
 import Foundation
 import CoreData
-import Combine
 
 class PersistenceController: ObservableObject {
     static let shared = PersistenceController()
-
+    
     let container: NSPersistentContainer
-
-    @Published var someStateVariable: Int = 0
 
     var viewContext: NSManagedObjectContext {
         container.viewContext
@@ -35,6 +33,28 @@ class PersistenceController: ObservableObject {
                 let nsError = error as NSError
                 fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
             }
+        }
+    }
+
+    func deleteSchedule(at offsets: IndexSet, for day: DayOfWeek, island: PirateIsland) {
+        let daySchedules = fetchAppDayOfWeek(for: island, day: day)
+
+        for index in offsets {
+            let scheduleToDelete = daySchedules[index]
+            container.viewContext.delete(scheduleToDelete)
+        }
+
+        saveContext()
+    }
+
+    func fetchSchedules(for island: PirateIsland) -> [AppDayOfWeek] {
+        let request: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
+        request.predicate = NSPredicate(format: "pIsland == %@", island)
+        do {
+            return try container.viewContext.fetch(request)
+        } catch {
+            print("Failed to fetch schedules: \(error)")
+            return []
         }
     }
 
@@ -92,22 +112,38 @@ class PersistenceController: ObservableObject {
         }
     }
 
-    // MARK: - Fetch Specific AppDayOfWeek by ID
+    // MARK: - Fetch Specific AppDayOfWeek by Island and Day
 
-    func fetchAppDayOfWeek(for island: PirateIsland, day: DayOfWeek, fetchFirstOnly: Bool = false) -> [AppDayOfWeek] {
+    func fetchAppDayOfWeek(for island: PirateIsland, day: DayOfWeek) -> [AppDayOfWeek] {
         let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "pIsland == %@ AND name == %@", island, day.displayName)
+        fetchRequest.predicate = NSPredicate(format: "pIsland == %@ AND day == %@", island, day.rawValue)
 
         do {
             let results = try container.viewContext.fetch(fetchRequest)
-            if fetchFirstOnly {
-                return results.isEmpty ? [] : [results.first!]
-            } else {
-                return results
-            }
+            return results
         } catch {
             print("Error fetching AppDayOfWeek: \(error)")
             return []
+        }
+    }
+
+    // MARK: - Fetch or Create AppDayOfWeek
+
+    func fetchOrCreateAppDayOfWeek(for island: PirateIsland, day: DayOfWeek) -> AppDayOfWeek {
+        let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "pIsland == %@ AND day == %@", island, day.rawValue)
+
+        do {
+            if let result = try container.viewContext.fetch(fetchRequest).first {
+                return result
+            } else {
+                let newAppDayOfWeek = AppDayOfWeek(context: container.viewContext)
+                newAppDayOfWeek.pIsland = island
+                newAppDayOfWeek.day = day.rawValue
+                return newAppDayOfWeek
+            }
+        } catch {
+            fatalError("Error fetching or creating AppDayOfWeek: \(error)")
         }
     }
 
@@ -128,13 +164,12 @@ class PersistenceController: ObservableObject {
         return newAppDayOfWeek
     }
 
-
     // MARK: - Preview Persistence Controller
 
     static var preview: PersistenceController = {
         let result = PersistenceController(inMemory: true)
         let viewContext = result.container.viewContext
-        
+
         for _ in 0..<10 {
             let newIsland = PirateIsland(context: viewContext)
             newIsland.islandName = "Preview Island"
@@ -144,14 +179,14 @@ class PersistenceController: ObservableObject {
             newIsland.islandLocation = "San Francisco, CA"
             // Set other required attributes as needed
         }
-        
+
         do {
             try viewContext.save()
         } catch {
             let nsError = error as NSError
             fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
         }
-        
+
         return result
     }()
 
@@ -168,9 +203,14 @@ class PersistenceController: ObservableObject {
 
         container.viewContext.automaticallyMergesChangesFromParent = true
     }
-    
-    func fetchOrCreateAppDayOfWeek(for island: PirateIsland, day: DayOfWeek) -> AppDayOfWeek {
-        let dayEntity = self.fetchAppDayOfWeek(for: island, day: day, fetchFirstOnly: true).first
-        return dayEntity ?? self.createAppDayOfWeek(pIsland: island, dayOfWeek: day.displayName, matTime: nil, gi: false, noGi: false, openMat: false, restrictions: false, restrictionDescription: nil)
+
+    // MARK: - FetchRequestProvider Conformance
+
+    func fetchAll() -> [PirateIsland] {
+        fetchAllPirateIslands()
+    }
+
+    func fetchLast() -> PirateIsland? {
+        fetchLastPirateIsland()
     }
 }

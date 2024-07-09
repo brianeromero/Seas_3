@@ -39,7 +39,9 @@ struct IslandScheduleAsCal: View {
             }
             .navigationBarTitle("Island Schedule", displayMode: .inline)
             .onAppear {
-                viewModel.fetchCurrentDayOfWeek()
+                if let island = pIsland {
+                    viewModel.fetchAppDayOfWeek(for: island, day: .monday) // Adjust day as needed
+                }
             }
         }
     }
@@ -75,6 +77,9 @@ struct DayColumn: View {
     }
 }
 
+// HourRow and EventView implementations remain unchanged
+
+
 struct HourRow: View {
     let day: DayOfWeek
     let hour: String
@@ -83,18 +88,11 @@ struct HourRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             ForEach(viewModel.appDayOfWeekList.filter { event in
-                // Ensure matTime and hour are formatted and compared correctly
-                if let eventTime = event.matTime, let eventDate = DateFormatter.hourFormat.date(from: eventTime), let selectedDate = DateFormatter.hourFormat.date(from: hour) {
-                    return Calendar.current.isDate(eventDate, equalTo: selectedDate, toGranularity: .minute)
-                }
-                return false
+                event.day == day.displayName && event.matTime == hour
             }) { event in
                 EventView(event: event)
             }
         }
-        .padding(.vertical)
-        .background(Color.secondary.opacity(0.1))
-        .cornerRadius(8)
     }
 }
 
@@ -105,7 +103,6 @@ extension DateFormatter {
         return formatter
     }()
 }
-
 
 struct EventView: View {
     let event: AppDayOfWeek
@@ -126,9 +123,6 @@ struct EventView: View {
         .cornerRadius(8)
     }
 }
-
-import SwiftUI
-import CoreData
 
 struct IslandScheduleAsCal_Previews: PreviewProvider {
     static var previews: some View {
