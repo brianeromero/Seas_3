@@ -93,7 +93,7 @@ struct IslandDetailContent: View {
                     }
 
                 } else if destination == .schedule {
-                    NavigationLink(destination: AdditionalGymInfo(islandName: island.islandName)) {
+                    NavigationLink(destination: IslandScheduleAsCal(viewModel: AppDayOfWeekViewModel(selectedIsland: island), pIsland: island)) {
                         Text("Go to \(destination.rawValue)")
                             .padding()
                             .frame(maxWidth: .infinity, alignment: .leading)

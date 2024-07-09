@@ -17,13 +17,21 @@ extension Binding where Value == String? {
 }
 
 struct DaysOfWeekFormView: View {
-    @ObservedObject var viewModel: AppDayOfWeekViewModel
-    @Binding var selectedIsland: PirateIsland?
+    @ObservedObject var viewModel: AppDayOfWeekViewModel // Use @ObservedObject for observed objects
+    @Binding var selectedIsland: PirateIsland? // Use @Binding for two-way data binding
+
     @State private var showClassScheduleModal = false
     @State private var showOpenMatModal = false
     @State private var selectedAppDayOfWeek: AppDayOfWeek?
+    @State private var showError = false
+    @State private var errorMessage = ""
 
-    @Environment(\.managedObjectContext) private var viewContext  // Ensure this environment variable is declared
+    @Environment(\.managedObjectContext) private var viewContext
+
+    init(viewModel: AppDayOfWeekViewModel, selectedIsland: Binding<PirateIsland?>) {
+        self.viewModel = viewModel
+        self._selectedIsland = selectedIsland // Use _selectedIsland for binding
+    }
 
     var body: some View {
         NavigationView {
@@ -54,7 +62,7 @@ struct DaysOfWeekFormView: View {
                                 selectedAppDayOfWeek: $selectedAppDayOfWeek,
                                 pIsland: island
                             )
-                            .environment(\.managedObjectContext, viewContext)  // Pass viewContext to child view
+                            .environment(\.managedObjectContext, viewContext)
                         }
                     }
                 }
@@ -73,7 +81,7 @@ struct DaysOfWeekFormView: View {
                                 selectedAppDayOfWeek: $selectedAppDayOfWeek,
                                 pIsland: island
                             )
-                            .environment(\.managedObjectContext, viewContext)  // Pass viewContext to child view
+                            .environment(\.managedObjectContext, viewContext)
                         }
                     }
                 }
@@ -81,7 +89,7 @@ struct DaysOfWeekFormView: View {
             }
             .onDisappear {
                 do {
-                    try viewContext.save()  // Save changes in managed object context
+                    try viewContext.save()
                 } catch {
                     let nsError = error as NSError
                     fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
@@ -89,6 +97,18 @@ struct DaysOfWeekFormView: View {
                 self.selectedIsland = nil
             }
             .navigationBarTitle("Add Open Mat Times / Class Schedule", displayMode: .inline)
+        }
+        .onAppear {
+            Task {
+                viewModel.fetchSchedules()
+            }
+        }
+        .alert(isPresented: $showError) {
+            Alert(
+                title: Text("Error"),
+                message: Text(errorMessage),
+                dismissButton: .default(Text("OK"))
+            )
         }
     }
 }
@@ -120,7 +140,7 @@ struct InsertIslandSearch: View {
                     .background(Color(.systemGray6))
                     .cornerRadius(8.0)
                     .textFieldStyle(PlainTextFieldStyle())
-                    .onChange(of: searchQuery) { newValue in
+                    .onChange(of: searchQuery) {
                         updateFilteredIslands()
                     }
             }
@@ -155,9 +175,9 @@ struct InsertIslandSearch: View {
             filteredIslands = islands.filter { island in
                 return (island.islandName.lowercased().contains(lowercasedQuery)) ||
                 (island.islandLocation.lowercased().contains(lowercasedQuery)) ||
-                       (island.gymWebsite?.absoluteString.lowercased().contains(lowercasedQuery) ?? false) ||
-                       (String(island.latitude).contains(lowercasedQuery)) ||
-                       (String(island.longitude).contains(lowercasedQuery))
+                    (island.gymWebsite?.absoluteString.lowercased().contains(lowercasedQuery) ?? false) ||
+                    (String(island.latitude).contains(lowercasedQuery)) ||
+                    (String(island.longitude).contains(lowercasedQuery))
             }
         } else {
             filteredIslands = Array(islands)
@@ -176,11 +196,19 @@ struct DaysOfWeekFormView_Previews: PreviewProvider {
         mockIsland.islandLocation = "Mock Location"
         mockIsland.latitude = 0.0
         mockIsland.longitude = 0.0
-        mockIsland.gymWebsite = URL(string: "https://mockisland.com")
+        mockIsland.gymWebsite = URL(string: "(link unavailable)")
 
         let viewModel = AppDayOfWeekViewModel(selectedIsland: mockIsland)
 
-        return DaysOfWeekFormView(viewModel: viewModel, selectedIsland: .constant(mockIsland))
+        // Create a Binding to mockIsland as optional
+        let selectedIslandBinding = Binding<PirateIsland?>(
+            get: { mockIsland },
+            set: { _ in }
+        )
+
+        let view = DaysOfWeekFormView(viewModel: viewModel, selectedIsland: selectedIslandBinding)
             .environment(\.managedObjectContext, context)
+
+        return view
     }
 }

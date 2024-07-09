@@ -27,38 +27,23 @@ class AppDayOfWeekRepository {
     }
     
     // Fetch specific AppDayOfWeek for a given island and day
-    func fetchAppDayOfWeek(for island: PirateIsland, day: DayOfWeek, fetchFirstOnly: Bool = false) -> [AppDayOfWeek] {
-        return persistence.fetchAppDayOfWeek(for: island, day: day, fetchFirstOnly: fetchFirstOnly)
+    func fetchAppDayOfWeek(for island: PirateIsland, day: DayOfWeek) -> [AppDayOfWeek] {
+        return persistence.fetchAppDayOfWeek(for: island, day: day)
     }
     
-    // Optional: Implement fetchOrCreateAppDayOfWeek as needed
-    // Example:
+    // Fetch or create AppDayOfWeek for a given island and day
     func fetchOrCreateAppDayOfWeek(for island: PirateIsland, day: DayOfWeek) -> AppDayOfWeek {
         return persistence.fetchOrCreateAppDayOfWeek(for: island, day: day)
     }
     
+    // Delete schedules at specified offsets for a given day and island
     func deleteSchedule(at offsets: IndexSet, for day: DayOfWeek, island: PirateIsland) {
-        let daySchedules = persistence.fetchAppDayOfWeek(for: island, day: day)
-        
-        for index in offsets {
-            let scheduleToDelete = daySchedules[index]
-            persistence.container.viewContext.delete(scheduleToDelete)
-        }
-        
-        persistence.saveContext()
+        persistence.deleteSchedule(at: offsets, for: day, island: island)
     }
     
+    // Fetch schedules for a specific pirate island
     func fetchSchedules(for island: PirateIsland) -> [AppDayOfWeek] {
-        let request: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
-        request.predicate = NSPredicate(format: "pIsland == %@", island)
-        do {
-            let context = PersistenceController.shared.container.viewContext
-            return try context.fetch(request)
-        } catch {
-            print("Failed to fetch schedules: \(error)")
-            return []
-        }
+        return persistence.fetchSchedules(for: island)
     }
-    
 }
 
