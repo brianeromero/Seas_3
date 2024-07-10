@@ -45,5 +45,20 @@ class AppDayOfWeekRepository {
     func fetchSchedules(for island: PirateIsland) -> [AppDayOfWeek] {
         return persistence.fetchSchedules(for: island)
     }
+    
+    func fetchAppDayOfWeeks(for island: PirateIsland) -> [AppDayOfWeek] {
+        let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "pIsland == %@", island)
+        
+        do {
+            let context = persistence.container.viewContext // Accessing the view context from persistence
+            let results = try context.fetch(fetchRequest)
+            return results
+        } catch {
+            print("Error fetching appDayOfWeeks: \(error.localizedDescription)")
+            return []
+        }
+    } 
+    
 }
 

@@ -49,7 +49,6 @@ class AppDayOfWeekViewModel: ObservableObject {
         }
     }
 
-
     private func initializeDaySettings() {
         DayOfWeek.allCases.forEach { day in
             matTimeForDay[day] = ""
@@ -134,7 +133,7 @@ class AppDayOfWeekViewModel: ObservableObject {
 
         do {
             appDayOfWeekList = try context.fetch(request)
-            print("Fetched \(appDayOfWeekList.count) AppDayOfWeek items")
+            print("Fetched \(appDayOfWeekList.count) AppDayOfWeek items for island: \(island.islandName)")
             appDayOfWeekList.forEach {
                 print("Day: \($0.day ?? "N/A"), Time: \($0.matTime ?? "N/A"), GI: \($0.gi), NoGi: \($0.noGi)")
             }
