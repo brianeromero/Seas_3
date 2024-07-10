@@ -10,6 +10,9 @@ import SwiftUI
 struct IslandScheduleAsCal: View {
     @ObservedObject var viewModel: AppDayOfWeekViewModel
     var pIsland: PirateIsland?
+    
+    @State private var appDayOfWeeks: [AppDayOfWeek] = []
+    let repository = AppDayOfWeekRepository.shared
 
     @State private var selectedDay: DayOfWeek?
 
@@ -27,11 +30,24 @@ struct IslandScheduleAsCal: View {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 16) {
                             ForEach(DayOfWeek.allCases, id: \.self) { day in
-                                DayColumn(day: day, selectedDay: $selectedDay, hours: hours, viewModel: viewModel)
+                                DayColumn(day: day, selectedDay: $selectedDay, hours: hours, viewModel: viewModel, island: pIsland)
                             }
                         }
                         .padding(.horizontal)
                     }
+
+                    ScrollView {
+                        LazyVStack(spacing: 16) {
+                            ForEach(hours, id: \.self) { hour in
+                                HourRow(hour: hour, viewModel: viewModel, island: pIsland)
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+                    .frame(maxHeight: .infinity)
+                    .background(Color.secondary.opacity(0.1))
+                    .cornerRadius(8)
+
                 } else {
                     Text("No island selected.")
                         .foregroundColor(.red)
@@ -40,7 +56,8 @@ struct IslandScheduleAsCal: View {
             .navigationBarTitle("Island Schedule", displayMode: .inline)
             .onAppear {
                 if let island = pIsland {
-                    viewModel.fetchAppDayOfWeek(for: island, day: .monday) // Adjust day as needed
+                    appDayOfWeeks = repository.fetchAppDayOfWeeks(for: island)
+                    viewModel.appDayOfWeekList = appDayOfWeeks
                 }
             }
         }
@@ -52,6 +69,7 @@ struct DayColumn: View {
     @Binding var selectedDay: DayOfWeek?
     let hours: [String]
     let viewModel: AppDayOfWeekViewModel
+    let island: PirateIsland?
 
     var body: some View {
         VStack {
@@ -67,7 +85,7 @@ struct DayColumn: View {
 
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(hours, id: \.self) { hour in
-                    HourRow(day: day, hour: hour, viewModel: viewModel)
+                    HourRow(hour: hour, viewModel: viewModel, island: island)
                 }
             }
             .padding(.vertical)
@@ -77,50 +95,67 @@ struct DayColumn: View {
     }
 }
 
-// HourRow and EventView implementations remain unchanged
-
-
 struct HourRow: View {
-    let day: DayOfWeek
     let hour: String
     let viewModel: AppDayOfWeekViewModel
+    let island: PirateIsland?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            ForEach(viewModel.appDayOfWeekList.filter { event in
-                event.day == day.displayName && event.matTime == hour
-            }) { event in
-                EventView(event: event)
+            Text(hour)
+                .font(.caption)
+                .foregroundColor(.gray)
+            
+            ForEach(filteredEvents(for: hour), id: \.self) { event in
+                scheduleView(for: event)
             }
         }
+        .padding()
+        .background(Color.white)
+        .cornerRadius(8)
+        .shadow(radius: 1)
+    }
+
+    private func filteredEvents(for hour: String) -> [AppDayOfWeek] {
+        viewModel.appDayOfWeekList.filter { $0.matTime == hour && $0.pIsland == island }
     }
 }
 
-extension DateFormatter {
-    static let hourFormat: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "hh:mm a"
-        return formatter
-    }()
+private func scheduleView(for schedule: AppDayOfWeek) -> some View {
+    VStack(alignment: .leading, spacing: 8) {
+        HStack {
+            Text(schedule.matTime ?? "Unknown time")
+                .font(.subheadline)
+                .foregroundColor(.primary)
+            Spacer()
+            Text(schedule.goodForBeginners ? "Beginners" : "")
+                .font(.caption)
+                .foregroundColor(.green)
+        }
+        HStack {
+            Label("Gi", systemImage: schedule.gi ? "checkmark.circle.fill" : "xmark.circle")
+                .foregroundColor(schedule.gi ? .green : .red)
+            Label("NoGi", systemImage: schedule.noGi ? "checkmark.circle.fill" : "xmark.circle")
+                .foregroundColor(schedule.noGi ? .green : .red)
+            Label("Open Mat", systemImage: schedule.openMat ? "checkmark.circle.fill" : "xmark.circle")
+                .foregroundColor(schedule.openMat ? .green : .red)
+        }
+        if schedule.restrictions {
+            Text("Restrictions: \(schedule.restrictionDescription ?? "Yes")")
+                .font(.caption)
+                .foregroundColor(.red)
+        }
+    }
+    .padding()
+    .background(Color(UIColor.secondarySystemBackground))
+    .cornerRadius(8)
 }
 
 struct EventView: View {
     let event: AppDayOfWeek
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(event.matTime ?? "")
-                .font(.caption)
-                .foregroundColor(.gray)
-            Text(event.name ?? "Event Name") // Displaying event name here
-                .font(.body)
-                .foregroundColor(.primary)
-            // Additional event details if needed
-        }
-        .padding(.horizontal)
-        .padding(.vertical, 4)
-        .background(Color.blue.opacity(0.1))
-        .cornerRadius(8)
+        scheduleView(for: event)
     }
 }
 
