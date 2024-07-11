@@ -1,21 +1,16 @@
-//
-//  Seas_3App.swift
-//  Seas_3
-//
-//  Created by Brian Romero on 6/24/24.
-//
+// Seas_3App.swift
+// Seas_3
+// Created by Brian Romero on 6/24/24.
 
-import Foundation
 import SwiftUI
 import CoreData
 import Combine
 
 @main
 struct Seas3App: App {
-    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate // Link to your AppDelegate
-    
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     private let persistenceController = PersistenceController.shared
-    @StateObject var appState = AppState() // Use @StateObject for AppState
+    @StateObject var appState = AppState()
     
     var body: some Scene {
         WindowGroup {
@@ -28,9 +23,9 @@ struct Seas3App: App {
                             }
                         }
                 } else {
-                    IslandMenu() // Use IslandMenu as the main view
+                    IslandMenu()
                         .environment(\.managedObjectContext, persistenceController.viewContext)
-                        .environmentObject(appState) // Inject AppState as environment object
+                        .environmentObject(appState)
                         .onAppear {
                             let sceneLoader = SceneLoader()
                             sceneLoader.loadScene()
@@ -55,5 +50,21 @@ struct Seas3App: App {
                 NSLog("Caught NaN error: %@", reason)
             }
         }
+    }
+}
+
+struct StoryboardViewControllerRepresentable: UIViewControllerRepresentable {
+    let storyboardName: String
+    
+    func makeUIViewController(context: Context) -> UIViewController {
+        let storyboard = UIStoryboard(name: storyboardName, bundle: nil)
+        guard let viewController = storyboard.instantiateInitialViewController() else {
+            fatalError("Failed to instantiate initial view controller from storyboard: \(storyboardName)")
+        }
+        return viewController
+    }
+    
+    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {
+        // Update the view controller if needed
     }
 }

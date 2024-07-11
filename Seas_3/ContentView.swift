@@ -5,6 +5,7 @@
 //  Created by Brian Romero on 6/24/24.
 //
 
+
 import SwiftUI
 import CoreData
 
@@ -71,6 +72,10 @@ struct ContentView: View {
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
             }
         }
+        .overlay(
+            StoryboardViewControllerRepresentable(storyboardName: "MainStoryboard")
+                .ignoresSafeArea()
+        )
     }
     
     private func islandRowView(island: PirateIsland) -> some View {
