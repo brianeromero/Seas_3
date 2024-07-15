@@ -7,10 +7,20 @@ import Foundation
 import UIKit
 import CoreData
 
+//
+// IslandScheduleAsCalViewController.swift
+// Seas_3
+// Created by Brian Romero on 7/10/24.
+
+import Foundation
+import UIKit
+import CoreData
+
 class IslandScheduleAsCalViewController: UIViewController, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
-    
-    @IBOutlet weak var collectionView: UICollectionView?
+
+    @IBOutlet weak var collectionView: UICollectionView!
     var appDayOfWeeks: [AppDayOfWeek] = []
+    var repository: AppDayOfWeekRepository = .shared // Dependency Injection
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -18,33 +28,25 @@ class IslandScheduleAsCalViewController: UIViewController, UICollectionViewDataS
         setupCollectionView()
         fetchAppDayOfWeeks()
     }
-    
+
     private func setupCollectionView() {
-        // Use optional binding to safely unwrap collectionView
-        if let collectionView = collectionView {
-            collectionView.dataSource = self
-            collectionView.delegate = self
-            collectionView.register(UINib(nibName: "AppDayOfWeekCell", bundle: nil), forCellWithReuseIdentifier: AppDayOfWeekCell.reuseIdentifier)
-        } else {
+        guard let collectionView = collectionView else {
             print("collectionView outlet is not connected.")
-            // Handle gracefully if collectionView is not connected
+            return
         }
+        collectionView.dataSource = self
+        collectionView.delegate = self
+        collectionView.register(AppDayOfWeekCell.self, forCellWithReuseIdentifier: AppDayOfWeekCell.reuseIdentifier)
     }
 
-    func fetchAppDayOfWeeks() {
-        let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
 
-        do {
-            let context = PersistenceController.shared.viewContext
-            appDayOfWeeks = try context.fetch(fetchRequest)
-            collectionView?.reloadData() // Use optional chaining
-        } catch {
-            print("Failed to fetch AppDayOfWeek: \(error)")
-        }
+    private func fetchAppDayOfWeeks() {
+        appDayOfWeeks = repository.fetchAllAppDayOfWeeks()
+        collectionView.reloadData()
     }
 
     // MARK: - UICollectionViewDataSource
-    
+
     func numberOfSections(in collectionView: UICollectionView) -> Int {
         return 7 // One section for each day of the week
     }
@@ -54,17 +56,22 @@ class IslandScheduleAsCalViewController: UIViewController, UICollectionViewDataS
     }
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: AppDayOfWeekCell.reuseIdentifier, for: indexPath) as! AppDayOfWeekCell
+        guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: AppDayOfWeekCell.reuseIdentifier, for: indexPath) as? AppDayOfWeekCell else {
+            fatalError("Unexpected cell type.")
+        }
         let filteredDays = appDayOfWeeks.filter { $0.day == dayForSection(indexPath.section) }
         let appDayOfWeek = filteredDays[indexPath.item]
         cell.configure(with: appDayOfWeek)
         return cell
     }
 
+
     // MARK: - UICollectionViewDelegateFlowLayout
-    
+
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
-        return CGSize(width: self.view.bounds.width / 7, height: 100) // Adjust the size as needed
+        let collectionViewWidth = collectionView.bounds.width
+        let itemWidth = collectionViewWidth / 7 // Adjust the size for 7 columns
+        return CGSize(width: itemWidth, height: 100) // Adjust the height as needed
     }
 
     // Helper method to map section index to day string

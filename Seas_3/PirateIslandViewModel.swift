@@ -1,7 +1,8 @@
 import SwiftUI
 import Foundation
 import CoreData
-
+import Combine
+import CoreLocation
 
 class PirateIslandViewModel: ObservableObject {
     @Published var selectedDestination: IslandDestination?
@@ -11,12 +12,13 @@ class PirateIslandViewModel: ObservableObject {
         self.context = context
     }
 
-    func createPirateIsland(name: String, location: String, createdByUserId: String, gymWebsiteURL: URL?) {
+    func createPirateIsland(name: String, location: String, createdByUserId: String, gymWebsiteURL: URL?, completion: @escaping (Result<Void, Error>) -> Void) {
         print("Creating pirate island with name: \(name), location: \(location)")
 
         // Check if an island with the same name already exists
         if pirateIslandExists(name: name) {
             print("Pirate island with name \(name) already exists. Skipping creation.")
+            completion(.failure(NSError(domain: "PirateIslandViewModel", code: 100, userInfo: [NSLocalizedDescriptionKey: "Island with this name already exists."])))
             return
         }
 
@@ -29,9 +31,21 @@ class PirateIslandViewModel: ObservableObject {
         newIsland.lastModifiedTimestamp = Date()
         newIsland.gymWebsite = gymWebsiteURL
 
-        logIslandUpdate(island: newIsland) // Logging the update here
-
-        saveContext()
+        // Geocode address using GeocodingUtility
+        geocodeAddress(location) { result in
+            switch result {
+            case .success(let coordinates):
+                newIsland.latitude = coordinates.latitude
+                newIsland.longitude = coordinates.longitude
+                self.saveContext()
+                print("Island geocoded successfully")
+                completion(.success(()))
+            case .failure(let error):
+                print("Geocoding error: \(error.localizedDescription)")
+                completion(.failure(error))
+                // Handle geocoding failure appropriately, e.g., show an error message
+            }
+        }
     }
 
     private func pirateIslandExists(name: String) -> Bool {
@@ -56,18 +70,5 @@ class PirateIslandViewModel: ObservableObject {
                 print("Failed to save context: \(error)")
             }
         }
-    }
-
-    private func logIslandUpdate(island: PirateIsland) {
-        // Only log significant changes or batched updates
-        let logString = """
-            Updated Island:
-            islandName: \(island.islandName)
-            islandLocation: \(island.islandLocation)
-            createdByUserId: \(island.createdByUserId ?? "")
-            gymWebsite: \(island.gymWebsite?.absoluteString ?? "")
-            """
-
-        print(logString)
     }
 }

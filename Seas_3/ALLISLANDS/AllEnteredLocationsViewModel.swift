@@ -19,6 +19,7 @@ class AllEnteredLocationsViewModel: NSObject, ObservableObject, NSFetchedResults
 
     private let context: NSManagedObjectContext
     private var fetchedResultsController: NSFetchedResultsController<PirateIsland>?
+    private let updateQueue = DispatchQueue(label: "com.example.Seas_3.updateQueue") // Define updateQueue for background updates
 
     init(context: NSManagedObjectContext) {
         self.context = context
@@ -54,45 +55,48 @@ class AllEnteredLocationsViewModel: NSObject, ObservableObject, NSFetchedResults
     }
 
     private func updatePirateMarkers(with islands: [PirateIsland]) {
-        let markers = islands.map { island in
-            CustomMapMarker(
-                id: island.islandID ?? UUID(),
-                coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude),
-                title: island.islandName
-            )
-        }
-        
-        DispatchQueue.main.async { [weak self] in
-            self?.pirateMarkers = markers
-            self?.updateRegion()
+        updateQueue.async { [weak self] in
+            let markers = islands.map { island in
+                CustomMapMarker(
+                    id: island.islandID ?? UUID(),
+                    coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude),
+                    title: island.islandName
+                )
+            }
+            
+            DispatchQueue.main.async {
+                self?.pirateMarkers = markers
+                self?.updateRegion()
+            }
         }
     }
 
     private func updateRegion() {
-        guard !pirateMarkers.isEmpty else { return }
+        updateQueue.async { [weak self] in
+            guard let strongSelf = self else { return }
+            guard !strongSelf.pirateMarkers.isEmpty else { return }
 
-        // Calculate the bounding box that includes all markers
-        var minLat = pirateMarkers.first!.coordinate.latitude
-        var maxLat = pirateMarkers.first!.coordinate.latitude
-        var minLon = pirateMarkers.first!.coordinate.longitude
-        var maxLon = pirateMarkers.first!.coordinate.longitude
+            var minLat = strongSelf.pirateMarkers.first!.coordinate.latitude
+            var maxLat = strongSelf.pirateMarkers.first!.coordinate.latitude
+            var minLon = strongSelf.pirateMarkers.first!.coordinate.longitude
+            var maxLon = strongSelf.pirateMarkers.first!.coordinate.longitude
 
-        for marker in pirateMarkers {
-            let lat = marker.coordinate.latitude
-            let lon = marker.coordinate.longitude
-            if lat < minLat { minLat = lat }
-            if lat > maxLat { maxLat = lat }
-            if lon < minLon { minLon = lon }
-            if lon > maxLon { maxLon = lon }
-        }
+            for marker in strongSelf.pirateMarkers {
+                let lat = marker.coordinate.latitude
+                let lon = marker.coordinate.longitude
+                if lat < minLat { minLat = lat }
+                if lat > maxLat { maxLat = lat }
+                if lon < minLon { minLon = lon }
+                if lon > maxLon { maxLon = lon }
+            }
 
-        // Create a region with padding around the markers
-        let padding = 0.2 // Adjust as needed
-        let span = MKCoordinateSpan(latitudeDelta: abs(maxLat - minLat) + padding, longitudeDelta: abs(maxLon - minLon) + padding)
-        let center = CLLocationCoordinate2D(latitude: (minLat + maxLat) / 2, longitude: (minLon + maxLon) / 2)
+            let padding = 0.2
+            let span = MKCoordinateSpan(latitudeDelta: abs(maxLat - minLat) + padding, longitudeDelta: abs(maxLon - minLon) + padding)
+            let center = CLLocationCoordinate2D(latitude: (minLat + maxLat) / 2, longitude: (minLon + maxLon) / 2)
 
-        DispatchQueue.main.async {
-            self.region = MKCoordinateRegion(center: center, span: span)
+            DispatchQueue.main.async {
+                strongSelf.region = MKCoordinateRegion(center: center, span: span)
+            }
         }
     }
 

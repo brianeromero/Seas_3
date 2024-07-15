@@ -27,6 +27,9 @@ class AppDayOfWeekViewModel: ObservableObject {
     @Published var schedules: [DayOfWeek: [AppDayOfWeek]] = [:]
     @Published var selectedIsland: PirateIsland?
 
+    @Published var allIslands: [PirateIsland] = []
+    @Published var errorMessage: String?
+
     private let persistenceController = PersistenceController.shared
     private var context: NSManagedObjectContext {
         persistenceController.container.viewContext
@@ -47,6 +50,7 @@ class AppDayOfWeekViewModel: ObservableObject {
             fetchCurrentDayOfWeek() // Fetches AppDayOfWeek items for the selected island upon initialization
             loadSchedules(for: island)
         }
+        fetchPirateIslands()
     }
 
     private func initializeDaySettings() {
@@ -71,31 +75,57 @@ class AppDayOfWeekViewModel: ObservableObject {
 
     func loadSchedules(for island: PirateIsland) {
         DayOfWeek.allCases.forEach { day in
-            schedules[day] = repository.fetchAppDayOfWeek(for: island, day: day)
+            schedules[day] = repository.fetchAppDayOfWeekFromPersistence(for: island, day: day)
         }
     }
 
-    func updateSchedulesForSelectedDays() {
+    private func updateSchedules() {
+        print("AppDayOfWeekViewModel - Updating schedules")
         guard let island = selectedIsland else { return }
         selectedDays.forEach { day in
-            let dayEntity = repository.fetchOrCreateAppDayOfWeek(for: island, day: day)
+            guard let dayEntity = repository.fetchOrCreateAppDayOfWeek(for: island, day: day) else {
+                return
+            }
+
+            // Ensure matTime is properly formatted
+            if let selectedTime = selectedTimeForDay[day] {
+                dayEntity.matTime = dateFormatter.string(from: selectedTime)
+            }
+
+            // Update other attributes as needed
             dayEntity.goodForBeginners = goodForBeginnersForDay[day] ?? false
-            dayEntity.matTime = matTimeForDay[day]
             dayEntity.gi = giForDay[day] ?? false
             dayEntity.noGi = noGiForDay[day] ?? false
             dayEntity.openMat = openMatForDay[day] ?? false
             dayEntity.restrictions = restrictionsForDay[day] ?? false
             dayEntity.restrictionDescription = restrictionDescriptionForDay[day]
 
-            if let selectedTime = selectedTimeForDay[day] {
-                dayEntity.matTime = dateFormatter.string(from: selectedTime)
-            }
-
             repository.saveContext()
         }
     }
 
+
+    
+    
+    func clearSelections() {
+        print("AppDayOfWeekViewModel - Clearing selections")
+        matTimeForDay.forEach { day, _ in
+            matTimeForDay[day] = ""
+            selectedTimeForDay[day] = Date()
+            goodForBeginnersForDay[day] = false
+            giForDay[day] = false
+            noGiForDay[day] = false
+            openMatForDay[day] = false
+            restrictionsForDay[day] = false
+            restrictionDescriptionForDay[day] = ""
+        }
+    }
+
+
+    
+    
     func toggleDaySelection(_ day: DayOfWeek) {
+        print("AppDayOfWeekViewModel - Toggling selection for day: \(day.displayName)")
         if selectedDays.contains(day) {
             selectedDays.remove(day)
         } else {
@@ -110,19 +140,22 @@ class AppDayOfWeekViewModel: ObservableObject {
     func fetchSchedules() {
         guard let island = selectedIsland else { return }
         DayOfWeek.allCases.forEach { day in
-            schedules[day] = repository.fetchAppDayOfWeek(for: island, day: day)
+            schedules[day] = repository.fetchAppDayOfWeekFromPersistence(for: island, day: day)
         }
     }
 
     func updateMatTime(for day: DayOfWeek, time: String) {
+        print("AppDayOfWeekViewModel - Updating mat time for day \(day.displayName) to \(time)")
         matTimeForDay[day] = time
     }
+
 
     func updateSelectedTime(for day: DayOfWeek, time: Date) {
         selectedTimeForDay[day] = time
     }
 
     func fetchCurrentDayOfWeek() {
+        print("AppDayOfWeekViewModel - Fetching current day of week")
         guard let island = selectedIsland else {
             print("selectedIsland is nil")
             return
@@ -143,8 +176,8 @@ class AppDayOfWeekViewModel: ObservableObject {
     }
 
 
-    func fetchAppDayOfWeek(for island: PirateIsland, day: DayOfWeek) {
-        self.appDayOfWeekList = repository.fetchAppDayOfWeek(for: island, day: day)
+    func fetchAppDayOfWeekAndUpdateList(for island: PirateIsland, day: DayOfWeek) {
+        self.appDayOfWeekList = repository.fetchAppDayOfWeekFromPersistence(for: island, day: day)
     }
 
     func saveChanges() {
@@ -155,9 +188,15 @@ class AppDayOfWeekViewModel: ObservableObject {
         repository.saveContext()
     }
 
-    func deleteSchedule(at offsets: IndexSet, for day: DayOfWeek, island: PirateIsland) {
+    func deleteSchedule(at offsets: IndexSet, for day: DayOfWeek) {
+        guard let island = selectedIsland else {
+            print("No selected island to delete schedules from.")
+            return
+        }
         repository.deleteSchedule(at: offsets, for: day, island: island)
     }
+
+
 
     private func saveContext() {
         do {
@@ -167,8 +206,56 @@ class AppDayOfWeekViewModel: ObservableObject {
             fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
         }
     }
+    
+    
+    func updateSchedulesForSelectedDays() {
+        print("AppDayOfWeekViewModel - Updating schedules for selected days")
+        // Implement your logic to update schedules for selected days
+    }
 
-    func generateNameForDay(_ day: DayOfWeek) -> String {
-        return "Name for \(day.displayName)" // Implement your logic here
+    func generateNameForDay(_ day: AppDayOfWeek) -> String {
+        var nameComponents: [String] = []
+
+        if let matTime = day.matTime {
+            nameComponents.append(matTime)
+        }
+
+        if day.gi {
+            nameComponents.append("gi")
+        }
+        if day.noGi {
+            nameComponents.append("noGi")
+        }
+
+        return nameComponents.joined(separator: " ")
+    }
+
+
+
+
+    func fetchPirateIslands() {
+        let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
+        do {
+            allIslands = try persistenceController.viewContext.fetch(fetchRequest)
+        } catch {
+            errorMessage = "Failed to fetch pirate islands: \(error.localizedDescription)"
+            print(errorMessage ?? "Unknown error")
+        }
+    }
+
+    func updateName(for day: AppDayOfWeek) {
+        var nameComponents: [String] = []
+
+        if day.gi {
+            nameComponents.append("gi")
+        }
+        if day.noGi {
+            nameComponents.append("noGi")
+        }
+        if let matTime = day.matTime {
+            nameComponents.append(matTime)
+        }
+
+        day.name = nameComponents.joined(separator: " ")
     }
 }
