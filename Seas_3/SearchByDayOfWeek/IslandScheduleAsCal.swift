@@ -12,7 +12,7 @@ struct IslandScheduleAsCal: View {
     var pIsland: PirateIsland?
     
     @State private var appDayOfWeeks: [AppDayOfWeek] = []
-    let repository = AppDayOfWeekRepository.shared
+    let persistenceController = PersistenceController.shared
 
     @State private var selectedDay: DayOfWeek?
 
@@ -31,6 +31,13 @@ struct IslandScheduleAsCal: View {
                         HStack(spacing: 16) {
                             ForEach(DayOfWeek.allCases, id: \.self) { day in
                                 DayColumn(day: day, selectedDay: $selectedDay, hours: hours, viewModel: viewModel, island: pIsland)
+                                    .onTapGesture {
+                                        selectedDay = day
+                                        if let island = pIsland, let selectedDay = selectedDay {
+                                            appDayOfWeeks = persistenceController.fetchAppDayOfWeekForIslandAndDay(for: island, day: selectedDay)
+                                            viewModel.appDayOfWeekList = appDayOfWeeks
+                                        }
+                                    }
                             }
                         }
                         .padding(.horizontal)
@@ -54,15 +61,10 @@ struct IslandScheduleAsCal: View {
                 }
             }
             .navigationBarTitle("Island Schedule", displayMode: .inline)
-            .onAppear {
-                if let island = pIsland {
-                    appDayOfWeeks = repository.fetchAppDayOfWeeks(for: island)
-                    viewModel.appDayOfWeekList = appDayOfWeeks
-                }
-            }
         }
     }
 }
+
 
 struct DayColumn: View {
     let day: DayOfWeek

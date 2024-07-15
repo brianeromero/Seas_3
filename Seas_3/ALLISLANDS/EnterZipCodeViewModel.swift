@@ -28,6 +28,7 @@ class EnterZipCodeViewModel: ObservableObject {
     private let geocoder = CLGeocoder()
     private let context: NSManagedObjectContext
     let locationManager = UserLocationMapViewModel()
+    private let updateQueue = DispatchQueue(label: "com.example.Seas_3.updateQueue") // Add a private DispatchQueue
 
     init(context: NSManagedObjectContext) {
         self.context = context
@@ -74,9 +75,12 @@ class EnterZipCodeViewModel: ObservableObject {
             }
 
             let coordinate = location.coordinate
-            DispatchQueue.main.async {
-                self.region = MKCoordinateRegion(center: coordinate, span: MKCoordinateSpan(latitudeDelta: selectedRadius / 69.0, longitudeDelta: selectedRadius / 69.0))
-                self.enteredLocation = CustomMapMarker(id: UUID(), coordinate: coordinate, title: address)
+            self.updateQueue.async { [weak self] in // Perform updates within updateQueue
+                guard let self = self else { return }
+                DispatchQueue.main.async {
+                    self.region = MKCoordinateRegion(center: coordinate, span: MKCoordinateSpan(latitudeDelta: selectedRadius / 69.0, longitudeDelta: selectedRadius / 69.0))
+                    self.enteredLocation = CustomMapMarker(id: UUID(), coordinate: coordinate, title: address)
+                }
             }
 
             self.fetchPirateIslandsNear(location, within: selectedRadius * 1609.34)
@@ -101,13 +105,16 @@ class EnterZipCodeViewModel: ObservableObject {
                 return distance <= radius // already in meters
             }
 
-            DispatchQueue.main.async {
-                self.pirateIslands = filteredIslands.map { island in
-                    CustomMapMarker(
-                        id: island.islandID ?? UUID(),
-                        coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude),
-                        title: island.islandName
-                    )
+            self.updateQueue.async { [weak self] in // Perform updates within updateQueue
+                guard let self = self else { return }
+                DispatchQueue.main.async {
+                    self.pirateIslands = filteredIslands.map { island in
+                        CustomMapMarker(
+                            id: island.islandID ?? UUID(),
+                            coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude),
+                            title: island.islandName
+                        )
+                    }
                 }
             }
         } catch {
@@ -117,8 +124,11 @@ class EnterZipCodeViewModel: ObservableObject {
 
     func updateRegion(_ userLocation: CLLocation, radius: Double) {
         let span = MKCoordinateSpan(latitudeDelta: radius / 69.0, longitudeDelta: radius / 69.0)
-        DispatchQueue.main.async {
-            self.region = MKCoordinateRegion(center: userLocation.coordinate, span: span)
+        self.updateQueue.async { [weak self] in // Perform updates within updateQueue
+            guard let self = self else { return }
+            DispatchQueue.main.async {
+                self.region = MKCoordinateRegion(center: userLocation.coordinate, span: span)
+            }
         }
     }
 }

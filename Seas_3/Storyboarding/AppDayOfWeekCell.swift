@@ -14,9 +14,8 @@ class AppDayOfWeekCell: UICollectionViewCell {
     @IBOutlet weak var matTimeLabel: UILabel!
     @IBOutlet weak var nameLabel: UILabel!
 
-    @IBOutlet weak var ContentView: UIView!
     func configure(with appDayOfWeek: AppDayOfWeek) {
-        matTimeLabel.text = appDayOfWeek.matTime
-        nameLabel.text = appDayOfWeek.name
+        matTimeLabel.text = appDayOfWeek.matTime ?? "MISSING"
+        nameLabel.text = appDayOfWeek.name ?? "MISSING"
     }
 }

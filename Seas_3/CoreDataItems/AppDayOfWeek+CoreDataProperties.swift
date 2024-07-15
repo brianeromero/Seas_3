@@ -41,31 +41,7 @@ extension AppDayOfWeek {
 
     @NSManaged public var day: String? // Add this attribute for day of the week
 
-    public override func awakeFromFetch() {
-        super.awakeFromFetch()
-        updateName()
-    }
 
-    public override func awakeFromInsert() {
-        super.awakeFromInsert()
-        updateName()
-    }
-
-    private func updateName() {
-        var nameComponents: [String] = []
-
-        if gi {
-            nameComponents.append("gi")
-        }
-        if noGi {
-            nameComponents.append("noGi")
-        }
-        if let matTime = matTime {
-            nameComponents.append(matTime)
-        }
-
-        name = nameComponents.joined(separator: " ")
-    }
 }
 
 extension AppDayOfWeek : Identifiable {

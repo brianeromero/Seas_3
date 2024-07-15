@@ -7,10 +7,9 @@ import Foundation
 import CoreData
 import UIKit
 
-
 class PersistenceController: ObservableObject {
     static let shared = PersistenceController()
-    
+
     let container: NSPersistentContainer
 
     var viewContext: NSManagedObjectContext {
@@ -39,7 +38,7 @@ class PersistenceController: ObservableObject {
     }
 
     func deleteSchedule(at offsets: IndexSet, for day: DayOfWeek, island: PirateIsland) {
-        let daySchedules = fetchAppDayOfWeek(for: island, day: day)
+        let daySchedules = fetchAppDayOfWeekForIslandAndDay(for: island, day: day)
 
         for index in offsets {
             let scheduleToDelete = daySchedules[index]
@@ -48,6 +47,7 @@ class PersistenceController: ObservableObject {
 
         saveContext()
     }
+
 
     func fetchSchedules(for island: PirateIsland) -> [AppDayOfWeek] {
         let request: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
@@ -116,7 +116,7 @@ class PersistenceController: ObservableObject {
 
     // MARK: - Fetch Specific AppDayOfWeek by Island and Day
 
-    func fetchAppDayOfWeek(for island: PirateIsland, day: DayOfWeek) -> [AppDayOfWeek] {
+    func fetchAppDayOfWeekForIslandAndDay(for island: PirateIsland, day: DayOfWeek) -> [AppDayOfWeek] {
         let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
         fetchRequest.predicate = NSPredicate(format: "pIsland == %@ AND day == %@", island, day.rawValue)
 
@@ -131,23 +131,6 @@ class PersistenceController: ObservableObject {
 
     // MARK: - Fetch or Create AppDayOfWeek
 
-    func fetchOrCreateAppDayOfWeek(for island: PirateIsland, day: DayOfWeek) -> AppDayOfWeek {
-        let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "pIsland == %@ AND day == %@", island, day.rawValue)
-
-        do {
-            if let result = try container.viewContext.fetch(fetchRequest).first {
-                return result
-            } else {
-                let newAppDayOfWeek = AppDayOfWeek(context: container.viewContext)
-                newAppDayOfWeek.pIsland = island
-                newAppDayOfWeek.day = day.rawValue
-                return newAppDayOfWeek
-            }
-        } catch {
-            fatalError("Error fetching or creating AppDayOfWeek: \(error)")
-        }
-    }
 
     // MARK: - Create New AppDayOfWeek
 
@@ -204,15 +187,5 @@ class PersistenceController: ObservableObject {
         }
 
         container.viewContext.automaticallyMergesChangesFromParent = true
-    }
-
-    // MARK: - FetchRequestProvider Conformance
-
-    func fetchAll() -> [PirateIsland] {
-        fetchAllPirateIslands()
-    }
-
-    func fetchLast() -> PirateIsland? {
-        fetchLastPirateIsland()
     }
 }

@@ -112,7 +112,7 @@
                                     <collectionViewCell opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" reuseIdentifier="AppDayOfWeekCell" id="Krz-KM-32K" customClass="AppDayOfWeekCell" customModule="Seas_3" customModuleProvider="target">
                                         <rect key="frame" x="0.0" y="0.0" width="127.99999999999997" height="128"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                        <collectionViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" insetsLayoutMarginsFromSafeArea="NO" id="ZES-fY-hsx">
+                                        <collectionViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" insetsLayoutMarginsFromSafeArea="NO" id="ZES-fY-hsx" customClass="AppDayOfWeekCell" customModule="Seas_3" customModuleProvider="target">
                                             <rect key="frame" x="0.0" y="0.0" width="127.99999999999997" height="128"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <subviews>
@@ -137,9 +137,8 @@
                                             </constraints>
                                         </collectionViewCellContentView>
                                         <connections>
-                                            <outlet property="ContentView" destination="ZES-fY-hsx" id="RWU-Qa-wnO"/>
-                                            <outlet property="matTimeLabel" destination="f5U-10-uEv" id="1rF-QW-tVy"/>
-                                            <outlet property="nameLabel" destination="IQ0-5N-cO1" id="ALD-pA-HZy"/>
+                                            <outlet property="matTimeLabel" destination="f5U-10-uEv" id="fpa-ig-afR"/>
+                                            <outlet property="nameLabel" destination="IQ0-5N-cO1" id="7DX-8A-b2V"/>
                                         </connections>
                                     </collectionViewCell>
                                 </cells>
@@ -160,6 +159,9 @@
                         </constraints>
                     </view>
                     <navigationItem key="navigationItem" id="reO-52-evj"/>
+                    <connections>
+                        <outlet property="collectionView" destination="hLU-NF-UZe" id="Dli-Ia-d8z"/>
+                    </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="U0d-wh-xI3" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
             </objects>

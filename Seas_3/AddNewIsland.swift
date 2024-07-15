@@ -11,7 +11,9 @@ import Combine
 
 struct AddNewIsland: View {
     @Environment(\.managedObjectContext) private var viewContext
+    @ObservedObject private var islandViewModel: PirateIslandViewModel
     
+
     // MARK: - State Variables
     @State private var islandName = ""
     @State private var street = ""
@@ -32,6 +34,11 @@ struct AddNewIsland: View {
     // MARK: - Toast Message State
     @State private var showToast = false
     @State private var toastMessage = ""
+    
+    // MARK: - Initialization
+    init(viewModel: PirateIslandViewModel) {
+        self.islandViewModel = viewModel
+    }
     
     // MARK: - Body
     var body: some View {
@@ -102,11 +109,12 @@ struct AddNewIsland: View {
                         gymWebsiteURL = nil
                     }
                 } else {
-                    gymWebsiteURL = nil
+                    gymWebsiteURL = nil // Ensure gymWebsiteURL is nil when gymWebsite is empty
                 }
                 validateFields()
             })
             .keyboardType(.URL)
+
         }
     }
     
@@ -133,35 +141,43 @@ struct AddNewIsland: View {
     // MARK: - Private Methods
     
     private func saveIsland() {
-        let newIsland = PirateIsland(context: viewContext)
-        newIsland.islandName = islandName
-        newIsland.createdByUserId = createdByUserId
-        newIsland.gymWebsite = gymWebsiteURL
-        newIsland.createdTimestamp = Date()
-        
-        // Assuming islandLocation is a property in PirateIsland, you set it here
-        newIsland.islandLocation = "\(street), \(city), \(state) \(zip)"
-        
-        do {
-            try viewContext.save()
-            isSaveEnabled = false
-            showToast = true
-            toastMessage = "Island added successfully!"
-            clearFields()
-        } catch {
-            let nsError = error as NSError
-            fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
+        islandViewModel.createPirateIsland(
+            name: islandName,
+            location: "\(street), \(city), \(state) \(zip)",
+            createdByUserId: createdByUserId,
+            gymWebsiteURL: gymWebsiteURL
+        ) { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success:
+                    self.showToast = true
+                    self.toastMessage = "Island added successfully!"
+                    self.clearFields()
+                    
+                    // Navigate back to IslandMenu
+                    self.presentationMode.wrappedValue.dismiss()
+                    
+                case .failure(let error):
+                    self.showToast = true
+                    self.toastMessage = "Failed to add island: \(error.localizedDescription)"
+                    // Optionally handle error or retry logic here
+                }
+            }
         }
     }
+
+
     
     private func validateFields() {
         let nameValid = !islandName.isEmpty
         let locationValid = !street.isEmpty && !city.isEmpty && !state.isEmpty && !zip.isEmpty
-        let websiteValid = gymWebsiteURL != nil
+        let websiteValid = gymWebsiteURL == nil || validateURL(gymWebsite)
+
         let createdByValid = !createdByUserId.isEmpty
-        
+
         isSaveEnabled = nameValid && locationValid && websiteValid && createdByValid
     }
+
     
     private func clearFields() {
         islandName = ""

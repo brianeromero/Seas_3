@@ -19,12 +19,14 @@ struct Seas3App: App {
                     PirateIslandView()
                         .onAppear {
                             DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-                                appState.showWelcomeScreen = false
+                                withAnimation {
+                                    appState.showWelcomeScreen = false
+                                }
                             }
                         }
                 } else {
                     IslandMenu()
-                        .environment(\.managedObjectContext, persistenceController.viewContext)
+                        .environment(\.managedObjectContext, persistenceController.container.viewContext)
                         .environmentObject(appState)
                         .onAppear {
                             let sceneLoader = SceneLoader()
@@ -32,39 +34,19 @@ struct Seas3App: App {
                         }
                 }
             }
+            .environmentObject(persistenceController) // Inject PersistenceController globally
             .onAppear {
                 setupGlobalErrorHandler()
-                // Perform any UIKit-related setup here if necessary
-                // For example:
-                // UIApplication.shared.applicationIconBadgeNumber = 0
             }
         }
     }
     
     private func setupGlobalErrorHandler() {
         NSSetUncaughtExceptionHandler { exception in
-            // Check if the exception reason contains the NaN error message
             if let reason = exception.reason,
                reason.contains("has passed an invalid numeric value (NaN, or not-a-number) to CoreGraphics API") {
-                // Log the error
                 NSLog("Caught NaN error: %@", reason)
             }
         }
-    }
-}
-
-struct StoryboardViewControllerRepresentable: UIViewControllerRepresentable {
-    let storyboardName: String
-    
-    func makeUIViewController(context: Context) -> UIViewController {
-        let storyboard = UIStoryboard(name: storyboardName, bundle: nil)
-        guard let viewController = storyboard.instantiateInitialViewController() else {
-            fatalError("Failed to instantiate initial view controller from storyboard: \(storyboardName)")
-        }
-        return viewController
-    }
-    
-    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {
-        // Update the view controller if needed
     }
 }
