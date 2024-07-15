@@ -77,7 +77,22 @@ struct IslandMenu: View {
                             .padding(.top, 10)
                     }
 
-                    // Add NavigationLink to MainLoginView
+                    // NavigationLink to pIslandScheduleView
+                    NavigationLink(destination: pIslandScheduleView(viewModel: AppDayOfWeekViewModel(selectedIsland: selectedIsland))) {
+                        Text("View Island Schedules")
+                            .foregroundColor(.blue)
+                            .padding(.top, 10)
+                    }
+
+                    // NavigationLink to AllpIslandScheduleView
+                    NavigationLink(destination: AllpIslandScheduleView()) {
+                        Text("View ALL Island Schedules")
+                            .foregroundColor(.blue)
+                            .padding(.top, 10)
+                    }
+                    
+                    
+                    // NavigationLink to MainLoginView
                     NavigationLink(destination: MainLoginView()) {
                         Text("Main Login")
                             .foregroundColor(.blue)
@@ -104,12 +119,12 @@ struct IslandMenu: View {
         case "Day of Week":
             OpenMatsByDayOfWeekView()
         case "Add New Gym":
-            AddNewIsland()
+            AddNewIsland(viewModel: PirateIslandViewModel(context: viewContext))
         case "Update Existing Gyms":
             EditExistingIslandList()
         case "All Entered Locations":
             AllEnteredLocations(context: viewContext)
-        case "Current Location)":
+        case "Current Location":
             ConsolidatedIslandMapView()
         case "Zip Code":
             let viewModel = EnterZipCodeViewModel(context: viewContext)

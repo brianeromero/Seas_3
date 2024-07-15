@@ -15,7 +15,10 @@ struct AddIslandFormView: View {
     @Environment(\.presentationMode) private var presentationMode
 
     @Binding var islandName: String
-    @Binding var fullAddress: String
+    @Binding var street: String
+    @Binding var city: String
+    @Binding var state: String
+    @Binding var zip: String
     @Binding var createdByUserId: String
     @Binding var gymWebsite: String
     @Binding var gymWebsiteURL: URL?
@@ -24,9 +27,12 @@ struct AddIslandFormView: View {
     @State private var showAlert = false
     @State private var alertMessage = ""
 
-    init(islandName: Binding<String>, fullAddress: Binding<String>, createdByUserId: Binding<String>, gymWebsite: Binding<String>, gymWebsiteURL: Binding<URL?>) {
+    init(islandName: Binding<String>, street: Binding<String>, city: Binding<String>, state: Binding<String>, zip: Binding<String>, createdByUserId: Binding<String>, gymWebsite: Binding<String>, gymWebsiteURL: Binding<URL?>) {
         self._islandName = islandName
-        self._fullAddress = fullAddress
+        self._street = street
+        self._city = city
+        self._state = state
+        self._zip = zip
         self._createdByUserId = createdByUserId
         self._gymWebsite = gymWebsite
         self._gymWebsiteURL = gymWebsiteURL
@@ -38,8 +44,14 @@ struct AddIslandFormView: View {
                 Section(header: Text("Island Details")) {
                     TextField("Island Name", text: $islandName)
                         .onChange(of: islandName) { _ in validateFields() }
-                    TextField("Address", text: $fullAddress)
-                        .onChange(of: fullAddress) { _ in validateFields() }
+                    TextField("Street", text: $street)
+                        .onChange(of: street) { _ in updateIslandLocation() }
+                    TextField("City", text: $city)
+                        .onChange(of: city) { _ in updateIslandLocation() }
+                    TextField("State", text: $state)
+                        .onChange(of: state) { _ in updateIslandLocation() }
+                    TextField("Zip", text: $zip)
+                        .onChange(of: zip) { _ in updateIslandLocation() }
                 }
 
                 Section(header: Text("Entered By")) {
@@ -81,9 +93,19 @@ struct AddIslandFormView: View {
         }
     }
 
+    
+    private func updateIslandLocation() {
+        // Implement geocoding logic or any other necessary updates based on street, city, state, zip fields
+        validateFields() // Update field validation after location update
+    }
+
+    
     private func validateFields() {
         let isValid = !islandName.isEmpty &&
-                      !fullAddress.isEmpty &&
+                      !street.isEmpty &&
+                      !city.isEmpty &&
+                      !state.isEmpty &&
+                      !zip.isEmpty &&
                       !createdByUserId.isEmpty &&
                       (gymWebsite.isEmpty || validateURL(gymWebsite))
 
@@ -91,9 +113,26 @@ struct AddIslandFormView: View {
     }
 
     private func geocodeIslandLocation() {
+        let fullAddress = "\(street), \(city), \(state) \(zip)"
         print("Geocoding Island Location: \(fullAddress)")
-        // Implement geocoding logic here using Core Location or a geocoding service
-        // Example: geocodeAddress(fullAddress) { result in ... }
+
+        // Perform geocoding using GeocodingUtility
+        geocodeAddress(fullAddress) { result in
+            switch result {
+            case .success(let coordinates):
+                print("Geocoded coordinates: \(coordinates)")
+                // Update latitude and longitude fields if needed
+                // Example:
+                // self.latitude = coordinates.latitude
+                // self.longitude = coordinates.longitude
+            case .failure(let error):
+                print("Geocoding error: \(error.localizedDescription)")
+                DispatchQueue.main.async {
+                    showAlert = true
+                    alertMessage = "Failed to geocode address"
+                }
+            }
+        }
     }
 
     private func validateURL(_ urlString: String) -> Bool {
@@ -106,7 +145,10 @@ struct AddIslandFormView_Previews: PreviewProvider {
     static var previews: some View {
         AddIslandFormView(
             islandName: .constant(""),
-            fullAddress: .constant(""),
+            street: .constant(""),
+            city: .constant(""),
+            state: .constant(""),
+            zip: .constant(""),
             createdByUserId: .constant(""),
             gymWebsite: .constant(""),
             gymWebsiteURL: .constant(nil)

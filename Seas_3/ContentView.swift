@@ -5,7 +5,6 @@
 //  Created by Brian Romero on 6/24/24.
 //
 
-
 import SwiftUI
 import CoreData
 
@@ -22,6 +21,15 @@ struct ContentView: View {
     
     @State private var selectedIsland: PirateIsland? = nil // Add this property
     
+    // Define state variables for address components
+    @State private var street = ""
+    @State private var city = ""
+    @State private var state = ""
+    @State private var zip = ""
+    
+    // State variable to control the display of StoryboardViewController
+    @State private var showStoryboardViewController = true
+
     @FetchRequest(
         entity: PirateIsland.entity(),
         sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.createdTimestamp, ascending: true)]
@@ -29,53 +37,52 @@ struct ContentView: View {
     
     var body: some View {
         NavigationView {
-            List {
-                ForEach(pirateIslands, id: \.self) { island in
-                    NavigationLink(destination: IslandDetailView(island: island, selectedDestination: $viewModel.selectedDestination)) {
-                        islandRowView(island: island)
+            if showStoryboardViewController {
+                StoryboardViewControllerRepresentable(storyboardName: "MainStoryboard")
+                    .ignoresSafeArea()
+                    .onAppear {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                            withAnimation {
+                                showStoryboardViewController = false
+                            }
+                        }
                     }
-                    .contextMenu {
+            } else {
+                List {
+                    ForEach(pirateIslands, id: \.self) { island in
+                        NavigationLink(destination: IslandDetailView(island: island, selectedDestination: $viewModel.selectedDestination)) {
+                            islandRowView(island: island)
+                        }
+                    }
+                    .onDelete { indexSet in
+                        deleteItems(at: indexSet)
+                    }
+                }
+                .navigationTitle("Islands")
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarLeading) {
                         Button(action: {
-                            selectedIsland = island
+                            showAddIslandForm.toggle()
                         }) {
-                            Text("Manage Schedule")
+                            Image(systemName: "plus")
                         }
                     }
                 }
-                .onDelete(perform: deleteItems)
-            }
-            .navigationTitle("Islands")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: {
-                        showAddIslandForm.toggle()
-                    }) {
-                        Image(systemName: "plus")
-                    }
+                .sheet(isPresented: $showAddIslandForm) {
+                    AddIslandFormView(
+                        islandName: $islandName,
+                        street: $street,
+                        city: $city,
+                        state: $state,
+                        zip: $zip,
+                        createdByUserId: $createdByUserId,
+                        gymWebsite: $gymWebsite,
+                        gymWebsiteURL: $gymWebsiteURL
+                    )
+                    .environment(\.managedObjectContext, persistenceController.container.viewContext)
                 }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    if let selectedIsland = selectedIsland {
-                        NavigationLink(destination: DaysOfWeekFormView(viewModel: AppDayOfWeekViewModel(selectedIsland: selectedIsland), selectedIsland: $selectedIsland)) {
-                            Text("Manage Schedule")
-                        }
-                    }
-                }
-            }
-            .sheet(isPresented: $showAddIslandForm) {
-                AddIslandFormView(
-                    islandName: $islandName,
-                    fullAddress: $islandLocation,
-                    createdByUserId: $createdByUserId,
-                    gymWebsite: $gymWebsite,
-                    gymWebsiteURL: $gymWebsiteURL
-                )
-                .environment(\.managedObjectContext, persistenceController.container.viewContext)
             }
         }
-        .overlay(
-            StoryboardViewControllerRepresentable(storyboardName: "MainStoryboard")
-                .ignoresSafeArea()
-        )
     }
     
     private func islandRowView(island: PirateIsland) -> some View {
@@ -87,9 +94,10 @@ struct ContentView: View {
         }
     }
     
-    private func deleteItems(offsets: IndexSet) {
+    private func deleteItems(at offsets: IndexSet) {
         withAnimation {
-            offsets.map { pirateIslands[$0] }.forEach { island in
+            offsets.forEach { index in
+                let island = pirateIslands[index]
                 persistenceController.container.viewContext.delete(island)
             }
             
@@ -106,7 +114,7 @@ struct ContentView: View {
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         ContentView()
-            .environmentObject(PersistenceController.preview)
+            .environmentObject(PersistenceController.preview) // Inject preview instance for previews
     }
 }
 #endif
