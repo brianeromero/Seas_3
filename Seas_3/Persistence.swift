@@ -1,7 +1,6 @@
 // Persistence.swift
 // Seas_3
 // Created by Brian Romero on 6/24/24.
-
 import Combine
 import Foundation
 import CoreData
@@ -22,7 +21,11 @@ class PersistenceController: ObservableObject {
             if let error = error as NSError? {
                 fatalError("Unresolved error \(error), \(error.userInfo)")
             }
+            print("Persistent stores loaded successfully")
+            print("Store descriptions: \(self.container.persistentStoreDescriptions)")
         }
+        container.viewContext.automaticallyMergesChangesFromParent = true
+        print("View context setup complete")
     }
 
     func saveContext() {
@@ -47,7 +50,6 @@ class PersistenceController: ObservableObject {
 
         saveContext()
     }
-
 
     func fetchSchedules(for island: PirateIsland) -> [AppDayOfWeek] {
         let request: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
@@ -119,6 +121,7 @@ class PersistenceController: ObservableObject {
     func fetchAppDayOfWeekForIslandAndDay(for island: PirateIsland, day: DayOfWeek) -> [AppDayOfWeek] {
         let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
         fetchRequest.predicate = NSPredicate(format: "pIsland == %@ AND day == %@", island, day.rawValue)
+        fetchRequest.relationshipKeyPathsForPrefetching = ["matTimes"]
 
         do {
             let results = try container.viewContext.fetch(fetchRequest)
@@ -129,25 +132,44 @@ class PersistenceController: ObservableObject {
         }
     }
 
-    // MARK: - Fetch or Create AppDayOfWeek
-
-
     // MARK: - Create New AppDayOfWeek
 
-    func createAppDayOfWeek(pIsland: PirateIsland, dayOfWeek: String, matTime: String?, gi: Bool, noGi: Bool, openMat: Bool, restrictions: Bool, restrictionDescription: String?) -> AppDayOfWeek {
+    // MARK: - Create New AppDayOfWeek
+    func createAppDayOfWeek(pIsland: PirateIsland, dayOfWeek: String, matTimes: [MatTime], name: String?, appDayOfWeekID: String?) -> AppDayOfWeek {
         let newAppDayOfWeek = AppDayOfWeek(context: container.viewContext)
         newAppDayOfWeek.pIsland = pIsland
-        newAppDayOfWeek.matTime = matTime
-        newAppDayOfWeek.gi = gi
-        newAppDayOfWeek.noGi = noGi
-        newAppDayOfWeek.openMat = openMat
-        newAppDayOfWeek.restrictions = restrictions
-        newAppDayOfWeek.restrictionDescription = restrictionDescription
         newAppDayOfWeek.day = dayOfWeek
+        newAppDayOfWeek.matTimes = NSSet(array: matTimes)
+        newAppDayOfWeek.name = name
+        newAppDayOfWeek.appDayOfWeekID = appDayOfWeekID
 
         saveContext()
         return newAppDayOfWeek
     }
+
+
+    // MARK: - Create New createMatTime
+
+    
+    func createMatTime(type: String?, time: String?, gi: Bool, noGi: Bool, openMat: Bool, restrictions: Bool, restrictionDescription: String?, goodForBeginners: Bool, adult: Bool) -> MatTime {
+        let newMatTime = MatTime(context: container.viewContext)
+        newMatTime.id = UUID()
+        newMatTime.type = type
+        newMatTime.time = time
+        newMatTime.gi = gi
+        newMatTime.noGi = noGi
+        newMatTime.openMat = openMat
+        newMatTime.restrictions = restrictions
+        newMatTime.restrictionDescription = restrictionDescription
+        newMatTime.goodForBeginners = goodForBeginners
+        newMatTime.adult = adult
+
+        saveContext()
+        return newMatTime
+    }
+
+    
+    
 
     // MARK: - Preview Persistence Controller
 

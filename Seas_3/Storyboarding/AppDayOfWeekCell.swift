@@ -15,7 +15,14 @@ class AppDayOfWeekCell: UICollectionViewCell {
     @IBOutlet weak var nameLabel: UILabel!
 
     func configure(with appDayOfWeek: AppDayOfWeek) {
-        matTimeLabel.text = appDayOfWeek.matTime ?? "MISSING"
+        // Access the matTimes relationship and display the corresponding MatTime objects
+        if let matTimes = appDayOfWeek.matTimes {
+            let matTimeArray = matTimes.compactMap { $0 as? MatTime }
+            let matTimeStrings = matTimeArray.map { $0.time ?? "No time set" }
+            matTimeLabel.text = matTimeStrings.joined(separator: ", ")
+        } else {
+            matTimeLabel.text = "No times set"
+        }
         nameLabel.text = appDayOfWeek.name ?? "MISSING"
     }
 }
