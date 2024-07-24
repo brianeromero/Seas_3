@@ -10,26 +10,16 @@ import SwiftUI
 struct DayOfWeekView: View {
     @ObservedObject var viewModel: AppDayOfWeekViewModel
     @Binding var selectedAppDayOfWeek: AppDayOfWeek?
-    var pIsland: PirateIsland?
-
-    @State private var showAlert = false
-    @State private var alertMessage = ""
-    @State private var selectedTimeText = ""
-    @State private var selectedDay: DayOfWeek?
-
-    @State private var showTimePicker = false
-    @State private var saveEnabled = false
-    @State private var selectedDate = Date()
-    @State private var isSaved = false  // Add this line
-
+    
+    @State private var isSaved = false
 
     var body: some View {
         NavigationView {
             VStack {
                 ForEach(DayOfWeek.allCases, id: \.self) { day in
                     Toggle(day.displayName, isOn: viewModel.binding(for: day))
+                        .padding()
                 }
-                .padding()
 
                 NavigationLink(
                     destination: SavedConfirmationView(),
@@ -40,10 +30,21 @@ struct DayOfWeekView: View {
                 )
             }
             .onAppear {
-                viewModel.fetchCurrentDayOfWeek()
-                Logger.log("View appeared", view: "DayOfWeekView")
+                if let island = viewModel.selectedIsland {
+                    viewModel.fetchCurrentDayOfWeek(for: island)
+                } else {
+                    print("No island selected")
+                }
             }
             .navigationTitle("Day of Week Settings")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Save") {
+                        viewModel.updateSchedules()
+                        isSaved = true
+                    }
+                }
+            }
         }
     }
 }
@@ -53,10 +54,10 @@ struct DayOfWeekView_Previews: PreviewProvider {
         let context = PersistenceController.preview.container.viewContext
         let mockIsland = PirateIsland(context: context)
         mockIsland.islandName = "Mock Island"
-
+        
         let viewModel = AppDayOfWeekViewModel(selectedIsland: mockIsland)
 
-        return DayOfWeekView(viewModel: viewModel, selectedAppDayOfWeek: .constant(nil), pIsland: mockIsland)
+        return DayOfWeekView(viewModel: viewModel, selectedAppDayOfWeek: .constant(nil))
             .environment(\.managedObjectContext, context)
     }
 }

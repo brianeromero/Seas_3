@@ -6,12 +6,14 @@
 //
 
 import SwiftUI
+import CoreData
 
 struct IslandScheduleView: View {
     @ObservedObject var viewModel: AppDayOfWeekViewModel
     var pIsland: PirateIsland?
 
     @State private var selectedDay: DayOfWeek?
+    @State private var selectedMatTime: MatTime?
 
     var body: some View {
         NavigationView {
@@ -31,6 +33,7 @@ struct IslandScheduleView: View {
                                             scheduleView(for: schedule)
                                                 .onTapGesture {
                                                     selectedDay = day
+                                                    selectedMatTime = (schedule.matTimes?.allObjects.first as? MatTime)
                                                 }
                                         }
                                     },
@@ -55,34 +58,38 @@ struct IslandScheduleView: View {
                 ScheduleDetailModal(viewModel: viewModel, day: day)
             }
             .onAppear {
-                viewModel.fetchCurrentDayOfWeek()
+                if let pIsland = pIsland {
+                    viewModel.fetchCurrentDayOfWeek(for: pIsland)
+                }
             }
         }
     }
 
     private func scheduleView(for schedule: AppDayOfWeek) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(schedule.matTime ?? "Unknown time")
-                    .font(.subheadline)
-                    .foregroundColor(.primary)
-                Spacer()
-                Text(schedule.goodForBeginners ? "Beginners" : "")
-                    .font(.caption)
-                    .foregroundColor(.green)
-            }
-            HStack {
-                Label("Gi", systemImage: schedule.gi ? "checkmark.circle.fill" : "xmark.circle")
-                    .foregroundColor(schedule.gi ? .green : .red)
-                Label("NoGi", systemImage: schedule.noGi ? "checkmark.circle.fill" : "xmark.circle")
-                    .foregroundColor(schedule.noGi ? .green : .red)
-                Label("Open Mat", systemImage: schedule.openMat ? "checkmark.circle.fill" : "xmark.circle")
-                    .foregroundColor(schedule.openMat ? .green : .red)
-            }
-            if schedule.restrictions {
-                Text("Restrictions: \(schedule.restrictionDescription ?? "Yes")")
-                    .font(.caption)
-                    .foregroundColor(.red)
+            ForEach(schedule.matTimes?.allObjects as? [MatTime] ?? [], id: \.self) { matTime in
+                HStack {
+                    Text(matTime.time ?? "Unknown time")
+                        .font(.subheadline)
+                        .foregroundColor(.primary)
+                    Spacer()
+                    Text(matTime.goodForBeginners ? "Beginners" : "")
+                        .font(.caption)
+                        .foregroundColor(.green)
+                }
+                HStack {
+                    Label("Gi", systemImage: matTime.gi ? "checkmark.circle.fill" : "xmark.circle")
+                        .foregroundColor(matTime.gi ? .green : .red)
+                    Label("NoGi", systemImage: matTime.noGi ? "checkmark.circle.fill" : "xmark.circle")
+                        .foregroundColor(matTime.noGi ? .green : .red)
+                    Label("Open Mat", systemImage: matTime.openMat ? "checkmark.circle.fill" : "xmark.circle")
+                        .foregroundColor(matTime.openMat ? .green : .red)
+                }
+                if matTime.restrictions {
+                    Text("Restrictions: \(matTime.restrictionDescription ?? "Yes")")
+                        .font(.caption)
+                        .foregroundColor(.red)
+                }
             }
         }
         .padding()
@@ -90,7 +97,6 @@ struct IslandScheduleView: View {
         .cornerRadius(8)
     }
 }
-
 
 struct IslandScheduleView_Previews: PreviewProvider {
     static var previews: some View {
@@ -100,17 +106,19 @@ struct IslandScheduleView_Previews: PreviewProvider {
 
         let viewModel = AppDayOfWeekViewModel(selectedIsland: mockIsland)
 
-        // Mock data for different days
         for day in DayOfWeek.allCases {
             let mockSchedule = AppDayOfWeek(context: context)
+            let mockMatTime1 = MatTime(context: context)
+            mockMatTime1.time = "10:00 AM"
+            mockMatTime1.gi = true
+            mockMatTime1.noGi = false
+            mockMatTime1.openMat = true
+            mockMatTime1.restrictions = false
+            mockMatTime1.restrictionDescription = nil
+            mockMatTime1.goodForBeginners = true
+            mockMatTime1.adult = false
             mockSchedule.day = day.displayName
-            mockSchedule.matTime = "10:00 AM"
-            mockSchedule.gi = true
-            mockSchedule.noGi = false
-            mockSchedule.openMat = true
-            mockSchedule.restrictions = false
-            mockSchedule.restrictionDescription = nil
-            mockSchedule.goodForBeginners = true
+            mockSchedule.matTimes = [mockMatTime1] as NSSet
             viewModel.appDayOfWeekList.append(mockSchedule)
         }
 

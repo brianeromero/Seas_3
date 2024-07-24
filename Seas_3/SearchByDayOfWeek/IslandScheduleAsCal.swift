@@ -27,26 +27,17 @@ struct IslandScheduleAsCal: View {
                         .bold()
                         .padding(.bottom)
 
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 16) {
-                            ForEach(DayOfWeek.allCases, id: \.self) { day in
-                                DayColumn(day: day, selectedDay: $selectedDay, hours: hours, viewModel: viewModel, island: pIsland)
-                                    .onTapGesture {
-                                        selectedDay = day
-                                        if let island = pIsland, let selectedDay = selectedDay {
-                                            appDayOfWeeks = persistenceController.fetchAppDayOfWeekForIslandAndDay(for: island, day: selectedDay)
-                                            viewModel.appDayOfWeekList = appDayOfWeeks
-                                        }
-                                    }
-                            }
-                        }
-                        .padding(.horizontal)
-                    }
-
                     ScrollView {
                         LazyVStack(spacing: 16) {
                             ForEach(hours, id: \.self) { hour in
                                 HourRow(hour: hour, viewModel: viewModel, island: pIsland)
+                            }
+                            ForEach(viewModel.appDayOfWeekList, id: \.self) { appDayOfWeek in
+                                if let matTimes = appDayOfWeek.matTimes as? Set<MatTime> {
+                                    ForEach(Array(matTimes), id: \.self) { matTime in
+                                        MatTimeRow(matTime: matTime)
+                                    }
+                                }
                             }
                         }
                         .padding(.horizontal)
@@ -54,7 +45,6 @@ struct IslandScheduleAsCal: View {
                     .frame(maxHeight: .infinity)
                     .background(Color.secondary.opacity(0.1))
                     .cornerRadius(8)
-
                 } else {
                     Text("No island selected.")
                         .foregroundColor(.red)
@@ -65,6 +55,25 @@ struct IslandScheduleAsCal: View {
     }
 }
 
+struct MatTimeRow: View {
+    let matTime: MatTime
+
+    var body: some View {
+        HStack {
+            Text(matTime.time ?? "Unknown time")
+                .font(.subheadline)
+                .foregroundColor(.primary)
+            Spacer()
+            Text(matTime.type ?? "Unknown type")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .padding()
+        .background(Color.white)
+        .cornerRadius(8)
+        .shadow(radius: 1)
+    }
+}
 
 struct DayColumn: View {
     let day: DayOfWeek
@@ -107,9 +116,22 @@ struct HourRow: View {
             Text(hour)
                 .font(.caption)
                 .foregroundColor(.gray)
-            
+
             ForEach(filteredEvents(for: hour), id: \.self) { event in
                 scheduleView(for: event)
+            }
+            
+            // New section to display MatTime entities
+            Text("Mat Times")
+                .font(.headline)
+                .bold()
+                .padding(.bottom)
+            ForEach(viewModel.appDayOfWeekList, id: \.self) { appDayOfWeek in
+                if let matTimes = appDayOfWeek.matTimes as? Set<MatTime> {
+                    ForEach(Array(matTimes), id: \.id) { matTime in
+                        MatTimeRow(matTime: matTime)
+                    }
+                }
             }
         }
         .padding()
@@ -119,39 +141,63 @@ struct HourRow: View {
     }
 
     private func filteredEvents(for hour: String) -> [AppDayOfWeek] {
-        viewModel.appDayOfWeekList.filter { $0.matTime == hour && $0.pIsland == island }
+        viewModel.appDayOfWeekList.filter { $0.matTimes?.contains { ($0 as? MatTime)?.time == hour } == true && $0.pIsland == island }
     }
 }
+
 
 private func scheduleView(for schedule: AppDayOfWeek) -> some View {
     VStack(alignment: .leading, spacing: 8) {
         HStack {
-            Text(schedule.matTime ?? "Unknown time")
+            Text(schedule.day ?? "Unknown day")
                 .font(.subheadline)
                 .foregroundColor(.primary)
             Spacer()
-            Text(schedule.goodForBeginners ? "Beginners" : "")
-                .font(.caption)
-                .foregroundColor(.green)
+            // Add any other properties from AppDayOfWeek if needed
         }
-        HStack {
-            Label("Gi", systemImage: schedule.gi ? "checkmark.circle.fill" : "xmark.circle")
-                .foregroundColor(schedule.gi ? .green : .red)
-            Label("NoGi", systemImage: schedule.noGi ? "checkmark.circle.fill" : "xmark.circle")
-                .foregroundColor(schedule.noGi ? .green : .red)
-            Label("Open Mat", systemImage: schedule.openMat ? "checkmark.circle.fill" : "xmark.circle")
-                .foregroundColor(schedule.openMat ? .green : .red)
-        }
-        if schedule.restrictions {
-            Text("Restrictions: \(schedule.restrictionDescription ?? "Yes")")
-                .font(.caption)
-                .foregroundColor(.red)
+
+        // Iterate over MatTime objects associated with the schedule
+        if let matTimes = schedule.matTimes as? Set<MatTime> {
+            ForEach(Array(matTimes), id: \.id) { matTime in
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("Time: \(matTime.time ?? "Unknown time")")
+                            .font(.subheadline)
+                            .foregroundColor(.primary)
+                        Spacer()
+                        Text(matTime.type ?? "Unknown type")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    HStack {
+                        Label("Gi", systemImage: matTime.gi ? "checkmark.circle.fill" : "xmark.circle")
+                            .foregroundColor(matTime.gi ? .green : .red)
+                        Label("NoGi", systemImage: matTime.noGi ? "checkmark.circle.fill" : "xmark.circle")
+                            .foregroundColor(matTime.noGi ? .green : .red)
+                        Label("Open Mat", systemImage: matTime.openMat ? "checkmark.circle.fill" : "xmark.circle")
+                            .foregroundColor(matTime.openMat ? .green : .red)
+                    }
+                    if matTime.restrictions {
+                        Text("Restrictions: \(matTime.restrictionDescription ?? "Yes")")
+                            .font(.caption)
+                            .foregroundColor(.red)
+                    }
+                }
+                .padding()
+                .background(Color(UIColor.secondarySystemBackground))
+                .cornerRadius(8)
+            }
+        } else {
+            Text("No MatTimes available")
+                .font(.body)
+                .foregroundColor(.gray)
         }
     }
     .padding()
     .background(Color(UIColor.secondarySystemBackground))
     .cornerRadius(8)
 }
+
 
 struct EventView: View {
     let event: AppDayOfWeek
@@ -168,26 +214,7 @@ struct IslandScheduleAsCal_Previews: PreviewProvider {
         mockIsland.islandName = "Mock Island"
 
         let viewModel = AppDayOfWeekViewModel(selectedIsland: mockIsland)
-
-        // Mock data for different days and hours
-        for day in DayOfWeek.allCases {
-            for hour in (5...21).map({ String(format: "%02d:00", $0) }) {
-                let mockSchedule = AppDayOfWeek(context: context)
-                mockSchedule.day = day.displayName
-                mockSchedule.matTime = hour
-                mockSchedule.gi = Bool.random()
-                mockSchedule.noGi = Bool.random()
-                mockSchedule.openMat = true
-                mockSchedule.restrictions = false
-                mockSchedule.restrictionDescription = nil
-                mockSchedule.goodForBeginners = true
-                viewModel.appDayOfWeekList.append(mockSchedule)
-            }
-        }
-
-        return NavigationView {
-            IslandScheduleAsCal(viewModel: viewModel, pIsland: mockIsland)
-                .environment(\.managedObjectContext, context)
-        }
+        return IslandScheduleAsCal(viewModel: viewModel, pIsland: mockIsland)
+            .environment(\.managedObjectContext, context)
     }
 }
