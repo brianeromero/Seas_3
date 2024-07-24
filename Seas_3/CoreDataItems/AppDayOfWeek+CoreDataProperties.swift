@@ -14,34 +14,27 @@ extension AppDayOfWeek {
     @nonobjc public class func fetchRequest() -> NSFetchRequest<AppDayOfWeek> {
         return NSFetchRequest<AppDayOfWeek>(entityName: "AppDayOfWeek")
     }
-
-    @NSManaged public var friday: Bool
-    @NSManaged public var gi: Bool
-    @NSManaged public var goodForBeginners: Bool
-    @NSManaged public var matTime: String?
-    @NSManaged public var monday: Bool
-    @NSManaged public var noGi: Bool
-    @NSManaged public var op_friday: Bool
-    @NSManaged public var op_monday: Bool
-    @NSManaged public var op_saturday: Bool
-    @NSManaged public var op_sunday: Bool
-    @NSManaged public var op_thursday: Bool
-    @NSManaged public var op_tuesday: Bool
-    @NSManaged public var op_wednesday: Bool
-    @NSManaged public var openMat: Bool
-    @NSManaged public var restrictionDescription: String?
-    @NSManaged public var restrictions: Bool
-    @NSManaged public var saturday: Bool
-    @NSManaged public var sunday: Bool
-    @NSManaged public var thursday: Bool
-    @NSManaged public var tuesday: Bool
-    @NSManaged public var wednesday: Bool
+    @NSManaged public var day: String?
     @NSManaged public var pIsland: PirateIsland?
-    @NSManaged public var name: String? // Directly use existing property for dynamic name
+    @NSManaged public var name: String?
+    @NSManaged public var appDayOfWeekID: String?
+    @NSManaged public var matTimes: NSSet?
 
-    @NSManaged public var day: String? // Add this attribute for day of the week
+    // Function to add a MatTime
+    @objc(addMatTimesObject:)
+    @NSManaged public func addToMatTimes(_ value: MatTime)
 
+    // Function to remove a MatTime
+    @objc(removeMatTimesObject:)
+    @NSManaged public func removeFromMatTimes(_ value: MatTime)
 
+    // Function to add multiple MatTimes
+    @objc(addMatTimes:)
+    @NSManaged public func addToMatTimes(_ values: NSSet)
+
+    // Function to remove multiple MatTimes
+    @objc(removeMatTimes:)
+    @NSManaged public func removeFromMatTimes(_ values: NSSet)
 }
 
 extension AppDayOfWeek : Identifiable {

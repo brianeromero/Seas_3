@@ -1,30 +1,24 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="22758" systemVersion="23G5052d" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="22758" systemVersion="23G5066c" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
     <entity name="AppDayOfWeek" representedClassName="AppDayOfWeek" syncable="YES">
+        <attribute name="appDayOfWeekID" optional="YES" attributeType="String"/>
         <attribute name="day" optional="YES" attributeType="String"/>
-        <attribute name="friday" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="name" optional="YES" attributeType="String"/>
+        <relationship name="matTimes" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="MatTime" inverseName="appDayOfWeek" inverseEntity="MatTime"/>
+        <relationship name="pIsland" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PirateIsland" inverseName="appDayOfWeeks" inverseEntity="PirateIsland"/>
+    </entity>
+    <entity name="MatTime" representedClassName="MatTime" syncable="YES">
+        <attribute name="adult" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="gi" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="goodForBeginners" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
-        <attribute name="matTime" optional="YES" attributeType="String"/>
-        <attribute name="monday" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
-        <attribute name="name" optional="YES" attributeType="String"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="noGi" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
-        <attribute name="op_friday" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
-        <attribute name="op_monday" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
-        <attribute name="op_saturday" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
-        <attribute name="op_sunday" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
-        <attribute name="op_thursday" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
-        <attribute name="op_tuesday" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
-        <attribute name="op_wednesday" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="openMat" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="restrictionDescription" optional="YES" attributeType="String"/>
         <attribute name="restrictions" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
-        <attribute name="saturday" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
-        <attribute name="sunday" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
-        <attribute name="thursday" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
-        <attribute name="tuesday" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
-        <attribute name="wednesday" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
-        <relationship name="pIsland" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PirateIsland" inverseName="appDayOfWeeks" inverseEntity="PirateIsland"/>
+        <attribute name="time" optional="YES" attributeType="String"/>
+        <attribute name="type" optional="YES" attributeType="String"/>
+        <relationship name="appDayOfWeek" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="AppDayOfWeek" inverseName="matTimes" inverseEntity="AppDayOfWeek"/>
     </entity>
     <entity name="PirateIsland" representedClassName="PirateIsland" syncable="YES">
         <attribute name="coordinate" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>

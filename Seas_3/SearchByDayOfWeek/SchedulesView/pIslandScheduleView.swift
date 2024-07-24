@@ -48,11 +48,10 @@ struct pIslandScheduleView: View {
                     .padding()
 
                 // Example list of islands to choose from
-                List(viewModel.allIslands) { island in
+                List(viewModel.allIslands, id: \.self) { island in
                     Button(action: {
-                        selectedIsland = island
-                        viewModel.selectedIsland = island
-                        viewModel.fetchSchedules()
+                        self.selectedIsland = island
+                        viewModel.loadSchedules(for: island) // Use loadSchedules instead of fetchSchedules
                     }) {
                         Text(island.islandName)
                     }
@@ -74,4 +73,3 @@ struct pIslandScheduleView_Previews: PreviewProvider {
     }
 }
 #endif
-

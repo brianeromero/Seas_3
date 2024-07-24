@@ -1,4 +1,3 @@
-//
 //  ScheduleDetailModal.swift
 //  Seas_3
 //
@@ -20,34 +19,38 @@ struct ScheduleDetailModal: View {
                 .padding(.bottom)
 
             ForEach(viewModel.appDayOfWeekList.filter { $0.day == day.rawValue }, id: \.self) { schedule in
-                scheduleView(for: schedule)
+                if let matTimes = schedule.matTimes {
+                    ForEach(matTimes.compactMap { $0 as? MatTime }, id: \.self) { matTime in
+                        scheduleView(for: matTime)
+                    }
+                }
             }
         }
         .padding()
         .navigationBarTitle("Schedule Details", displayMode: .inline)
     }
 
-    private func scheduleView(for schedule: AppDayOfWeek) -> some View {
+    func scheduleView(for matTime: MatTime) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text(schedule.matTime ?? "Unknown time")
+                Text(matTime.time ?? "Unknown time")
                     .font(.subheadline)
                     .foregroundColor(.primary)
                 Spacer()
-                Text(schedule.goodForBeginners ? "Beginners" : "")
+                Text(matTime.goodForBeginners ? "Beginners" : "")
                     .font(.caption)
                     .foregroundColor(.green)
             }
             HStack {
-                Label("Gi", systemImage: schedule.gi ? "checkmark.circle.fill" : "xmark.circle")
-                    .foregroundColor(schedule.gi ? .green : .red)
-                Label("NoGi", systemImage: schedule.noGi ? "checkmark.circle.fill" : "xmark.circle")
-                    .foregroundColor(schedule.noGi ? .green : .red)
-                Label("Open Mat", systemImage: schedule.openMat ? "checkmark.circle.fill" : "xmark.circle")
-                    .foregroundColor(schedule.openMat ? .green : .red)
+                Label("Gi", systemImage: matTime.gi ? "checkmark.circle.fill" : "xmark.circle")
+                    .foregroundColor(matTime.gi ? .green : .red)
+                Label("NoGi", systemImage: matTime.noGi ? "checkmark.circle.fill" : "xmark.circle")
+                    .foregroundColor(matTime.noGi ? .green : .red)
+                Label("Open Mat", systemImage: matTime.openMat ? "checkmark.circle.fill" : "xmark.circle")
+                    .foregroundColor(matTime.openMat ? .green : .red)
             }
-            if schedule.restrictions {
-                Text("Restrictions: \(schedule.restrictionDescription ?? "Yes")")
+            if matTime.restrictions {
+                Text("Restrictions: \(matTime.restrictionDescription ?? "Yes")")
                     .font(.caption)
                     .foregroundColor(.red)
             }
@@ -58,7 +61,6 @@ struct ScheduleDetailModal: View {
     }
 }
 
-
 struct ScheduleDetailModal_Previews: PreviewProvider {
     static var previews: some View {
         let context = PersistenceController.preview.container.viewContext
@@ -66,24 +68,30 @@ struct ScheduleDetailModal_Previews: PreviewProvider {
 
         // Mock data for a specific day
         let mockSchedule1 = AppDayOfWeek(context: context)
-        mockSchedule1.day = DayOfWeek.monday.displayName
-        mockSchedule1.matTime = "10:00 AM"
-        mockSchedule1.gi = true
-        mockSchedule1.noGi = false
-        mockSchedule1.openMat = true
-        mockSchedule1.restrictions = false
-        mockSchedule1.restrictionDescription = nil
-        mockSchedule1.goodForBeginners = true
+        let mockMatTime1 = MatTime(context: context)
+        mockMatTime1.time = "10:00 AM"
+        mockMatTime1.gi = true
+        mockMatTime1.noGi = false
+        mockMatTime1.openMat = true
+        mockMatTime1.restrictions = false
+        mockMatTime1.restrictionDescription = nil
+        mockMatTime1.goodForBeginners = true
+        mockMatTime1.adult = false
+        mockSchedule1.day = DayOfWeek.monday.rawValue
+        mockSchedule1.matTimes = [mockMatTime1] as NSSet
 
         let mockSchedule2 = AppDayOfWeek(context: context)
-        mockSchedule2.day = DayOfWeek.monday.displayName
-        mockSchedule2.matTime = "12:00 PM"
-        mockSchedule2.gi = false
-        mockSchedule2.noGi = true
-        mockSchedule2.openMat = false
-        mockSchedule2.restrictions = true
-        mockSchedule2.restrictionDescription = "No kids allowed"
-        mockSchedule2.goodForBeginners = false
+        let mockMatTime2 = MatTime(context: context)
+        mockMatTime2.time = "12:00 PM"
+        mockMatTime2.gi = false
+        mockMatTime2.noGi = true
+        mockMatTime2.openMat = false
+        mockMatTime2.restrictions = true
+        mockMatTime2.restrictionDescription = "No kids allowed"
+        mockMatTime2.goodForBeginners = false
+        mockMatTime2.adult = false
+        mockSchedule2.day = DayOfWeek.monday.rawValue
+        mockSchedule2.matTimes = [mockMatTime2] as NSSet
 
         viewModel.appDayOfWeekList = [mockSchedule1, mockSchedule2]
 
