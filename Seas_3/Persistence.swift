@@ -136,7 +136,10 @@ class PersistenceController: ObservableObject {
 
     // MARK: - Create New AppDayOfWeek
     func createAppDayOfWeek(pIsland: PirateIsland, dayOfWeek: String, matTimes: [MatTime], name: String?, appDayOfWeekID: String?) -> AppDayOfWeek {
-        let newAppDayOfWeek = AppDayOfWeek(context: container.viewContext)
+        let context = container.viewContext
+        print("Context: \(context)")
+        
+        let newAppDayOfWeek = AppDayOfWeek(context: context)
         newAppDayOfWeek.pIsland = pIsland
         newAppDayOfWeek.day = dayOfWeek
         newAppDayOfWeek.matTimes = NSSet(array: matTimes)
@@ -146,6 +149,7 @@ class PersistenceController: ObservableObject {
         saveContext()
         return newAppDayOfWeek
     }
+
 
 
     // MARK: - Create New createMatTime

@@ -1,6 +1,9 @@
-// DaysOfWeekFormView.swift
-// Seas_3
-// Created by Brian Romero on 6/26/24.
+//
+//  DaysOfWeekFormView.swift
+//  Seas_3
+//
+//  Created by Brian Romero on 6/26/24.
+//
 
 import SwiftUI
 
@@ -16,7 +19,6 @@ extension Binding where Value == String? {
 struct DaysOfWeekFormView: View {
     @ObservedObject var viewModel: AppDayOfWeekViewModel
     @Binding var selectedIsland: PirateIsland?
-
 
     @State private var showClassScheduleModal = false
     @State private var showOpenMatModal = false
@@ -45,7 +47,7 @@ struct DaysOfWeekFormView: View {
                 }
 
                 Section(header: Text("Add Class Schedule")) {
-                    if let island = selectedIsland {
+                    if selectedIsland != nil {
                         Button(action: {
                             self.showClassScheduleModal = true
                         }) {
@@ -55,7 +57,7 @@ struct DaysOfWeekFormView: View {
                             AddClassScheduleView(
                                 viewModel: viewModel,
                                 selectedAppDayOfWeek: $selectedAppDayOfWeek,
-                                pIsland: island // Provide pIsland here
+                                pIsland: selectedIsland!
                             )
                             .environment(\.managedObjectContext, viewContext)
                         }
@@ -63,17 +65,17 @@ struct DaysOfWeekFormView: View {
                 }
 
                 Section(header: Text("Add Open Mat")) {
-                    if let island = selectedIsland {
+                    if selectedIsland != nil {
                         Button(action: {
                             self.showOpenMatModal = true
                         }) {
                             Text("Add Open Mat")
                         }
                         .sheet(isPresented: $showOpenMatModal) {
-                            AddOpenMatFormView(
+                            ScheduleFormView(
                                 viewModel: viewModel,
                                 selectedAppDayOfWeek: $selectedAppDayOfWeek,
-                                selectedIsland: island // This parameter is now expected
+                                selectedIsland: $selectedIsland
                             )
                             .environment(\.managedObjectContext, viewContext)
                         }
@@ -105,7 +107,6 @@ struct DaysOfWeekFormView: View {
         }
     }
 }
-
 
 struct InsertIslandSearch: View {
     @Environment(\.managedObjectContext) private var viewContext
@@ -189,18 +190,19 @@ struct DaysOfWeekFormView_Previews: PreviewProvider {
         mockIsland.longitude = 0.0
         mockIsland.gymWebsite = URL(string: "https://www.example.com")
 
+        // Initialize the view model with the default constructor
         let viewModel = AppDayOfWeekViewModel(selectedIsland: mockIsland)
 
-        // Create a Binding to mockIsland as optional
-        let selectedIslandBinding = Binding<PirateIsland?>(
+        // Use a Binding with a default value
+        let selectedIsland = Binding<PirateIsland?>(
             get: { mockIsland },
-            set: { _ in } // Provide a no-op setter
+            set: { _ in } // No-op setter
         )
 
-        // Use the Binding to initialize DaysOfWeekFormView
-        let view = DaysOfWeekFormView(viewModel: viewModel, selectedIsland: selectedIslandBinding)
-            .environment(\.managedObjectContext, context)
-
-        return view
+        return DaysOfWeekFormView(
+            viewModel: viewModel,
+            selectedIsland: selectedIsland
+        )
+        .environment(\.managedObjectContext, context) // Set the environment context
     }
 }
