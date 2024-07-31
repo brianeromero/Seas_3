@@ -1,4 +1,3 @@
-//
 //  PirateIsland+CoreDataProperties.swift
 //  Seas_3
 //
@@ -33,8 +32,20 @@ extension PirateIsland {
     @NSManaged public var name: String?
     @NSManaged public var appDayOfWeeks: NSSet?
     
-    // MARK: - Computed Properties
+    // MARK: - Generated Accessors for appDayOfWeeks
+    @objc(addAppDayOfWeeksObject:)
+    @NSManaged public func addToAppDayOfWeeks(_ value: AppDayOfWeek)
+
+    @objc(removeAppDayOfWeeksObject:)
+    @NSManaged public func removeFromAppDayOfWeeks(_ value: AppDayOfWeek)
+
+    @objc(addAppDayOfWeeks:)
+    @NSManaged public func addToAppDayOfWeeks(_ values: NSSet)
+
+    @objc(removeAppDayOfWeeks:)
+    @NSManaged public func removeFromAppDayOfWeeks(_ values: NSSet)
     
+    // MARK: - Computed Properties
     public var formattedCoordinates: String {
         String(format: "%.6f, %.6f", latitude, longitude)
     }
@@ -57,22 +68,7 @@ extension PirateIsland {
         formatter.dateFormat = "MM/dd/yyyy HH:mm:ss"
         return formatter
     }
-}
-
-// MARK: - Generated Accessors for appDayOfWeeks
-extension PirateIsland {
-    @objc(addAppDayOfWeeksObject:)
-    @NSManaged public func addToAppDayOfWeeks(_ value: AppDayOfWeek)
-
-    @objc(removeAppDayOfWeeksObject:)
-    @NSManaged public func removeFromAppDayOfWeeks(_ value: AppDayOfWeek)
-
-    @objc(addAppDayOfWeeks:)
-    @NSManaged public func addToAppDayOfWeeks(_ values: NSSet)
-
-    @objc(removeAppDayOfWeeks:)
-    @NSManaged public func removeFromAppDayOfWeeks(_ values: NSSet)
-
+    
     // MARK: - Custom Methods
 
     static func logFetch(in context: NSManagedObjectContext) {
