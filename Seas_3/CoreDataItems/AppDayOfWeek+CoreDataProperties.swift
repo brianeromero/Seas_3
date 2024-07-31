@@ -20,21 +20,20 @@ extension AppDayOfWeek {
     @NSManaged public var appDayOfWeekID: String?
     @NSManaged public var matTimes: NSSet?
 
-    // Function to add a MatTime
+    
+    // Generated Accessors
     @objc(addMatTimesObject:)
     @NSManaged public func addToMatTimes(_ value: MatTime)
 
-    // Function to remove a MatTime
     @objc(removeMatTimesObject:)
     @NSManaged public func removeFromMatTimes(_ value: MatTime)
 
-    // Function to add multiple MatTimes
     @objc(addMatTimes:)
     @NSManaged public func addToMatTimes(_ values: NSSet)
 
-    // Function to remove multiple MatTimes
     @objc(removeMatTimes:)
     @NSManaged public func removeFromMatTimes(_ values: NSSet)
+    
 }
 
 extension AppDayOfWeek : Identifiable {

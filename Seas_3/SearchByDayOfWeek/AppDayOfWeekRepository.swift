@@ -43,18 +43,19 @@ class AppDayOfWeekRepository: NSObject {
 
     // Fetch or create AppDayOfWeek for a given island and day
     func fetchOrCreateAppDayOfWeek(for island: PirateIsland, day: DayOfWeek) -> AppDayOfWeek? {
+        let context = persistenceController.container.viewContext
         let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
         fetchRequest.predicate = NSPredicate(format: "pIsland == %@ AND day == %@", island, day.rawValue)
 
         do {
-            if let existingDay = try persistenceController.container.viewContext.fetch(fetchRequest).first {
+            if let existingDay = try context.fetch(fetchRequest).first {
                 return existingDay
             } else {
-                let newDay = AppDayOfWeek(context: persistenceController.container.viewContext)
+                let newDay = AppDayOfWeek(context: context)
                 newDay.pIsland = island
                 newDay.day = day.rawValue
                 newDay.name = generateNameForDay(day: day) // Generate and set the name
-                
+
                 saveContext() // Save the new record
                 return newDay
             }
@@ -71,15 +72,18 @@ class AppDayOfWeekRepository: NSObject {
 
     // Add MatTimes for a given day and island
     func addMatTimesForDay(day: DayOfWeek, matTimes: [(time: String, type: String, gi: Bool, noGi: Bool, openMat: Bool, restrictions: Bool, restrictionDescription: String?, goodForBeginners: Bool, adult: Bool)], for island: PirateIsland) {
+        // Ensure that the context used is the same for all operations
+        let context = persistenceController.container.viewContext
+        
         // Fetch or create AppDayOfWeek for the specified day and island
         guard let appDayOfWeek = fetchOrCreateAppDayOfWeek(for: island, day: day) else {
             print("Failed to fetch or create AppDayOfWeek for day: \(day)")
             return
         }
-
+        
         // Process each MatTime entry
         matTimes.forEach { matTimeData in
-            let newMatTime = MatTime(context: persistenceController.container.viewContext)
+            let newMatTime = MatTime(context: context)
             newMatTime.time = matTimeData.time
             newMatTime.type = matTimeData.type
             newMatTime.gi = matTimeData.gi
@@ -95,7 +99,6 @@ class AppDayOfWeekRepository: NSObject {
 
         saveContext()  // Save the changes
     }
-
 
 
 
@@ -152,21 +155,16 @@ class AppDayOfWeekRepository: NSObject {
     }
 
     // Fetch current AppDayOfWeek for a specific pirate island
-    func fetchCurrentDayOfWeek(for island: PirateIsland) -> AppDayOfWeek? {
-        let currentDayOfWeek = Calendar.current.component(.weekday, from: Date()) // Get current day of week (1-7, where 1 is Sunday)
-        guard let day = DayOfWeek(rawValue: "\(currentDayOfWeek)") else {
-            print("Invalid day of week")
-            return nil
-        }
-
-        let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "pIsland == %@ AND day == %@", island, day.rawValue)
-
+    func fetchAppDayOfWeek(for island: PirateIsland) -> [AppDayOfWeek] {
+        let request: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
+        request.predicate = NSPredicate(format: "pIsland == %@", island)
+        
         do {
-            return try persistenceController.container.viewContext.fetch(fetchRequest).first
+            return try persistenceController.container.viewContext.fetch(request)
         } catch {
-            print("Error fetching current day of week: \(error.localizedDescription)")
-            return nil
+            print("Failed to fetch AppDayOfWeek: \(error.localizedDescription)")
+            return []
         }
     }
+
 }
