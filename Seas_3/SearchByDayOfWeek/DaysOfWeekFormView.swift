@@ -42,7 +42,7 @@ struct DaysOfWeekFormView: View {
                     }
                 } else {
                     Section(header: Text("Search by Gym Name, Zip Code, or Address/Location")) {
-                        InsertIslandSearch(selectedIsland: $selectedIsland)
+                        InsertIslandSearch(selectedIsland: $selectedIsland, viewModel: viewModel)
                     }
                 }
 
@@ -121,6 +121,8 @@ struct InsertIslandSearch: View {
     @State private var showNoMatchAlert: Bool = false
     @State private var filteredIslands: [PirateIsland] = []
 
+    @ObservedObject var viewModel: AppDayOfWeekViewModel
+
     var body: some View {
         VStack(alignment: .leading) {
             HStack {
@@ -142,6 +144,8 @@ struct InsertIslandSearch: View {
             List(filteredIslands) { island in
                 Button(action: {
                     self.selectedIsland = island
+                    self.viewModel.currentAppDayOfWeek = AppDayOfWeek(context: self.viewContext)
+                    self.viewModel.currentAppDayOfWeek?.pIsland = island
                 }) {
                     Text(island.islandName)
                 }

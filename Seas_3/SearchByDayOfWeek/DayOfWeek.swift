@@ -8,6 +8,8 @@
 import Foundation
 import SwiftUI
 
+import Foundation
+
 enum DayOfWeek: String, CaseIterable, Hashable, Identifiable {
     case sunday, monday, tuesday, wednesday, thursday, friday, saturday
 
@@ -25,10 +27,24 @@ enum DayOfWeek: String, CaseIterable, Hashable, Identifiable {
         }
     }
 
+    // Added number property
+    var number: Int {
+        switch self {
+        case .sunday: return 1
+        case .monday: return 2
+        case .tuesday: return 3
+        case .wednesday: return 4
+        case .thursday: return 5
+        case .friday: return 6
+        case .saturday: return 7
+        }
+    }
+
     static func from(displayName: String) -> DayOfWeek? {
         return DayOfWeek.allCases.first { $0.displayName == displayName }
     }
 }
+
 
 // Example usage within a function or computed property:
 func exampleUsage() {
