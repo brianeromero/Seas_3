@@ -55,26 +55,6 @@ struct IslandScheduleAsCal: View {
     }
 }
 
-struct MatTimeRow: View {
-    let matTime: MatTime
-
-    var body: some View {
-        HStack {
-            Text(matTime.time ?? "Unknown time")
-                .font(.subheadline)
-                .foregroundColor(.primary)
-            Spacer()
-            Text(matTime.type ?? "Unknown type")
-                .font(.caption)
-                .foregroundColor(.secondary)
-        }
-        .padding()
-        .background(Color.white)
-        .cornerRadius(8)
-        .shadow(radius: 1)
-    }
-}
-
 struct DayColumn: View {
     let day: DayOfWeek
     @Binding var selectedDay: DayOfWeek?
