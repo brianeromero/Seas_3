@@ -5,7 +5,6 @@
 //
 
 import SwiftUI
-import SwiftUI
 import Foundation
 import Combine
 import CoreData
@@ -19,6 +18,8 @@ class AppDayOfWeekViewModel: ObservableObject {
     private let persistenceController = PersistenceController.shared
     private var cancellables: Set<AnyCancellable> = []
 
+    var viewContext: NSManagedObjectContext
+    
     // MARK: - Published Properties
     @Published var name: String?
     @Published var selectedType: String = ""
@@ -29,6 +30,7 @@ class AppDayOfWeekViewModel: ObservableObject {
     @Published var schedules: [DayOfWeek: [AppDayOfWeek]] = [:]
     @Published var allIslands: [PirateIsland] = []
     @Published var errorMessage: String?
+    @Published var newMatTime: MatTime?
 
     // MARK: - Day Settings
     @Published var dayOfWeekStates: [DayOfWeek: Bool] = [:]
@@ -60,9 +62,11 @@ class AppDayOfWeekViewModel: ObservableObject {
     init(selectedIsland: PirateIsland? = nil, repository: AppDayOfWeekRepository = AppDayOfWeekRepository.shared) {
         self.selectedIsland = selectedIsland
         self.repository = repository
+        self.viewContext = PersistenceController.shared.container.viewContext
+        
         initializeDaySettings()
         fetchPirateIslands()
-
+        
         if let island = selectedIsland {
             fetchCurrentDayOfWeek(for: island)
             loadSchedules(for: island)
@@ -70,16 +74,21 @@ class AppDayOfWeekViewModel: ObservableObject {
     }
 
     // MARK: - Validation
-    func isDataValid() -> Bool {
+    func validateFields() -> Bool {
         let isValid = !(name?.isEmpty ?? true) &&
                       !selectedType.isEmpty &&
                       selectedDays.count > 0
         return isValid
     }
 
+    // MARK: - Computed Property for Save Button Enabling
+    var isSaveEnabled: Bool {
+        return validateFields()
+    }
+
     // MARK: - User Interaction
     func handleUserInteraction() {
-        let isValid = isDataValid()
+        let isValid = validateFields()
         saveEnabled = isValid
     }
 
@@ -137,6 +146,9 @@ class AppDayOfWeekViewModel: ObservableObject {
         
         DispatchQueue.main.async {
             self.appDayOfWeekList = self.repository.fetchAppDayOfWeekFromPersistence(for: selectedIsland, day: self.selectedDay)
+            if let appDayOfWeek = self.appDayOfWeekList.first {
+                self.matTimesForDay[self.selectedDay] = appDayOfWeek.matTimes?.allObjects as? [MatTime] ?? []
+            }
         }
     }
 
@@ -173,17 +185,13 @@ class AppDayOfWeekViewModel: ObservableObject {
         request.predicate = NSPredicate(format: "pIsland == %@", island)
         
         do {
-            appDayOfWeekList = try context.fetch(request)
+            appDayOfWeekList = try viewContext.fetch(request)
             if let currentAppDayOfWeek = appDayOfWeekList.first {
                 self.currentAppDayOfWeek = currentAppDayOfWeek
-                print("Fetched AppDayOfWeek: \(currentAppDayOfWeek)")
                 matTimesForDay[selectedDay] = currentAppDayOfWeek.matTimes?.allObjects as? [MatTime] ?? []
-            } else {
-                print("No AppDayOfWeek found for the given island.")
             }
         } catch {
             errorMessage = "Failed to fetch AppDayOfWeek: \(error.localizedDescription)"
-            print("Failed to fetch AppDayOfWeek: \(error.localizedDescription)")
         }
     }
 
@@ -196,31 +204,157 @@ class AppDayOfWeekViewModel: ObservableObject {
     func fetchAppDayOfWeekAndUpdateList(for island: PirateIsland, day: DayOfWeek) {
         self.appDayOfWeekList = repository.fetchAppDayOfWeekFromPersistence(for: island, day: day)
         if let appDayOfWeek = self.appDayOfWeekList.first {
-            matTimesForDay[day] = appDayOfWeek.matTimes?.allObjects as? [MatTime] ?? []
+            self.matTimesForDay[day] = appDayOfWeek.matTimes?.allObjects as? [MatTime] ?? []
         }
     }
 
     // MARK: - Save Context
     func saveContext() {
         do {
-            try context.save()
+            try viewContext.save()
+            print("Context saved successfully")
+
         } catch {
             errorMessage = "Failed to save context: \(error.localizedDescription)"
+            print("Failed to save context: \(error.localizedDescription)")
+
         }
     }
 
-    // MARK: - Validation
-    func validateFields() -> Bool {
-        let isValid = !(name?.isEmpty ?? true) &&
-                      !selectedType.isEmpty &&
-                      selectedDays.count > 0
-        return isValid
+    // MARK: - Function to Add or Update MatTime
+    func addOrUpdateMatTime(time: String, type: String, gi: Bool, noGi: Bool, openMat: Bool, restrictions: Bool, restrictionDescription: String, goodForBeginners: Bool, adult: Bool, for dayOfWeek: DayOfWeek) {
+        if currentAppDayOfWeek == nil {
+            currentAppDayOfWeek = AppDayOfWeek(context: viewContext)
+            currentAppDayOfWeek?.day = dayOfWeek.rawValue
+            currentAppDayOfWeek?.name = name ?? "" // Set appropriate value
+            currentAppDayOfWeek?.appDayOfWeekID = appDayOfWeekID ?? "" // Set appropriate value
+
+            if let island = selectedIsland {
+                currentAppDayOfWeek?.pIsland = island // Set the pIsland relationship
+            }
+        }
+
+        if let appDayOfWeek = currentAppDayOfWeek, let newMatTime = newMatTime {
+            newMatTime.time = time
+            newMatTime.type = type
+            newMatTime.gi = gi
+            newMatTime.noGi = noGi
+            newMatTime.openMat = openMat
+            newMatTime.restrictions = restrictions
+            newMatTime.restrictionDescription = restrictionDescription
+            newMatTime.goodForBeginners = goodForBeginners
+            newMatTime.adult = adult
+
+            appDayOfWeek.addToMatTimes(newMatTime)
+
+            do {
+                try viewContext.save()
+                print("Context saved successfully")
+                refreshMatTimes() // Refresh the UI
+            } catch {
+                errorMessage = "Failed to save new MatTime: \(error.localizedDescription)"
+            }
+        }
     }
 
-    // MARK: - Computed Property for Save Button Enabling
-    var isSaveEnabled: Bool {
-        return validateFields()
+    // MARK: - Refresh MatTimes
+    func refreshMatTimes() {
+        if let selectedIsland = selectedIsland {
+            fetchCurrentDayOfWeek(for: selectedIsland)
+        }
+        initializeNewMatTime()
     }
+    // MARK: - Fetch MatTimes for Day
+    func fetchMatTimes(for day: DayOfWeek) -> [MatTime] {
+        let request: NSFetchRequest<MatTime> = MatTime.fetchRequest()
+        request.predicate = NSPredicate(format: "appDayOfWeek.day == %@", day.rawValue)
+        
+        do {
+            return try viewContext.fetch(request)
+        } catch {
+            errorMessage = "Failed to fetch MatTime: \(error.localizedDescription)"
+            return []
+        }
+    }
+    
+    // MARK: - Update Day
+    func updateDay(for island: PirateIsland, newDay: String) {
+        // Print statement to track the update process
+        print("Updating day for island: \(island.islandName) to \(newDay)")
+        
+        // Fetch the existing AppDayOfWeek for the selected day
+        guard let appDayOfWeek = repository.fetchAppDayOfWeekFromPersistence(for: island, day: selectedDay).first else {
+            print("No AppDayOfWeek found for the selected day.")
+            return
+        }
+
+        // Update the day property and save the context
+        appDayOfWeek.day = newDay
+        appDayOfWeek.name = generateNameForDay(day: DayOfWeek(rawValue: newDay) ?? .monday)
+        appDayOfWeek.appDayOfWeekID = generateAppDayOfWeekID(island: island, day: newDay)
+
+        do {
+            try viewContext.save()
+        } catch {
+            errorMessage = "Failed to update AppDayOfWeek: \(error.localizedDescription)"
+        }
+    }
+
+
+    // MARK: - Generate Name for Day
+    private func generateNameForDay(day: DayOfWeek) -> String {
+        return "\(selectedIsland?.name ?? "UnknownIsland") - \(day.displayName)"
+    }
+
+    // MARK: - Generate AppDayOfWeek ID
+    private func generateAppDayOfWeekID(island: PirateIsland, day: String) -> String {
+        guard let islandName = island.name else {
+            print("Island name is nil")
+            return ""
+        }
+        
+        guard let dayNumber = DayOfWeek(rawValue: day)?.number else {
+            print("Day number is nil")
+            return ""
+        }
+        
+        return "\(islandName)_\(day)_\(dayNumber)"
+    }
+    // MARK: - Update Name and ID
+    func updateNameAndID() {
+        guard let island = selectedIsland, let appDayOfWeek = currentAppDayOfWeek else {
+            name = ""
+            appDayOfWeekID = ""
+            return
+        }
+        
+        guard let dayName = appDayOfWeek.day else {
+            print("Day is nil")
+            return
+        }
+        
+        let islandName = island.islandName
+        let dayNumber = DayOfWeek(rawValue: dayName)?.number ?? 0
+
+        // Print statement to indicate the start of the update
+        print("Updating name and ID...")
+        
+        // Update the Core Data entity
+        appDayOfWeek.name = "\(islandName) \(dayName)"
+        appDayOfWeek.appDayOfWeekID = "\(islandName) \(dayName) \(dayNumber)"
+        
+        // Print statements to confirm the updated values
+        print("Updated Name: \(appDayOfWeek.name ?? "none")")
+        print("Updated AppDayOfWeekID: \(appDayOfWeek.appDayOfWeekID ?? "none")")
+        
+        // Update the local @Published properties
+        name = "\(islandName) \(dayName)"
+        appDayOfWeekID = "\(islandName) \(dayName) \(dayNumber)"
+        
+        // Save the context to persist the changes
+        saveContext()
+    }
+
 
     // MARK: - Equatable Implementation
     static func == (lhs: AppDayOfWeekViewModel, rhs: AppDayOfWeekViewModel) -> Bool {
@@ -245,62 +379,8 @@ class AppDayOfWeekViewModel: ObservableObject {
                lhs.selectedDays == rhs.selectedDays
     }
     
-    // MARK: - Function to Add or Update MatTime
-    func addOrUpdateMatTime(time: String, type: String, gi: Bool, noGi: Bool, openMat: Bool, restrictions: Bool, restrictionDescription: String, goodForBeginners: Bool, adult: Bool, for dayOfWeek: DayOfWeek) {
-        // Ensure selectedAppDayOfWeek exists
-        if currentAppDayOfWeek == nil {
-            currentAppDayOfWeek = AppDayOfWeek(context: context)
-            currentAppDayOfWeek?.day = dayOfWeek.rawValue
-            currentAppDayOfWeek?.name = "" // Set appropriate value
-            currentAppDayOfWeek?.appDayOfWeekID = "" // Set appropriate value
-
-            if let island = selectedIsland {
-                currentAppDayOfWeek?.pIsland = island
-            }
-        }
-
-        if let appDayOfWeek = currentAppDayOfWeek {
-            // Create or Update MatTime
-            let newMatTime = MatTime(context: context) // Ensure this uses the same context
-            newMatTime.time = time
-            newMatTime.type = type
-            newMatTime.gi = gi
-            newMatTime.noGi = noGi
-            newMatTime.openMat = openMat
-            newMatTime.restrictions = restrictions
-            newMatTime.restrictionDescription = restrictionDescription
-            newMatTime.goodForBeginners = goodForBeginners
-            newMatTime.adult = adult
-
-            appDayOfWeek.addToMatTimes(newMatTime)
-
-            do {
-                try context.save()
-                print("Successfully saved new MatTime with time: \(newMatTime.time ?? "nil")")
-                refreshMatTimes() // Refresh the UI
-            } catch {
-                print("Failed to save new MatTime: \(error.localizedDescription)")
-            }
-        }
-    }
-
-    // MARK: - Refresh MatTimes
-    func refreshMatTimes() {
-        if let selectedIsland = selectedIsland {
-            fetchAppDayOfWeekAndUpdateList(for: selectedIsland, day: selectedDay)
-        }
-    }
     
-    // MARK: - Fetch MatTimes for Day
-    func fetchMatTimes(for day: DayOfWeek) -> [MatTime] {
-        let request: NSFetchRequest<MatTime> = MatTime.fetchRequest()
-        request.predicate = NSPredicate(format: "appDayOfWeek.day == %@", day.rawValue)
-        
-        do {
-            return try context.fetch(request)
-        } catch {
-            errorMessage = "Failed to fetch MatTime: \(error.localizedDescription)"
-            return []
-        }
+    func initializeNewMatTime() {
+        newMatTime = MatTime(context: viewContext)
     }
 }

@@ -189,25 +189,30 @@ struct AddOpenMatFormView: View {
 
 struct AddOpenMatFormView_Previews: PreviewProvider {
     static var previews: some View {
-        // Create a mock PirateIsland with default values
-        let sampleIsland = PirateIsland()
+        let context = PersistenceController.preview.container.viewContext
         
-        // Create a mock AppDayOfWeek with default values
-        let sampleAppDayOfWeek = AppDayOfWeek()
+        let sampleIsland = PirateIsland(context: context)
+        sampleIsland.islandID = UUID()
+        sampleIsland.islandName = "Sample Island"
         
-        // Create a mock AppDayOfWeekViewModel with sampleIsland
+        let sampleAppDayOfWeek = AppDayOfWeek(context: context)
+        sampleAppDayOfWeek.appDayOfWeekID = UUID().uuidString
+        sampleAppDayOfWeek.day = "Monday"
+        sampleAppDayOfWeek.name = "Sample Schedule"
+        sampleAppDayOfWeek.pIsland = sampleIsland
+        
         let mockViewModel = AppDayOfWeekViewModel(selectedIsland: sampleIsland)
         
-        // Create a sample binding for AppDayOfWeek
         let binding = Binding<AppDayOfWeek?>(
             get: { sampleAppDayOfWeek },
             set: { _ in }
         )
         
-        AddOpenMatFormView(
+        return AddOpenMatFormView(
             viewModel: mockViewModel,
             selectedAppDayOfWeek: binding,
             selectedIsland: sampleIsland
         )
+        .previewLayout(.sizeThatFits)
     }
 }
