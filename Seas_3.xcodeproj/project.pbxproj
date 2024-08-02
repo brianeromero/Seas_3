@@ -331,8 +331,8 @@
 				0CEC327D2C41A45300F0747F /* pIslandScheduleView.swift */,
 				0CEC327F2C41A46700F0747F /* pIslandScheduleListView.swift */,
 				0CEC32812C41CA3C00F0747F /* AllpIslandScheduleView.swift */,
-				0C8AEC242C59301F00D38635 /* ScheduleFormView.swift */,
 				0C8AEC262C59679300D38635 /* AppDayOfWeekFormView.swift */,
+				0C8AEC242C59301F00D38635 /* ScheduleFormView.swift */,
 				0C8AEC282C5C246800D38635 /* AddNewMatTimeSection.swift */,
 			);
 			path = SchedulesView;

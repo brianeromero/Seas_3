@@ -20,7 +20,7 @@ class AppDayOfWeekRepository: NSObject {
     // Save changes to the CoreData context
     func saveContext() {
         print("AppDayOfWeekRepository - Saving context")
-        persistenceController.saveContext()
+        PersistenceController.shared.saveContext()
     }
     
     // Fetch all AppDayOfWeek entities

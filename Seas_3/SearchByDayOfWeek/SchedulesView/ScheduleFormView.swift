@@ -23,22 +23,21 @@ struct ScheduleFormView: View {
 
     @Binding var selectedAppDayOfWeek: AppDayOfWeek?
     @Binding var selectedIsland: PirateIsland?
-
+    @ObservedObject var viewModel: AppDayOfWeekViewModel
     @State private var day: String = ""
     @State private var name: String = ""
-    //@State private var appDayOfWeekID: String = ""
     @State private var selectedDay: DayOfWeek = .monday
     @State private var editingExisting = false
     @State private var showingAlert = false
     @State private var alertTitle = ""
     @State private var alertMessage = ""
+    @State private var appDayOfWeekID: String = "" // Declare appDayOfWeekID as State
 
-    @ObservedObject var viewModel: AppDayOfWeekViewModel
-
+    
     init(
-        viewModel: AppDayOfWeekViewModel,
         selectedAppDayOfWeek: Binding<AppDayOfWeek?>,
-        selectedIsland: Binding<PirateIsland?>
+        selectedIsland: Binding<PirateIsland?>,
+        viewModel: AppDayOfWeekViewModel
     ) {
         self._selectedAppDayOfWeek = selectedAppDayOfWeek
         self._selectedIsland = selectedIsland
@@ -93,11 +92,19 @@ struct ScheduleFormView: View {
                 if let island = selectedIsland {
                     viewModel.fetchCurrentDayOfWeek(for: island)
                 }
+
                 if selectedAppDayOfWeek == nil {
+                    // Create a new AppDayOfWeek instance if one does not exist
                     selectedAppDayOfWeek = AppDayOfWeek(context: viewContext)
+                    print("Created new AppDayOfWeek instance.")
                 } else {
                     updateUIWithAppDayOfWeek()
                 }
+
+                // Update the name and ID after ensuring the AppDayOfWeek instance is set up
+                viewModel.updateNameAndID()
+
+                print("Current AppDayOfWeek ID on Appear: \(selectedAppDayOfWeek?.appDayOfWeekID ?? "None")")
             }
             .alert(isPresented: $showingAlert) {
                 Alert(title: Text(alertTitle), message: Text(alertMessage), dismissButton: .default(Text("OK")))
@@ -108,16 +115,18 @@ struct ScheduleFormView: View {
     private func updateUIWithAppDayOfWeek() {
         if let appDayOfWeek = selectedAppDayOfWeek {
             day = appDayOfWeek.day ?? ""
-            name = appDayOfWeek.name ?? ""  // Check if this is being set correctly
-            //appDayOfWeekID = appDayOfWeek.appDayOfWeekID ?? ""  // Check if this is being set correctly
-            
+            name = appDayOfWeek.name ?? ""
+            appDayOfWeekID = appDayOfWeek.appDayOfWeekID ?? ""
+
+            print("Updated AppDayOfWeek ID: \(appDayOfWeekID ?? "None")")
+
             if let matTimes = appDayOfWeek.matTimes as? Set<MatTime> {
                 viewModel.matTimesForDay[selectedDay] = Array(matTimes)
             }
         }
     }
-
 }
+
 
 struct DayInformationSection: View {
     @Binding var day: String
@@ -149,7 +158,7 @@ struct DayInformationSection: View {
             Text("Schedule Name: \(name)")
                 .disabled(true) // Display the name but make it non-editable
             
-            Text("Day ID: \(String(describing: appDayOfWeekID))")
+            Text("AppDayOfWeekID: \(appDayOfWeekID ?? "Not Set")")
                 .disabled(true) // Display the ID but make it non-editable
 
             Picker("Select Island", selection: $selectedIsland) {
@@ -167,6 +176,7 @@ struct DayInformationSection: View {
         }
     }
 }
+
 
 struct SelectDaySection: View {
     @Binding var selectedDay: DayOfWeek
@@ -250,13 +260,16 @@ struct ScheduleFormView_Previews: PreviewProvider {
         appDayOfWeek.day = "Monday"
         appDayOfWeek.name = "Schedule Name"
         
-        // Initialize the view model without viewContext directly
+        // Create and configure a view model
         let viewModel = AppDayOfWeekViewModel(selectedIsland: island)
+        viewModel.name = appDayOfWeek.name
+        viewModel.appDayOfWeekID = appDayOfWeek.appDayOfWeekID
 
+        // Initialize ScheduleFormView with viewModel
         return ScheduleFormView(
-            viewModel: viewModel,
             selectedAppDayOfWeek: .constant(appDayOfWeek),
-            selectedIsland: .constant(island)
+            selectedIsland: .constant(island),
+            viewModel: viewModel
         )
         .environment(\.managedObjectContext, context) // Ensure environment context is set
     }
