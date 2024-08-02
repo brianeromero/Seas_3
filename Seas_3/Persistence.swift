@@ -33,12 +33,14 @@ class PersistenceController: ObservableObject {
         if context.hasChanges {
             do {
                 try context.save()
+                print("Context saved successfully")
             } catch {
                 let nsError = error as NSError
                 fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
             }
         }
     }
+
 
     func deleteSchedule(at offsets: IndexSet, for day: DayOfWeek, island: PirateIsland) {
         let daySchedules = fetchAppDayOfWeekForIslandAndDay(for: island, day: day)
@@ -132,7 +134,6 @@ class PersistenceController: ObservableObject {
         }
     }
 
-    // MARK: - Create New AppDayOfWeek
 
     // MARK: - Create New AppDayOfWeek
     func createAppDayOfWeek(pIsland: PirateIsland, dayOfWeek: String, matTimes: [MatTime], name: String?, appDayOfWeekID: String?) -> AppDayOfWeek {
