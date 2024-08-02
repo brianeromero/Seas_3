@@ -45,6 +45,8 @@ class AppDayOfWeekViewModel: ObservableObject {
     @Published var selectedTimeForDay: [DayOfWeek: Date] = [:]
     @Published var matTimesForDay: [DayOfWeek: [MatTime]] = [:]
     @Published var selectedDays: Set<DayOfWeek> = []
+    @Published var showError = false
+    @Published var selectedAppDayOfWeek: AppDayOfWeek?
 
     // MARK: - Computed Property for Context
     var context: NSManagedObjectContext {
@@ -210,15 +212,8 @@ class AppDayOfWeekViewModel: ObservableObject {
 
     // MARK: - Save Context
     func saveContext() {
-        do {
-            try viewContext.save()
-            print("Context saved successfully")
-
-        } catch {
-            errorMessage = "Failed to save context: \(error.localizedDescription)"
-            print("Failed to save context: \(error.localizedDescription)")
-
-        }
+        print("AppDayOfWeekViewModel - Saving context")
+        PersistenceController.shared.saveContext()
     }
 
     // MARK: - Function to Add or Update MatTime
@@ -383,4 +378,60 @@ class AppDayOfWeekViewModel: ObservableObject {
     func initializeNewMatTime() {
         newMatTime = MatTime(context: viewContext)
     }
+    
+    
+    func addNewMatTime() {
+        guard var newMatTime = newMatTime else {
+            errorMessage = "Please complete all fields."
+            return
+        }
+        
+        // Ensure selectedIsland is not nil
+        guard let island = selectedIsland else {
+            errorMessage = "Selected island is nil."
+            return
+        }
+
+        // Check if an AppDayOfWeek object already exists for the selected day and island
+        let existingAppDayOfWeek = PersistenceController.shared.fetchAppDayOfWeekForIslandAndDay(for: island, day: selectedDay).first
+        
+        if let existingAppDayOfWeek = existingAppDayOfWeek {
+            currentAppDayOfWeek = existingAppDayOfWeek
+        } else {
+            // Create a new AppDayOfWeek object if it doesn't already exist
+            let name = generateNameForDay(day: selectedDay)
+            let appDayOfWeekID = generateAppDayOfWeekID(island: island, day: selectedDay.rawValue)
+            currentAppDayOfWeek = PersistenceController.shared.createAppDayOfWeek(pIsland: island, dayOfWeek: selectedDay.rawValue, matTimes: [], name: name, appDayOfWeekID: appDayOfWeekID)
+        }
+        
+        updateNameAndID()
+        addOrUpdateMatTime(
+            time: newMatTime.time ?? "",
+            type: "", // Set the type to an empty string for now
+            gi: newMatTime.gi,
+            noGi: newMatTime.noGi,
+            openMat: newMatTime.openMat,
+            restrictions: newMatTime.restrictions,
+            restrictionDescription: newMatTime.restrictionDescription ?? "",
+            goodForBeginners: newMatTime.goodForBeginners,
+            adult: newMatTime.adult,
+            for: selectedDay
+        )
+        print("Added Mat Time with AppDayOfWeek ID: \(currentAppDayOfWeek?.appDayOfWeekID ?? "None")")
+        
+        // Save context to persist changes
+        PersistenceController.shared.saveContext()
+        
+        // Reset newMatTime
+        self.newMatTime = MatTime(context: viewContext)
+    }
+
+
+    func updateBindings() {
+        // Update selectedAppDayOfWeek, name, and appDayOfWeekID bindings here
+        selectedAppDayOfWeek = currentAppDayOfWeek
+        name = currentAppDayOfWeek?.name ?? ""
+        appDayOfWeekID = currentAppDayOfWeek?.appDayOfWeekID
+    }
+
 }

@@ -73,9 +73,9 @@ struct DaysOfWeekFormView: View {
                         }
                         .sheet(isPresented: $showOpenMatModal) {
                             ScheduleFormView(
-                                viewModel: viewModel,
                                 selectedAppDayOfWeek: $selectedAppDayOfWeek,
-                                selectedIsland: $selectedIsland
+                                selectedIsland: $selectedIsland,
+                                viewModel: viewModel // Pass the viewModel here
                             )
                             .environment(\.managedObjectContext, viewContext)
                         }
@@ -187,26 +187,28 @@ struct InsertIslandSearch: View {
 struct DaysOfWeekFormView_Previews: PreviewProvider {
     static var previews: some View {
         let context = PersistenceController.preview.container.viewContext
+        
+        // Create a mock PirateIsland
         let mockIsland = PirateIsland(context: context)
         mockIsland.islandName = "Mock Island"
         mockIsland.islandLocation = "Mock Location"
         mockIsland.latitude = 0.0
         mockIsland.longitude = 0.0
         mockIsland.gymWebsite = URL(string: "https://www.example.com")
-
-        // Initialize the view model with the default constructor
+        
+        // Create a mock AppDayOfWeekViewModel
         let viewModel = AppDayOfWeekViewModel(selectedIsland: mockIsland)
-
-        // Use a Binding with a default value
+        
+        // Create a Binding for selectedIsland
         let selectedIsland = Binding<PirateIsland?>(
             get: { mockIsland },
             set: { _ in } // No-op setter
         )
-
+        
         return DaysOfWeekFormView(
             viewModel: viewModel,
             selectedIsland: selectedIsland
         )
-        .environment(\.managedObjectContext, context) // Set the environment context
+        .environment(\.managedObjectContext, context)
     }
 }
