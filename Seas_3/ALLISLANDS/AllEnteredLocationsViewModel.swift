@@ -65,21 +65,18 @@ class AllEnteredLocationsViewModel: NSObject, ObservableObject, NSFetchedResults
         
         DispatchQueue.main.async {
             self.pirateMarkers = markers
-        }
-        
-        DispatchQueue.main.async {
             self.updateRegion()
         }
     }
 
     private func updateRegion() {
         guard !pirateMarkers.isEmpty else { return }
-
+        
         var minLat = pirateMarkers.first!.coordinate.latitude
         var maxLat = pirateMarkers.first!.coordinate.latitude
         var minLon = pirateMarkers.first!.coordinate.longitude
         var maxLon = pirateMarkers.first!.coordinate.longitude
-
+        
         for marker in pirateMarkers {
             let lat = marker.coordinate.latitude
             let lon = marker.coordinate.longitude
@@ -88,14 +85,15 @@ class AllEnteredLocationsViewModel: NSObject, ObservableObject, NSFetchedResults
             if lon < minLon { minLon = lon }
             if lon > maxLon { maxLon = lon }
         }
-
+        
         let padding = 0.2
         let span = MKCoordinateSpan(latitudeDelta: abs(maxLat - minLat) + padding, longitudeDelta: abs(maxLon - minLon) + padding)
         let center = CLLocationCoordinate2D(latitude: (minLat + maxLat) / 2, longitude: (minLon + maxLon) / 2)
-
-        self.region = MKCoordinateRegion(center: center, span: span)
+        
+        DispatchQueue.main.async {
+            self.region = MKCoordinateRegion(center: center, span: span)
+        }
     }
-
     func controllerDidChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
         if let fetchedObjects = fetchedResultsController?.fetchedObjects as? [PirateIsland] {
             updatePirateMarkers(with: fetchedObjects)

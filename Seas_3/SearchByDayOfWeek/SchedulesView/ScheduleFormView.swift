@@ -1,5 +1,5 @@
 //
-//  ScheduleFormView.swift
+//  cheduleFormView.swiftcheduleFormView.swift
 //  Seas_3
 //
 //  Created by Brian Romero on 7/30/24.
@@ -10,7 +10,7 @@ import CoreData
 
 extension MatTime {
     override public var description: String {
-        return "MatTime: \(time ?? "") - Gi: \(gi), No Gi: \(noGi), Open Mat: \(openMat), Restrictions: \(restrictions), Good for Beginners: \(goodForBeginners), Adult: \(adult)"
+        "MatTime: \(time ?? "") - Gi: \(gi), No Gi: \(noGi), Open Mat: \(openMat), Restrictions: \(restrictions), Good for Beginners: \(goodForBeginners), Adult: \(adult)"
     }
 }
 
@@ -24,16 +24,14 @@ struct ScheduleFormView: View {
     @Binding var selectedAppDayOfWeek: AppDayOfWeek?
     @Binding var selectedIsland: PirateIsland?
     @ObservedObject var viewModel: AppDayOfWeekViewModel
+
     @State private var day: String = ""
     @State private var name: String = ""
     @State private var selectedDay: DayOfWeek = .monday
-    @State private var editingExisting = false
     @State private var showingAlert = false
     @State private var alertTitle = ""
     @State private var alertMessage = ""
-    @State private var appDayOfWeekID: String = "" // Declare appDayOfWeekID as State
 
-    
     init(
         selectedAppDayOfWeek: Binding<AppDayOfWeek?>,
         selectedIsland: Binding<PirateIsland?>,
@@ -47,64 +45,76 @@ struct ScheduleFormView: View {
     var body: some View {
         NavigationView {
             Form {
-                DayInformationSection(
-                    day: $day,
-                    name: Binding(
-                        get: { viewModel.name ?? "" },
-                        set: { viewModel.name = $0 }
-                    ),
-                    appDayOfWeekID: Binding(
-                        get: { viewModel.appDayOfWeekID },
-                        set: { viewModel.appDayOfWeekID = $0 }
-                    ),
-                    selectedIsland: $selectedIsland,
-                    islands: islands,
-                    viewModel: viewModel
-                )
-                
-                SelectDaySection(
-                    selectedDay: $selectedDay,
-                    day: $day,
-                    selectedAppDayOfWeek: $selectedAppDayOfWeek,
-                    viewModel: viewModel
-                )
-                
+                // Day Information Section
+                Section(header: Text("Day Information")) {
+                    TextField("Day (e.g., Monday)", text: $day)
+                        .textInputAutocapitalization(.words)
+                        .autocorrectionDisabled()
+                        .disabled(true)
+
+                    Text("Schedule Name: \(name)")
+                        .disabled(true)
+
+                    Text("AppDayOfWeekID: \(viewModel.appDayOfWeekID ?? "Not Set")")
+                        .disabled(true)
+                }
+
+                // Island Selection Section
+                Section(header: Text("Select Island")) {
+                    Picker("Select Island", selection: $selectedIsland) {
+                        ForEach(islands, id: \.self) { island in
+                            Text(island.islandName).tag(island as PirateIsland?)
+                        }
+                    }
+                    .onChange(of: selectedIsland) { newIsland in
+                        if let island = newIsland {
+                            viewModel.fetchCurrentDayOfWeek(for: island)
+                        }
+                    }
+                }
+
+                // Day Selection Section
+                Section(header: Text("Select Day")) {
+                    Picker("Day", selection: $selectedDay) {
+                        ForEach(DayOfWeek.allCases, id: \.self) { day in
+                            Text(day.displayName).tag(day)
+                        }
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                    .onChange(of: selectedDay) { newValue in
+                        day = newValue.rawValue
+                        updateAppDayOfWeek()
+                    }
+                }
+
+                // Add New Mat Time Section
                 AddNewMatTimeSection(
                     selectedAppDayOfWeek: $selectedAppDayOfWeek,
                     selectedIsland: $selectedIsland,
                     viewModel: viewModel,
                     selectedDay: $selectedDay,
                     name: $name,
-                    appDayOfWeekID: Binding(
-                        get: { viewModel.appDayOfWeekID },
-                        set: { viewModel.appDayOfWeekID = $0 }
-                    )
+                    appDayOfWeekID: $viewModel.appDayOfWeekID
                 )
-                
+
+                // Scheduled Mat Times Section
                 ScheduledMatTimesSection(
                     selectedDay: $selectedDay,
                     viewModel: viewModel,
                     selectedAppDayOfWeek: $selectedAppDayOfWeek
                 )
+
+                // Error Handling Section
+                if selectedAppDayOfWeek == nil {
+                    Section(header: Text("Error")) {
+                        Text("No AppDayOfWeek instance selected.")
+                            .foregroundColor(.red)
+                    }
+                }
             }
             .navigationTitle("Schedule Form")
             .onAppear {
-                if let island = selectedIsland {
-                    viewModel.fetchCurrentDayOfWeek(for: island)
-                }
-
-                if selectedAppDayOfWeek == nil {
-                    // Create a new AppDayOfWeek instance if one does not exist
-                    selectedAppDayOfWeek = AppDayOfWeek(context: viewContext)
-                    print("Created new AppDayOfWeek instance.")
-                } else {
-                    updateUIWithAppDayOfWeek()
-                }
-
-                // Update the name and ID after ensuring the AppDayOfWeek instance is set up
-                viewModel.updateNameAndID()
-
-                print("Current AppDayOfWeek ID on Appear: \(selectedAppDayOfWeek?.appDayOfWeekID ?? "None")")
+                setupView()
             }
             .alert(isPresented: $showingAlert) {
                 Alert(title: Text(alertTitle), message: Text(alertMessage), dismissButton: .default(Text("OK")))
@@ -112,93 +122,39 @@ struct ScheduleFormView: View {
         }
     }
 
+    private func setupView() {
+        if let island = selectedIsland, selectedAppDayOfWeek != nil {
+            viewModel.fetchCurrentDayOfWeek(for: island)
+        }
+
+        if selectedAppDayOfWeek == nil {
+            alertTitle = "No Selection"
+            alertMessage = "Please select an AppDayOfWeek instance."
+            showingAlert = true
+        } else {
+            updateUIWithAppDayOfWeek()
+        }
+
+        viewModel.updateNameAndID()
+        print("Current AppDayOfWeek ID on Appear: \(selectedAppDayOfWeek?.appDayOfWeekID ?? "None")")
+    }
+
+    private func updateAppDayOfWeek() {
+        if let appDayOfWeek = selectedAppDayOfWeek {
+            appDayOfWeek.day = selectedDay.rawValue
+            viewModel.updateNameAndID()
+            viewModel.updateSchedules()
+        }
+    }
+
     private func updateUIWithAppDayOfWeek() {
         if let appDayOfWeek = selectedAppDayOfWeek {
             day = appDayOfWeek.day ?? ""
             name = appDayOfWeek.name ?? ""
-            appDayOfWeekID = appDayOfWeek.appDayOfWeekID ?? ""
-
-            print("Updated AppDayOfWeek ID: \(appDayOfWeekID ?? "None")")
+            print("Updated AppDayOfWeek ID: \(String(describing: viewModel.appDayOfWeekID))")
 
             if let matTimes = appDayOfWeek.matTimes as? Set<MatTime> {
                 viewModel.matTimesForDay[selectedDay] = Array(matTimes)
-            }
-        }
-    }
-}
-
-
-struct DayInformationSection: View {
-    @Binding var day: String
-    @Binding var name: String
-    @Binding var appDayOfWeekID: String? // Make the appDayOfWeekID a binding
-    @Binding var selectedIsland: PirateIsland?
-    let islands: FetchedResults<PirateIsland>
-    @ObservedObject var viewModel: AppDayOfWeekViewModel
-
-    var body: some View {
-        Section(header: Text("Day Information")) {
-            TextField("Day (e.g., Monday)", text: Binding(
-                get: { day },
-                set: { newValue in
-                    day = newValue
-                    if let selectedIsland = selectedIsland {
-                        viewModel.updateDay(for: selectedIsland, newDay: newValue)
-                        viewModel.updateNameAndID()
-                        print("Updated Day: \(newValue)")
-                        print("Updated Name: \(name)")
-                        print("Updated AppDayOfWeekID: \(String(describing: appDayOfWeekID))")
-                    }
-                }
-            ))
-            .textInputAutocapitalization(.words)
-            .autocorrectionDisabled()
-            .disabled(true) // Make the field non-editable
-            
-            Text("Schedule Name: \(name)")
-                .disabled(true) // Display the name but make it non-editable
-            
-            Text("AppDayOfWeekID: \(appDayOfWeekID ?? "Not Set")")
-                .disabled(true) // Display the ID but make it non-editable
-
-            Picker("Select Island", selection: $selectedIsland) {
-                ForEach(islands, id: \.self) { island in
-                    Text(island.islandName).tag(island as PirateIsland?)
-                }
-            }
-            .onChange(of: selectedIsland) { newIsland in
-                if let island = newIsland {
-                    viewModel.fetchCurrentDayOfWeek(for: island)
-                    viewModel.updateNameAndID()
-                    name = viewModel.name ?? "" // Update the name binding here
-                }
-            }
-        }
-    }
-}
-
-
-struct SelectDaySection: View {
-    @Binding var selectedDay: DayOfWeek
-    @Binding var day: String
-    @Binding var selectedAppDayOfWeek: AppDayOfWeek?
-    @ObservedObject var viewModel: AppDayOfWeekViewModel
-
-    var body: some View {
-        Section(header: Text("Select Day")) {
-            Picker("Day", selection: $selectedDay) {
-                ForEach(DayOfWeek.allCases, id: \.self) { day in
-                    Text(day.displayName).tag(day)
-                }
-            }
-            .pickerStyle(SegmentedPickerStyle())
-            .onChange(of: selectedDay) { newValue in
-                day = newValue.rawValue
-                if let appDayOfWeek = selectedAppDayOfWeek {
-                    appDayOfWeek.day = newValue.rawValue
-                    viewModel.updateSchedules()
-                    viewModel.updateNameAndID() // Call updateNameAndID here
-                }
             }
         }
     }
@@ -211,35 +167,18 @@ struct ScheduledMatTimesSection: View {
 
     var body: some View {
         Section(header: Text("Scheduled Mat Times")) {
-            if let matTimes = viewModel.matTimesForDay[selectedDay] {
-                List(matTimes) { matTime in
-                    MatTimeRow(matTime: matTime)
+            if let _ = selectedAppDayOfWeek, // Ignored variable here
+               let matTimes = viewModel.matTimesForDay[selectedDay],
+               !matTimes.isEmpty {
+                List {
+                    ForEach(matTimes, id: \.self) { matTime in
+                        Text(matTime.description) // Assuming `description` is properly overridden
+                            .padding()
+                    }
                 }
             } else {
-                Text("No mat times scheduled for this day.")
-            }
-        }
-    }
-}
-
-struct MatTimeRow: View {
-    var matTime: MatTime
-
-    var body: some View {
-        VStack(alignment: .leading) {
-            Text(matTime.time ?? "")
-                .font(.headline)
-            Text("Gi: \(matTime.gi ? "Yes" : "No"), No Gi: \(matTime.noGi ? "Yes" : "No"), Open Mat: \(matTime.openMat ? "Yes" : "No")")
-                .font(.subheadline)
-            Text("Restrictions: \(matTime.restrictions ? "Yes" : "No")")
-                .font(.body)
-            if matTime.goodForBeginners {
-                Text("Good for Beginners")
-                    .font(.body)
-            }
-            if matTime.adult {
-                Text("Adult")
-                    .font(.body)
+                Text("No mat times available.")
+                    .foregroundColor(.gray)
             }
         }
     }

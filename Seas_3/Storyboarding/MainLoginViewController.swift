@@ -6,7 +6,7 @@
 //
 
 import UIKit
-
+/*
 class MainLoginViewController: UIViewController {
 
     override func viewDidLoad() {
@@ -42,3 +42,4 @@ class MainLoginViewController: UIViewController {
         present(islandScheduleVC, animated: true)
     }
 }
+*/
