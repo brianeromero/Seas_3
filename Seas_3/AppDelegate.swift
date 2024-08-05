@@ -17,10 +17,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Register CustomUnarchiveTransformer
         ValueTransformer.setValueTransformer(CustomUnarchiveTransformer(), forName: NSValueTransformerName(rawValue: "CustomUnarchiveTransformer"))
 
-        window = UIWindow(frame: UIScreen.main.bounds)
-        let mainViewController = MainLoginViewController()
-        window?.rootViewController = mainViewController
-        window?.makeKeyAndVisible()
+        // Commented out code:
+        // window = UIWindow(frame: UIScreen.main.bounds)
+        // let mainViewController = MainLoginViewController()
+        // window?.rootViewController = mainViewController
+        // window?.makeKeyAndVisible()
 
         return true
     }

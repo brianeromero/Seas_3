@@ -7,7 +7,7 @@
 
 import Foundation
 import UIKit
-
+/*
 class AppDayOfWeekCell: UICollectionViewCell {
     static let reuseIdentifier = "AppDayOfWeekCell"
 
@@ -26,3 +26,4 @@ class AppDayOfWeekCell: UICollectionViewCell {
         nameLabel.text = appDayOfWeek.name ?? "MISSING"
     }
 }
+*/

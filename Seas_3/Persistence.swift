@@ -104,19 +104,7 @@ class PersistenceController: ObservableObject {
         }
     }
 
-    // MARK: - Fetch AppDayOfWeeks
 
-    func fetchAllAppDayOfWeeks() -> [AppDayOfWeek] {
-        let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
-        do {
-            let appDayOfWeeks = try container.viewContext.fetch(fetchRequest)
-            print("Fetched \(appDayOfWeeks.count) AppDayOfWeek objects.")
-            return appDayOfWeeks
-        } catch {
-            print("Error fetching AppDayOfWeeks: \(error)")
-            return []
-        }
-    }
 
     // MARK: - Fetch Specific AppDayOfWeek by Island and Day
 
@@ -132,23 +120,6 @@ class PersistenceController: ObservableObject {
             print("Error fetching AppDayOfWeek: \(error)")
             return []
         }
-    }
-
-
-    // MARK: - Create New AppDayOfWeek
-    func createAppDayOfWeek(pIsland: PirateIsland, dayOfWeek: String, matTimes: [MatTime], name: String?, appDayOfWeekID: String?) -> AppDayOfWeek {
-        let context = container.viewContext
-        print("Context: \(context)")
-        
-        let newAppDayOfWeek = AppDayOfWeek(context: context)
-        newAppDayOfWeek.pIsland = pIsland
-        newAppDayOfWeek.day = dayOfWeek
-        newAppDayOfWeek.matTimes = NSSet(array: matTimes)
-        newAppDayOfWeek.name = name
-        newAppDayOfWeek.appDayOfWeekID = appDayOfWeekID
-
-        saveContext()
-        return newAppDayOfWeek
     }
 
 

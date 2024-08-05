@@ -10,7 +10,7 @@ import SwiftUI
 struct IslandScheduleAsCal: View {
     @ObservedObject var viewModel: AppDayOfWeekViewModel
     var pIsland: PirateIsland?
-    
+
     @State private var appDayOfWeeks: [AppDayOfWeek] = []
     let persistenceController = PersistenceController.shared
 
@@ -34,7 +34,7 @@ struct IslandScheduleAsCal: View {
                             }
                             ForEach(viewModel.appDayOfWeekList, id: \.self) { appDayOfWeek in
                                 if let matTimes = appDayOfWeek.matTimes as? Set<MatTime> {
-                                    ForEach(Array(matTimes), id: \.self) { matTime in
+                                    ForEach(Array(matTimes), id: \.id) { matTime in
                                         MatTimeRow(matTime: matTime)
                                     }
                                 }
@@ -125,6 +125,28 @@ struct HourRow: View {
     }
 }
 
+struct MatTimeRow: View {
+    var matTime: MatTime
+
+    var body: some View {
+        VStack(alignment: .leading) {
+            Text(matTime.time ?? "")
+                .font(.headline)
+            Text("Gi: \(matTime.gi ? "Yes" : "No"), No Gi: \(matTime.noGi ? "Yes" : "No"), Open Mat: \(matTime.openMat ? "Yes" : "No")")
+                .font(.subheadline)
+            Text("Restrictions: \(matTime.restrictions ? "Yes" : "No")")
+                .font(.body)
+            if matTime.goodForBeginners {
+                Text("Good for Beginners")
+                    .font(.body)
+            }
+            if matTime.adult {
+                Text("Adult")
+                    .font(.body)
+            }
+        }
+    }
+}
 
 private func scheduleView(for schedule: AppDayOfWeek) -> some View {
     VStack(alignment: .leading, spacing: 8) {
