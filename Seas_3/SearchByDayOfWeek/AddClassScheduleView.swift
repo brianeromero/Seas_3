@@ -75,14 +75,12 @@ struct AddClassScheduleView: View {
                             goodForBeginners: goodForBeginners,
                             adult: adult)
 
-        // Call the method to add MatTimes for the selected day
-        viewModel.addMatTimesForDay(day: selectedDay, matTimes: [matTimeEntry], for: pIsland)
+        // Call the method from AppDayOfWeekRepository
+        AppDayOfWeekRepository.shared.addMatTimesForDay(day: selectedDay, matTimes: [matTimeEntry], for: pIsland)
         
         // Dismiss the view
         presentationMode.wrappedValue.dismiss()
     }
-
-
 }
 
 struct AddClassScheduleView_Previews: PreviewProvider {

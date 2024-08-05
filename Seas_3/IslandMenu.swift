@@ -90,14 +90,6 @@ struct IslandMenu: View {
                             .foregroundColor(.blue)
                             .padding(.top, 10)
                     }
-                    
-                    
-                    // NavigationLink to MainLoginView
-                    NavigationLink(destination: MainLoginView()) {
-                        Text("Main Login")
-                            .foregroundColor(.blue)
-                            .padding(.top, 10)
-                    }
                 }
                 .padding(.horizontal, 20)
                 .navigationBarTitle("Welcome to Mat_Finder", displayMode: .inline)

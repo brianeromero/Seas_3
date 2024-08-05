@@ -15,14 +15,10 @@ class AppDayOfWeekViewModel: ObservableObject {
 
     var selectedIsland: PirateIsland?
     private var repository: AppDayOfWeekRepository
-    private let persistenceController = PersistenceController.shared
     private var cancellables: Set<AnyCancellable> = []
-
-    var viewContext: NSManagedObjectContext
+    private var viewContext: NSManagedObjectContext
     
     // MARK: - Published Properties
-    @Published var name: String?
-    @Published var selectedType: String = ""
     @Published var selectedDay: DayOfWeek = .monday
     @Published var appDayOfWeekID: String?
     @Published var saveEnabled: Bool = false
@@ -44,15 +40,29 @@ class AppDayOfWeekViewModel: ObservableObject {
     @Published var matTimeForDay: [DayOfWeek: String] = [:]
     @Published var selectedTimeForDay: [DayOfWeek: Date] = [:]
     @Published var matTimesForDay: [DayOfWeek: [MatTime]] = [:]
-    @Published var selectedDays: Set<DayOfWeek> = []
     @Published var showError = false
     @Published var selectedAppDayOfWeek: AppDayOfWeek?
 
-    // MARK: - Computed Property for Context
-    var context: NSManagedObjectContext {
-        persistenceController.viewContext
+    
+    // MARK: - PROPERTYOBSERVERS
+
+    @Published var name: String? {
+        didSet {
+            handleUserInteraction()
+        }
     }
 
+    @Published var selectedType: String = "" {
+        didSet {
+            handleUserInteraction()
+        }
+    }
+
+    @Published var selectedDays: Set<DayOfWeek> = [] {
+        didSet {
+            handleUserInteraction()
+        }
+    }
     // MARK: - DateFormatter
     public var dateFormatter: DateFormatter {
         let formatter = DateFormatter()
@@ -61,11 +71,10 @@ class AppDayOfWeekViewModel: ObservableObject {
     }
 
     // MARK: - Initializer
-    init(selectedIsland: PirateIsland? = nil, repository: AppDayOfWeekRepository = AppDayOfWeekRepository.shared) {
+    init(selectedIsland: PirateIsland? = nil, repository: AppDayOfWeekRepository = AppDayOfWeekRepository.shared, viewContext: NSManagedObjectContext = PersistenceController.shared.container.viewContext) {
         self.selectedIsland = selectedIsland
         self.repository = repository
-        self.viewContext = PersistenceController.shared.container.viewContext
-        
+        self.viewContext = viewContext
         initializeDaySettings()
         fetchPirateIslands()
         
@@ -75,6 +84,289 @@ class AppDayOfWeekViewModel: ObservableObject {
         }
     }
 
+    // MARK: - Methods
+    func saveContext() {
+        print("AppDayOfWeekViewModel - Saving context")
+        do {
+            try viewContext.save()
+            print("Context saved successfully")
+        } catch {
+            errorMessage = "Failed to save context: \(error.localizedDescription)"
+        }
+    }
+    
+    func fetchPirateIslands() {
+        let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
+        do {
+            allIslands = try viewContext.fetch(fetchRequest)
+        } catch {
+            errorMessage = "Failed to fetch pirate islands: \(error.localizedDescription)"
+        }
+    }
+
+    func fetchCurrentDayOfWeek(for island: PirateIsland) {
+        let request: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
+        request.predicate = NSPredicate(format: "pIsland == %@", island)
+        
+        do {
+            appDayOfWeekList = try viewContext.fetch(request)
+            if let currentAppDayOfWeek = appDayOfWeekList.first {
+                self.currentAppDayOfWeek = currentAppDayOfWeek
+                matTimesForDay[selectedDay] = currentAppDayOfWeek.matTimes?.allObjects as? [MatTime] ?? []
+            }
+        } catch {
+            errorMessage = "Failed to fetch AppDayOfWeek: \(error.localizedDescription)"
+        }
+    }
+
+    func addOrUpdateMatTime(time: String, type: String, gi: Bool, noGi: Bool, openMat: Bool, restrictions: Bool, restrictionDescription: String?, goodForBeginners: Bool, adult: Bool, for dayOfWeek: DayOfWeek) {
+        // Fetch or create the AppDayOfWeek
+        let appDayOfWeek = repository.fetchOrCreateAppDayOfWeek(for: selectedIsland ?? PirateIsland(), day: dayOfWeek)
+
+        if let appDayOfWeek = appDayOfWeek {
+            let newMatTime = MatTime(context: viewContext)
+            newMatTime.time = time
+            newMatTime.type = type
+            newMatTime.gi = gi
+            newMatTime.noGi = noGi
+            newMatTime.openMat = openMat
+            newMatTime.restrictions = restrictions
+            newMatTime.restrictionDescription = restrictionDescription
+            newMatTime.goodForBeginners = goodForBeginners
+            newMatTime.adult = adult
+
+            appDayOfWeek.addToMatTimes(newMatTime)
+
+            do {
+                try viewContext.save()
+                print("Context saved successfully")
+                refreshMatTimes() // Refresh the UI
+            } catch {
+                errorMessage = "Failed to save new MatTime: \(error.localizedDescription)"
+            }
+        }
+    }
+    // MARK: - Refresh MatTimes
+    func refreshMatTimes() {
+        if let selectedIsland = selectedIsland {
+            fetchCurrentDayOfWeek(for: selectedIsland)
+        }
+        initializeNewMatTime()
+    }
+
+    // MARK: - Fetch MatTimes for Day
+    func fetchMatTimes(for day: DayOfWeek) -> [MatTime] {
+        let request: NSFetchRequest<MatTime> = MatTime.fetchRequest()
+        request.predicate = NSPredicate(format: "appDayOfWeek.day == %@", day.rawValue)
+
+        do {
+            return try viewContext.fetch(request)
+        } catch {
+            errorMessage = "Failed to fetch MatTime: \(error.localizedDescription)"
+            return []
+        }
+    }
+    
+    // MARK: - Update Day
+    func updateDay(for island: PirateIsland, newDay: String) {
+        // Print statement to track the update process
+        print("Updating day for island: \(island.islandName) to \(newDay)")
+        
+        // Fetch the existing AppDayOfWeek for the selected day
+        guard let appDayOfWeek = repository.fetchAppDayOfWeekFromPersistence(for: island, day: selectedDay).first else {
+            print("No AppDayOfWeek found for the selected day.")
+            return
+        }
+
+        // Update the day property
+        appDayOfWeek.day = newDay
+
+        // Call updateNameAndID without arguments
+        updateNameAndID()
+
+        do {
+            try viewContext.save()
+        } catch {
+            errorMessage = "Failed to update AppDayOfWeek: \(error.localizedDescription)"
+        }
+    }
+
+    // MARK: - Generate Name for Day
+    func generateNameForDay(day: DayOfWeek) -> String {
+        return generateName(for: selectedIsland ?? PirateIsland(), day: day)
+    }
+
+    // MARK: - Generate AppDayOfWeek ID
+    func generateAppDayOfWeekID(island: PirateIsland, day: DayOfWeek) -> String {
+        guard let islandName = island.name else {
+            print("Island name is nil")
+            return ""
+        }
+        
+        let dayNumber = day.number
+        
+        return "\(islandName)_\(day.rawValue)_\(dayNumber)"
+    }
+    // MARK: - Update Name and ID
+    func updateNameAndID() {
+        guard let island = selectedIsland, let appDayOfWeek = currentAppDayOfWeek else {
+            name = ""
+            appDayOfWeekID = ""
+            return
+        }
+
+        self.name = generateName(for: island, day: selectedDay)
+        self.appDayOfWeekID = generateAppDayOfWeekID(island: island, day: selectedDay)
+
+        appDayOfWeek.name = self.name
+        appDayOfWeek.appDayOfWeekID = self.appDayOfWeekID
+
+        do {
+            try viewContext.save()
+        } catch {
+            errorMessage = "Failed to update AppDayOfWeek: \(error.localizedDescription)"
+        }
+    }
+
+
+    // MARK: - Initialize Day Settings
+    func initializeDaySettings() {
+        DayOfWeek.allCases.forEach { day in
+            dayOfWeekStates[day] = false
+            giForDay[day] = false
+            noGiForDay[day] = false
+            openMatForDay[day] = false
+            restrictionsForDay[day] = false
+            restrictionDescriptionForDay[day] = ""
+            goodForBeginnersForDay[day] = false
+            adultForDay[day] = false
+            matTimeForDay[day] = ""
+            selectedTimeForDay[day] = Date()
+            matTimesForDay[day] = []
+        }
+    }
+    
+    // MARK: - Initialize New MatTime
+    func initializeNewMatTime() {
+        newMatTime = MatTime(context: viewContext)
+        newMatTime?.time = ""
+        newMatTime?.type = ""
+        newMatTime?.gi = false
+        newMatTime?.noGi = false
+        newMatTime?.openMat = false
+        newMatTime?.restrictions = false
+        newMatTime?.restrictionDescription = ""
+        newMatTime?.goodForBeginners = false
+        newMatTime?.adult = false
+    }
+    
+    // MARK: - Load Schedules
+    func loadSchedules(for island: PirateIsland) {
+        let request: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
+        request.predicate = NSPredicate(format: "pIsland == %@", island)
+        
+        do {
+            let fetchedSchedules = try viewContext.fetch(request)
+            
+            // Organize schedules by day of the week
+            var schedulesDict: [DayOfWeek: [AppDayOfWeek]] = [:]
+            
+            for schedule in fetchedSchedules {
+                guard let dayString = schedule.day,
+                      let day = DayOfWeek(rawValue: dayString) else {
+                    continue
+                }
+                if schedulesDict[day] == nil {
+                    schedulesDict[day] = []
+                }
+                schedulesDict[day]?.append(schedule)
+            }
+            
+            // Update the published property
+            self.schedules = schedulesDict
+            
+        } catch {
+            errorMessage = "Failed to load schedules: \(error.localizedDescription)"
+        }
+    }
+    
+    // MARK: - Fetch and Update List of AppDayOfWeek for a Specific Day
+    func fetchAppDayOfWeekAndUpdateList(for island: PirateIsland, day: DayOfWeek) {
+        appDayOfWeekList = repository.fetchAppDayOfWeekFromPersistence(for: island, day: day)
+        
+        if let appDayOfWeek = appDayOfWeekList.first {
+            matTimesForDay[day] = appDayOfWeek.matTimes?.allObjects as? [MatTime] ?? []
+        }
+    }
+    
+    // MARK: - Equatable Implementation
+    static func == (lhs: AppDayOfWeekViewModel, rhs: AppDayOfWeekViewModel) -> Bool {
+        return lhs.selectedDay == rhs.selectedDay &&
+               lhs.selectedIsland == rhs.selectedIsland &&
+               lhs.currentAppDayOfWeek == rhs.currentAppDayOfWeek &&
+               lhs.appDayOfWeekList == rhs.appDayOfWeekList &&
+               lhs.schedules == rhs.schedules &&
+               lhs.allIslands == rhs.allIslands &&
+               lhs.errorMessage == rhs.errorMessage &&
+               lhs.dayOfWeekStates == rhs.dayOfWeekStates &&
+               lhs.giForDay == rhs.giForDay &&
+               lhs.noGiForDay == rhs.noGiForDay &&
+               lhs.openMatForDay == rhs.openMatForDay &&
+               lhs.restrictionsForDay == rhs.restrictionsForDay &&
+               lhs.restrictionDescriptionForDay == rhs.restrictionDescriptionForDay &&
+               lhs.goodForBeginnersForDay == rhs.goodForBeginnersForDay &&
+               lhs.adultForDay == rhs.adultForDay &&
+               lhs.matTimeForDay == rhs.matTimeForDay &&
+               lhs.selectedTimeForDay == rhs.selectedTimeForDay &&
+               lhs.matTimesForDay == rhs.matTimesForDay &&
+               lhs.selectedDays == rhs.selectedDays
+    }
+    
+    
+    
+    func addNewMatTime() {
+        guard let newMatTime = newMatTime else {
+            errorMessage = "Please complete all fields."
+            return
+        }
+
+        // Prepare the AppDayOfWeek entity
+        updateNameAndID()
+        
+        // Add or update the MatTime
+        addOrUpdateMatTime(
+            time: newMatTime.time ?? "",
+            type: "", // Set the type to an empty string for now
+            gi: newMatTime.gi,
+            noGi: newMatTime.noGi,
+            openMat: newMatTime.openMat,
+            restrictions: newMatTime.restrictions,
+            restrictionDescription: newMatTime.restrictionDescription ?? "",
+            goodForBeginners: newMatTime.goodForBeginners,
+            adult: newMatTime.adult,
+            for: selectedDay
+        )
+
+        print("Added Mat Time with AppDayOfWeek ID: \(currentAppDayOfWeek?.appDayOfWeekID ?? "None")")
+
+        // Update bindings and save context
+        updateBindings()
+        saveContext()
+
+        // Initialize new MatTime
+        initializeNewMatTime()
+    }
+
+
+    func updateBindings() {
+        // Update selectedAppDayOfWeek, name, and appDayOfWeekID bindings here
+        // For example:
+        selectedAppDayOfWeek = currentAppDayOfWeek
+        name = currentAppDayOfWeek?.name ?? ""
+        appDayOfWeekID = currentAppDayOfWeek?.appDayOfWeekID
+    }
+    
+    
     // MARK: - Validation
     func validateFields() -> Bool {
         let isValid = !(name?.isEmpty ?? true) &&
@@ -102,56 +394,49 @@ class AppDayOfWeekViewModel: ObservableObject {
         )
     }
 
-    // MARK: - Initialize Day Settings
-    private func initializeDaySettings() {
-        DayOfWeek.allCases.forEach { day in
-            matTimeForDay[day] = ""
-            selectedTimeForDay[day] = Date()
-            goodForBeginnersForDay[day] = false
-            giForDay[day] = false
-            noGiForDay[day] = false
-            openMatForDay[day] = false
-            restrictionsForDay[day] = false
-            restrictionDescriptionForDay[day] = ""
-            matTimesForDay[day] = []
-        }
-    }
-
     // MARK: - Add MatTimes for Day
     func addMatTimesForDay(
         day: DayOfWeek,
         matTimes: [(time: String, type: String, gi: Bool, noGi: Bool, openMat: Bool, restrictions: Bool, restrictionDescription: String?, goodForBeginners: Bool, adult: Bool)],
         for island: PirateIsland
     ) {
-        repository.addMatTimesForDay(day: day, matTimes: matTimes, for: island)
+        matTimes.forEach { matTime in
+            let newMatTime = MatTime(context: viewContext)
+            newMatTime.time = matTime.time
+            newMatTime.type = matTime.type
+            newMatTime.gi = matTime.gi
+            newMatTime.noGi = matTime.noGi
+            newMatTime.openMat = matTime.openMat
+            newMatTime.restrictions = matTime.restrictions
+            newMatTime.restrictionDescription = matTime.restrictionDescription
+            newMatTime.goodForBeginners = matTime.goodForBeginners
+            newMatTime.adult = matTime.adult
+            
+            if currentAppDayOfWeek == nil {
+                currentAppDayOfWeek = AppDayOfWeek(context: viewContext)
+                currentAppDayOfWeek?.day = day.rawValue
+                currentAppDayOfWeek?.name = generateNameForDay(day: day)
+                currentAppDayOfWeek?.appDayOfWeekID = generateAppDayOfWeekID(island: island, day: day)
+                currentAppDayOfWeek?.pIsland = island
+            }
+            
+            currentAppDayOfWeek?.addToMatTimes(newMatTime)
+
+            do {
+                try viewContext.save()
+                print("Context saved successfully")
+                refreshMatTimes()
+            } catch {
+                errorMessage = "Failed to save new MatTime: \(error.localizedDescription)"
+            }
+        }
     }
+
 
     // MARK: - Remove MatTime
     func removeMatTime(_ matTime: MatTime) {
-        context.delete(matTime)
+        viewContext.delete(matTime)
         saveContext()
-    }
-
-    // MARK: - Load Schedules for the Island
-    func loadSchedules(for island: PirateIsland) {
-        DayOfWeek.allCases.forEach { day in
-            schedules[day] = repository.fetchAppDayOfWeekFromPersistence(for: island, day: day)
-        }
-    }
-
-    // MARK: - Update Schedules
-    func updateSchedules() {
-        guard let selectedIsland = self.selectedIsland else {
-            // Handle the case where selectedIsland is nil
-            return
-        }
-        
-        DispatchQueue.main.async {
-            self.appDayOfWeekList = self.repository.fetchAppDayOfWeekFromPersistence(for: selectedIsland, day: self.selectedDay)
-            if let appDayOfWeek = self.appDayOfWeekList.first {
-                self.matTimesForDay[self.selectedDay] = appDayOfWeek.matTimes?.allObjects as? [MatTime] ?? []
-            }
-        }
     }
 
     // MARK: - Clear Selections
@@ -171,267 +456,54 @@ class AppDayOfWeekViewModel: ObservableObject {
         dayOfWeekStates[day] ?? false
     }
 
-    // MARK: - Fetch Pirate Islands
-    func fetchPirateIslands() {
-        let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
-        do {
-            allIslands = try context.fetch(fetchRequest)
-        } catch {
-            errorMessage = "Failed to fetch pirate islands: \(error.localizedDescription)"
+    // MARK: - Update Schedules
+    func updateSchedules() {
+        guard let selectedIsland = self.selectedIsland else {
+            // Handle the case where selectedIsland is nil
+            return
         }
-    }
-
-    // MARK: - Fetch Current Day of the Week for the Island
-    func fetchCurrentDayOfWeek(for island: PirateIsland) {
-        let request: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
-        request.predicate = NSPredicate(format: "pIsland == %@", island)
         
-        do {
-            appDayOfWeekList = try viewContext.fetch(request)
-            if let currentAppDayOfWeek = appDayOfWeekList.first {
-                self.currentAppDayOfWeek = currentAppDayOfWeek
-                matTimesForDay[selectedDay] = currentAppDayOfWeek.matTimes?.allObjects as? [MatTime] ?? []
-            }
-        } catch {
-            errorMessage = "Failed to fetch AppDayOfWeek: \(error.localizedDescription)"
-        }
-    }
-
-    // MARK: - Select a Day
-    func selectDay(_ day: DayOfWeek) {
-        selectedDay = day
-    }
-
-    // MARK: - Fetch and Update List of AppDayOfWeek for a Specific Day
-    func fetchAppDayOfWeekAndUpdateList(for island: PirateIsland, day: DayOfWeek) {
-        self.appDayOfWeekList = repository.fetchAppDayOfWeekFromPersistence(for: island, day: day)
-        if let appDayOfWeek = self.appDayOfWeekList.first {
-            self.matTimesForDay[day] = appDayOfWeek.matTimes?.allObjects as? [MatTime] ?? []
-        }
-    }
-
-    // MARK: - Save Context
-    func saveContext() {
-        print("AppDayOfWeekViewModel - Saving context")
-        PersistenceController.shared.saveContext()
-    }
-
-    // MARK: - Function to Add or Update MatTime
-    func addOrUpdateMatTime(time: String, type: String, gi: Bool, noGi: Bool, openMat: Bool, restrictions: Bool, restrictionDescription: String, goodForBeginners: Bool, adult: Bool, for dayOfWeek: DayOfWeek) {
-        if currentAppDayOfWeek == nil {
-            currentAppDayOfWeek = AppDayOfWeek(context: viewContext)
-            currentAppDayOfWeek?.day = dayOfWeek.rawValue
-            currentAppDayOfWeek?.name = name ?? "" // Set appropriate value
-            currentAppDayOfWeek?.appDayOfWeekID = appDayOfWeekID ?? "" // Set appropriate value
-
-            if let island = selectedIsland {
-                currentAppDayOfWeek?.pIsland = island // Set the pIsland relationship
-            }
-        }
-
-        if let appDayOfWeek = currentAppDayOfWeek, let newMatTime = newMatTime {
-            newMatTime.time = time
-            newMatTime.type = type
-            newMatTime.gi = gi
-            newMatTime.noGi = noGi
-            newMatTime.openMat = openMat
-            newMatTime.restrictions = restrictions
-            newMatTime.restrictionDescription = restrictionDescription
-            newMatTime.goodForBeginners = goodForBeginners
-            newMatTime.adult = adult
-
-            appDayOfWeek.addToMatTimes(newMatTime)
-
-            do {
-                try viewContext.save()
-                print("Context saved successfully")
-                refreshMatTimes() // Refresh the UI
-            } catch {
-                errorMessage = "Failed to save new MatTime: \(error.localizedDescription)"
+        DispatchQueue.main.async {
+            self.appDayOfWeekList = self.repository.fetchAppDayOfWeekFromPersistence(for: selectedIsland, day: self.selectedDay)
+            if let appDayOfWeek = self.appDayOfWeekList.first {
+                self.matTimesForDay[self.selectedDay] = appDayOfWeek.matTimes?.allObjects as? [MatTime] ?? []
             }
         }
     }
-
-    // MARK: - Refresh MatTimes
-    func refreshMatTimes() {
-        if let selectedIsland = selectedIsland {
-            fetchCurrentDayOfWeek(for: selectedIsland)
-        }
-        initializeNewMatTime()
-    }
-    // MARK: - Fetch MatTimes for Day
-    func fetchMatTimes(for day: DayOfWeek) -> [MatTime] {
-        let request: NSFetchRequest<MatTime> = MatTime.fetchRequest()
-        request.predicate = NSPredicate(format: "appDayOfWeek.day == %@", day.rawValue)
-        
-        do {
-            return try viewContext.fetch(request)
-        } catch {
-            errorMessage = "Failed to fetch MatTime: \(error.localizedDescription)"
-            return []
-        }
+    
+    func generateName(for island: PirateIsland, day: DayOfWeek) -> String {
+        return "\(island.name ?? "UnknownIsland") \(day.displayName)"
     }
     
-    // MARK: - Update Day
-    func updateDay(for island: PirateIsland, newDay: String) {
-        // Print statement to track the update process
-        print("Updating day for island: \(island.islandName) to \(newDay)")
-        
-        // Fetch the existing AppDayOfWeek for the selected day
-        guard let appDayOfWeek = repository.fetchAppDayOfWeekFromPersistence(for: island, day: selectedDay).first else {
-            print("No AppDayOfWeek found for the selected day.")
-            return
-        }
-
-        // Update the day property and save the context
-        appDayOfWeek.day = newDay
-        appDayOfWeek.name = generateNameForDay(day: DayOfWeek(rawValue: newDay) ?? .monday)
-        appDayOfWeek.appDayOfWeekID = generateAppDayOfWeekID(island: island, day: newDay)
-
-        do {
-            try viewContext.save()
-        } catch {
-            errorMessage = "Failed to update AppDayOfWeek: \(error.localizedDescription)"
-        }
+    func generateAppDayOfWeekID(day: DayOfWeek) -> String {
+        let islandName = selectedIsland?.name ?? "UnknownIsland"
+        return "\(islandName)-\(day.rawValue)"
     }
 
 
-    // MARK: - Generate Name for Day
-    private func generateNameForDay(day: DayOfWeek) -> String {
-        return "\(selectedIsland?.name ?? "UnknownIsland") - \(day.displayName)"
-    }
-
-    // MARK: - Generate AppDayOfWeek ID
-    private func generateAppDayOfWeekID(island: PirateIsland, day: String) -> String {
-        guard let islandName = island.name else {
-            print("Island name is nil")
-            return ""
-        }
-        
-        guard let dayNumber = DayOfWeek(rawValue: day)?.number else {
-            print("Day number is nil")
-            return ""
-        }
-        
-        return "\(islandName)_\(day)_\(dayNumber)"
-    }
-    // MARK: - Update Name and ID
-    func updateNameAndID() {
-        guard let island = selectedIsland, let appDayOfWeek = currentAppDayOfWeek else {
-            name = ""
-            appDayOfWeekID = ""
-            return
-        }
-        
-        guard let dayName = appDayOfWeek.day else {
-            print("Day is nil")
-            return
-        }
-        
-        let islandName = island.islandName
-        let dayNumber = DayOfWeek(rawValue: dayName)?.number ?? 0
-
-        // Print statement to indicate the start of the update
-        print("Updating name and ID...")
-        
-        // Update the Core Data entity
-        appDayOfWeek.name = "\(islandName) \(dayName)"
-        appDayOfWeek.appDayOfWeekID = "\(islandName) \(dayName) \(dayNumber)"
-        
-        // Print statements to confirm the updated values
-        print("Updated Name: \(appDayOfWeek.name ?? "none")")
-        print("Updated AppDayOfWeekID: \(appDayOfWeek.appDayOfWeekID ?? "none")")
-        
-        // Update the local @Published properties
-        name = "\(islandName) \(dayName)"
-        appDayOfWeekID = "\(islandName) \(dayName) \(dayNumber)"
-        
-        // Save the context to persist the changes
-        saveContext()
-    }
-
-
-    // MARK: - Equatable Implementation
-    static func == (lhs: AppDayOfWeekViewModel, rhs: AppDayOfWeekViewModel) -> Bool {
-        return lhs.selectedDay == rhs.selectedDay &&
-               lhs.selectedIsland == rhs.selectedIsland &&
-               lhs.currentAppDayOfWeek == rhs.currentAppDayOfWeek &&
-               lhs.appDayOfWeekList == rhs.appDayOfWeekList &&
-               lhs.schedules == rhs.schedules &&
-               lhs.allIslands == rhs.allIslands &&
-               lhs.errorMessage == rhs.errorMessage &&
-               lhs.dayOfWeekStates == rhs.dayOfWeekStates &&
-               lhs.giForDay == rhs.giForDay &&
-               lhs.noGiForDay == rhs.noGiForDay &&
-               lhs.openMatForDay == rhs.openMatForDay &&
-               lhs.restrictionsForDay == rhs.restrictionsForDay &&
-               lhs.restrictionDescriptionForDay == rhs.restrictionDescriptionForDay &&
-               lhs.goodForBeginnersForDay == rhs.goodForBeginnersForDay &&
-               lhs.adultForDay == rhs.adultForDay &&
-               lhs.matTimeForDay == rhs.matTimeForDay &&
-               lhs.selectedTimeForDay == rhs.selectedTimeForDay &&
-               lhs.matTimesForDay == rhs.matTimesForDay &&
-               lhs.selectedDays == rhs.selectedDays
-    }
     
-    
-    func initializeNewMatTime() {
-        newMatTime = MatTime(context: viewContext)
-    }
-    
-    
-    func addNewMatTime() {
-        guard var newMatTime = newMatTime else {
-            errorMessage = "Please complete all fields."
-            return
-        }
-        
-        // Ensure selectedIsland is not nil
-        guard let island = selectedIsland else {
-            errorMessage = "Selected island is nil."
-            return
-        }
+}
 
-        // Check if an AppDayOfWeek object already exists for the selected day and island
-        let existingAppDayOfWeek = PersistenceController.shared.fetchAppDayOfWeekForIslandAndDay(for: island, day: selectedDay).first
-        
-        if let existingAppDayOfWeek = existingAppDayOfWeek {
-            currentAppDayOfWeek = existingAppDayOfWeek
-        } else {
-            // Create a new AppDayOfWeek object if it doesn't already exist
-            let name = generateNameForDay(day: selectedDay)
-            let appDayOfWeekID = generateAppDayOfWeekID(island: island, day: selectedDay.rawValue)
-            currentAppDayOfWeek = PersistenceController.shared.createAppDayOfWeek(pIsland: island, dayOfWeek: selectedDay.rawValue, matTimes: [], name: name, appDayOfWeekID: appDayOfWeekID)
-        }
-        
-        updateNameAndID()
-        addOrUpdateMatTime(
-            time: newMatTime.time ?? "",
-            type: "", // Set the type to an empty string for now
-            gi: newMatTime.gi,
-            noGi: newMatTime.noGi,
-            openMat: newMatTime.openMat,
-            restrictions: newMatTime.restrictions,
-            restrictionDescription: newMatTime.restrictionDescription ?? "",
-            goodForBeginners: newMatTime.goodForBeginners,
-            adult: newMatTime.adult,
-            for: selectedDay
-        )
-        print("Added Mat Time with AppDayOfWeek ID: \(currentAppDayOfWeek?.appDayOfWeekID ?? "None")")
-        
-        // Save context to persist changes
-        PersistenceController.shared.saveContext()
-        
-        // Reset newMatTime
-        self.newMatTime = MatTime(context: viewContext)
+extension MatTime {
+    func reset() {
+        self.time = nil
+        self.gi = false
+        self.noGi = false
+        self.openMat = false
+        self.restrictions = false
+        self.restrictionDescription = nil
+        self.goodForBeginners = false
+        self.adult = false
     }
 
-
-    func updateBindings() {
-        // Update selectedAppDayOfWeek, name, and appDayOfWeekID bindings here
-        selectedAppDayOfWeek = currentAppDayOfWeek
-        name = currentAppDayOfWeek?.name ?? ""
-        appDayOfWeekID = currentAppDayOfWeek?.appDayOfWeekID
+    func isEqual(to other: MatTime) -> Bool {
+        return self.time == other.time &&
+               self.gi == other.gi &&
+               self.noGi == other.noGi &&
+               self.openMat == other.openMat &&
+               self.restrictions == other.restrictions &&
+               self.restrictionDescription == other.restrictionDescription &&
+               self.goodForBeginners == other.goodForBeginners &&
+               self.adult == other.adult
     }
-
 }

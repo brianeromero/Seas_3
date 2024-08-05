@@ -22,7 +22,7 @@ struct pIslandScheduleView: View {
                 // Display a list of days to choose from
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack {
-                        ForEach(DayOfWeek.allCases, id: \.self) { day in
+                        ForEach(DayOfWeek.allCases) { day in
                             Button(action: {
                                 selectedDay = day
                                 viewModel.fetchAppDayOfWeekAndUpdateList(for: selectedIsland, day: day)
@@ -51,7 +51,7 @@ struct pIslandScheduleView: View {
                 List(viewModel.allIslands, id: \.self) { island in
                     Button(action: {
                         self.selectedIsland = island
-                        viewModel.loadSchedules(for: island) // Use loadSchedules instead of fetchSchedules
+                        viewModel.loadSchedules(for: island)
                     }) {
                         Text(island.islandName)
                     }
