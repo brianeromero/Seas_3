@@ -1,22 +1,21 @@
 // Persistence.swift
 // Seas_3
 // Created by Brian Romero on 6/24/24.
+
 import Combine
 import Foundation
 import CoreData
 import UIKit
 
 class PersistenceController: ObservableObject {
-    static let shared = PersistenceController()
-
+    static let shared = PersistenceController(inMemory: false)
     let container: NSPersistentContainer
 
-    var viewContext: NSManagedObjectContext {
-        container.viewContext
-    }
-
-    private init() {
+    private init(inMemory: Bool = false) {
         container = NSPersistentContainer(name: "Seas_3")
+        if inMemory {
+            container.persistentStoreDescriptions.first!.url = URL(fileURLWithPath: "/dev/null")
+        }
         container.loadPersistentStores { storeDescription, error in
             if let error = error as NSError? {
                 fatalError("Unresolved error \(error), \(error.userInfo)")
@@ -28,6 +27,27 @@ class PersistenceController: ObservableObject {
         print("View context setup complete")
     }
 
+    // General fetch method
+    func fetch<T: NSManagedObject>(request: NSFetchRequest<T>) -> [T] {
+        do {
+            return try container.viewContext.fetch(request)
+        } catch {
+            print("Fetch error: \(error.localizedDescription)")
+            return []
+        }
+    }
+
+    // General create method
+    func create<T: NSManagedObject>(entityName: String) -> T? {
+        let context = container.viewContext
+        guard let entity = NSEntityDescription.entity(forEntityName: entityName, in: context) else {
+            print("Entity \(entityName) not found")
+            return nil
+        }
+        return T(entity: entity, insertInto: context)
+    }
+
+    // Save context method
     func saveContext() {
         let context = container.viewContext
         if context.hasChanges {
@@ -35,120 +55,54 @@ class PersistenceController: ObservableObject {
                 try context.save()
                 print("Context saved successfully")
             } catch {
-                let nsError = error as NSError
-                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
+                print("Save error: \(error.localizedDescription)")
             }
         }
     }
 
+    // General delete method
+    func delete<T: NSManagedObject>(_ object: T) {
+        container.viewContext.delete(object)
+        saveContext()
+    }
 
-    func deleteSchedule(at offsets: IndexSet, for day: DayOfWeek, island: PirateIsland) {
+    // Specific fetch and delete methods
+    func deleteAppDayOfWeek(at offsets: IndexSet, for island: PirateIsland, day: DayOfWeek) {
         let daySchedules = fetchAppDayOfWeekForIslandAndDay(for: island, day: day)
-
         for index in offsets {
             let scheduleToDelete = daySchedules[index]
             container.viewContext.delete(scheduleToDelete)
         }
-
         saveContext()
     }
 
-    func fetchSchedules(for island: PirateIsland) -> [AppDayOfWeek] {
-        let request: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
-        request.predicate = NSPredicate(format: "pIsland == %@", island)
-        do {
-            return try container.viewContext.fetch(request)
-        } catch {
-            print("Failed to fetch schedules: \(error)")
-            return []
-        }
+    func fetchSchedules(for predicate: NSPredicate) -> [AppDayOfWeek] {
+        let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
+        fetchRequest.predicate = predicate
+        fetchRequest.relationshipKeyPathsForPrefetching = ["matTimes"]
+        return fetch(request: fetchRequest)
     }
-
-    func newBackgroundContext() -> NSManagedObjectContext {
-        container.newBackgroundContext()
-    }
-
-    // MARK: - Fetch PirateIslands
 
     func fetchAllPirateIslands() -> [PirateIsland] {
         let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
-        do {
-            let pirateIslands = try container.viewContext.fetch(fetchRequest)
-            print("Fetched \(pirateIslands.count) PirateIsland objects.")
-            return pirateIslands
-        } catch {
-            print("Error fetching PirateIslands: \(error)")
-            return []
-        }
+        return fetch(request: fetchRequest)
     }
-
-    // MARK: - Fetch Last PirateIsland
 
     func fetchLastPirateIsland() -> PirateIsland? {
         let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
         fetchRequest.sortDescriptors = [NSSortDescriptor(keyPath: \PirateIsland.createdTimestamp, ascending: false)]
         fetchRequest.fetchLimit = 1
-
-        do {
-            let results = try container.viewContext.fetch(fetchRequest)
-            if let lastIsland = results.first {
-                print("Fetched Last Pirate Island: \(lastIsland.islandName)")
-                return lastIsland
-            } else {
-                print("No pirate islands found.")
-                return nil
-            }
-        } catch {
-            print("Error fetching last pirate island: \(error)")
-            return nil
-        }
+        return fetch(request: fetchRequest).first
     }
-
-
-
-    // MARK: - Fetch Specific AppDayOfWeek by Island and Day
 
     func fetchAppDayOfWeekForIslandAndDay(for island: PirateIsland, day: DayOfWeek) -> [AppDayOfWeek] {
         let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
         fetchRequest.predicate = NSPredicate(format: "pIsland == %@ AND day == %@", island, day.rawValue)
         fetchRequest.relationshipKeyPathsForPrefetching = ["matTimes"]
-
-        do {
-            let results = try container.viewContext.fetch(fetchRequest)
-            return results
-        } catch {
-            print("Error fetching AppDayOfWeek: \(error)")
-            return []
-        }
+        return fetch(request: fetchRequest)
     }
-
-
-
-    // MARK: - Create New createMatTime
-
-    
-    func createMatTime(type: String?, time: String?, gi: Bool, noGi: Bool, openMat: Bool, restrictions: Bool, restrictionDescription: String?, goodForBeginners: Bool, adult: Bool) -> MatTime {
-        let newMatTime = MatTime(context: container.viewContext)
-        newMatTime.id = UUID()
-        newMatTime.type = type
-        newMatTime.time = time
-        newMatTime.gi = gi
-        newMatTime.noGi = noGi
-        newMatTime.openMat = openMat
-        newMatTime.restrictions = restrictions
-        newMatTime.restrictionDescription = restrictionDescription
-        newMatTime.goodForBeginners = goodForBeginners
-        newMatTime.adult = adult
-
-        saveContext()
-        return newMatTime
-    }
-
-    
-    
 
     // MARK: - Preview Persistence Controller
-
     static var preview: PersistenceController = {
         let result = PersistenceController(inMemory: true)
         let viewContext = result.container.viewContext
@@ -172,18 +126,4 @@ class PersistenceController: ObservableObject {
 
         return result
     }()
-
-    private init(inMemory: Bool) {
-        container = NSPersistentContainer(name: "Seas_3")
-        if inMemory {
-            container.persistentStoreDescriptions.first!.url = URL(fileURLWithPath: "/dev/null")
-        }
-        container.loadPersistentStores { (storeDescription, error) in
-            if let error = error as NSError? {
-                fatalError("Unresolved error \(error), \(error.userInfo)")
-            }
-        }
-
-        container.viewContext.automaticallyMergesChangesFromParent = true
-    }
 }

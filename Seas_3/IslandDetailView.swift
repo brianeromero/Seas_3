@@ -47,6 +47,8 @@ struct IslandDetailContent: View {
     @Binding var selectedDestination: IslandDestination?
     @State private var showMapView = false
 
+    @Environment(\.managedObjectContext) private var viewContext // Add this line
+
     var body: some View {
         VStack(alignment: .leading) {
             Text(island.islandName)
@@ -55,11 +57,10 @@ struct IslandDetailContent: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.bottom, 10)
 
-            // Handle non-optional islandLocation directly
             Button(action: {
                 showMapView = true
             }) {
-                Text(island.islandLocation) // islandLocation is non-optional, so no need for optional binding
+                Text(island.islandLocation)
                     .foregroundColor(.blue)
                     .font(.system(size: 16, weight: .light))
                     .multilineTextAlignment(.leading)
@@ -93,7 +94,14 @@ struct IslandDetailContent: View {
                     }
 
                 } else if destination == .schedule {
-                    NavigationLink(destination: IslandScheduleAsCal(viewModel: AppDayOfWeekViewModel(selectedIsland: island), pIsland: island)) {
+                    NavigationLink(destination: IslandScheduleAsCal(
+                        viewModel: AppDayOfWeekViewModel(
+                            selectedIsland: island,
+                            repository: AppDayOfWeekRepository(persistenceController: PersistenceController.shared),
+                            viewContext: viewContext // Use the environment context here
+                        ),
+                        pIsland: island
+                    )) {
                         Text("Go to \(destination.rawValue)")
                             .padding()
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -127,7 +135,7 @@ struct IslandDetailView_Previews: PreviewProvider {
 
         return NavigationView {
             IslandDetailView(island: island, selectedDestination: .constant(nil))
-                .environment(\.managedObjectContext, context)
+                .environment(\.managedObjectContext, context) // Ensure viewContext is provided
         }
     }
 }

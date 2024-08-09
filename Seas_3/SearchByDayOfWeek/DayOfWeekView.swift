@@ -52,10 +52,20 @@ struct DayOfWeekView: View {
 struct DayOfWeekView_Previews: PreviewProvider {
     static var previews: some View {
         let context = PersistenceController.preview.container.viewContext
+
+        // Create a mock PirateIsland instance
         let mockIsland = PirateIsland(context: context)
         mockIsland.islandName = "Mock Island"
-        
-        let viewModel = AppDayOfWeekViewModel(selectedIsland: mockIsland)
+
+        // Create a mock repository
+        let mockRepository = AppDayOfWeekRepository.shared // Assuming this is a singleton
+
+        // Create the view model with the mock data
+        let viewModel = AppDayOfWeekViewModel(
+            selectedIsland: mockIsland,
+            repository: mockRepository,
+            viewContext: context
+        )
 
         return DayOfWeekView(viewModel: viewModel, selectedAppDayOfWeek: .constant(nil))
             .environment(\.managedObjectContext, context)

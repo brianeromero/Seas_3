@@ -212,10 +212,21 @@ struct EventView: View {
 struct IslandScheduleAsCal_Previews: PreviewProvider {
     static var previews: some View {
         let context = PersistenceController.preview.container.viewContext
+
+        // Create a mock PirateIsland instance
         let mockIsland = PirateIsland(context: context)
         mockIsland.islandName = "Mock Island"
 
-        let viewModel = AppDayOfWeekViewModel(selectedIsland: mockIsland)
+        // Use the shared repository or create a mock repository if needed
+        let mockRepository = AppDayOfWeekRepository.shared
+
+        // Initialize the view model with the mock data
+        let viewModel = AppDayOfWeekViewModel(
+            selectedIsland: mockIsland,
+            repository: mockRepository,
+            viewContext: context
+        )
+
         return IslandScheduleAsCal(viewModel: viewModel, pIsland: mockIsland)
             .environment(\.managedObjectContext, context)
     }

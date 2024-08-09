@@ -66,10 +66,5 @@ struct pIslandScheduleView: View {
 }
 
 #if DEBUG
-struct pIslandScheduleView_Previews: PreviewProvider {
-    static var previews: some View {
-        let viewModel = AppDayOfWeekViewModel(selectedIsland: nil)
-        return pIslandScheduleView(viewModel: viewModel)
-    }
-}
+
 #endif
