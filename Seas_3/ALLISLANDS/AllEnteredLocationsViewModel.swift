@@ -13,44 +13,33 @@ import CoreLocation
 import MapKit
 
 class AllEnteredLocationsViewModel: NSObject, ObservableObject, NSFetchedResultsControllerDelegate {
-    @Published var region: MKCoordinateRegion = MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: 0, longitude: 0), span: MKCoordinateSpan(latitudeDelta: 50, longitudeDelta: 50))
+    @Published var allIslands: [PirateIsland] = []
+    @Published var region: MKCoordinateRegion = MKCoordinateRegion(
+        center: CLLocationCoordinate2D(latitude: 0, longitude: 0),
+        span: MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1)
+    )
     @Published var pirateMarkers: [CustomMapMarker] = []
     @Published var errorMessage: String?
 
-    private let context: NSManagedObjectContext
+    private let dataManager: PirateIslandDataManager
     private var fetchedResultsController: NSFetchedResultsController<PirateIsland>?
-    private let updateQueue = DispatchQueue(label: "com.example.Seas_3.updateQueue") // Define updateQueue for background updates
 
-    init(context: NSManagedObjectContext) {
-        self.context = context
+    init(dataManager: PirateIslandDataManager) {
+        self.dataManager = dataManager
         super.init()
-        initializeFetchedResultsController()
-    }
-
-    private func initializeFetchedResultsController() {
-        let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
-        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "islandName", ascending: true)]
-        
-        fetchedResultsController = NSFetchedResultsController(
-            fetchRequest: fetchRequest,
-            managedObjectContext: context,
-            sectionNameKeyPath: nil,
-            cacheName: nil
-        )
-        fetchedResultsController?.delegate = self
-
+        // Consider fetching pirate islands here only if this is a background initialization.
         fetchPirateIslands()
     }
 
     func fetchPirateIslands() {
-        do {
-            try fetchedResultsController?.performFetch()
-            if let fetchedObjects = fetchedResultsController?.fetchedObjects {
-                updatePirateMarkers(with: fetchedObjects)
+        // Ensure that this function is not called from view updates.
+        print("Fetching pirate islands...")
+        DispatchQueue.global(qos: .userInitiated).async {
+            let islands = self.dataManager.fetchPirateIslands()
+            DispatchQueue.main.async {
+                self.allIslands = islands
+                self.updatePirateMarkers(with: islands)
             }
-        } catch {
-            errorMessage = "Failed to fetch pirate islands: \(error.localizedDescription)"
-            print(errorMessage ?? "Unknown error")
         }
     }
 
@@ -62,7 +51,7 @@ class AllEnteredLocationsViewModel: NSObject, ObservableObject, NSFetchedResults
                 title: island.islandName
             )
         }
-        
+
         DispatchQueue.main.async {
             self.pirateMarkers = markers
             self.updateRegion()
@@ -71,12 +60,12 @@ class AllEnteredLocationsViewModel: NSObject, ObservableObject, NSFetchedResults
 
     private func updateRegion() {
         guard !pirateMarkers.isEmpty else { return }
-        
+
         var minLat = pirateMarkers.first!.coordinate.latitude
         var maxLat = pirateMarkers.first!.coordinate.latitude
         var minLon = pirateMarkers.first!.coordinate.longitude
         var maxLon = pirateMarkers.first!.coordinate.longitude
-        
+
         for marker in pirateMarkers {
             let lat = marker.coordinate.latitude
             let lon = marker.coordinate.longitude
@@ -85,32 +74,20 @@ class AllEnteredLocationsViewModel: NSObject, ObservableObject, NSFetchedResults
             if lon < minLon { minLon = lon }
             if lon > maxLon { maxLon = lon }
         }
-        
+
         let padding = 0.2
         let span = MKCoordinateSpan(latitudeDelta: abs(maxLat - minLat) + padding, longitudeDelta: abs(maxLon - minLon) + padding)
         let center = CLLocationCoordinate2D(latitude: (minLat + maxLat) / 2, longitude: (minLon + maxLon) / 2)
-        
+
         DispatchQueue.main.async {
             self.region = MKCoordinateRegion(center: center, span: span)
-        }
-    }
-    func controllerDidChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
-        if let fetchedObjects = fetchedResultsController?.fetchedObjects as? [PirateIsland] {
-            updatePirateMarkers(with: fetchedObjects)
         }
     }
 
     // MARK: - Logging Methods for Debugging
 
     private func logFetchRequestConfiguration() {
-        guard let fetchRequest = fetchedResultsController?.fetchRequest else { return }
-        print("Fetch Request Entity: \(fetchRequest.entityName ?? "Unknown")")
-        print("Sort Descriptors: \(fetchRequest.sortDescriptors ?? [])")
-        if let predicate = fetchRequest.predicate {
-            print("Predicate: \(predicate)")
-        } else {
-            print("Predicate: None")
-        }
+        // This method is no longer needed if using dataManager
     }
 
     func logTileInformation() {

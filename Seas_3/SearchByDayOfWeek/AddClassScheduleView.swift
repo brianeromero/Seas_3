@@ -8,13 +8,11 @@
 import SwiftUI
 
 struct AddClassScheduleView: View {
-    @ObservedObject var viewModel: AppDayOfWeekViewModel
-    @Binding var selectedAppDayOfWeek: AppDayOfWeek?
-    var pIsland: PirateIsland
-    @Environment(\.presentationMode) var presentationMode
-    
+    @ObservedObject var viewModel: AppDayOfWeekViewModel // Changed to @ObservedObject
+    @Binding var isPresented: Bool
     @State private var selectedDay: DayOfWeek = .monday
     @State private var matTime: String = ""
+    @State private var matType: String = ""
     @State private var gi: Bool = false
     @State private var noGi: Bool = false
     @State private var openMat: Bool = false
@@ -23,82 +21,56 @@ struct AddClassScheduleView: View {
     @State private var goodForBeginners: Bool = false
     @State private var adult: Bool = false
 
+    // Ensure that the initializer is accessible
+    init(viewModel: AppDayOfWeekViewModel, isPresented: Binding<Bool>) {
+        _viewModel = ObservedObject(wrappedValue: viewModel) // Use ObservedObject here
+        _isPresented = isPresented
+    }
+
     var body: some View {
         VStack {
-            Text("Select Day:")
-            Picker("Day", selection: $selectedDay) {
-                ForEach(DayOfWeek.allCases, id: \.self) { day in
-                    Text(day.displayName).tag(day)
-                }
-            }
-            .pickerStyle(MenuPickerStyle())
-
             Form {
-                Section(header: Text("Class Schedule Details")) {
+                Section(header: Text("Class Details")) {
+                    Picker("Select Day", selection: $selectedDay) {
+                        ForEach(DayOfWeek.allCases, id: \.self) { day in
+                            Text(day.rawValue.capitalized).tag(day)
+                        }
+                    }
+                    
                     TextField("Mat Time", text: $matTime)
-                        .keyboardType(.numbersAndPunctuation)
-                    Toggle("Gi", isOn: $gi)
-                    Toggle("No-Gi", isOn: $noGi)
-                    Toggle("Good for Beginners", isOn: $goodForBeginners)
+                    TextField("Mat Type", text: $matType)
+                    
+                    Toggle("GI", isOn: $gi)
+                    Toggle("No GI", isOn: $noGi)
                     Toggle("Open Mat", isOn: $openMat)
                     Toggle("Restrictions", isOn: $restrictions)
                     if restrictions {
                         TextField("Restriction Description", text: $restrictionDescription)
                     }
+                    
+                    Toggle("Good for Beginners", isOn: $goodForBeginners)
                     Toggle("Adult", isOn: $adult)
                 }
-            }
-            .navigationTitle("Add Class Schedule")
-            .navigationBarItems(trailing:
-                Button("Save") {
-                    saveAction()
+                
+                Button(action: {
+                    viewModel.addOrUpdateMatTime(time: matTime, type: matType, gi: gi, noGi: noGi, openMat: openMat, restrictions: restrictions, restrictionDescription: restrictionDescription, goodForBeginners: goodForBeginners, adult: adult, for: selectedDay)
+                    isPresented = false
+                }) {
+                    Text("Save")
                 }
-            )
+                .disabled(matTime.isEmpty || matType.isEmpty)
+            }
         }
-    }
-    
-    private func saveAction() {
-        // Validate matTime to ensure it is not empty
-        guard !matTime.isEmpty else {
-            // Optionally, show an alert to the user about the empty matTime
-            return
+        .onAppear {
+            viewModel.initializeNewMatTime()
         }
-
-        // Create a MatTime tuple
-        let matTimeEntry = (time: matTime,
-                            type: "",  // Adjust if needed
-                            gi: gi,
-                            noGi: noGi,
-                            openMat: openMat,
-                            restrictions: restrictions,
-                            restrictionDescription: restrictionDescription.isEmpty ? nil : restrictionDescription,
-                            goodForBeginners: goodForBeginners,
-                            adult: adult)
-
-        // Call the method from AppDayOfWeekRepository
-        AppDayOfWeekRepository.shared.addMatTimesForDay(day: selectedDay, matTimes: [matTimeEntry], for: pIsland)
-        
-        // Dismiss the view
-        presentationMode.wrappedValue.dismiss()
     }
 }
 
 struct AddClassScheduleView_Previews: PreviewProvider {
     static var previews: some View {
-        let context = PersistenceController.shared.container.viewContext
-
-        let previewIsland = PirateIsland(context: context)
-        previewIsland.islandName = "Sample Island"
-
-        let viewModel = AppDayOfWeekViewModel(
-            selectedIsland: previewIsland
-        )
-
-        return AddClassScheduleView(
-            viewModel: viewModel,
-            selectedAppDayOfWeek: .constant(nil),
-            pIsland: previewIsland
-        )
-        .environment(\.managedObjectContext, context)
+        // Mock or provide default view model if needed
+        let viewModel = AppDayOfWeekViewModel(selectedIsland: nil, repository: AppDayOfWeekRepository(persistenceController: PersistenceController.preview), viewContext: PersistenceController.preview.container.viewContext)
+        AddClassScheduleView(viewModel: viewModel, isPresented: .constant(true))
     }
 }

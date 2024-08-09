@@ -13,24 +13,21 @@ import CoreLocation
 import MapKit
 
 class EnterZipCodeViewModel: ObservableObject {
-    @Published var region: MKCoordinateRegion {
-        didSet {
-            DispatchQueue.main.async {
-                self.objectWillChange.send()
-            }
-        }
-    }
+    @Published var region: MKCoordinateRegion
+    var repository: AppDayOfWeekRepository
+    var context: NSManagedObjectContext
+
     @Published var enteredLocation: CustomMapMarker?
     @Published var pirateIslands: [CustomMapMarker] = []
     @Published var address: String = ""
     @Published var currentRadius: Double = 5.0
     private var cancellables = Set<AnyCancellable>()
     private let geocoder = CLGeocoder()
-    private let context: NSManagedObjectContext
-    let locationManager = UserLocationMapViewModel()
     private let updateQueue = DispatchQueue(label: "com.example.Seas_3.updateQueue") // Add a private DispatchQueue
+    let locationManager = UserLocationMapViewModel()
 
-    init(context: NSManagedObjectContext) {
+    init(repository: AppDayOfWeekRepository, context: NSManagedObjectContext) {
+        self.repository = repository
         self.context = context
         self.region = MKCoordinateRegion() // Initialize here
 

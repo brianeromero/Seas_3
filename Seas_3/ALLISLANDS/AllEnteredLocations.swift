@@ -13,7 +13,7 @@ struct AllEnteredLocations: View {
     @StateObject private var viewModel: AllEnteredLocationsViewModel
 
     init(context: NSManagedObjectContext) {
-        _viewModel = StateObject(wrappedValue: AllEnteredLocationsViewModel(context: context))
+        _viewModel = StateObject(wrappedValue: AllEnteredLocationsViewModel(dataManager: PirateIslandDataManager(viewContext: context)))
     }
 
     var body: some View {

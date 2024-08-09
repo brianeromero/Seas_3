@@ -24,7 +24,9 @@ extension MatTime {
     @NSManaged public var restrictions: Bool
     @NSManaged public var restrictionDescription: String?
     @NSManaged public var goodForBeginners: Bool
-    @NSManaged public var adult: Bool 
+    @NSManaged public var adult: Bool
+    @NSManaged public var createdTimestamp: Date
+
     
     @NSManaged public var appDayOfWeek: AppDayOfWeek?
     

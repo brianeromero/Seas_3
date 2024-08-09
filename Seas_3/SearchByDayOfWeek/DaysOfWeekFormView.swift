@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import CoreData
 
 extension Binding where Value == String? {
     func toNonOptional() -> Binding<String> {
@@ -56,8 +57,7 @@ struct DaysOfWeekFormView: View {
                         .sheet(isPresented: $showClassScheduleModal) {
                             AddClassScheduleView(
                                 viewModel: viewModel,
-                                selectedAppDayOfWeek: $selectedAppDayOfWeek,
-                                pIsland: selectedIsland!
+                                isPresented: $showClassScheduleModal // Correct parameter
                             )
                             .environment(\.managedObjectContext, viewContext)
                         }
@@ -75,7 +75,7 @@ struct DaysOfWeekFormView: View {
                             ScheduleFormView(
                                 selectedAppDayOfWeek: $selectedAppDayOfWeek,
                                 selectedIsland: $selectedIsland,
-                                viewModel: viewModel // Pass the viewModel here
+                                viewModel: viewModel
                             )
                             .environment(\.managedObjectContext, viewContext)
                         }
@@ -184,6 +184,22 @@ struct InsertIslandSearch: View {
     }
 }
 
+
+
+// Mock repository class
+class MockAppDayOfWeekRepository: AppDayOfWeekRepository {
+    override init(persistenceController: PersistenceController) {
+        super.init(persistenceController: persistenceController)
+    }
+    
+    override func fetchAppDayOfWeek(for island: PirateIsland, day: DayOfWeek) -> AppDayOfWeek? {
+        return nil // Return nil or mock data if needed
+    }
+}
+
+
+
+#if DEBUG
 struct DaysOfWeekFormView_Previews: PreviewProvider {
     static var previews: some View {
         let context = PersistenceController.preview.container.viewContext
@@ -196,8 +212,11 @@ struct DaysOfWeekFormView_Previews: PreviewProvider {
         mockIsland.longitude = 0.0
         mockIsland.gymWebsite = URL(string: "https://www.example.com")
         
+        // Initialize the mock repository
+        let mockRepository = MockAppDayOfWeekRepository(persistenceController: PersistenceController.preview)
+        
         // Create a mock AppDayOfWeekViewModel
-        let viewModel = AppDayOfWeekViewModel(selectedIsland: mockIsland)
+        let viewModel = AppDayOfWeekViewModel(selectedIsland: mockIsland, repository: mockRepository, viewContext: context)
         
         // Create a Binding for selectedIsland
         let selectedIsland = Binding<PirateIsland?>(
@@ -212,3 +231,4 @@ struct DaysOfWeekFormView_Previews: PreviewProvider {
         .environment(\.managedObjectContext, context)
     }
 }
+#endif

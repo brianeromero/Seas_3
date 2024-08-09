@@ -78,11 +78,16 @@ struct IslandMenu: View {
                     }
 
                     // NavigationLink to pIslandScheduleView
-                    NavigationLink(destination: pIslandScheduleView(viewModel: AppDayOfWeekViewModel(selectedIsland: selectedIsland))) {
+                    NavigationLink(destination: pIslandScheduleView(viewModel: AppDayOfWeekViewModel(
+                        selectedIsland: selectedIsland,
+                        repository: AppDayOfWeekRepository(persistenceController: PersistenceController.preview),
+                        viewContext: viewContext
+                    ))) {
                         Text("View Island Schedules")
                             .foregroundColor(.blue)
                             .padding(.top, 10)
                     }
+
 
                     // NavigationLink to AllpIslandScheduleView
                     NavigationLink(destination: AllpIslandScheduleView()) {
@@ -119,28 +124,39 @@ struct IslandMenu: View {
         case "Current Location":
             ConsolidatedIslandMapView()
         case "Zip Code":
-            let viewModel = EnterZipCodeViewModel(context: viewContext)
+            let viewModel = EnterZipCodeViewModel(
+                repository: AppDayOfWeekRepository(persistenceController: PersistenceController.preview),
+                context: viewContext
+            )
             EnterZipCodeView(viewModel: viewModel)
         case "Add or Edit Schedule/Open Mat":
-            DaysOfWeekFormView(viewModel: AppDayOfWeekViewModel(selectedIsland: selectedIsland), selectedIsland: $selectedIsland)
+            let viewModel = AppDayOfWeekViewModel(
+                selectedIsland: selectedIsland,
+                repository: AppDayOfWeekRepository(persistenceController: PersistenceController.preview),
+                viewContext: viewContext // Corrected from 'context' to 'viewContext'
+            )
+            DaysOfWeekFormView(viewModel: viewModel, selectedIsland: $selectedIsland)
+
         default:
             EmptyView()
         }
     }
+
+
+
 }
 
 struct IslandMenu_Previews: PreviewProvider {
     static var previews: some View {
         let persistenceController = PersistenceController.preview
         let context = persistenceController.container.viewContext
-        
-        let previewMenu = IslandMenu().environment(\.managedObjectContext, context)
-        
-        return Group {
-            previewMenu.previewDisplayName("Island Menu Preview")
-        }
+
+        return IslandMenu()
+            .environment(\.managedObjectContext, context)
+            .previewDisplayName("Island Menu Preview")
     }
 }
+
 
 extension NSManagedObjectContext {
     static var preview: NSManagedObjectContext {

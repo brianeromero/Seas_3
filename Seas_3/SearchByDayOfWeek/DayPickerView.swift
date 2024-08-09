@@ -10,6 +10,7 @@ import SwiftUI
 
 struct DayPickerView: View {
     @Binding var selectedDay: DayOfWeek?
+    @Binding var daySelected: Bool
 
     var body: some View {
         VStack {
@@ -20,6 +21,7 @@ struct DayPickerView: View {
                 ForEach(DayOfWeek.allCases) { day in
                     Button(action: {
                         selectedDay = day
+                        daySelected = true
                     }) {
                         Text(day.displayName)
                             .padding()

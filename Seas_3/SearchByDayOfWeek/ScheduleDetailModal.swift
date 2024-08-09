@@ -64,9 +64,8 @@ struct ScheduleDetailModal: View {
 struct ScheduleDetailModal_Previews: PreviewProvider {
     static var previews: some View {
         let context = PersistenceController.preview.container.viewContext
-        let viewModel = AppDayOfWeekViewModel(selectedIsland: nil)
-
-        // Mock data for a specific day
+        
+        // Create mock data for AppDayOfWeek and MatTime
         let mockSchedule1 = AppDayOfWeek(context: context)
         let mockMatTime1 = MatTime(context: context)
         mockMatTime1.time = "10:00 AM"
@@ -93,6 +92,12 @@ struct ScheduleDetailModal_Previews: PreviewProvider {
         mockSchedule2.day = DayOfWeek.monday.rawValue
         mockSchedule2.matTimes = [mockMatTime2] as NSSet
 
+        // Mock ViewModel with mock data
+        let viewModel = AppDayOfWeekViewModel(
+            selectedIsland: nil,
+            repository: MockAppDayOfWeekRepository(persistenceController: PersistenceController.preview),
+            viewContext: context
+        )
         viewModel.appDayOfWeekList = [mockSchedule1, mockSchedule2]
 
         return NavigationView {

@@ -189,7 +189,8 @@ struct AddOpenMatFormView: View {
 
 struct AddOpenMatFormView_Previews: PreviewProvider {
     static var previews: some View {
-        let context = PersistenceController.preview.container.viewContext
+        let persistenceController = PersistenceController.preview
+        let context = persistenceController.container.viewContext
         
         let sampleIsland = PirateIsland(context: context)
         sampleIsland.islandID = UUID()
@@ -201,7 +202,12 @@ struct AddOpenMatFormView_Previews: PreviewProvider {
         sampleAppDayOfWeek.name = "Sample Schedule"
         sampleAppDayOfWeek.pIsland = sampleIsland
         
-        let mockViewModel = AppDayOfWeekViewModel(selectedIsland: sampleIsland)
+        // Initialize the view model with the correct order of parameters
+        let mockViewModel = AppDayOfWeekViewModel(
+            selectedIsland: sampleIsland,
+            repository: AppDayOfWeekRepository(persistenceController: persistenceController),
+            viewContext: context
+        )
         
         let binding = Binding<AppDayOfWeek?>(
             get: { sampleAppDayOfWeek },

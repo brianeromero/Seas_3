@@ -98,27 +98,36 @@ struct IslandScheduleView: View {
     }
 }
 
+
 struct IslandScheduleView_Previews: PreviewProvider {
     static var previews: some View {
         let context = PersistenceController.preview.container.viewContext
+
+        // Create a mock PirateIsland
         let mockIsland = PirateIsland(context: context)
         mockIsland.islandName = "Mock Island"
 
-        let viewModel = AppDayOfWeekViewModel(selectedIsland: mockIsland)
-
+        // Create a mock AppDayOfWeekViewModel with mock data
+        let viewModel = AppDayOfWeekViewModel(
+            selectedIsland: mockIsland,
+            repository: MockAppDayOfWeekRepository(persistenceController: PersistenceController.preview),
+            viewContext: context
+        )
+        
+        // Populate viewModel with mock AppDayOfWeek data
         for day in DayOfWeek.allCases {
             let mockSchedule = AppDayOfWeek(context: context)
-            let mockMatTime1 = MatTime(context: context)
-            mockMatTime1.time = "10:00 AM"
-            mockMatTime1.gi = true
-            mockMatTime1.noGi = false
-            mockMatTime1.openMat = true
-            mockMatTime1.restrictions = false
-            mockMatTime1.restrictionDescription = nil
-            mockMatTime1.goodForBeginners = true
-            mockMatTime1.adult = false
+            let mockMatTime = MatTime(context: context)
+            mockMatTime.time = "10:00 AM"
+            mockMatTime.gi = true
+            mockMatTime.noGi = false
+            mockMatTime.openMat = true
+            mockMatTime.restrictions = false
+            mockMatTime.restrictionDescription = nil
+            mockMatTime.goodForBeginners = true
+            mockMatTime.adult = false
             mockSchedule.day = day.displayName
-            mockSchedule.matTimes = [mockMatTime1] as NSSet
+            mockSchedule.matTimes = [mockMatTime] as NSSet
             viewModel.appDayOfWeekList.append(mockSchedule)
         }
 

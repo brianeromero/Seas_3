@@ -61,8 +61,12 @@ struct EnterZipCodeView: View {
 #if DEBUG
 struct EnterZipCodeView_Previews: PreviewProvider {
     static var previews: some View {
-        let context = PersistenceController.shared.container.viewContext
-        EnterZipCodeView(viewModel: EnterZipCodeViewModel(context: context))
+        let persistenceController = PersistenceController.preview
+        let context = persistenceController.container.viewContext
+        let repository = AppDayOfWeekRepository(persistenceController: persistenceController)
+        let viewModel = EnterZipCodeViewModel(repository: repository, context: context)
+        
+        return EnterZipCodeView(viewModel: viewModel)
             .environment(\.managedObjectContext, context)
     }
 }
