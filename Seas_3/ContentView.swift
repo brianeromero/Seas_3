@@ -79,7 +79,7 @@ struct ContentView: View {
                         gymWebsite: $gymWebsite,
                         gymWebsiteURL: $gymWebsiteURL
                     )
-                    .environment(\.managedObjectContext, persistenceController.container.viewContext)
+                    .environment(\.managedObjectContext, persistenceController.viewContext)
                 }
             }
         }
@@ -98,11 +98,11 @@ struct ContentView: View {
         withAnimation {
             offsets.forEach { index in
                 let island = pirateIslands[index]
-                persistenceController.container.viewContext.delete(island)
+                persistenceController.viewContext.delete(island)
             }
             
             do {
-                try persistenceController.container.viewContext.save()
+                try persistenceController.viewContext.save()
             } catch {
                 print("Error deleting island: \(error.localizedDescription)")
             }

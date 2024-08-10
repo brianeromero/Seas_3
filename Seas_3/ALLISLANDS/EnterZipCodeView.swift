@@ -62,7 +62,7 @@ struct EnterZipCodeView: View {
 struct EnterZipCodeView_Previews: PreviewProvider {
     static var previews: some View {
         let persistenceController = PersistenceController.preview
-        let context = persistenceController.container.viewContext
+        let context = persistenceController.viewContext
         let repository = AppDayOfWeekRepository(persistenceController: persistenceController)
         let viewModel = EnterZipCodeViewModel(repository: repository, context: context)
         

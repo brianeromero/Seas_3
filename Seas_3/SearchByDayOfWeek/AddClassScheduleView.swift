@@ -69,8 +69,26 @@ struct AddClassScheduleView: View {
 
 struct AddClassScheduleView_Previews: PreviewProvider {
     static var previews: some View {
-        // Mock or provide default view model if needed
-        let viewModel = AppDayOfWeekViewModel(selectedIsland: nil, repository: AppDayOfWeekRepository(persistenceController: PersistenceController.preview), viewContext: PersistenceController.preview.container.viewContext)
-        AddClassScheduleView(viewModel: viewModel, isPresented: .constant(true))
+        let persistenceController = PersistenceController.preview
+        let context = persistenceController.container.viewContext
+
+        // Initialize AppDayOfWeekRepository with the preview PersistenceController
+        let mockRepository = AppDayOfWeekRepository(persistenceController: persistenceController)
+        
+        // Initialize AppDayOfWeekViewModel with mock data
+        let viewModel = AppDayOfWeekViewModel(
+            selectedIsland: nil, // Set to nil or a mock island if needed
+            repository: mockRepository
+        )
+        
+        // Provide a constant binding for `isPresented`
+        let isPresented = Binding<Bool>(
+            get: { true },
+            set: { _ in }
+        )
+
+        return AddClassScheduleView(viewModel: viewModel, isPresented: isPresented)
+            .environment(\.managedObjectContext, context)
+            .previewDisplayName("Add Class Schedule Preview")
     }
 }

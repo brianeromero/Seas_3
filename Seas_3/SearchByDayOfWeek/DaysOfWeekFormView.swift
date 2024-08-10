@@ -216,7 +216,7 @@ struct DaysOfWeekFormView_Previews: PreviewProvider {
         let mockRepository = MockAppDayOfWeekRepository(persistenceController: PersistenceController.preview)
         
         // Create a mock AppDayOfWeekViewModel
-        let viewModel = AppDayOfWeekViewModel(selectedIsland: mockIsland, repository: mockRepository, viewContext: context)
+        let viewModel = AppDayOfWeekViewModel(selectedIsland: mockIsland, repository: mockRepository)
         
         // Create a Binding for selectedIsland
         let selectedIsland = Binding<PirateIsland?>(

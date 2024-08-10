@@ -98,20 +98,18 @@ struct IslandScheduleView: View {
     }
 }
 
-
 struct IslandScheduleView_Previews: PreviewProvider {
     static var previews: some View {
         let context = PersistenceController.preview.container.viewContext
-
+        
         // Create a mock PirateIsland
         let mockIsland = PirateIsland(context: context)
         mockIsland.islandName = "Mock Island"
-
+        
         // Create a mock AppDayOfWeekViewModel with mock data
         let viewModel = AppDayOfWeekViewModel(
             selectedIsland: mockIsland,
-            repository: MockAppDayOfWeekRepository(persistenceController: PersistenceController.preview),
-            viewContext: context
+            repository: MockAppDayOfWeekRepository(persistenceController: PersistenceController.preview)
         )
         
         // Populate viewModel with mock AppDayOfWeek data
@@ -130,7 +128,7 @@ struct IslandScheduleView_Previews: PreviewProvider {
             mockSchedule.matTimes = [mockMatTime] as NSSet
             viewModel.appDayOfWeekList.append(mockSchedule)
         }
-
+        
         return NavigationView {
             IslandScheduleView(viewModel: viewModel, pIsland: mockIsland)
                 .environment(\.managedObjectContext, context)

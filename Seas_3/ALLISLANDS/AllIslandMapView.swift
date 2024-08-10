@@ -36,7 +36,8 @@ struct ConsolidatedIslandMapView: View {
     @FetchRequest(
         entity: PirateIsland.entity(),
         sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.createdTimestamp, ascending: true)]
-    ) private var islands: FetchedResults<PirateIsland>
+    )
+    private var islands: FetchedResults<PirateIsland>
 
     @ObservedObject private var locationManager = UserLocationMapViewModel() // Use real UserLocationMapViewModel
     @State private var selectedRadius: Double = 5.0

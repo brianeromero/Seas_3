@@ -23,6 +23,8 @@ struct IslandMenu: View {
 
     @State private var selectedIsland: PirateIsland? = nil
 
+    // Use the shared PersistenceController instance
+    let persistenceController = PersistenceController.shared
     let menuItems: [MenuItem] = [
         MenuItem(title: "Search For Gyms/ Open Mats using", subMenuItems: ["Day of Week", "All Entered Locations", "Current Location", "Zip Code"]),
         MenuItem(title: "Manage Gyms", subMenuItems: ["Add New Gym", "Update Existing Gyms", "Add or Edit Schedule/Open Mat"]),
@@ -80,8 +82,7 @@ struct IslandMenu: View {
                     // NavigationLink to pIslandScheduleView
                     NavigationLink(destination: pIslandScheduleView(viewModel: AppDayOfWeekViewModel(
                         selectedIsland: selectedIsland,
-                        repository: AppDayOfWeekRepository(persistenceController: PersistenceController.preview),
-                        viewContext: viewContext
+                        repository: AppDayOfWeekRepository(persistenceController: persistenceController)
                     ))) {
                         Text("View Island Schedules")
                             .foregroundColor(.blue)
@@ -125,15 +126,14 @@ struct IslandMenu: View {
             ConsolidatedIslandMapView()
         case "Zip Code":
             let viewModel = EnterZipCodeViewModel(
-                repository: AppDayOfWeekRepository(persistenceController: PersistenceController.preview),
+                repository: AppDayOfWeekRepository(persistenceController: persistenceController),
                 context: viewContext
             )
             EnterZipCodeView(viewModel: viewModel)
         case "Add or Edit Schedule/Open Mat":
             let viewModel = AppDayOfWeekViewModel(
                 selectedIsland: selectedIsland,
-                repository: AppDayOfWeekRepository(persistenceController: PersistenceController.preview),
-                viewContext: viewContext // Corrected from 'context' to 'viewContext'
+                repository: AppDayOfWeekRepository(persistenceController: persistenceController)
             )
             DaysOfWeekFormView(viewModel: viewModel, selectedIsland: $selectedIsland)
 
@@ -141,10 +141,9 @@ struct IslandMenu: View {
             EmptyView()
         }
     }
-
-
-
 }
+
+
 
 struct IslandMenu_Previews: PreviewProvider {
     static var previews: some View {
@@ -154,14 +153,5 @@ struct IslandMenu_Previews: PreviewProvider {
         return IslandMenu()
             .environment(\.managedObjectContext, context)
             .previewDisplayName("Island Menu Preview")
-    }
-}
-
-
-extension NSManagedObjectContext {
-    static var preview: NSManagedObjectContext {
-        let context = NSManagedObjectContext(concurrencyType: .mainQueueConcurrencyType)
-        context.persistentStoreCoordinator = PersistenceController.preview.container.persistentStoreCoordinator
-        return context
     }
 }

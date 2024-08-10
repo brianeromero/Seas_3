@@ -56,7 +56,7 @@ struct AllEnteredLocations: View {
 struct AllEnteredLocations_Previews: PreviewProvider {
     static var previews: some View {
         let persistenceController = PersistenceController.preview
-        let context = persistenceController.container.viewContext
+        let context = persistenceController.viewContext
         
         return AllEnteredLocations(context: context)
             .environment(\.managedObjectContext, context)

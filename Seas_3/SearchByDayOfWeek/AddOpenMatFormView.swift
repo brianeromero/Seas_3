@@ -65,7 +65,6 @@ struct AddOpenMatFormView: View {
                     set: { newDate in
                         viewModel.selectedTimeForDay[day] = newDate
                         let formattedTime = Self.dateFormatter.string(from: newDate)
-                        // Ensure you are calling the function with required parameters
                         viewModel.addOrUpdateMatTime(
                             time: formattedTime,
                             type: viewModel.selectedType,
@@ -76,7 +75,7 @@ struct AddOpenMatFormView: View {
                             restrictionDescription: viewModel.restrictionDescriptionForDay[day] ?? "",
                             goodForBeginners: viewModel.goodForBeginnersForDay[day] ?? false,
                             adult: viewModel.adultForDay[day] ?? false,
-                            for: day // Added parameter
+                            for: day
                         )
                     }
                 ),
@@ -85,7 +84,6 @@ struct AddOpenMatFormView: View {
             .datePickerStyle(WheelDatePickerStyle())
         }
     }
-
     
     func matTimesListSection(for day: DayOfWeek) -> some View {
         Section(header: Text("Scheduled Mat Times")) {
@@ -173,7 +171,7 @@ struct AddOpenMatFormView: View {
                     restrictionDescription: viewModel.restrictionDescriptionForDay[viewModel.selectedDay] ?? "",
                     goodForBeginners: viewModel.goodForBeginnersForDay[viewModel.selectedDay] ?? false,
                     adult: viewModel.adultForDay[viewModel.selectedDay] ?? false,
-                    for: viewModel.selectedDay // Added parameter
+                    for: viewModel.selectedDay
                 )
             } else {
                 alertMessage = "Please fill in all required fields."
@@ -184,7 +182,6 @@ struct AddOpenMatFormView: View {
         }
         .disabled(!viewModel.isSaveEnabled)
     }
-
 }
 
 struct AddOpenMatFormView_Previews: PreviewProvider {
@@ -202,11 +199,11 @@ struct AddOpenMatFormView_Previews: PreviewProvider {
         sampleAppDayOfWeek.name = "Sample Schedule"
         sampleAppDayOfWeek.pIsland = sampleIsland
         
-        // Initialize the view model with the correct order of parameters
+        let mockRepository = AppDayOfWeekRepository(persistenceController: persistenceController)
         let mockViewModel = AppDayOfWeekViewModel(
             selectedIsland: sampleIsland,
-            repository: AppDayOfWeekRepository(persistenceController: persistenceController),
-            viewContext: context
+            repository: mockRepository
+            // Removed viewContext here
         )
         
         let binding = Binding<AppDayOfWeek?>(

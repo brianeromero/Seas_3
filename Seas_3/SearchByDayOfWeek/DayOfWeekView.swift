@@ -63,8 +63,7 @@ struct DayOfWeekView_Previews: PreviewProvider {
         // Create the view model with the mock data
         let viewModel = AppDayOfWeekViewModel(
             selectedIsland: mockIsland,
-            repository: mockRepository,
-            viewContext: context
+            repository: mockRepository
         )
 
         return DayOfWeekView(viewModel: viewModel, selectedAppDayOfWeek: .constant(nil))

@@ -73,34 +73,7 @@ struct AppDayOfWeekFormView: View {
 
 struct AppDayOfWeekFormView_Previews: PreviewProvider {
     static var previews: some View {
-        // Create a mock NSManagedObjectContext
-        let persistentContainer = NSPersistentContainer(name: "Seas_3")
-        persistentContainer.loadPersistentStores { description, error in
-            if let error = error as NSError? {
-                fatalError("Unresolved error \(error), \(error.userInfo)")
-            }
-        }
-        
-        let context = persistentContainer.viewContext
-        
-        // Create and add mock PirateIsland
-        let island = PirateIsland(context: context)
-        island.islandName = "Mock Island"
-        
-        // Create and add mock AppDayOfWeek
-        let appDayOfWeek = AppDayOfWeek(context: context)
-        appDayOfWeek.day = "Monday"
-        appDayOfWeek.name = "Test Day"
-        appDayOfWeek.appDayOfWeekID = "1234"
-        appDayOfWeek.pIsland = island
-        
-        do {
-            try context.save()
-        } catch {
-            print("Failed to save mock data: \(error.localizedDescription)")
-        }
-        
-        return AppDayOfWeekFormView()
-            .environment(\.managedObjectContext, context)
+        AppDayOfWeekFormView()
+            .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
     }
 }

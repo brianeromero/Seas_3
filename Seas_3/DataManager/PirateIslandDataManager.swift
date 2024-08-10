@@ -15,14 +15,18 @@ class PirateIslandDataManager {
         self.viewContext = viewContext
     }
 
-    func fetchPirateIslands() -> [PirateIsland] {
+    func fetchPirateIslands(sortDescriptors: [NSSortDescriptor]? = nil, predicate: NSPredicate? = nil, fetchLimit: Int? = nil) -> Result<[PirateIsland], Error> {
         let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
+        fetchRequest.sortDescriptors = sortDescriptors
+        fetchRequest.predicate = predicate
+        if let fetchLimit = fetchLimit {
+            fetchRequest.fetchLimit = fetchLimit
+        }
         do {
-            return try viewContext.fetch(fetchRequest)
+            let pirateIslands = try viewContext.fetch(fetchRequest)
+            return .success(pirateIslands)
         } catch {
-            // Handle error appropriately
-            print("Failed to fetch pirate islands: \(error.localizedDescription)")
-            return []
+            return .failure(error)
         }
     }
 }

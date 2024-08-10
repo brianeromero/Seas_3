@@ -97,8 +97,7 @@ struct IslandDetailContent: View {
                     NavigationLink(destination: IslandScheduleAsCal(
                         viewModel: AppDayOfWeekViewModel(
                             selectedIsland: island,
-                            repository: AppDayOfWeekRepository(persistenceController: PersistenceController.shared),
-                            viewContext: viewContext // Use the environment context here
+                            repository: AppDayOfWeekRepository(persistenceController: PersistenceController.shared)
                         ),
                         pIsland: island
                     )) {
@@ -126,7 +125,7 @@ struct IslandDetailContent: View {
 struct IslandDetailView_Previews: PreviewProvider {
     static var previews: some View {
         let persistenceController = PersistenceController.shared
-        let context = persistenceController.container.viewContext
+        let context = persistenceController.viewContext
 
         let island = PirateIsland(context: context)
         island.islandName = "Example Island"

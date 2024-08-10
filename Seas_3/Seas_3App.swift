@@ -26,7 +26,7 @@ struct Seas3App: App {
                         }
                 } else {
                     IslandMenu()
-                        .environment(\.managedObjectContext, persistenceController.container.viewContext)
+                        .environment(\.managedObjectContext, persistenceController.viewContext)
                         .environmentObject(appState)
                         .onAppear {
                             let sceneLoader = SceneLoader()
