@@ -150,28 +150,38 @@ struct ScheduledMatTimesSection: View {
 
 struct ScheduleFormView_Previews: PreviewProvider {
     static var previews: some View {
-        let context = PersistenceController.preview.container.viewContext
+        let persistenceController = PersistenceController.preview
+        let context = persistenceController.container.viewContext
         
         // Create a valid PirateIsland object
         let island = PirateIsland(context: context)
-        island.islandID = UUID() // Assign a UUID value
+        island.islandID = UUID()
         island.islandName = "Island Name"
         
         // Create a valid AppDayOfWeek object
         let appDayOfWeek = AppDayOfWeek(context: context)
-        appDayOfWeek.appDayOfWeekID = UUID().uuidString // Assign a UUID string value
-        appDayOfWeek.day = "Monday"
+        appDayOfWeek.appDayOfWeekID = UUID().uuidString
+        appDayOfWeek.day = DayOfWeek.monday.rawValue
         appDayOfWeek.name = "Schedule Name"
         
-        // Create and configure a view model
-        let viewModel = AppDayOfWeekViewModel(selectedIsland: island, repository: AppDayOfWeekRepository.shared, viewContext: context)
-        viewModel.name = appDayOfWeek.name
-        viewModel.appDayOfWeekID = appDayOfWeek.appDayOfWeekID
+        // Create a mock repository for the view model
+        let mockRepository = AppDayOfWeekRepository(persistenceController: persistenceController)
         
+        // Create and configure the view model
+        let viewModel = AppDayOfWeekViewModel(
+            selectedIsland: island,
+            repository: mockRepository
+        )
+        
+        // Initialize the view model with mock data
+        viewModel.fetchCurrentDayOfWeek(for: island)
+
         return ScheduleFormView(
             selectedAppDayOfWeek: .constant(appDayOfWeek),
             selectedIsland: .constant(island),
             viewModel: viewModel
         )
+        .environment(\.managedObjectContext, context)
+        .previewDisplayName("Schedule Form Preview")
     }
 }

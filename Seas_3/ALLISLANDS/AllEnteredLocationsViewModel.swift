@@ -22,7 +22,6 @@ class AllEnteredLocationsViewModel: NSObject, ObservableObject, NSFetchedResults
     @Published var errorMessage: String?
 
     private let dataManager: PirateIslandDataManager
-    private var fetchedResultsController: NSFetchedResultsController<PirateIsland>?
 
     init(dataManager: PirateIslandDataManager) {
         self.dataManager = dataManager
@@ -35,10 +34,17 @@ class AllEnteredLocationsViewModel: NSObject, ObservableObject, NSFetchedResults
         // Ensure that this function is not called from view updates.
         print("Fetching pirate islands...")
         DispatchQueue.global(qos: .userInitiated).async {
-            let islands = self.dataManager.fetchPirateIslands()
-            DispatchQueue.main.async {
-                self.allIslands = islands
-                self.updatePirateMarkers(with: islands)
+            let result = self.dataManager.fetchPirateIslands()
+            switch result {
+            case .success(let pirateIslands):
+                DispatchQueue.main.async {
+                    self.allIslands = pirateIslands
+                    self.updatePirateMarkers(with: pirateIslands)
+                }
+            case .failure(let error):
+                DispatchQueue.main.async {
+                    self.errorMessage = "Failed to fetch pirate islands: \(error.localizedDescription)"
+                }
             }
         }
     }

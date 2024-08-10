@@ -91,7 +91,7 @@ struct EditExistingIslandList_Previews: PreviewProvider {
         let persistenceController = PersistenceController.shared
 
         // Example island for preview
-        let context = persistenceController.container.viewContext
+        let context = persistenceController.viewContext
         let island = PirateIsland(context: context)
         island.islandName = "Sample Island"
         // Set other properties as needed...

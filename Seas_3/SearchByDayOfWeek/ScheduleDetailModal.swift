@@ -4,7 +4,6 @@
 //  Created by Brian Romero on 7/8/24.
 //
 
-import Foundation
 import SwiftUI
 
 struct ScheduleDetailModal: View {
@@ -61,6 +60,7 @@ struct ScheduleDetailModal: View {
     }
 }
 
+
 struct ScheduleDetailModal_Previews: PreviewProvider {
     static var previews: some View {
         let context = PersistenceController.preview.container.viewContext
@@ -95,8 +95,7 @@ struct ScheduleDetailModal_Previews: PreviewProvider {
         // Mock ViewModel with mock data
         let viewModel = AppDayOfWeekViewModel(
             selectedIsland: nil,
-            repository: MockAppDayOfWeekRepository(persistenceController: PersistenceController.preview),
-            viewContext: context
+            repository: MockAppDayOfWeekRepository(persistenceController: PersistenceController.preview)
         )
         viewModel.appDayOfWeekList = [mockSchedule1, mockSchedule2]
 
