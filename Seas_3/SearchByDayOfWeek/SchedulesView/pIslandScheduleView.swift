@@ -24,8 +24,7 @@ struct pIslandScheduleView: View {
                     HStack {
                         ForEach(DayOfWeek.allCases) { day in
                             Button(action: {
-                                selectedDay = day
-                                viewModel.fetchAppDayOfWeekAndUpdateList(for: selectedIsland, day: day)
+                                viewModel.fetchAppDayOfWeekAndUpdateList(for: selectedIsland, day: day, context: viewModel.viewContext)
                             }) {
                                 Text(day.displayName)
                                     .font(.headline)
@@ -65,6 +64,22 @@ struct pIslandScheduleView: View {
     }
 }
 
-#if DEBUG
+struct pIslandScheduleView_Previews: PreviewProvider {
+    static var previews: some View {
+        let persistenceController = PersistenceController.preview
+        let context = persistenceController.container.viewContext
 
-#endif
+        // Initialize AppDayOfWeekRepository with the preview PersistenceController
+        let mockRepository = AppDayOfWeekRepository(persistenceController: persistenceController)
+
+        // Initialize AppDayOfWeekViewModel with mock data
+        let viewModel = AppDayOfWeekViewModel(
+            selectedIsland: nil,
+            repository: mockRepository
+        )
+
+        return pIslandScheduleView(viewModel: viewModel)
+            .environment(\.managedObjectContext, context)
+            .previewDisplayName("Pirate Island Schedule Preview")
+    }
+}

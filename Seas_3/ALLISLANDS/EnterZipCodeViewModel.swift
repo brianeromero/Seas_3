@@ -63,16 +63,17 @@ class EnterZipCodeViewModel: ObservableObject {
         geocoder.geocodeAddressString(address) { [weak self] placemarks, error in
             guard let self = self else { return }
             if let error = error {
-                print("Geocoding error: \(error)")
+                print("Geocoding error: \(error.localizedDescription)")
                 return
             }
             guard let placemark = placemarks?.first, let location = placemark.location else {
-                print("No locations found.")
+                print("No locations found for address: \(address)")
                 return
             }
 
             let coordinate = location.coordinate
-            self.updateQueue.async { [weak self] in // Perform updates within updateQueue
+            print("Geocoded location for address \(address): \(coordinate)")
+            self.updateQueue.async { [weak self] in
                 guard let self = self else { return }
                 DispatchQueue.main.async {
                     self.region = MKCoordinateRegion(center: coordinate, span: MKCoordinateSpan(latitudeDelta: selectedRadius / 69.0, longitudeDelta: selectedRadius / 69.0))
@@ -83,6 +84,7 @@ class EnterZipCodeViewModel: ObservableObject {
             self.fetchPirateIslandsNear(location, within: selectedRadius * 1609.34)
         }
     }
+
 
     func fetchPirateIslandsNear(_ location: CLLocation, within radius: Double) {
         let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
@@ -96,13 +98,15 @@ class EnterZipCodeViewModel: ObservableObject {
 
         do {
             let islands = try context.fetch(fetchRequest)
+            print("Fetched islands within radius: \(radius) meters")
             let filteredIslands = islands.filter { island in
                 let islandLocation = CLLocation(latitude: island.latitude, longitude: island.longitude)
                 let distance = islandLocation.distance(from: location)
-                return distance <= radius // already in meters
+                print("Island \(island.islandName) is \(distance) meters away")
+                return distance <= radius
             }
 
-            self.updateQueue.async { [weak self] in // Perform updates within updateQueue
+            self.updateQueue.async { [weak self] in
                 guard let self = self else { return }
                 DispatchQueue.main.async {
                     self.pirateIslands = filteredIslands.map { island in
@@ -112,10 +116,11 @@ class EnterZipCodeViewModel: ObservableObject {
                             title: island.islandName
                         )
                     }
+                    print("Filtered pirate islands: \(self.pirateIslands)")
                 }
             }
         } catch {
-            print("Error fetching pirate islands: \(error)")
+            print("Error fetching pirate islands: \(error.localizedDescription)")
         }
     }
 

@@ -16,7 +16,7 @@ struct PirateIslandView: View {
     
     var body: some View {
         if showWelcomePage {
-            Text("🏴‍☠️ Welcome to Pirate Island! 🏴‍☠️")
+            Text("Mat Finder + ")
                 .font(.largeTitle)
                 .padding()
                 .onAppear {
@@ -28,7 +28,7 @@ struct PirateIslandView: View {
         } else {
             // Placeholder view or navigate to the next screen
             // You can replace this with your actual main content
-            Text("Where your Pirate Dreams Come True.")
+            Text("Where All Your Mat Dreams Come True.")
                 .padding()
                 .onAppear {
                     // Use Timer to perform some action after 5 seconds

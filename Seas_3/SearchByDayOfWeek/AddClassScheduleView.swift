@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct AddClassScheduleView: View {
-    @ObservedObject var viewModel: AppDayOfWeekViewModel // Changed to @ObservedObject
+    @ObservedObject var viewModel: AppDayOfWeekViewModel
     @Binding var isPresented: Bool
     @State private var selectedDay: DayOfWeek = .monday
     @State private var matTime: String = ""
@@ -21,9 +21,8 @@ struct AddClassScheduleView: View {
     @State private var goodForBeginners: Bool = false
     @State private var adult: Bool = false
 
-    // Ensure that the initializer is accessible
     init(viewModel: AppDayOfWeekViewModel, isPresented: Binding<Bool>) {
-        _viewModel = ObservedObject(wrappedValue: viewModel) // Use ObservedObject here
+        _viewModel = ObservedObject(wrappedValue: viewModel)
         _isPresented = isPresented
     }
 
@@ -53,7 +52,18 @@ struct AddClassScheduleView: View {
                 }
                 
                 Button(action: {
-                    viewModel.addOrUpdateMatTime(time: matTime, type: matType, gi: gi, noGi: noGi, openMat: openMat, restrictions: restrictions, restrictionDescription: restrictionDescription, goodForBeginners: goodForBeginners, adult: adult, for: selectedDay)
+                    viewModel.addOrUpdateMatTime(
+                        time: matTime,
+                        type: matType,
+                        gi: gi,
+                        noGi: noGi,
+                        openMat: openMat,
+                        restrictions: restrictions,
+                        restrictionDescription: restrictionDescription,
+                        goodForBeginners: goodForBeginners,
+                        adult: adult,
+                        for: selectedDay
+                    )
                     isPresented = false
                 }) {
                     Text("Save")
@@ -74,13 +84,13 @@ struct AddClassScheduleView_Previews: PreviewProvider {
 
         // Initialize AppDayOfWeekRepository with the preview PersistenceController
         let mockRepository = AppDayOfWeekRepository(persistenceController: persistenceController)
-        
+
         // Initialize AppDayOfWeekViewModel with mock data
         let viewModel = AppDayOfWeekViewModel(
-            selectedIsland: nil, // Set to nil or a mock island if needed
+            selectedIsland: nil,
             repository: mockRepository
         )
-        
+
         // Provide a constant binding for `isPresented`
         let isPresented = Binding<Bool>(
             get: { true },

@@ -26,9 +26,9 @@ struct IslandMenu: View {
     // Use the shared PersistenceController instance
     let persistenceController = PersistenceController.shared
     let menuItems: [MenuItem] = [
-        MenuItem(title: "Search For Gyms/ Open Mats using", subMenuItems: ["Day of Week", "All Entered Locations", "Current Location", "Zip Code"]),
-        MenuItem(title: "Manage Gyms", subMenuItems: ["Add New Gym", "Update Existing Gyms", "Add or Edit Schedule/Open Mat"]),
-        MenuItem(title: "Reviews", subMenuItems: ["Add Gym/Open Mat Review"]),
+        .init(title: "Search", subMenuItems: ["All Entered Locations", "Current Location", "Zip Code"]),
+        .init(title: "Manage", subMenuItems: ["Add New Gym", "Update Existing Gyms", "Add or Edit Schedule/Open Mat"]),
+        .init(title: "Review", subMenuItems: ["Add Gym/Open Mat Review"]),
     ]
 
     var body: some View {
@@ -114,8 +114,6 @@ struct IslandMenu: View {
     @ViewBuilder
     private func destinationView(for menuItem: String) -> some View {
         switch menuItem {
-        case "Day of Week":
-            OpenMatsByDayOfWeekView()
         case "Add New Gym":
             AddNewIsland(viewModel: PirateIslandViewModel(context: viewContext))
         case "Update Existing Gyms":

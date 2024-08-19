@@ -6,12 +6,13 @@ import SwiftUI
 import CoreData
 import Combine
 
+
 @main
 struct Seas3App: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    private let persistenceController = PersistenceController.shared
     @StateObject var appState = AppState()
-    
+    @StateObject var viewModel = AppDayOfWeekViewModel(selectedIsland: nil, repository: AppDayOfWeekRepository(persistenceController: PersistenceController.shared))
+
     var body: some Scene {
         WindowGroup {
             Group {
@@ -26,15 +27,16 @@ struct Seas3App: App {
                         }
                 } else {
                     IslandMenu()
-                        .environment(\.managedObjectContext, persistenceController.viewContext)
+                        .environment(\.managedObjectContext, PersistenceController.shared.viewContext)
                         .environmentObject(appState)
+                        .environmentObject(viewModel) // Inject ViewModel globally
                         .onAppear {
                             let sceneLoader = SceneLoader()
                             sceneLoader.loadScene()
                         }
                 }
             }
-            .environmentObject(persistenceController) // Inject PersistenceController globally
+            .environmentObject(PersistenceController.shared) // Inject PersistenceController globally
             .onAppear {
                 setupGlobalErrorHandler()
             }

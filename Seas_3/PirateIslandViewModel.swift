@@ -15,6 +15,13 @@ class PirateIslandViewModel: ObservableObject {
     func createPirateIsland(name: String, location: String, createdByUserId: String, gymWebsiteURL: URL?, completion: @escaping (Result<Void, Error>) -> Void) {
         print("Creating pirate island with name: \(name), location: \(location)")
 
+        // Check if name, location, and createdByUserId are not empty strings
+        if name.isEmpty || location.isEmpty || createdByUserId.isEmpty {
+            print("Name, location, and createdByUserId cannot be empty.")
+            completion(.failure(NSError(domain: "PirateIslandViewModel", code: 101, userInfo: [NSLocalizedDescriptionKey: "Name, location, and createdByUserId cannot be empty."])))
+            return
+        }
+
         // Check if an island with the same name already exists
         if pirateIslandExists(name: name) {
             print("Pirate island with name \(name) already exists. Skipping creation.")
@@ -29,7 +36,11 @@ class PirateIslandViewModel: ObservableObject {
         newIsland.createdByUserId = createdByUserId
         newIsland.lastModifiedByUserId = createdByUserId
         newIsland.lastModifiedTimestamp = Date()
-        newIsland.gymWebsite = gymWebsiteURL
+
+        // Set gymWebsiteURL if it's not nil
+        if let gymWebsiteURL = gymWebsiteURL {
+            newIsland.gymWebsite = gymWebsiteURL
+        }
 
         // Geocode address using GeocodingUtility
         geocodeAddress(location) { result in
@@ -56,7 +67,7 @@ class PirateIslandViewModel: ObservableObject {
             let count = try context.count(for: fetchRequest)
             return count > 0
         } catch {
-            print("Failed to fetch data: \(error)")
+            print("Error checking if pirate island exists: \(error.localizedDescription)")
             return false
         }
     }
@@ -71,4 +82,6 @@ class PirateIslandViewModel: ObservableObject {
             }
         }
     }
+
+
 }
