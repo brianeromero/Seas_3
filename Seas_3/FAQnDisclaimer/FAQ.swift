@@ -46,7 +46,17 @@ struct FAQView: View {
                     .padding(.top, 10)
                 
                 ForEach(faqItems.indices, id: \.self) { index in
-                    FAQItemView(item: faqItems[index])
+                    DisclosureGroup(content: {
+                        Text(faqItems[index].answer)
+                            .font(.body)
+                            .foregroundColor(.secondary)
+                            .accentColor(.black)
+
+                    }, label: {
+                        Text(faqItems[index].question)
+                            .font(.headline)
+                    })
+                    .accentColor(.black)
                 }
             }
             .padding(.horizontal)

@@ -59,7 +59,9 @@ struct IslandScheduleView: View {
             }
             .onAppear {
                 if let pIsland = pIsland {
-                    viewModel.fetchCurrentDayOfWeek(for: pIsland)
+                    // Use a default or previously selected day here
+                    let dayToFetch: DayOfWeek = selectedDay ?? .monday // Default to .monday if selectedDay is nil
+                    viewModel.fetchCurrentDayOfWeek(for: pIsland, day: dayToFetch)
                 }
             }
         }
@@ -97,6 +99,7 @@ struct IslandScheduleView: View {
         .cornerRadius(8)
     }
 }
+
 
 struct IslandScheduleView_Previews: PreviewProvider {
     static var previews: some View {

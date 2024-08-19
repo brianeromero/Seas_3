@@ -192,7 +192,8 @@ class MockAppDayOfWeekRepository: AppDayOfWeekRepository {
         super.init(persistenceController: persistenceController)
     }
     
-    override func fetchAppDayOfWeek(for island: PirateIsland, day: DayOfWeek) -> AppDayOfWeek? {
+    // Override method with the same signature as in superclass
+    override func fetchAppDayOfWeek(for island: PirateIsland, day: DayOfWeek, context: NSManagedObjectContext) -> AppDayOfWeek? {
         return nil // Return nil or mock data if needed
     }
 }

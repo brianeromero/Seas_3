@@ -17,3 +17,12 @@ extension AppDayOfWeek {
         self.day = selected ? day.displayName : nil
     }
 }
+
+extension AppDayOfWeek {
+    override public var description: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        let createdTimestampString = formatter.string(from: createdTimestamp)
+        return "AppDayOfWeek: day: \(day ?? ""), pIsland: \(pIsland?.islandName ?? ""), name: \(name ?? ""), appDayOfWeekID: \(appDayOfWeekID ?? ""), matTimes: \(matTimes?.count ?? 0), createdTimestamp: \(createdTimestampString)"
+    }
+}

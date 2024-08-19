@@ -1,4 +1,4 @@
-//
+/*//
 //  AppDayOfWeekCell.swift
 //  Seas_3
 //
@@ -7,7 +7,7 @@
 
 import Foundation
 import UIKit
-/*
+
 class AppDayOfWeekCell: UICollectionViewCell {
     static let reuseIdentifier = "AppDayOfWeekCell"
 

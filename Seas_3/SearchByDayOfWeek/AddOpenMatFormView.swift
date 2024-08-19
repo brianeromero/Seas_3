@@ -11,12 +11,12 @@ import CoreData
 struct AddOpenMatFormView: View {
     @StateObject var viewModel: AppDayOfWeekViewModel
     @Binding var selectedAppDayOfWeek: AppDayOfWeek?
-    var selectedIsland: PirateIsland
+    var selectedIsland: PirateIsland? // Make this optional
     
     @State private var showAlert = false
     @State private var alertMessage = ""
     
-    init(viewModel: AppDayOfWeekViewModel, selectedAppDayOfWeek: Binding<AppDayOfWeek?>, selectedIsland: PirateIsland) {
+    init(viewModel: AppDayOfWeekViewModel, selectedAppDayOfWeek: Binding<AppDayOfWeek?>, selectedIsland: PirateIsland?) {
         _viewModel = StateObject(wrappedValue: viewModel)
         self._selectedAppDayOfWeek = selectedAppDayOfWeek
         self.selectedIsland = selectedIsland
@@ -31,14 +31,20 @@ struct AddOpenMatFormView: View {
     var body: some View {
         Form {
             daySelectionSection
-            matTimeSection(for: viewModel.selectedDay)
-            matTimesListSection(for: viewModel.selectedDay)
-            settingsSection(for: viewModel.selectedDay)
+            if let selectedDay = viewModel.selectedDay {
+                matTimeSection(for: selectedDay)
+                matTimesListSection(for: selectedDay)
+                settingsSection(for: selectedDay)
+            }
             saveButton
         }
         .onAppear {
             viewModel.fetchPirateIslands()
-            viewModel.fetchCurrentDayOfWeek(for: selectedIsland)
+            if let selectedIsland = selectedIsland, let selectedDay = viewModel.selectedDay {
+                viewModel.fetchCurrentDayOfWeek(for: selectedIsland, day: selectedDay)
+            } else {
+                print("No island or day selected")
+            }
         }
         .alert(isPresented: $showAlert) {
             Alert(title: Text("Error"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
@@ -49,7 +55,7 @@ struct AddOpenMatFormView: View {
         Section(header: Text("Select Day")) {
             Picker("Day", selection: $viewModel.selectedDay) {
                 ForEach(DayOfWeek.allCases) { day in
-                    Text(day.displayName).tag(day)
+                    Text(day.displayName).tag(day as DayOfWeek?)
                 }
             }
             .pickerStyle(MenuPickerStyle())
@@ -160,18 +166,18 @@ struct AddOpenMatFormView: View {
     var saveButton: some View {
         Button(action: {
             if viewModel.validateFields() {
-                let timeString = Self.dateFormatter.string(from: viewModel.selectedTimeForDay[viewModel.selectedDay] ?? Date())
+                let timeString = Self.dateFormatter.string(from: viewModel.selectedTimeForDay[viewModel.selectedDay ?? DayOfWeek.monday] ?? Date())
                 viewModel.addOrUpdateMatTime(
                     time: timeString,
                     type: viewModel.selectedType,
-                    gi: viewModel.giForDay[viewModel.selectedDay] ?? false,
-                    noGi: viewModel.noGiForDay[viewModel.selectedDay] ?? false,
-                    openMat: viewModel.openMatForDay[viewModel.selectedDay] ?? false,
-                    restrictions: viewModel.restrictionsForDay[viewModel.selectedDay] ?? false,
-                    restrictionDescription: viewModel.restrictionDescriptionForDay[viewModel.selectedDay] ?? "",
-                    goodForBeginners: viewModel.goodForBeginnersForDay[viewModel.selectedDay] ?? false,
-                    adult: viewModel.adultForDay[viewModel.selectedDay] ?? false,
-                    for: viewModel.selectedDay
+                    gi: viewModel.giForDay[viewModel.selectedDay ?? DayOfWeek.monday] ?? false,
+                    noGi: viewModel.noGiForDay[viewModel.selectedDay ?? DayOfWeek.monday] ?? false,
+                    openMat: viewModel.openMatForDay[viewModel.selectedDay ?? DayOfWeek.monday] ?? false,
+                    restrictions: viewModel.restrictionsForDay[viewModel.selectedDay ?? DayOfWeek.monday] ?? false,
+                    restrictionDescription: viewModel.restrictionDescriptionForDay[viewModel.selectedDay ?? DayOfWeek.monday] ?? "",
+                    goodForBeginners: viewModel.goodForBeginnersForDay[viewModel.selectedDay ?? DayOfWeek.monday] ?? false,
+                    adult: viewModel.adultForDay[viewModel.selectedDay ?? DayOfWeek.monday] ?? false,
+                    for: viewModel.selectedDay ?? DayOfWeek.monday
                 )
             } else {
                 alertMessage = "Please fill in all required fields."
@@ -203,7 +209,6 @@ struct AddOpenMatFormView_Previews: PreviewProvider {
         let mockViewModel = AppDayOfWeekViewModel(
             selectedIsland: sampleIsland,
             repository: mockRepository
-            // Removed viewContext here
         )
         
         let binding = Binding<AppDayOfWeek?>(
@@ -214,7 +219,7 @@ struct AddOpenMatFormView_Previews: PreviewProvider {
         return AddOpenMatFormView(
             viewModel: mockViewModel,
             selectedAppDayOfWeek: binding,
-            selectedIsland: sampleIsland
+            selectedIsland: sampleIsland // Use optional binding
         )
         .previewLayout(.sizeThatFits)
     }

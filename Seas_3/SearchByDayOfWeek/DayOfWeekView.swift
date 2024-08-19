@@ -31,7 +31,9 @@ struct DayOfWeekView: View {
             }
             .onAppear {
                 if let island = viewModel.selectedIsland {
-                    viewModel.fetchCurrentDayOfWeek(for: island)
+                    // Use a default day if selectedDay is not available
+                    let defaultDay: DayOfWeek = .monday // Adjust this if necessary
+                    viewModel.fetchCurrentDayOfWeek(for: island, day: defaultDay)
                 } else {
                     print("No island selected")
                 }

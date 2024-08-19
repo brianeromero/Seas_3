@@ -11,5 +11,15 @@ import CoreData
 
 @objc(PirateIsland)
 public class PirateIsland: NSManagedObject {
-
+    
+    override public func awakeFromInsert() {
+        super.awakeFromInsert()
+        
+        // Ensure islandID is set
+        if self.islandID == nil {
+            self.islandID = UUID()
+        }
+        
+        print("PirateIsland object created with ID: \(self.islandID?.uuidString ?? "unknown")")
+    }
 }

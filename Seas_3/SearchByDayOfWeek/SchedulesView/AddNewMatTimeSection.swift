@@ -10,47 +10,44 @@ import CoreData
 
 struct AddNewMatTimeSection: View {
     @Binding var selectedAppDayOfWeek: AppDayOfWeek?
-    @Binding var selectedIsland: PirateIsland?
-    @ObservedObject var viewModel: AppDayOfWeekViewModel
     @Binding var selectedDay: DayOfWeek
     @Binding var daySelected: Bool
-    @State var matTime: MatTime?
+    @State var matTime: MatTime?    
+    @State private var isMatTimeSet: Bool = false
+    @State private var showAlert: Bool = false
+    @State private var alertTitle: String = ""
+    @State private var alertMessage: String = ""
 
-    @State private var timeInput: Date = Date()
+    @State private var selectedTime: Date = Date()
     @State private var restrictionDescriptionInput: String = ""
+
+    // Define state properties for toggles
+    @State private var gi: Bool = false
+    @State private var noGi: Bool = false
+    @State private var openMat: Bool = false
+    @State private var goodForBeginners: Bool = false
+    @State private var adult: Bool = false
+    @State private var restrictions: Bool = false
+
+    @ObservedObject var viewModel: AppDayOfWeekViewModel
 
     var body: some View {
         Section(header: Text("Add New Mat Time")) {
             VStack(alignment: .leading) {
-                if let matTime = matTime {
-                    DatePicker(
-                        "Time",
-                        selection: $timeInput,
-                        displayedComponents: .hourAndMinute
-                    )
-                    .datePickerStyle(WheelDatePickerStyle())
-                    .onChange(of: timeInput) { newValue in
-                        matTime.time = formatDateToString(newValue)
+                DatePicker("Select Time", selection: $selectedTime, displayedComponents: .hourAndMinute)
+                    .onChange(of: selectedTime) { newValue in
+                        isMatTimeSet = true
                     }
 
-                    ToggleView(title: "Gi", isOn: binding(\.gi))
-                    ToggleView(title: "No Gi", isOn: binding(\.noGi))
-                    ToggleView(title: "Open Mat", isOn: binding(\.openMat))
-                    ToggleView(title: "Good for Beginners", isOn: binding(\.goodForBeginners))
-                    ToggleView(title: "Adult", isOn: binding(\.adult))
-                    ToggleView(title: "Restrictions", isOn: binding(\.restrictions))
-                    
-                    if matTime.restrictions {
-                        TextField("Restriction Description", text: $restrictionDescriptionInput)
-                            .onAppear {
-                                restrictionDescriptionInput = matTime.restrictionDescription ?? ""
-                            }
-                            .onChange(of: restrictionDescriptionInput) { newValue in
-                                matTime.restrictionDescription = newValue
-                            }
-                    }
-                } else {
-                    Text("Error: matTime is nil")
+                ToggleView(title: "Gi", isOn: $gi)
+                ToggleView(title: "No Gi", isOn: $noGi)
+                ToggleView(title: "Open Mat", isOn: $openMat)
+                ToggleView(title: "Good for Beginners", isOn: $goodForBeginners)
+                ToggleView(title: "Adult", isOn: $adult)
+                ToggleView(title: "Restrictions", isOn: $restrictions)
+
+                if restrictions {
+                    TextField("Restriction Description", text: $restrictionDescriptionInput)
                 }
 
                 if !daySelected {
@@ -59,47 +56,73 @@ struct AddNewMatTimeSection: View {
                 }
 
                 Button(action: {
-                    guard let selectedIsland = selectedIsland, let matTime = matTime else {
-                        print("Selected island or matTime is nil")
-                        return
+                    if daySelected && isMatTimeSet && selectedAppDayOfWeek != nil && (gi || noGi || openMat) {
+                        // Create a new MatTime object here
+                        self.matTime = MatTime(context: self.viewModel.viewContext)
+                        self.matTime?.createdTimestamp = Date()
+                        self.matTime?.time = self.formatDateToString(selectedTime)
+                        self.matTime?.restrictionDescription = restrictionDescriptionInput
+                        self.matTime?.gi = gi
+                        self.matTime?.noGi = noGi
+                        self.matTime?.openMat = openMat
+                        self.matTime?.goodForBeginners = goodForBeginners
+                        self.matTime?.adult = adult
+                        self.matTime?.restrictions = restrictions
+
+                        // Add to AppDayOfWeek
+                        if let appDayOfWeek = selectedAppDayOfWeek {
+                            appDayOfWeek.addToMatTimes(matTime!)
+                            viewModel.saveContext()
+                        }
+                    } else {
+                        alertTitle = "Error"
+                        alertMessage = "Please select a day, time, and at least one type."
+                        showAlert = true
                     }
 
-                    matTime.createdTimestamp = Date()
-
-                    // Fetch or create AppDayOfWeek directly
-                    let appDayOfWeek = viewModel.repository.fetchOrCreateAppDayOfWeek(for: selectedDay.rawValue, pirateIsland: selectedIsland)
-                    
-                    // Assign the fetched or created AppDayOfWeek to the view model
-                    viewModel.selectedAppDayOfWeek = appDayOfWeek
-                    appDayOfWeek.addToMatTimes(matTime)
-                    
-                    // Save the changes
-                    do {
-                        try viewModel.viewContext.save()
-                    } catch {
-                        print("Error saving changes: \(error)")
-                    }
-
-                    // Add the new mat time
-                    viewModel.addNewMatTime()
+                    // Reset state variables
+                    self.selectedTime = Date()
+                    self.gi = false
+                    self.noGi = false
+                    self.openMat = false
+                    self.goodForBeginners = false
+                    self.adult = false
+                    self.restrictions = false
+                    self.restrictionDescriptionInput = ""
+                    self.isMatTimeSet = false
                 }) {
                     Text("Add New Mat Time")
                 }
-                .disabled(!(daySelected && matTime != nil))
+                .disabled(!(daySelected && isMatTimeSet && selectedAppDayOfWeek != nil && (gi || noGi || openMat)))
 
+                // Logging for debugging purposes
+                Text("Logging:")
+                    .font(.headline)
+                Text("Day Selected: \(daySelected ? "Yes" : "No")")
+                Text("Mat Time: \(matTime != nil ? "Not nil" : "Nil")")
+                Text("Selected AppDayOfWeek: \(selectedAppDayOfWeek != nil ? "Not nil" : "Nil")")
+                    .foregroundColor(.gray)
             }
-            .onAppear {
-                if let newMatTime = viewModel.newMatTime {
-                    if matTime == nil {
-                        matTime = newMatTime
-                        timeInput = stringToDate(newMatTime.time ?? "")
-                        restrictionDescriptionInput = newMatTime.restrictionDescription ?? ""
+            .onChange(of: selectedDay) { newDay in
+                gi = false
+                noGi = false
+                openMat = false
+                goodForBeginners = false
+                adult = false
+                restrictions = false
+                restrictionDescriptionInput = ""
+                isMatTimeSet = false
+                
+                if let appDayOfWeek = selectedAppDayOfWeek {
+                    if let matTimes = appDayOfWeek.matTimes {
+                        appDayOfWeek.removeFromMatTimes(matTimes)
                     }
+                    viewModel.saveContext()
                 }
             }
         }
     }
-    
+
     func binding(_ keyPath: WritableKeyPath<MatTime, Bool>) -> Binding<Bool> {
         return Binding(
             get: { matTime?[keyPath: keyPath] ?? false },
@@ -108,25 +131,21 @@ struct AddNewMatTimeSection: View {
     }
 
     private func formatDateToString(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "h:mma"
-        return formatter.string(from: date)
+        return viewModel.dateFormatter.string(from: date)
     }
 
     private func stringToDate(_ string: String) -> Date {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "h:mma"
-        return formatter.date(from: string) ?? Date()
+        return viewModel.dateFormatter.date(from: string) ?? Date()
     }
-}
 
-struct ToggleView: View {
-    let title: String
-    @Binding var isOn: Bool
+    struct ToggleView: View {
+        let title: String
+        @Binding var isOn: Bool
 
-    var body: some View {
-        Toggle(isOn: $isOn) {
-            Text(title)
+        var body: some View {
+            Toggle(isOn: $isOn) {
+                Text(title)
+            }
         }
     }
 }
