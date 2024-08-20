@@ -7,10 +7,24 @@
 
 import SwiftUI
 import CoreData
+import UIKit
+
+private func formatDateToString(_ date: Date) -> String {
+    let formatter = DateFormatter()
+    formatter.timeStyle = .short
+    return formatter.string(from: date)
+}
+
+private func stringToDate(_ string: String) -> Date? {
+    let formatter = DateFormatter()
+    formatter.dateFormat = "hh:mm a"
+    return formatter.date(from: string)
+}
 
 extension MatTime {
     override public var description: String {
-        "MatTime: \(time ?? "") - Gi: \(gi), No Gi: \(noGi), Open Mat: \(openMat), Restrictions: \(restrictions), Good for Beginners: \(goodForBeginners), Adult: \(adult)"
+        guard let timeString = time, let date = stringToDate(timeString) else { return "" }
+        return "\(formatDateToString(date)) - Gi: \(gi), No Gi: \(noGi), Open Mat: \(openMat), Restrictions: \(restrictions), Good for Beginners: \(goodForBeginners), Kids: \(kids)"
     }
 }
 
@@ -61,15 +75,14 @@ struct ScheduleFormView: View {
         Section(header: Text("Select Island")) {
             Picker("Select Island", selection: $selectedIsland) {
                 ForEach(islands, id: \.self) { island in
-                    Text(island.islandName).tag(island as PirateIsland?)
+                    Text(island.islandName).tag(island)
                 }
             }
             .onChange(of: selectedIsland) { newIsland in
                 if let island = newIsland {
                     print("Selected Island: \(island.islandName)")
-                    viewModel.fetchCurrentDayOfWeek(for: island, day: selectedDay) // Ensure day is provided
+                    viewModel.fetchCurrentDayOfWeek(for: island, day: selectedDay)
                     
-                    // Add this code to remove the AppDayOfWeek when the island changes
                     if let appDayOfWeek = selectedAppDayOfWeek {
                         viewModel.viewContext.delete(appDayOfWeek)
                         viewModel.saveContext()
@@ -84,7 +97,8 @@ struct ScheduleFormView: View {
         Section(header: Text("Select Day")) {
             Picker("Day", selection: $selectedDay) {
                 ForEach(DayOfWeek.allCases, id: \.self) { day in
-                    Text(day.displayName).tag(day)
+                    Text(day.displayName)
+                        .tag(day)
                 }
             }
             .pickerStyle(SegmentedPickerStyle())
@@ -100,6 +114,41 @@ struct ScheduleFormView: View {
         }
     }
 
+    private func dayButton(day: DayOfWeek) -> some View {
+        Button(action: {
+            selectedDay = day
+            print("Selected Day: \(day.displayName)")
+            viewModel.updateSchedules()
+            daySelected = true
+            if let island = selectedIsland {
+                viewModel.fetchCurrentDayOfWeek(for: island, day: day)
+            }
+            selectedAppDayOfWeek = viewModel.currentAppDayOfWeek
+        }) {
+            Text(day.displayName)
+                .font(.caption)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .foregroundColor(selectedDay == day ? Color.white : Color.black)
+                .padding(.vertical, 2)
+                .padding(.horizontal, 5)
+                .background(selectedDay == day ? Color.blue : Color.gray.opacity(0.1))
+        }
+        .cornerRadius(10, corners: {
+            if selectedDay == day {
+                if day.number == 2 { // Monday
+                    return [.topLeft, .bottomLeft]
+                } else if day.number == 7 { // Saturday
+                    return [.topRight, .bottomRight]
+                } else {
+                    return [.topLeft, .topRight]
+                }
+            } else {
+                return []
+            }
+        }())
+    }
+
     private var addNewMatTimeSection: some View {
         AddNewMatTimeSection(
             selectedAppDayOfWeek: $selectedAppDayOfWeek,
@@ -110,11 +159,45 @@ struct ScheduleFormView: View {
     }
 
     private var scheduledMatTimesSection: some View {
-        ScheduledMatTimesSection(
-            selectedDay: $selectedDay,
-            viewModel: viewModel,
-            selectedAppDayOfWeek: $selectedAppDayOfWeek
-        )
+        Section(header: Text("Scheduled Mat Times")) {
+            if let matTimes = viewModel.matTimesForDay[selectedDay], !matTimes.isEmpty {
+                List {
+                    ForEach(matTimes.sorted { $0.time ?? "" < $1.time ?? "" }, id: \.self) { matTime in
+                        VStack(alignment: .leading) {
+                            Text("Time: \(formatTime(matTime.time ?? "Unknown"))")
+                                .font(.headline)
+                            HStack {
+                                Label("Gi", systemImage: matTime.gi ? "checkmark.circle.fill" : "xmark.circle")
+                                    .foregroundColor(matTime.gi ? .green : .red)
+                                Label("NoGi", systemImage: matTime.noGi ? "checkmark.circle.fill" : "xmark.circle")
+                                    .foregroundColor(matTime.noGi ? .green : .red)
+                                Label("Open Mat", systemImage: matTime.openMat ? "checkmark.circle.fill" : "xmark.circle")
+                                    .foregroundColor(matTime.openMat ? .green : .red)
+                            }
+                            if matTime.restrictions {
+                                Text("Restrictions: \(matTime.restrictionDescription ?? "Yes")")
+                                    .font(.caption)
+                                    .foregroundColor(.red)
+                            }
+                            if matTime.goodForBeginners {
+                                Text("Good for Beginners")
+                                    .font(.caption)
+                                    .foregroundColor(.blue)
+                            }
+                            if matTime.kids {
+                                Text("Kids")
+                                    .font(.caption)
+                                    .foregroundColor(.blue)
+                            }
+                        }
+                        .padding()
+                    }
+                }
+            } else {
+                Text("No mat times available.")
+                    .foregroundColor(.gray)
+            }
+        }
     }
 
     private var errorHandlingSection: some View {
@@ -127,28 +210,45 @@ struct ScheduleFormView: View {
             }
         }
     }
+    
+    func formatTime(_ time: String) -> String {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "HH:mm"
+        if let date = dateFormatter.date(from: time) {
+            dateFormatter.dateFormat = "h:mm a"
+            return dateFormatter.string(from: date)
+        } else {
+            return time
+        }
+    }
+
+
 }
 
+struct CornerRadiusStyle: ViewModifier {
+    let radius: CGFloat
+    let corners: UIRectCorner
 
-struct ScheduledMatTimesSection: View {
-    @Binding var selectedDay: DayOfWeek
-    @ObservedObject var viewModel: AppDayOfWeekViewModel
-    @Binding var selectedAppDayOfWeek: AppDayOfWeek?
+    func body(content: Content) -> some View {
+        content
+            .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: radius, style: .continuous)
+                    .stroke(Color.clear, lineWidth: 0)
+                    .mask(
+                        Rectangle()
+                            .padding(.top, corners.contains(.topLeft) || corners.contains(.topRight) ? radius : 0)
+                            .padding(.bottom, corners.contains(.bottomLeft) || corners.contains(.bottomRight) ? radius : 0)
+                            .padding(.leading, corners.contains(.topLeft) || corners.contains(.bottomLeft) ? radius : 0)
+                            .padding(.trailing, corners.contains(.topRight) || corners.contains(.bottomRight) ? radius : 0)
+                    )
+            )
+    }
+}
 
-    var body: some View {
-        Section(header: Text("Scheduled Mat Times")) {
-            if let matTimes = viewModel.matTimesForDay[selectedDay], !matTimes.isEmpty {
-                List {
-                    ForEach(matTimes, id: \.self) { matTime in
-                        Text(matTime.description)
-                            .padding()
-                    }
-                }
-            } else {
-                Text("No mat times available.")
-                    .foregroundColor(.gray)
-            }
-        }
+extension View {
+    func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
+        self.modifier(CornerRadiusStyle(radius: radius, corners: corners))
     }
 }
 
@@ -171,19 +271,10 @@ struct ScheduleFormView_Previews: PreviewProvider {
         // Create a mock repository for the view model
         let mockRepository = AppDayOfWeekRepository(persistenceController: persistenceController)
         
-        // Create and configure the view model
-        let viewModel = AppDayOfWeekViewModel(
-            selectedIsland: island,
-            repository: mockRepository
-        )
-        
-        // Initialize the view model with mock data
-        viewModel.fetchCurrentDayOfWeek(for: island, day: .monday) // Adjusted for preview
-        
         return ScheduleFormView(
             selectedAppDayOfWeek: .constant(appDayOfWeek),
             selectedIsland: .constant(island),
-            viewModel: viewModel
+            viewModel: AppDayOfWeekViewModel(selectedIsland: island, repository: mockRepository)
         )
         .environment(\.managedObjectContext, context)
         .previewDisplayName("Schedule Form Preview")

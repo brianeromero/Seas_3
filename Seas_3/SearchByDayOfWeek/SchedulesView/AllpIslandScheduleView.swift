@@ -18,7 +18,9 @@ struct AllpIslandScheduleView: View {
     var body: some View {
         List {
             ForEach(appDayOfWeeks) { schedule in
-                ScheduleRow(schedule: schedule)
+                ForEach(Array(schedule.matTimes as? Set<MatTime> ?? [])) { matTime in
+                    ScheduleRow(matTime: matTime)
+                }
             }
             .onDelete(perform: deleteItems)
         }

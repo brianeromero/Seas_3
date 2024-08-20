@@ -140,8 +140,8 @@ struct MatTimeRow: View {
                 Text("Good for Beginners")
                     .font(.body)
             }
-            if matTime.adult {
-                Text("Adult")
+            if matTime.kids {
+                Text("Kids")
                     .font(.body)
             }
         }
@@ -240,7 +240,7 @@ struct IslandScheduleAsCal_Previews: PreviewProvider {
         matTime1.restrictions = false
         matTime1.restrictionDescription = nil
         matTime1.goodForBeginners = true
-        matTime1.adult = false
+        matTime1.kids = false
 
         let matTime2 = MatTime(context: context)
         matTime2.id = UUID()
@@ -251,7 +251,7 @@ struct IslandScheduleAsCal_Previews: PreviewProvider {
         matTime2.restrictions = true
         matTime2.restrictionDescription = "Limited Space"
         matTime2.goodForBeginners = false
-        matTime2.adult = true
+        matTime2.kids = true
         
         // Associate MatTime with AppDayOfWeek
         appDayOfWeek1.addToMatTimes(matTime1)

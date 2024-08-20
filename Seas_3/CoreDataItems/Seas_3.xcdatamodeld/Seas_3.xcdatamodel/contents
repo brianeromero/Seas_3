@@ -1,19 +1,20 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="22758" systemVersion="23G80" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23222.3" systemVersion="24A5309e" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
     <entity name="AppDayOfWeek" representedClassName="AppDayOfWeek" syncable="YES">
         <attribute name="appDayOfWeekID" optional="YES" attributeType="String"/>
         <attribute name="createdTimestamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="day" optional="YES" attributeType="String"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="name" optional="YES" attributeType="String"/>
         <relationship name="matTimes" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="MatTime" inverseName="appDayOfWeek" inverseEntity="MatTime"/>
         <relationship name="pIsland" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PirateIsland" inverseName="appDayOfWeeks" inverseEntity="PirateIsland"/>
     </entity>
     <entity name="MatTime" representedClassName="MatTime" syncable="YES">
-        <attribute name="adult" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="createdTimestamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="gi" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="goodForBeginners" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="kids" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="noGi" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="openMat" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="restrictionDescription" optional="YES" attributeType="String"/>

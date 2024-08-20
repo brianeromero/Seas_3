@@ -36,7 +36,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
     @Published var restrictionsForDay: [DayOfWeek: Bool] = [:]
     @Published var restrictionDescriptionForDay: [DayOfWeek: String] = [:]
     @Published var goodForBeginnersForDay: [DayOfWeek: Bool] = [:]
-    @Published var adultForDay: [DayOfWeek: Bool] = [:]
+    @Published var kidsForDay: [DayOfWeek: Bool] = [:]
     @Published var matTimeForDay: [DayOfWeek: String] = [:]
     @Published var selectedTimeForDay: [DayOfWeek: Date] = [:]
     @Published var matTimesForDay: [DayOfWeek: [MatTime]] = [:]
@@ -184,7 +184,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
         restrictions: Bool,
         restrictionDescription: String?,
         goodForBeginners: Bool,
-        adult: Bool,
+        kids: Bool,
         for day: DayOfWeek
     ) {
         guard selectedIsland != nil else {
@@ -193,7 +193,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
         }
 
         // Use `addMatTimes` instead of `addMatTimesForDay`
-        addMatTimes(day: day, matTimes: [(time: time, type: type, gi: gi, noGi: noGi, openMat: openMat, restrictions: restrictions, restrictionDescription: restrictionDescription, goodForBeginners: goodForBeginners, adult: adult)])
+        addMatTimes(day: day, matTimes: [(time: time, type: type, gi: gi, noGi: noGi, openMat: openMat, restrictions: restrictions, restrictionDescription: restrictionDescription, goodForBeginners: goodForBeginners, kids: kids)])
         print("Added/Updated MatTime")
     }
     // MARK: - Update Or Create MatTime
@@ -207,7 +207,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
         restrictions: Bool,
         restrictionDescription: String,
         goodForBeginners: Bool,
-        adult: Bool,
+        kids: Bool,
         for appDayOfWeek: AppDayOfWeek
     ) {
         // Log parameters
@@ -221,7 +221,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
         print("  Restrictions: \(restrictions)")
         print("  RestrictionDescription: \(restrictionDescription)")
         print("  GoodForBeginners: \(goodForBeginners)")
-        print("  Adult: \(adult)")
+        print("  Kids: \(kids)")
         print("  AppDayOfWeek: \(appDayOfWeek)")
 
         // Log stack trace for debugging
@@ -239,7 +239,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
                 restrictions: restrictions,
                 restrictionDescription: restrictionDescription,
                 goodForBeginners: goodForBeginners,
-                adult: adult
+                kids: kids
             )
             print("Updated MatTime details: \(existingMatTime)")
         } else {
@@ -254,7 +254,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
                 restrictions: restrictions,
                 restrictionDescription: restrictionDescription,
                 goodForBeginners: goodForBeginners,
-                adult: adult
+                kids: kids
             )
             appDayOfWeek.addToMatTimes(newMatTime)
             print("Created new MatTime with ID: \(newMatTime.id ?? UUID())")
@@ -330,7 +330,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
             restrictionsForDay[day] = false
             restrictionDescriptionForDay[day] = ""
             goodForBeginnersForDay[day] = false
-            adultForDay[day] = false
+            kidsForDay[day] = false
             matTimeForDay[day] = ""
             selectedTimeForDay[day] = Date()
             matTimesForDay[day] = []
@@ -376,13 +376,16 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
     func fetchAppDayOfWeekAndUpdateList(for island: PirateIsland, day: DayOfWeek, context: NSManagedObjectContext) {
         print("Fetching AppDayOfWeek for island: \(island) and day: \(day)")
         if let appDayOfWeek = repository.fetchAppDayOfWeek(for: island, day: day, context: context) {
-            matTimesForDay[day] = appDayOfWeek.matTimes?.allObjects as? [MatTime] ?? []
-            print("Updated matTimesForDay for \(day): \(matTimesForDay[day] ?? [])")
+            if let matTimes = appDayOfWeek.matTimes?.allObjects as? [MatTime] {
+                matTimesForDay[day] = matTimes
+                print("Updated matTimesForDay for \(day): \(matTimesForDay[day] ?? [])")
+            } else {
+                print("No mat times found for \(day) on island \(island).")
+            }
         } else {
             print("No AppDayOfWeek found for \(day) on island \(island).")
         }
     }
-
     // MARK: - Equatable Implementation
     static func == (lhs: AppDayOfWeekViewModel, rhs: AppDayOfWeekViewModel) -> Bool {
         print("Comparing AppDayOfWeekViewModel instances for equality")
@@ -400,7 +403,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
                lhs.restrictionsForDay == rhs.restrictionsForDay &&
                lhs.restrictionDescriptionForDay == rhs.restrictionDescriptionForDay &&
                lhs.goodForBeginnersForDay == rhs.goodForBeginnersForDay &&
-               lhs.adultForDay == rhs.adultForDay &&
+               lhs.kidsForDay == rhs.kidsForDay &&
                lhs.matTimeForDay == rhs.matTimeForDay &&
                lhs.selectedTimeForDay == rhs.selectedTimeForDay &&
                lhs.matTimesForDay == rhs.matTimesForDay &&
@@ -537,7 +540,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
     // MARK: - Add Mat Times For Day
     func addMatTimes(
         day: DayOfWeek,
-        matTimes: [(time: String, type: String, gi: Bool, noGi: Bool, openMat: Bool, restrictions: Bool, restrictionDescription: String?, goodForBeginners: Bool, adult: Bool)]
+        matTimes: [(time: String, type: String, gi: Bool, noGi: Bool, openMat: Bool, restrictions: Bool, restrictionDescription: String?, goodForBeginners: Bool, kids: Bool)]
     ) {
         matTimes.forEach { matTime in
             let newMatTime = MatTime(context: viewContext)  // Ensure using viewContext here
@@ -550,7 +553,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
                 restrictions: matTime.restrictions,
                 restrictionDescription: matTime.restrictionDescription,
                 goodForBeginners: matTime.goodForBeginners,
-                adult: matTime.adult
+                kids: matTime.kids
             )
             addMatTime(matTime: newMatTime, for: day)
         }
@@ -602,7 +605,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
                 restrictions: matTime.restrictions,
                 restrictionDescription: matTime.restrictionDescription ?? "",
                 goodForBeginners: matTime.goodForBeginners,
-                adult: matTime.adult,
+                kids: matTime.kids,
                 for: day
             )
         }
@@ -701,7 +704,7 @@ extension MatTime {
         self.restrictions = false
         self.restrictionDescription = ""
         self.goodForBeginners = false
-        self.adult = false
+        self.kids = false
     }
     func configure(
         time: String? = nil,
@@ -712,7 +715,7 @@ extension MatTime {
         restrictions: Bool = false,
         restrictionDescription: String? = nil,
         goodForBeginners: Bool = false,
-        adult: Bool = false
+        kids: Bool = false
     ) {
         self.time = time
         self.type = type
@@ -722,7 +725,7 @@ extension MatTime {
         self.restrictions = restrictions
         self.restrictionDescription = restrictionDescription
         self.goodForBeginners = goodForBeginners
-        self.adult = adult
+        self.kids = kids
     }
         
 }

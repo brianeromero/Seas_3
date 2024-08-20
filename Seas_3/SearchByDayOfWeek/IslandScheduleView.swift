@@ -126,7 +126,7 @@ struct IslandScheduleView_Previews: PreviewProvider {
             mockMatTime.restrictions = false
             mockMatTime.restrictionDescription = nil
             mockMatTime.goodForBeginners = true
-            mockMatTime.adult = false
+            mockMatTime.kids = false
             mockSchedule.day = day.displayName
             mockSchedule.matTimes = [mockMatTime] as NSSet
             viewModel.appDayOfWeekList.append(mockSchedule)

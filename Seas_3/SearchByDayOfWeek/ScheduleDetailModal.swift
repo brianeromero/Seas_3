@@ -75,7 +75,7 @@ struct ScheduleDetailModal_Previews: PreviewProvider {
         mockMatTime1.restrictions = false
         mockMatTime1.restrictionDescription = nil
         mockMatTime1.goodForBeginners = true
-        mockMatTime1.adult = false
+        mockMatTime1.kids = false
         mockSchedule1.day = DayOfWeek.monday.rawValue
         mockSchedule1.matTimes = [mockMatTime1] as NSSet
 
@@ -88,7 +88,7 @@ struct ScheduleDetailModal_Previews: PreviewProvider {
         mockMatTime2.restrictions = true
         mockMatTime2.restrictionDescription = "No kids allowed"
         mockMatTime2.goodForBeginners = false
-        mockMatTime2.adult = false
+        mockMatTime2.kids = false
         mockSchedule2.day = DayOfWeek.monday.rawValue
         mockSchedule2.matTimes = [mockMatTime2] as NSSet
 
