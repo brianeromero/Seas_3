@@ -19,7 +19,7 @@ struct AddClassScheduleView: View {
     @State private var restrictions: Bool = false
     @State private var restrictionDescription: String = ""
     @State private var goodForBeginners: Bool = false
-    @State private var adult: Bool = false
+    @State private var kids: Bool = false
 
     init(viewModel: AppDayOfWeekViewModel, isPresented: Binding<Bool>) {
         _viewModel = ObservedObject(wrappedValue: viewModel)
@@ -48,7 +48,7 @@ struct AddClassScheduleView: View {
                     }
                     
                     Toggle("Good for Beginners", isOn: $goodForBeginners)
-                    Toggle("Adult", isOn: $adult)
+                    Toggle("Kids", isOn: $kids)
                 }
                 
                 Button(action: {
@@ -61,7 +61,7 @@ struct AddClassScheduleView: View {
                         restrictions: restrictions,
                         restrictionDescription: restrictionDescription,
                         goodForBeginners: goodForBeginners,
-                        adult: adult,
+                        kids: kids,
                         for: selectedDay
                     )
                     isPresented = false

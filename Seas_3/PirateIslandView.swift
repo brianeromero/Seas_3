@@ -16,7 +16,7 @@ struct PirateIslandView: View {
     
     var body: some View {
         if showWelcomePage {
-            Text("Mat Finder + ")
+            Text("Mat_Finder + ")
                 .font(.largeTitle)
                 .padding()
                 .onAppear {

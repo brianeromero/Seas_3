@@ -20,6 +20,7 @@ extension AppDayOfWeek {
     @NSManaged public var appDayOfWeekID: String?
     @NSManaged public var matTimes: NSSet?
     @NSManaged public var createdTimestamp: Date
+    @NSManaged public var id: UUID?
 
 
     

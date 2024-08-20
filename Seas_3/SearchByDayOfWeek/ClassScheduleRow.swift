@@ -77,7 +77,7 @@ struct ClassScheduleRow_Previews: PreviewProvider {
         matTime.restrictions = true
         matTime.restrictionDescription = "No kids allowed"
         matTime.goodForBeginners = false
-        matTime.adult = true
+        matTime.kids = true
         previewSchedule.addToMatTimes(matTime)
         
         // Create another preview instance without restrictions

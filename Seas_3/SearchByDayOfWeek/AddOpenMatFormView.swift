@@ -80,7 +80,7 @@ struct AddOpenMatFormView: View {
                             restrictions: viewModel.restrictionsForDay[day] ?? false,
                             restrictionDescription: viewModel.restrictionDescriptionForDay[day] ?? "",
                             goodForBeginners: viewModel.goodForBeginnersForDay[day] ?? false,
-                            adult: viewModel.adultForDay[day] ?? false,
+                            kids: viewModel.kidsForDay[day] ?? false,
                             for: day
                         )
                     }
@@ -92,7 +92,7 @@ struct AddOpenMatFormView: View {
     }
     
     func matTimesListSection(for day: DayOfWeek) -> some View {
-        Section(header: Text("Scheduled Mat Times")) {
+        Section(header: Text("Scheduled Mat Times1111")) {
             if let matTimes = viewModel.matTimesForDay[day] {
                 ForEach(matTimes, id: \.self) { matTime in
                     HStack {
@@ -143,10 +143,10 @@ struct AddOpenMatFormView: View {
                 Text("Good for Beginners")
             }
             Toggle(isOn: Binding(
-                get: { viewModel.adultForDay[day] ?? false },
-                set: { newValue in viewModel.adultForDay[day] = newValue }
+                get: { viewModel.kidsForDay[day] ?? false },
+                set: { newValue in viewModel.kidsForDay[day] = newValue }
             )) {
-                Text("Adult Class")
+                Text("Kids Class")
             }
             Toggle(isOn: Binding(
                 get: { viewModel.restrictionsForDay[day] ?? false },
@@ -176,7 +176,7 @@ struct AddOpenMatFormView: View {
                     restrictions: viewModel.restrictionsForDay[viewModel.selectedDay ?? DayOfWeek.monday] ?? false,
                     restrictionDescription: viewModel.restrictionDescriptionForDay[viewModel.selectedDay ?? DayOfWeek.monday] ?? "",
                     goodForBeginners: viewModel.goodForBeginnersForDay[viewModel.selectedDay ?? DayOfWeek.monday] ?? false,
-                    adult: viewModel.adultForDay[viewModel.selectedDay ?? DayOfWeek.monday] ?? false,
+                    kids: viewModel.kidsForDay[viewModel.selectedDay ?? DayOfWeek.monday] ?? false,
                     for: viewModel.selectedDay ?? DayOfWeek.monday
                 )
             } else {
