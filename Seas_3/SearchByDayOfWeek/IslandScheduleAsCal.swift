@@ -46,11 +46,11 @@ struct IslandScheduleAsCal: View {
                     .background(Color.secondary.opacity(0.1))
                     .cornerRadius(8)
                 } else {
-                    Text("No island selected.")
+                    Text("No gym selected.")
                         .foregroundColor(.red)
                 }
             }
-            .navigationBarTitle("Island Schedule", displayMode: .inline)
+            .navigationBarTitle("Mat Schedule", displayMode: .inline)
         }
     }
 }
@@ -217,7 +217,7 @@ struct IslandScheduleAsCal_Previews: PreviewProvider {
         // Create a mock PirateIsland instance
         let mockIsland = PirateIsland(context: context)
         mockIsland.islandID = UUID()
-        mockIsland.islandName = "Mock Island"
+        mockIsland.islandName = "Mock Gym"
 
         // Create mock AppDayOfWeek instances
         let appDayOfWeek1 = AppDayOfWeek(context: context)
@@ -266,6 +266,6 @@ struct IslandScheduleAsCal_Previews: PreviewProvider {
 
         return IslandScheduleAsCal(viewModel: viewModel, pIsland: mockIsland)
             .environment(\.managedObjectContext, context)
-            .previewDisplayName("Island Schedule Preview")
+            .previewDisplayName("Gym Schedule Preview")
     }
 }

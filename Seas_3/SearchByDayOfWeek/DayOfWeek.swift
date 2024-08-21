@@ -10,7 +10,7 @@ import SwiftUI
 
 import Foundation
 
-enum DayOfWeek: String, CaseIterable, Hashable, Identifiable {
+enum DayOfWeek: String, CaseIterable, Hashable, Identifiable, Comparable {
     case sunday, monday, tuesday, wednesday, thursday, friday, saturday
 
     var id: String { self.rawValue }
@@ -27,7 +27,6 @@ enum DayOfWeek: String, CaseIterable, Hashable, Identifiable {
         }
     }
 
-    // Added number property
     var number: Int {
         switch self {
         case .sunday: return 1
@@ -38,6 +37,11 @@ enum DayOfWeek: String, CaseIterable, Hashable, Identifiable {
         case .friday: return 6
         case .saturday: return 7
         }
+    }
+
+    // Conform to Comparable
+    static func < (lhs: DayOfWeek, rhs: DayOfWeek) -> Bool {
+        return lhs.number < rhs.number
     }
 
     static func from(displayName: String) -> DayOfWeek? {

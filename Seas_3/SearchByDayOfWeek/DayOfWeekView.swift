@@ -35,7 +35,7 @@ struct DayOfWeekView: View {
                     let defaultDay: DayOfWeek = .monday // Adjust this if necessary
                     viewModel.fetchCurrentDayOfWeek(for: island, day: defaultDay)
                 } else {
-                    print("No island selected")
+                    print("No gym selected")
                 }
             }
             .navigationTitle("Day of Week Settings")
@@ -57,7 +57,7 @@ struct DayOfWeekView_Previews: PreviewProvider {
 
         // Create a mock PirateIsland instance
         let mockIsland = PirateIsland(context: context)
-        mockIsland.islandName = "Mock Island"
+        mockIsland.islandName = "Mock Gym"
 
         // Create a mock repository
         let mockRepository = AppDayOfWeekRepository.shared // Assuming this is a singleton

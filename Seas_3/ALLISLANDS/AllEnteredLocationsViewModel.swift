@@ -32,7 +32,7 @@ class AllEnteredLocationsViewModel: NSObject, ObservableObject, NSFetchedResults
 
     func fetchPirateIslands() {
         // Ensure that this function is not called from view updates.
-        print("Fetching pirate islands...")
+        print("Fetching gyms...")
         DispatchQueue.global(qos: .userInitiated).async {
             let result = self.dataManager.fetchPirateIslands()
             switch result {
@@ -43,7 +43,7 @@ class AllEnteredLocationsViewModel: NSObject, ObservableObject, NSFetchedResults
                 }
             case .failure(let error):
                 DispatchQueue.main.async {
-                    self.errorMessage = "Failed to fetch pirate islands: \(error.localizedDescription)"
+                    self.errorMessage = "Failed to fetch gyms: \(error.localizedDescription)"
                 }
             }
         }

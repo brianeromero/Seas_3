@@ -116,11 +116,11 @@ struct AddNewMatTimeSection: View {
     }
 
     func formatDateToString(_ date: Date) -> String {
-        return viewModel.dateFormatter.string(from: date)
+        return DateFormat.time.string(from: date)
     }
 
-    func stringToDate(_ string: String) -> Date {
-        return viewModel.dateFormatter.date(from: string) ?? Date()
+    func stringToDate(_ string: String) -> Date? {
+        return DateFormat.time.date(from: string)
     }
 
     struct ToggleView: View {

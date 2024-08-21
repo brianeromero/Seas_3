@@ -20,6 +20,6 @@ public class PirateIsland: NSManagedObject {
             self.islandID = UUID()
         }
         
-        print("PirateIsland object created with ID: \(self.islandID?.uuidString ?? "unknown")")
+        print("Gym object created with ID: \(self.islandID?.uuidString ?? "unknown")")
     }
 }

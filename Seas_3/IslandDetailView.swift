@@ -14,7 +14,6 @@ struct IslandDetailView: View {
     @Binding var selectedDestination: IslandDestination?
 
     @Environment(\.managedObjectContext) private var viewContext
-    @State private var showMapView = false
 
     var body: some View {
         IslandDetailContent(island: island, selectedDestination: $selectedDestination)
@@ -23,7 +22,7 @@ struct IslandDetailView: View {
 
     private func fetchIsland() {
         guard let islandID = island.islandID else {
-            print("Island ID is nil.")
+            print("Gym ID is nil.")
             return
         }
 
@@ -34,9 +33,9 @@ struct IslandDetailView: View {
 
         do {
             let results = try viewContext.fetch(fetchRequest)
-            print("Fetched \(results.count) PirateIsland objects.")
+            print("Fetched \(results.count) Gym objects.")
         } catch {
-            print("Failed to fetch PirateIsland: \(error.localizedDescription)")
+            print("Failed to fetch Gym: \(error.localizedDescription)")
             // Handle error as needed (e.g., present an alert)
         }
     }
@@ -110,15 +109,12 @@ struct IslandDetailContent: View {
             Spacer()
         }
         .padding()
-        .navigationTitle("Island Detail")
+        .navigationTitle("Gym Detail")
     }
 
     private func formattedDate(_ date: Date?) -> String? {
         guard let date = date else { return nil }
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .medium
-        return formatter.string(from: date)
+        return DateFormat.mediumDateTime.string(from: date)
     }
 }
 
@@ -128,7 +124,7 @@ struct IslandDetailView_Previews: PreviewProvider {
         let context = persistenceController.viewContext
 
         let island = PirateIsland(context: context)
-        island.islandName = "Example Island"
+        island.islandName = "Example Gym"
         island.createdByUserId = "John Doe"
         island.createdTimestamp = Date()
 

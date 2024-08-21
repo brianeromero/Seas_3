@@ -41,8 +41,8 @@ struct AddIslandFormView: View {
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Island Details")) {
-                    TextField("Island Name", text: $islandName)
+                Section(header: Text("Gym Details")) {
+                    TextField("Gym Name", text: $islandName)
                         .onChange(of: islandName) { _ in validateFields() }
                     TextField("Street", text: $street)
                         .onChange(of: street) { _ in updateIslandLocation() }
@@ -80,7 +80,7 @@ struct AddIslandFormView: View {
                 }
                 .disabled(!isSaveEnabled)
             }
-            .navigationBarTitle("Add Island")
+            .navigationBarTitle("Add Gym")
             .navigationBarItems(leading: Button("Cancel") {
                 presentationMode.wrappedValue.dismiss()
             })
@@ -114,7 +114,7 @@ struct AddIslandFormView: View {
 
     private func geocodeIslandLocation() {
         let fullAddress = "\(street), \(city), \(state) \(zip)"
-        print("Geocoding Island Location: \(fullAddress)")
+        print("Geocoding Gym Location: \(fullAddress)")
 
         // Perform geocoding using GeocodingUtility
         geocodeAddress(fullAddress) { result in

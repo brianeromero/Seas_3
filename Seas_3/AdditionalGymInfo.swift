@@ -39,7 +39,7 @@ struct AdditionalGymInfo: View {
 struct AdditionalGymInfo_Previews: PreviewProvider {
     static var previews: some View {
         NavigationView {
-            AdditionalGymInfo(islandName: "Sample Island Name") // Provide a sample island name for the preview
+            AdditionalGymInfo(islandName: "Sample Gym Name") // Provide a sample island name for the preview
         }
     }
 }

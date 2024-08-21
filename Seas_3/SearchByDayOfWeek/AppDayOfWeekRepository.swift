@@ -38,7 +38,7 @@ class AppDayOfWeekRepository {
 
     func performActionThatDependsOnIslandAndDay() {
         guard let island = selectedIsland, let appDay = currentAppDayOfWeek else {
-            print("Selected island or current day of week is not set.")
+            print("Selected gym or current day of week is not set.")
             return
         }
 
@@ -150,7 +150,7 @@ class AppDayOfWeekRepository {
 
     func addNewAppDayOfWeek(for day: DayOfWeek) {
         guard let selectedIsland = selectedIsland else {
-            print("Error: selectedIsland is nil")
+            print("Error: selected gym is nil")
             return
         }
 
@@ -197,6 +197,9 @@ class AppDayOfWeekRepository {
         return persistenceController.fetchSchedules(for: predicate)
     }
 
+    
+    
+    
     func deleteRecord(for appDayOfWeek: AppDayOfWeek) {
         print("AppDayOfWeekRepository - Deleting record for AppDayOfWeek: \(appDayOfWeek.appDayOfWeekID ?? "Unknown")")
         if let matTimes = appDayOfWeek.matTimes as? Set<MatTime> {

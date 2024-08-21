@@ -10,15 +10,11 @@ import CoreData
 import UIKit
 
 private func formatDateToString(_ date: Date) -> String {
-    let formatter = DateFormatter()
-    formatter.timeStyle = .short
-    return formatter.string(from: date)
+    return DateFormat.time.string(from: date)
 }
 
 private func stringToDate(_ string: String) -> Date? {
-    let formatter = DateFormatter()
-    formatter.dateFormat = "hh:mm a"
-    return formatter.date(from: string)
+    return DateFormat.time.date(from: string)
 }
 
 extension MatTime {
@@ -64,7 +60,7 @@ struct ScheduleFormView: View {
                 scheduledMatTimesSection
                 errorHandlingSection
             }
-            .navigationTitle("Schedule Form")
+            .navigationTitle("Schedule Entry")
             .alert(isPresented: $showingAlert) {
                 Alert(title: Text(alertTitle), message: Text(alertMessage), dismissButton: .default(Text("OK")))
             }
@@ -72,15 +68,15 @@ struct ScheduleFormView: View {
     }
 
     private var islandSelectionSection: some View {
-        Section(header: Text("Select Island")) {
-            Picker("Select Island", selection: $selectedIsland) {
+        Section(header: Text("Select Gym")) {
+            Picker("Select Gym", selection: $selectedIsland) {
                 ForEach(islands, id: \.self) { island in
                     Text(island.islandName).tag(island)
                 }
             }
             .onChange(of: selectedIsland) { newIsland in
                 if let island = newIsland {
-                    print("Selected Island: \(island.islandName)")
+                    print("Selected Gym: \(island.islandName)")
                     viewModel.fetchCurrentDayOfWeek(for: island, day: selectedDay)
                     
                     if let appDayOfWeek = selectedAppDayOfWeek {
@@ -212,11 +208,8 @@ struct ScheduleFormView: View {
     }
     
     func formatTime(_ time: String) -> String {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "HH:mm"
-        if let date = dateFormatter.date(from: time) {
-            dateFormatter.dateFormat = "h:mm a"
-            return dateFormatter.string(from: date)
+        if let date = DateFormat.time.date(from: time) {
+            return DateFormat.shortTime.string(from: date)
         } else {
             return time
         }
@@ -260,7 +253,7 @@ struct ScheduleFormView_Previews: PreviewProvider {
         // Create a valid PirateIsland object
         let island = PirateIsland(context: context)
         island.islandID = UUID()
-        island.islandName = "Island Name"
+        island.islandName = "Gym Name"
         
         // Create a valid AppDayOfWeek object
         let appDayOfWeek = AppDayOfWeek(context: context)
@@ -277,6 +270,6 @@ struct ScheduleFormView_Previews: PreviewProvider {
             viewModel: AppDayOfWeekViewModel(selectedIsland: island, repository: mockRepository)
         )
         .environment(\.managedObjectContext, context)
-        .previewDisplayName("Schedule Form Preview")
+        .previewDisplayName("Schedule Entry Preview")
     }
 }

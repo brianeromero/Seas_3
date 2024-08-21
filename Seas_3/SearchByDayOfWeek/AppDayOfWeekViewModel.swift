@@ -67,14 +67,11 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
 
     
     // MARK: - DateFormatter
-    public lazy var dateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm" // Choose the format that suits your needs
-        return formatter
-    }()
+    public let dateFormatter: DateFormatter = DateFormat.time
     
     // MARK: - Initializer
-    init(selectedIsland: PirateIsland?, repository: AppDayOfWeekRepository) {
+    
+    init(selectedIsland: PirateIsland? = nil, repository: AppDayOfWeekRepository) {
         self.selectedIsland = selectedIsland
         self.repository = repository
         self.viewContext = repository.getViewContext()
@@ -91,7 +88,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
     // Method to fetch AppDayOfWeek later
     func updateDayAndFetch(day: DayOfWeek) {
         guard let island = selectedIsland else {
-            print("Island is not set.")
+            print("Gym is not set.")
             return
         }
         fetchCurrentDayOfWeek(for: island, day: day)
@@ -114,8 +111,8 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
         guard let island = selectedIsland,
               let appDayOfWeek = currentAppDayOfWeek,
               let dayOfWeek = selectedDay else {
-            errorMessage = "Island, AppDayOfWeek, or DayOfWeek is not selected."
-            print("Island, AppDayOfWeek, or DayOfWeek is not selected.")
+            errorMessage = "Gym, AppDayOfWeek, or DayOfWeek is not selected."
+            print("Gym, AppDayOfWeek, or DayOfWeek is not selected.")
             return
         }
         
@@ -127,23 +124,23 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
 
     
     func fetchPirateIslands() {
-        print("Fetching pirate islands...")
+        print("Fetching gym...")
         let result = dataManager.fetchPirateIslands()
         switch result {
         case .success(let pirateIslands):
             allIslands = pirateIslands
-            print("Fetched Pirate Islands: \(allIslands)")
+            print("Fetched Gyms: \(allIslands)")
         case .failure(let error):
-            print("Error fetching pirate islands: \(error.localizedDescription)")
-            errorMessage = "Error fetching pirate islands: \(error.localizedDescription)"
+            print("Error fetching gyms: \(error.localizedDescription)")
+            errorMessage = "Error fetching gyms: \(error.localizedDescription)"
         }
     }
 
     // MARK: - Ensure Initialization
     func ensureInitialization() {
         if selectedIsland == nil {
-            errorMessage = "Island is not selected."
-            print("Error: Island is not selected.")
+            errorMessage = "Gym is not selected."
+            print("Error: Gym is not selected.")
             return
         }
 
@@ -188,7 +185,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
         for day: DayOfWeek
     ) {
         guard selectedIsland != nil else {
-            print("Error: Selected island is not set. Please select an island before adding a mat time.")
+            print("Error: Selected gym is not set. Please select an gym before adding a mat time.")
             return
         }
 
@@ -279,7 +276,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
         if let selectedIsland = selectedIsland, let day = selectedDay {
             fetchCurrentDayOfWeek(for: selectedIsland, day: day)
         } else {
-            print("Error: Either island or day is not selected.")
+            print("Error: Either gym or day is not selected.")
         }
         initializeNewMatTime()
     }
@@ -300,7 +297,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
     }
     // MARK: - Update Day
     func updateDay(for island: PirateIsland, dayOfWeek: DayOfWeek) {
-        print("Updating day settings for island: \(island) and dayOfWeek: \(dayOfWeek)")
+        print("Updating day settings for gym: \(island) and dayOfWeek: \(dayOfWeek)")
 
         // Fetch or create the AppDayOfWeek instance with context
         let appDayOfWeek = repository.fetchOrCreateAppDayOfWeek(for: dayOfWeek.rawValue, pirateIsland: island, context: viewContext)
@@ -371,6 +368,33 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
         print("Loaded schedules: \(schedules)")
     }
 
+    // MARK: - Load All Schedules
+    func loadAllSchedules() {
+        let appDayOfWeeks = repository.fetchAllAppDayOfWeeks()
+        var schedulesDict: [DayOfWeek: [AppDayOfWeek]] = [:]
+        
+        for appDayOfWeek in appDayOfWeeks {
+            // Replace `day` with the actual property name in AppDayOfWeek
+            if let dayValue = appDayOfWeek.day { // Adjust 'day' to match the actual property name
+                if let day = DayOfWeek(rawValue: dayValue) {
+                    // Initialize the array if it doesn't exist for the given day
+                    if schedulesDict[day] == nil {
+                        schedulesDict[day] = []
+                    }
+                    // Append the current `appDayOfWeek` to the array for that day
+                    schedulesDict[day]?.append(appDayOfWeek)
+                } else {
+                    print("Warning: Invalid day value '\(dayValue)'")
+                }
+            } else {
+                print("Warning: AppDayOfWeek has no day set.")
+            }
+        }
+        
+        // Update the schedules property
+        schedules = schedulesDict
+        print("Loaded all schedules: \(schedules)")
+    }
     
     // MARK: - Fetch and Update List of AppDayOfWeek for a Specific Day
     func fetchAppDayOfWeekAndUpdateList(for island: PirateIsland, day: DayOfWeek, context: NSManagedObjectContext) {
@@ -416,8 +440,8 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
     // MARK: - Add New Mat Time
     func addNewMatTime() {
         guard let day = selectedDay, let island = selectedIsland else {
-            errorMessage = "Day of the week or island is not selected."
-            print("Error: Day of the week or island is not selected.")
+            errorMessage = "Day of the week or gym is not selected."
+            print("Error: Day of the week or gym is not selected.")
             return
         }
         
@@ -473,7 +497,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
     // MARK: - Update Bindings
     func updateBindings() {
         print("Updating bindings...")
-        print("Selected Island: \(String(describing: selectedIsland))")
+        print("Selected Gym: \(String(describing: selectedIsland))")
         print("Current AppDayOfWeek: \(String(describing: currentAppDayOfWeek))")
         print("New MatTime: \(String(describing: newMatTime))")
     }
@@ -528,7 +552,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
     func setSelectedIsland(_ island: PirateIsland) {
         self.selectedIsland = island
         repository.setSelectedIsland(island)
-        print("Selected island set to: \(island)")
+        print("Selected gym set to: \(island)")
     }
     func setCurrentAppDayOfWeek(_ appDayOfWeek: AppDayOfWeek) {
         self.currentAppDayOfWeek = appDayOfWeek
@@ -565,8 +589,8 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
         for day: DayOfWeek
     ) {
         guard let island = selectedIsland else {
-            errorMessage = "Selected island is not set."
-            print("Error: Selected island is not set.")
+            errorMessage = "Selected gym is not set."
+            print("Error: Selected gym is not set.")
             return
         }
         
@@ -643,7 +667,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
     // MARK: - Update Schedules
     func updateSchedules() {
         guard let selectedIsland = self.selectedIsland else {
-            print("Error: Selected island is not set.")
+            print("Error: Selected gym is not set.")
             return
         }
         

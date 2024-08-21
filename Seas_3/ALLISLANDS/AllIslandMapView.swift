@@ -142,7 +142,7 @@ struct ConsolidatedIslandMapView_Previews: PreviewProvider {
         // Ensure the preview works with a valid managed object context and mock data
         let context = PersistenceController.preview.container.viewContext
         let previewIsland = PirateIsland(context: context)
-        previewIsland.islandName = "Sample Island"
+        previewIsland.islandName = "Sample Gym"
         previewIsland.latitude = 37.7749
         previewIsland.longitude = -122.4194
 

@@ -59,15 +59,9 @@ extension PirateIsland {
     }
     
     public var formattedTimestamp: String {
-        PirateIsland.dateFormatter.string(from: lastModifiedTimestamp ?? Date())
+        DateFormat.full.string(from: lastModifiedTimestamp ?? Date())
     }
     
-    // Date formatter for reusability and performance
-    private static var dateFormatter: DateFormatter {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MM/dd/yyyy HH:mm:ss"
-        return formatter
-    }
     
     // MARK: - Custom Methods
 
@@ -75,9 +69,9 @@ extension PirateIsland {
         let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
         do {
             let results = try context.fetch(fetchRequest)
-            print("Fetched \(results.count) PirateIsland objects.")
+            print("Fetched \(results.count) Gym objects.")
         } catch {
-            print("Failed to fetch PirateIsland: \(error)")
+            print("Failed to fetch Gym: \(error)")
         }
     }
 }

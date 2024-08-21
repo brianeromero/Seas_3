@@ -98,11 +98,11 @@ class EnterZipCodeViewModel: ObservableObject {
 
         do {
             let islands = try context.fetch(fetchRequest)
-            print("Fetched islands within radius: \(radius) meters")
+            print("Fetched gyms within radius: \(radius) meters")
             let filteredIslands = islands.filter { island in
                 let islandLocation = CLLocation(latitude: island.latitude, longitude: island.longitude)
                 let distance = islandLocation.distance(from: location)
-                print("Island \(island.islandName) is \(distance) meters away")
+                print("Gym \(island.islandName) is \(distance) meters away")
                 return distance <= radius
             }
 
@@ -116,11 +116,11 @@ class EnterZipCodeViewModel: ObservableObject {
                             title: island.islandName
                         )
                     }
-                    print("Filtered pirate islands: \(self.pirateIslands)")
+                    print("Filtered gyms: \(self.pirateIslands)")
                 }
             }
         } catch {
-            print("Error fetching pirate islands: \(error.localizedDescription)")
+            print("Error fetching gyms: \(error.localizedDescription)")
         }
     }
 
