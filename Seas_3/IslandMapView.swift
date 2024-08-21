@@ -53,7 +53,7 @@ struct IslandMapView: View {
                                 .padding(.top, 5)
                                 .foregroundColor(.blue)
                             } else {
-                                Text("Island location not available")
+                                Text("Gym location not available")
                             }
                         }
                         .padding()
@@ -61,12 +61,12 @@ struct IslandMapView: View {
                 }
             }
             .padding()
-            .navigationTitle("Island Details")
+            .navigationTitle("Gym Details")
         }
         .onAppear {
-            print("IslandMapView appeared with islands count: \(islands.count)")
+            print("Gym MapView appeared with gym count: \(islands.count)")
             for island in islands {
-                print("Island: \(island.islandName), Location: \(island.islandLocation), Latitude: \(island.latitude), Longitude: \(island.longitude)")
+                print("Gym: \(island.islandName), Location: \(island.islandLocation), Latitude: \(island.latitude), Longitude: \(island.longitude)")
             }
         }
     }

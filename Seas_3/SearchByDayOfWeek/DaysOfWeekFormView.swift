@@ -38,8 +38,8 @@ struct DaysOfWeekFormView: View {
         NavigationView {
             List {
                 if let selectedIsland = selectedIsland {
-                    Section(header: Text("Island")) {
-                        Text("Selected Island: \(selectedIsland.islandName)")
+                    Section(header: Text("Gyms")) {
+                        Text("Selected Gym: \(selectedIsland.islandName)")
                     }
                 } else {
                     Section(header: Text("Search by Gym Name, Zip Code, or Address/Location")) {
@@ -207,7 +207,7 @@ struct DaysOfWeekFormView_Previews: PreviewProvider {
         
         // Create a mock PirateIsland
         let mockIsland = PirateIsland(context: context)
-        mockIsland.islandName = "Mock Island"
+        mockIsland.islandName = "Mock Gym"
         mockIsland.islandLocation = "Mock Location"
         mockIsland.latitude = 0.0
         mockIsland.longitude = 0.0

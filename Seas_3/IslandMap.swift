@@ -61,11 +61,11 @@ struct IslandMap: View {
         }) { item in
             item.mapAnnotation() // Use mapAnnotation method to create MapAnnotation
         }
-        .navigationTitle("Island Map")
+        .navigationTitle("Gym Map")
         .onAppear {
-            print("IslandMap appeared with islands count: \(islands.count)")
+            print("Gym Map appeared with gyms count: \(islands.count)")
             for island in islands {
-                print("Island: \(island.islandName), Location: \(island.islandLocation), Latitude: \(island.latitude), Longitude: \(island.longitude)")
+                print("Gym: \(island.islandName), Location: \(island.islandLocation), Latitude: \(island.latitude), Longitude: \(island.longitude)")
             }
         }
     }

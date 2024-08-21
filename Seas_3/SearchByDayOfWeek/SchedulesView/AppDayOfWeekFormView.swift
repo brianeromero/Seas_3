@@ -29,7 +29,7 @@ struct AppDayOfWeekFormView: View {
                 TextField("Name", text: $name)
                 TextField("App Day of Week ID", text: $appDayOfWeekID)
                 
-                Picker("Select Island", selection: $selectedIsland) {
+                Picker("Select Gym", selection: $selectedIsland) {
                     ForEach(islands, id: \.self) { island in
                         Text(island.islandName).tag(island as PirateIsland?)
                     }

@@ -82,7 +82,7 @@ struct EditExistingIslandList: View {
     }
 
     private func logFetch() {
-        print("Fetched \(islands.count) PirateIsland objects.")
+        print("Fetched \(islands.count) Gym objects.")
     }
 }
 
@@ -93,7 +93,7 @@ struct EditExistingIslandList_Previews: PreviewProvider {
         // Example island for preview
         let context = persistenceController.viewContext
         let island = PirateIsland(context: context)
-        island.islandName = "Sample Island"
+        island.islandName = "Sample Gym"
         // Set other properties as needed...
 
         return NavigationView {

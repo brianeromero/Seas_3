@@ -49,7 +49,7 @@ struct AddNewIsland: View {
                 enteredBySection
                 saveButton
             }
-            .navigationBarTitle("Add New Island", displayMode: .inline)
+            .navigationBarTitle("Add New Gym", displayMode: .inline)
             .navigationBarItems(leading: cancelButton)
             .alert(isPresented: $showAlert) {
                 Alert(title: Text("Error"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
@@ -73,8 +73,8 @@ struct AddNewIsland: View {
     // MARK: - Sections
     
     private var islandDetailsSection: some View {
-        Section(header: Text("Island Details")) {
-            TextField("Island Name", text: $islandName)
+        Section(header: Text("Gym Details")) {
+            TextField("Gym Name", text: $islandName)
                 .onChange(of: islandName) { _ in validateFields() }
             TextField("Street", text: $street)
                 .onChange(of: street) { _ in updateIslandLocation() }
@@ -151,7 +151,7 @@ struct AddNewIsland: View {
                 switch result {
                 case .success:
                     self.showToast = true
-                    self.toastMessage = "Island added successfully!"
+                    self.toastMessage = "Gym added successfully!"
                     self.clearFields()
                     
                     // Navigate back to IslandMenu
@@ -159,7 +159,7 @@ struct AddNewIsland: View {
                     
                 case .failure(let error):
                     self.showToast = true
-                    self.toastMessage = "Failed to add island: \(error.localizedDescription)"
+                    self.toastMessage = "Failed to add gym: \(error.localizedDescription)"
                     // Optionally handle error or retry logic here
                 }
             }

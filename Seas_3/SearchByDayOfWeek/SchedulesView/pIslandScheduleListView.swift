@@ -53,11 +53,8 @@ struct pIslandScheduleListView: View {
     }
 
     func formatTime(_ time: String) -> String {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "HH:mm"
-        if let date = dateFormatter.date(from: time) {
-            dateFormatter.dateFormat = "h:mm a"
-            return dateFormatter.string(from: date)
+        if let date = DateFormat.time.date(from: time) {
+            return DateFormat.shortTime.string(from: date)
         } else {
             return time
         }

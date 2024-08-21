@@ -88,7 +88,7 @@ class PersistenceController: ObservableObject {
         do {
             return try fetch(request: fetchRequest)
         } catch {
-            print("Error fetching pirate islands: \(error)")
+            print("Error fetching gyms: \(error)")
             return []
         }
     }
@@ -101,7 +101,7 @@ class PersistenceController: ObservableObject {
             let results = try fetch(request: fetchRequest)
             return results.first
         } catch {
-            print("Error fetching last pirate island: \(error)")
+            print("Error fetching last gym: \(error)")
             return nil
         }
     }
@@ -125,7 +125,7 @@ class PersistenceController: ObservableObject {
 
         for _ in 0..<10 {
             let newIsland = PirateIsland(context: viewContext)
-            newIsland.islandName = "Preview Island"
+            newIsland.islandName = "Preview Gym"
             newIsland.latitude = 37.7749
             newIsland.longitude = -122.4194
             newIsland.createdTimestamp = Date()

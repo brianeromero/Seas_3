@@ -13,7 +13,7 @@ class PirateIslandViewModel: ObservableObject {
     }
 
     func createPirateIsland(name: String, location: String, createdByUserId: String, gymWebsiteURL: URL?, completion: @escaping (Result<Void, Error>) -> Void) {
-        print("Creating pirate island with name: \(name), location: \(location)")
+        print("Creating gym with name: \(name), location: \(location)")
 
         // Check if name, location, and createdByUserId are not empty strings
         if name.isEmpty || location.isEmpty || createdByUserId.isEmpty {
@@ -24,8 +24,8 @@ class PirateIslandViewModel: ObservableObject {
 
         // Check if an island with the same name already exists
         if pirateIslandExists(name: name) {
-            print("Pirate island with name \(name) already exists. Skipping creation.")
-            completion(.failure(NSError(domain: "PirateIslandViewModel", code: 100, userInfo: [NSLocalizedDescriptionKey: "Island with this name already exists."])))
+            print("Gym with name \(name) already exists. Skipping creation.")
+            completion(.failure(NSError(domain: "PirateIslandViewModel", code: 100, userInfo: [NSLocalizedDescriptionKey: "Gym with this name already exists."])))
             return
         }
 
@@ -49,7 +49,7 @@ class PirateIslandViewModel: ObservableObject {
                 newIsland.latitude = coordinates.latitude
                 newIsland.longitude = coordinates.longitude
                 self.saveContext()
-                print("Island geocoded successfully")
+                print("Gym geocoded successfully")
                 completion(.success(()))
             case .failure(let error):
                 print("Geocoding error: \(error.localizedDescription)")
@@ -67,7 +67,7 @@ class PirateIslandViewModel: ObservableObject {
             let count = try context.count(for: fetchRequest)
             return count > 0
         } catch {
-            print("Error checking if pirate island exists: \(error.localizedDescription)")
+            print("Error checking if gym exists: \(error.localizedDescription)")
             return false
         }
     }

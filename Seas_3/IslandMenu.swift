@@ -84,18 +84,21 @@ struct IslandMenu: View {
                         selectedIsland: selectedIsland,
                         repository: AppDayOfWeekRepository(persistenceController: persistenceController)
                     ))) {
-                        Text("View Island Schedules")
+                        Text("View Gym Schedules")
                             .foregroundColor(.blue)
                             .padding(.top, 10)
                     }
-
 
                     // NavigationLink to AllpIslandScheduleView
-                    NavigationLink(destination: AllpIslandScheduleView()) {
-                        Text("View ALL Island Schedules")
+                    NavigationLink(destination: AllpIslandScheduleView(viewModel: AppDayOfWeekViewModel(
+                        repository: AppDayOfWeekRepository(persistenceController: persistenceController)
+                    ))) {
+                        Text("View ALL Mat Schedules")
                             .foregroundColor(.blue)
                             .padding(.top, 10)
                     }
+
+
                 }
                 .padding(.horizontal, 20)
                 .navigationBarTitle("Welcome to Mat_Finder", displayMode: .inline)
@@ -107,7 +110,7 @@ struct IslandMenu: View {
             Alert(title: Text("Location Error"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
         }
         .onAppear {
-            Logger.log("View appeared", view: "IslandMenu")
+            Logger.log("View appeared", view: "Main Menu")
         }
     }
 
@@ -141,8 +144,7 @@ struct IslandMenu: View {
     }
 }
 
-
-
+// Closing bracket for the `IslandMenu` struct
 struct IslandMenu_Previews: PreviewProvider {
     static var previews: some View {
         let persistenceController = PersistenceController.preview
@@ -150,6 +152,6 @@ struct IslandMenu_Previews: PreviewProvider {
 
         return IslandMenu()
             .environment(\.managedObjectContext, context)
-            .previewDisplayName("Island Menu Preview")
+            .previewDisplayName("Mat Menu Preview")
     }
 }

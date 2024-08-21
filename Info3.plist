@@ -11,9 +11,9 @@
 	<key>CFBundleIdentifier</key>
 	<string>MF-inder.Seas2</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>We need your location to show nearby islands.</string>
+	<string>We need your location to show nearby gyms.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
-	<string>We need your location to show nearby islands.</string>
+	<string>We need your location to show nearby gyms.</string>
 	<key>UILaunchScreen</key>
 	<dict>
 		<key>UIColorName</key>

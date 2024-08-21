@@ -34,9 +34,9 @@ struct EditExistingIsland: View {
     
     var body: some View {
         Form {
-            Section(header: Text("Island Details")) {
-                TextField("Island Name", text: $islandName)
-                TextField("Island Location", text: $islandLocation)
+            Section(header: Text("Gym Details")) {
+                TextField("Gym Name", text: $islandName)
+                TextField("Gym Location", text: $islandLocation)
                 TextField("Last Modified By", text: $lastModifiedByUserId)
                 TextField("Entered By", text: $createdByUserId)
 
@@ -74,7 +74,7 @@ struct EditExistingIsland: View {
                 .keyboardType(.URL)
             }
         }
-        .navigationTitle("Edit Island")
+        .navigationTitle("Edit Gym")
         .navigationBarItems(trailing:
             Button("Save") {
                 updateIsland()
@@ -110,7 +110,7 @@ struct EditExistingIsland: View {
             do {
                 try context.save()
             } catch {
-                print("Error saving island: \(error.localizedDescription)")
+                print("Error saving gym: \(error.localizedDescription)")
             }
         }
     }
@@ -140,7 +140,7 @@ struct EditExistingIsland_Previews: PreviewProvider {
         let context = PersistenceController.shared.container.viewContext
         
         let island = PirateIsland(context: context)
-        island.islandName = "Sample Island"
+        island.islandName = "Sample Gym"
         island.islandLocation = "123 Main St, City, State, 12345"
         island.createdByUserId = "UserCreated"
         island.lastModifiedByUserId = "" // Set lastModifiedByUserId for preview

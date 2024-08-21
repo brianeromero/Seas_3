@@ -47,13 +47,13 @@ struct IslandScheduleView: View {
                             }
                         }
                     } else {
-                        Text("No island selected.")
+                        Text("No gym selected.")
                             .foregroundColor(.red)
                     }
                 }
                 .padding()
             }
-            .navigationBarTitle("Island Schedule", displayMode: .inline)
+            .navigationBarTitle("Mat Schedule", displayMode: .inline)
             .sheet(item: $selectedDay) { day in
                 ScheduleDetailModal(viewModel: viewModel, day: day)
             }
@@ -107,7 +107,7 @@ struct IslandScheduleView_Previews: PreviewProvider {
         
         // Create a mock PirateIsland
         let mockIsland = PirateIsland(context: context)
-        mockIsland.islandName = "Mock Island"
+        mockIsland.islandName = "Mock Gym"
         
         // Create a mock AppDayOfWeekViewModel with mock data
         let viewModel = AppDayOfWeekViewModel(

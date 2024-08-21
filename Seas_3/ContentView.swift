@@ -58,7 +58,7 @@ struct ContentView: View {
                         deleteItems(at: indexSet)
                     }
                 }
-                .navigationTitle("Islands")
+                .navigationTitle("Gyms")
                 .toolbar {
                     ToolbarItem(placement: .navigationBarLeading) {
                         Button(action: {
@@ -104,7 +104,7 @@ struct ContentView: View {
             do {
                 try persistenceController.viewContext.save()
             } catch {
-                print("Error deleting island: \(error.localizedDescription)")
+                print("Error deleting gym: \(error.localizedDescription)")
             }
         }
     }

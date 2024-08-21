@@ -22,11 +22,6 @@ struct AddOpenMatFormView: View {
         self.selectedIsland = selectedIsland
     }
     
-    static let dateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "hh:mm a"
-        return formatter
-    }()
     
     var body: some View {
         Form {
@@ -43,7 +38,7 @@ struct AddOpenMatFormView: View {
             if let selectedIsland = selectedIsland, let selectedDay = viewModel.selectedDay {
                 viewModel.fetchCurrentDayOfWeek(for: selectedIsland, day: selectedDay)
             } else {
-                print("No island or day selected")
+                print("No gym or day selected")
             }
         }
         .alert(isPresented: $showAlert) {
@@ -70,7 +65,7 @@ struct AddOpenMatFormView: View {
                     get: { viewModel.selectedTimeForDay[day] ?? Date() },
                     set: { newDate in
                         viewModel.selectedTimeForDay[day] = newDate
-                        let formattedTime = Self.dateFormatter.string(from: newDate)
+                        let formattedTime = DateFormat.time.string(from: newDate)
                         viewModel.addOrUpdateMatTime(
                             time: formattedTime,
                             type: viewModel.selectedType,
@@ -166,7 +161,7 @@ struct AddOpenMatFormView: View {
     var saveButton: some View {
         Button(action: {
             if viewModel.validateFields() {
-                let timeString = Self.dateFormatter.string(from: viewModel.selectedTimeForDay[viewModel.selectedDay ?? DayOfWeek.monday] ?? Date())
+                let timeString = DateFormat.time.string(from: viewModel.selectedTimeForDay[viewModel.selectedDay ?? DayOfWeek.monday] ?? Date())
                 viewModel.addOrUpdateMatTime(
                     time: timeString,
                     type: viewModel.selectedType,
@@ -197,7 +192,7 @@ struct AddOpenMatFormView_Previews: PreviewProvider {
         
         let sampleIsland = PirateIsland(context: context)
         sampleIsland.islandID = UUID()
-        sampleIsland.islandName = "Sample Island"
+        sampleIsland.islandName = "Sample Gym"
         
         let sampleAppDayOfWeek = AppDayOfWeek(context: context)
         sampleAppDayOfWeek.appDayOfWeekID = UUID().uuidString
