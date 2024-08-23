@@ -26,7 +26,7 @@ struct IslandMenu: View {
     // Use the shared PersistenceController instance
     let persistenceController = PersistenceController.shared
     let menuItems: [MenuItem] = [
-        .init(title: "Search", subMenuItems: ["All Entered Locations", "Current Location", "Zip Code", "DayOfWeek"]),
+        .init(title: "Search", subMenuItems: ["All Entered Locations", "Current Location", "ZipCode", "Day Of Week"]),
         .init(title: "Manage", subMenuItems: ["Add New Gym", "Update Existing Gyms", "Add or Edit Schedule/Open Mat"]),
         .init(title: "Review", subMenuItems: ["Add Gym/Open Mat Review"]),
     ]
@@ -38,17 +38,17 @@ struct IslandMenu: View {
                     .frame(width: 500, height: 450)
                     .offset(x: 100, y: -150)
                 
-                VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: 5) {
                     Text("Main Menu")
                         .font(.title)
                         .bold()
-                        .padding(.top, 10)
+                        .padding(.top, 1)
 
                     ForEach(menuItems) { menuItem in
-                        VStack(alignment: .leading, spacing: 10) {
+                        VStack(alignment: .leading, spacing: 5) {
                             Text(menuItem.title)
                                 .font(.headline)
-                                .padding(.bottom, 20)
+                                .padding(.bottom, 1)
 
                             if let subMenuItems = menuItem.subMenuItems {
                                 ForEach(subMenuItems, id: \.self) { subMenuItem in
@@ -57,7 +57,7 @@ struct IslandMenu: View {
                                             .foregroundColor(.blue)
                                             .fixedSize(horizontal: false, vertical: true)
                                             .frame(maxWidth: .infinity, alignment: .leading)
-                                            .padding(.leading, 10)
+                                            .padding(.leading, 1)
                                             .padding(.top, 5)
                                     }
                                 }
@@ -97,8 +97,6 @@ struct IslandMenu: View {
                             .foregroundColor(.blue)
                             .padding(.top, 10)
                     }
-
-
                 }
                 .padding(.horizontal, 20)
                 .navigationBarTitle("Welcome to Mat_Finder", displayMode: .inline)
@@ -125,7 +123,7 @@ struct IslandMenu: View {
             AllEnteredLocations(context: viewContext)
         case "Current Location":
             ConsolidatedIslandMapView()
-        case "Zip Code":
+        case "ZipCode":
             let viewModel = EnterZipCodeViewModel(
                 repository: AppDayOfWeekRepository(persistenceController: persistenceController),
                 context: viewContext
@@ -136,14 +134,20 @@ struct IslandMenu: View {
                 selectedIsland: selectedIsland,
                 repository: AppDayOfWeekRepository(persistenceController: persistenceController)
             )
-            DaysOfWeekFormView(viewModel: viewModel, selectedIsland: $selectedIsland)
-        case "DayOfWeek":
+            DaysOfWeekFormView(
+                viewModel: viewModel,
+                selectedIsland: $selectedIsland,
+                selectedMatTime: .constant(nil) // Provide a default value for selectedMatTime
+            )
+        case "Day Of Week":
             DayOfWeekSearchView() // Navigate to the new DayOfWeekSearchView
-
+        case "Add Gym/Open Mat Review":
+            GymMatReviewView() // Link to GymMatReviewView
         default:
             EmptyView()
         }
     }
+
 
 }
 
