@@ -26,7 +26,7 @@ struct IslandMenu: View {
     // Use the shared PersistenceController instance
     let persistenceController = PersistenceController.shared
     let menuItems: [MenuItem] = [
-        .init(title: "Search", subMenuItems: ["All Entered Locations", "Current Location", "Zip Code"]),
+        .init(title: "Search", subMenuItems: ["All Entered Locations", "Current Location", "Zip Code", "DayOfWeek"]),
         .init(title: "Manage", subMenuItems: ["Add New Gym", "Update Existing Gyms", "Add or Edit Schedule/Open Mat"]),
         .init(title: "Review", subMenuItems: ["Add Gym/Open Mat Review"]),
     ]
@@ -137,11 +137,14 @@ struct IslandMenu: View {
                 repository: AppDayOfWeekRepository(persistenceController: persistenceController)
             )
             DaysOfWeekFormView(viewModel: viewModel, selectedIsland: $selectedIsland)
+        case "DayOfWeek":
+            DayOfWeekSearchView() // Navigate to the new DayOfWeekSearchView
 
         default:
             EmptyView()
         }
     }
+
 }
 
 // Closing bracket for the `IslandMenu` struct

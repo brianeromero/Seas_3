@@ -90,6 +90,7 @@ class AllEnteredLocationsViewModel: NSObject, ObservableObject, NSFetchedResults
         }
     }
 
+
     // MARK: - Logging Methods for Debugging
 
     private func logFetchRequestConfiguration() {

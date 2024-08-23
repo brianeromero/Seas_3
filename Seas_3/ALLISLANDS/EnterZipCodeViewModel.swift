@@ -126,7 +126,7 @@ class EnterZipCodeViewModel: ObservableObject {
 
     func updateRegion(_ userLocation: CLLocation, radius: Double) {
         let span = MKCoordinateSpan(latitudeDelta: radius / 69.0, longitudeDelta: radius / 69.0)
-        self.updateQueue.async { [weak self] in // Perform updates within updateQueue
+        self.updateQueue.async { [weak self] in
             guard let self = self else { return }
             DispatchQueue.main.async {
                 self.region = MKCoordinateRegion(center: userLocation.coordinate, span: span)
