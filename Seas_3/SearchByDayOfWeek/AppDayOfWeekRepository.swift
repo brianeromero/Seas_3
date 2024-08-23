@@ -11,7 +11,7 @@ import CoreLocation
 
 
 class AppDayOfWeekRepository {
-    private let persistenceController: PersistenceController
+    public let persistenceController: PersistenceController
     private var currentAppDayOfWeek: AppDayOfWeek?
     private var selectedIsland: PirateIsland?
 
@@ -276,7 +276,7 @@ class AppDayOfWeekRepository {
     func fetchAllIslands(forDay day: String) async -> [(PirateIsland, [MatTime])] {
         let context = PersistenceController.shared.container.viewContext
         let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "LOWER(day) == %@", day.lowercased())
+        fetchRequest.predicate = NSPredicate(format: "day ==[c] %@", day)
 
         do {
             let appDayOfWeeks = try context.fetch(fetchRequest)

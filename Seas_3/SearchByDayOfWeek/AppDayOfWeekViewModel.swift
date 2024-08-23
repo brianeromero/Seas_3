@@ -14,6 +14,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
     @Published var selectedIsland: PirateIsland?
     @Published var matTime: MatTime?
     @Published var islandsWithMatTimes: [(PirateIsland, [MatTime])] = []
+    @Published var islandSchedules: [DayOfWeek: [(PirateIsland, [MatTime])]] = [:]
 
 
     @Published var appDayOfWeekList: [AppDayOfWeek] = []
@@ -26,7 +27,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
 
     var viewContext: NSManagedObjectContext
     private let dataManager: PirateIslandDataManager
-    private let repository: AppDayOfWeekRepository
+    public let repository: AppDayOfWeekRepository
 
 
     // MARK: - Day Settings
@@ -370,33 +371,31 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
     }
 
     // MARK: - Load All Schedules
-    func loadAllSchedules() {
-        let appDayOfWeeks = repository.fetchAllAppDayOfWeeks()
-        var schedulesDict: [DayOfWeek: [AppDayOfWeek]] = [:]
-        
-        for appDayOfWeek in appDayOfWeeks {
-            // Replace `day` with the actual property name in AppDayOfWeek
-            if let dayValue = appDayOfWeek.day { // Adjust 'day' to match the actual property name
-                if let day = DayOfWeek(rawValue: dayValue) {
-                    // Initialize the array if it doesn't exist for the given day
-                    if schedulesDict[day] == nil {
-                        schedulesDict[day] = []
-                    }
-                    // Append the current `appDayOfWeek` to the array for that day
-                    schedulesDict[day]?.append(appDayOfWeek)
-                } else {
-                    print("Warning: Invalid day value '\(dayValue)'")
+    func loadAllSchedules() async {
+        // Create a local dictionary to collect the results
+        let islandSchedulesDict = await withTaskGroup(of: (DayOfWeek, [(PirateIsland, [MatTime])]).self) { group -> [DayOfWeek: [(PirateIsland, [MatTime])]] in
+            for day in DayOfWeek.allCases {
+                group.addTask { [self] in
+                    let islandSchedulesForDay = await self.repository.fetchAllIslands(forDay: day.rawValue)
+                    return (day, islandSchedulesForDay)
                 }
-            } else {
-                print("Warning: AppDayOfWeek has no day set.")
             }
+            
+            var result: [DayOfWeek: [(PirateIsland, [MatTime])]] = [:]
+            for await (day, islandSchedulesForDay) in group {
+                result[day] = islandSchedulesForDay
+            }
+            
+            return result
         }
         
-        // Update the schedules property
-        schedules = schedulesDict
-        print("Loaded all schedules: \(schedules)")
+        // Ensure updates to islandSchedules are done on the main thread
+        DispatchQueue.main.async { [self] in
+            self.islandSchedules = islandSchedulesDict
+            print("Loaded all island schedules: \(self.islandSchedules)")
+        }
     }
-    
+
     // MARK: - Fetch and Update List of AppDayOfWeek for a Specific Day
     func fetchAppDayOfWeekAndUpdateList(for island: PirateIsland, day: DayOfWeek, context: NSManagedObjectContext) {
         print("Fetching AppDayOfWeek for island: \(island) and day: \(day)")

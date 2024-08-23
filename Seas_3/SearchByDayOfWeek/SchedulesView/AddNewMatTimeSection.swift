@@ -94,19 +94,9 @@ struct AddNewMatTimeSection: View {
                     Text("Add New Mat Time")
                 }
                 .disabled(!(daySelected && isMatTimeSet && selectedAppDayOfWeek != nil && (gi || noGi || openMat)))
-
-                // Logging for debugging purposes
-                Button(action: {
-                    print("Logging:")
-                    print("Day Selected: \(daySelected ? "Yes" : "No")")
-                    print("Mat Time: \(matTime != nil ? "Not nil" : "Nil")")
-                    print("Selected AppDayOfWeek: \(selectedAppDayOfWeek != nil ? "Not nil" : "Nil")")
-                }) {
-                    Text("Print Debug Messages")
-                }
-            } // End of VStack
-        } // End of Section
-    } // End of body
+            }
+        }
+    }
 
     func binding(_ keyPath: WritableKeyPath<MatTime, Bool>) -> Binding<Bool> {
         return Binding(

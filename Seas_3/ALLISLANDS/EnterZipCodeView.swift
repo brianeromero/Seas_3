@@ -18,7 +18,7 @@ struct EnterZipCodeView: View {
 
     var body: some View {
         VStack {
-            TextField("Enter Address", text: $viewModel.address)
+            TextField("Enter Address, location, or  Zipcode", text: $viewModel.address)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding()
 

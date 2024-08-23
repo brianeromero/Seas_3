@@ -20,6 +20,7 @@ extension Binding where Value == String? {
 struct DaysOfWeekFormView: View {
     @ObservedObject var viewModel: AppDayOfWeekViewModel
     @Binding var selectedIsland: PirateIsland?
+    @Binding var selectedMatTime: MatTime?
 
     @State private var showClassScheduleModal = false
     @State private var showOpenMatModal = false
@@ -29,14 +30,15 @@ struct DaysOfWeekFormView: View {
 
     @Environment(\.managedObjectContext) private var viewContext
 
-    init(viewModel: AppDayOfWeekViewModel, selectedIsland: Binding<PirateIsland?>) {
+    init(viewModel: AppDayOfWeekViewModel, selectedIsland: Binding<PirateIsland?>, selectedMatTime: Binding<MatTime?>) {
         self.viewModel = viewModel
         self._selectedIsland = selectedIsland
+        self._selectedMatTime = selectedMatTime
     }
 
     var body: some View {
         NavigationView {
-            List {
+            Form {
                 if let selectedIsland = selectedIsland {
                     Section(header: Text("Gyms")) {
                         Text("Selected Gym: \(selectedIsland.islandName)")
@@ -47,22 +49,7 @@ struct DaysOfWeekFormView: View {
                     }
                 }
 
-                Section(header: Text("Add Class Schedule")) {
-                    if selectedIsland != nil {
-                        Button(action: {
-                            self.showClassScheduleModal = true
-                        }) {
-                            Text("Add Class Schedule")
-                        }
-                        .sheet(isPresented: $showClassScheduleModal) {
-                            AddClassScheduleView(
-                                viewModel: viewModel,
-                                isPresented: $showClassScheduleModal // Correct parameter
-                            )
-                            .environment(\.managedObjectContext, viewContext)
-                        }
-                    }
-                }
+
 
                 Section(header: Text("Add Open Mat")) {
                     if selectedIsland != nil {
@@ -79,6 +66,16 @@ struct DaysOfWeekFormView: View {
                             )
                             .environment(\.managedObjectContext, viewContext)
                         }
+                    }
+                }
+
+                if let matTime = selectedMatTime {
+                    Section(header: Text("Edit Mat Time")) {
+                        TextField("Time", text: Binding(
+                            get: { matTime.time ?? "" },
+                            set: { matTime.time = $0 }
+                        ))
+                        // Add other fields and save button as needed
                     }
                 }
             }
@@ -107,6 +104,7 @@ struct DaysOfWeekFormView: View {
         }
     }
 }
+
 
 struct InsertIslandSearch: View {
     @Environment(\.managedObjectContext) private var viewContext
@@ -184,8 +182,6 @@ struct InsertIslandSearch: View {
     }
 }
 
-
-
 // Mock repository class
 class MockAppDayOfWeekRepository: AppDayOfWeekRepository {
     override init(persistenceController: PersistenceController) {
@@ -197,8 +193,6 @@ class MockAppDayOfWeekRepository: AppDayOfWeekRepository {
         return nil // Return nil or mock data if needed
     }
 }
-
-
 
 #if DEBUG
 struct DaysOfWeekFormView_Previews: PreviewProvider {
@@ -225,9 +219,16 @@ struct DaysOfWeekFormView_Previews: PreviewProvider {
             set: { _ in } // No-op setter
         )
         
+        // Create a Binding for selectedMatTime
+        let selectedMatTime = Binding<MatTime?>(
+            get: { nil },
+            set: { _ in } // No-op setter
+        )
+        
         return DaysOfWeekFormView(
             viewModel: viewModel,
-            selectedIsland: selectedIsland
+            selectedIsland: selectedIsland,
+            selectedMatTime: selectedMatTime
         )
         .environment(\.managedObjectContext, context)
     }
