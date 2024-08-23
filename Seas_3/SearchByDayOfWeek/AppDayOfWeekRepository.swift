@@ -7,6 +7,8 @@
 import Foundation
 import SwiftUI
 import CoreData
+import CoreLocation
+
 
 class AppDayOfWeekRepository {
     private let persistenceController: PersistenceController
@@ -54,7 +56,13 @@ class AppDayOfWeekRepository {
 
         // Perform any additional actions with the fetched AppDayOfWeek if needed
     }
-
+    
+    
+    func fetchRequest(for day: String) -> NSFetchRequest<AppDayOfWeek> {
+        let request: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
+        request.predicate = NSPredicate(format: "day == %@", day)
+        return request
+    }
 
     func saveContext() {
         print("AppDayOfWeekRepository - Saving context")
@@ -210,13 +218,82 @@ class AppDayOfWeekRepository {
         persistenceController.viewContext.delete(appDayOfWeek)
         saveContext()
     }
-
     private func performFetch(request: NSFetchRequest<AppDayOfWeek>) -> [AppDayOfWeek] {
         do {
-            return try persistenceController.viewContext.fetch(request)
+            let results = try persistenceController.viewContext.fetch(request)
+            print("Fetch successful: \(results.count) AppDayOfWeek objects fetched.")
+            return results
         } catch {
             print("Fetch error: \(error.localizedDescription)")
             return []
         }
     }
+
+    public func fetchGyms(day: String, radius: Double, locationManager: UserLocationMapViewModel) -> [Gym] {
+        var fetchedGyms: [Gym] = []
+
+        guard let userLocation = locationManager.getCurrentUserLocation() else {
+            print("Failed to get current user location.")
+            return fetchedGyms
+        }
+
+        let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "day BEGINSWITH[c] %@", day.lowercased())
+        fetchRequest.relationshipKeyPathsForPrefetching = ["pIsland"]
+
+        do {
+            let appDayOfWeeks = try PersistenceController.shared.container.viewContext.fetch(fetchRequest)
+
+            for appDayOfWeek in appDayOfWeeks {
+                guard let island = appDayOfWeek.pIsland else { continue }
+
+                let distance = locationManager.calculateDistance(from: userLocation, to: CLLocation(latitude: island.latitude, longitude: island.longitude))
+                print("Distance to Island: \(distance)")
+
+                if distance <= radius {
+                    let hasScheduledMatTime = appDayOfWeek.matTimes?.count ?? 0 > 0
+                    fetchedGyms.append(
+                        Gym(
+                            id: island.islandID ?? UUID(),  // This line is now removed
+                            name: island.islandName,
+                            latitude: island.latitude,
+                            longitude: island.longitude,
+                            hasScheduledMatTime: hasScheduledMatTime,
+                            days: [appDayOfWeek.day ?? ""]
+                        )
+                    )
+                }
+            }
+        } catch {
+            print("Failed to fetch AppDayOfWeek: \(error)")
+        }
+
+        return fetchedGyms
+    }
+
+
+
+    func fetchAllIslands(forDay day: String) async -> [(PirateIsland, [MatTime])] {
+        let context = PersistenceController.shared.container.viewContext
+        let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "LOWER(day) == %@", day.lowercased())
+
+        do {
+            let appDayOfWeeks = try context.fetch(fetchRequest)
+            var result: [(PirateIsland, [MatTime])] = []
+
+            for appDayOfWeek in appDayOfWeeks {
+                if let island = appDayOfWeek.pIsland, let matTimes = appDayOfWeek.matTimes?.allObjects as? [MatTime] {
+                    result.append((island, matTimes))
+                }
+            }
+
+            return result
+        } catch {
+            print("Error fetching islands: \(error)")
+            return []
+        }
+    }
+
+
 }

@@ -4,6 +4,7 @@
 //
 //  Created by Brian Romero on 6/26/24.
 //
+
 import Foundation
 import SwiftUI
 import MapKit
@@ -22,6 +23,8 @@ class UserLocationMapViewModel: NSObject, ObservableObject, CLLocationManagerDel
         super.init()
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyBest
+        // Start location services as needed
+        startLocationServices()
     }
 
     func startLocationServices() {
@@ -39,10 +42,11 @@ class UserLocationMapViewModel: NSObject, ObservableObject, CLLocationManagerDel
     }
 
     func requestLocation() {
-        if CLLocationManager.locationServicesEnabled() {
+        // Ensure the authorization status is handled correctly
+        if locationManager.authorizationStatus == .authorizedWhenInUse || locationManager.authorizationStatus == .authorizedAlways {
             locationManager.requestLocation()
         } else {
-            print("Location services are not enabled.")
+            print("Location services are not authorized.")
         }
     }
 
@@ -60,17 +64,20 @@ class UserLocationMapViewModel: NSObject, ObservableObject, CLLocationManagerDel
     }
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        switch manager.authorizationStatus {
-        case .notDetermined:
-            locationManager.requestWhenInUseAuthorization()
-        case .restricted:
-            print("Your location appears to be restricted - perhaps due to Parent Controls.")
-        case .denied:
-            print("You have denied this app's location permissions. Go into settings to change this.")
-        case .authorizedAlways, .authorizedWhenInUse:
-            locationManager.startUpdatingLocation()
-        @unknown default:
-            print("Unknown authorization status.")
+        DispatchQueue.main.async {
+            switch manager.authorizationStatus {
+            case .notDetermined:
+                self.locationManager.requestWhenInUseAuthorization()
+            case .restricted:
+                print("Your location appears to be restricted - perhaps due to Parent Controls.")
+            case .denied:
+                print("You have denied this app's location permissions. Go into settings to change this.")
+            case .authorizedAlways, .authorizedWhenInUse:
+                self.locationManager.startUpdatingLocation()
+                self.requestLocation() // Optionally request location if needed
+            @unknown default:
+                print("Unknown authorization status.")
+            }
         }
     }
 
@@ -83,5 +90,14 @@ class UserLocationMapViewModel: NSObject, ObservableObject, CLLocationManagerDel
                 )
             }
         }
+    }
+
+
+    func getCurrentUserLocation() -> CLLocation? {
+        return userLocation
+    }
+
+    func calculateDistance(from startLocation: CLLocation, to endLocation: CLLocation) -> CLLocationDistance {
+        return startLocation.distance(from: endLocation)
     }
 }

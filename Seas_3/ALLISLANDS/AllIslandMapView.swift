@@ -117,6 +117,7 @@ struct ConsolidatedIslandMapView: View {
         equatableRegion.region = MKCoordinateRegion(center: userLocation.coordinate, span: span)
     }
 
+
     private func addCurrentLocationMarker(_ userLocation: CLLocation) {
         let currentLocationMarker = CustomMapMarker(id: UUID(), coordinate: userLocation.coordinate, title: "You are Here")
         pirateMarkers.append(currentLocationMarker)

@@ -13,6 +13,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
     @Published var currentAppDayOfWeek: AppDayOfWeek?
     @Published var selectedIsland: PirateIsland?
     @Published var matTime: MatTime?
+    @Published var islandsWithMatTimes: [(PirateIsland, [MatTime])] = []
 
 
     @Published var appDayOfWeekList: [AppDayOfWeek] = []
@@ -716,6 +717,12 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
         print("Set day \(day.displayName) selected state to: \(isSelected)")
     }
     
+    
+    func fetchIslands(forDay day: DayOfWeek) async {
+        let islands = await repository.fetchAllIslands(forDay: day.rawValue)
+        self.islandsWithMatTimes = islands
+    }
+
 }
 
 extension MatTime {
@@ -752,6 +759,7 @@ extension MatTime {
         self.kids = kids
     }
         
+
 }
 
 private extension String {
