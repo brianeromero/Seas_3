@@ -137,8 +137,10 @@ struct IslandMenu: View {
             )
         case "Day Of Week":
             DayOfWeekSearchView()
-        case "Add Gym/Open Mat Review":
-            GymMatReviewSelect(selectedIsland: $selectedIsland)
+        case "Submit Gym/Open Mat Review":
+            GymMatReviewSelect(selectedIsland: .constant(nil))
+                .navigationTitle("Select Gym for Review")
+                .navigationBarTitleDisplayMode(.inline)
         case "FAQ & Disclaimer":
             FAQnDisclaimerMenuView()
         default:

@@ -78,6 +78,10 @@ struct GymMatReviewView: View {
         
         do {
             let reviews = try viewContext.fetch(reviewsFetchRequest)
+            if reviews.isEmpty {
+                return 0
+            }
+            
             let totalStars = reviews.reduce(0) { $0 + Int($1.stars) }
             return Double(totalStars) / Double(reviews.count)
         } catch {

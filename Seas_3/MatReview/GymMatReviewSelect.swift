@@ -15,8 +15,7 @@ struct GymMatReviewSelect: View {
     @State private var filteredIslands: [PirateIsland] = []
     @State private var showNoMatchAlert: Bool = false
     @State private var selectedIslandForReview: PirateIsland?
-    @State private var isReviewViewPresented: Bool = false
-    
+    @State private var showReviewView = false
 
     @Environment(\.managedObjectContext) private var viewContext
 
@@ -27,21 +26,33 @@ struct GymMatReviewSelect: View {
 
     var body: some View {
         NavigationView {
-            VStack {
-                TextField("Search by Gym Name, Location, etc.", text: $searchQuery)
-                    .padding()
-                    .background(Color(.systemGray6))
-                    .cornerRadius(8)
-                    .onChange(of: searchQuery) { _ in
-                        updateFilteredIslands()
+            Form {
+                Section(header: Text("Search by Gym Name, Location, etc.")) {
+                    HStack {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundColor(.gray)
+
+                        TextField("Search...", text: $searchQuery)
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 12)
+                            .background(Color(.systemGray6))
+                            .cornerRadius(8.0)
+                            .textFieldStyle(PlainTextFieldStyle())
+                            .onChange(of: searchQuery) { _ in
+                                updateFilteredIslands()
+                            }
                     }
+                }
 
                 List(filteredIslands) { island in
                     Button(action: {
                         self.selectedIslandForReview = island
-                        self.isReviewViewPresented = true // Show review view when an island is selected
+                        self.showReviewView = true
                     }) {
                         Text(island.islandName)
+                    }
+                    .sheet(isPresented: $showReviewView) {
+                        GymMatReviewView(selectedIsland: $selectedIslandForReview, isPresented: $showReviewView)
                     }
                 }
                 .listStyle(PlainListStyle())
@@ -53,27 +64,6 @@ struct GymMatReviewSelect: View {
                         dismissButton: .default(Text("OK"))
                     )
                 }
-                .background(
-                    NavigationLink(
-                        destination: Group {
-                            if let selectedIslandForReview = selectedIslandForReview {
-                                GymMatReviewView(selectedIsland: $selectedIslandForReview, isPresented: $isReviewViewPresented)
-                                    .onChange(of: isReviewViewPresented) { newValue in
-                                        if !newValue {
-                                            // Navigate back to IslandMenu
-                                            // You can add code here to navigate back to IslandMenu
-                                        }
-                                    }
-                            } else {
-                                EmptyView()
-                            }
-                        },
-                        isActive: $isReviewViewPresented
-                    ) {
-                        EmptyView()
-                    }
-                )
-                
             }
             .onAppear {
                 updateFilteredIslands()
@@ -85,24 +75,17 @@ struct GymMatReviewSelect: View {
         let lowercasedQuery = searchQuery.lowercased()
         
         if !searchQuery.isEmpty {
-            filteredIslands = Array(islands.filter { island in
-                let islandName = island.islandName.lowercased()
-                let islandLocation = island.islandLocation.lowercased()
-                
-                let gymWebsite: String
-                if let url = island.gymWebsite {
-                    gymWebsite = url.absoluteString.lowercased()
-                } else {
-                    gymWebsite = ""
-                }
-                
-                return islandName.contains(lowercasedQuery) ||
-                       islandLocation.contains(lowercasedQuery) ||
-                       gymWebsite.contains(lowercasedQuery)
-            })
+            filteredIslands = islands.filter { island in
+                let predicate = NSPredicate(format: "islandName CONTAINS[c] %@ OR islandLocation CONTAINS[c] %@ OR gymWebsite.absoluteString CONTAINS[c] %@", argumentArray: [lowercasedQuery, lowercasedQuery, lowercasedQuery])
+                return predicate.evaluate(with: island)
+            }
+            print("Filtered Islands: \(filteredIslands.map { $0.islandName })") // Add this line
         } else {
             filteredIslands = Array(islands)
+            print("All Islands: \(filteredIslands.map { $0.islandName })") // Add this line
         }
+        
+        showNoMatchAlert = filteredIslands.isEmpty && !searchQuery.isEmpty
     }
 }
 
