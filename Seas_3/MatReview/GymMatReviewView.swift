@@ -17,15 +17,35 @@ enum StarRating: Int, CaseIterable {
         case .one: return "5 Stripe White Belt"
         case .two: return "Ultra Heavy Weight Blue Belt's Half Guard"
         case .three: return "Purple Belt's Knee"
-        case .four: return "Old Timey's Brown Belt's Dogbar"
+        case .four: return "Old Timey Brown Belt's Dogbar"
         case .five: return "Blackbelt's Cartwheel Pass to the Back"
         }
     }
 
     var stars: [String] {
-        let filledStars = Array(repeating: "star.fill", count: self.rawValue)
-        let emptyStars = Array(repeating: "star", count: 5 - self.rawValue)
+        let filledStars = Array(repeating: "star.fill", count: rawValue)
+        let emptyStars = Array(repeating: "star", count: 5 - rawValue)
         return filledStars + emptyStars
+    }
+}
+
+struct IslandSection: View {
+    @Binding var selectedIsland: PirateIsland?
+    let islands: FetchedResults<PirateIsland>
+
+    var body: some View {
+        Section(header: Text("Select Gym/Island")) {
+            Picker("Gym/Island", selection: $selectedIsland) {
+                ForEach(islands, id: \.self) { island in
+                    Text(island.islandName ?? "").tag(island as PirateIsland?)
+                }
+            }
+            .onChange(of: selectedIsland) { newIsland in
+                if let island = newIsland {
+                    print("Selected Gym/Island: \(island.islandName ?? "")")
+                }
+            }
+        }
     }
 }
 
@@ -35,118 +55,68 @@ struct GymMatReviewView: View {
     @State private var showAlert = false
     @State private var alertMessage = ""
     @State private var isLoading = false
+    @Binding var selectedIsland: PirateIsland?
+    @Binding var isPresented: Bool
 
     @Environment(\.managedObjectContext) private var viewContext
-    var selectedIsland: PirateIsland // Ensure this property is non-optional
-
-    // Use a NSFetchedResultsController to manage the fetch results and avoid duplicate fetches
-    lazy var reviewsController: NSFetchedResultsController<Review> = {
-        let fetchRequest: NSFetchRequest<Review> = Review.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "island == %@", selectedIsland)
-        fetchRequest.sortDescriptors = [NSSortDescriptor(keyPath: \Review.stars, ascending: false)]
-        return NSFetchedResultsController(fetchRequest: fetchRequest, managedObjectContext: viewContext, sectionNameKeyPath: nil, cacheName: nil)
-    }()
+    @Environment(\.presentationMode) private var presentationMode
+    @FetchRequest(
+        entity: PirateIsland.entity(),
+        sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.islandName, ascending: true)]
+    ) private var islands: FetchedResults<PirateIsland>
 
     var body: some View {
-        NavigationView {
-            ZStack {
-                Form {
-                    Section(header: Text("Write Your Review")) {
-                        TextEditor(text: $reviewText)
-                            .frame(height: 150)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color.gray, lineWidth: 1)
-                            )
-                    }
-
-                    Section(header: Text("Rate the Gym")) {
-                        HStack {
-                            ForEach(0..<5) { index in
-                                Image(systemName: index < selectedRating.rawValue ? "star.fill" : "star")
-                                    .foregroundColor(index < selectedRating.rawValue ? .yellow : .gray)
-                                    .onTapGesture {
-                                        if selectedRating.rawValue == index + 1 {
-                                            selectedRating = .zero // Reset to 0 stars if the same star is tapped
-                                        } else {
-                                            selectedRating = StarRating(rawValue: index + 1) ?? .zero
-                                        }
-                                        
-                                        // Log the number of stars selected
-                                        print("Selected Rating: \(selectedRating.rawValue) star(s)")
-                                    }
-                            }
-                        }
-                    }
-
-                    Button(action: submitReview) {
-                        Text("Submit Review")
-                    }
-                    .disabled(isLoading)
-                    .alert(isPresented: $showAlert) {
-                        Alert(
-                            title: Text("Review Submitted"),
-                            message: Text(alertMessage),
-                            dismissButton: .default(Text("OK"))
-                        )
-                    }
+        ZStack {
+            Form {
+                IslandSection(selectedIsland: $selectedIsland, islands: islands)
+                ReviewSection(reviewText: $reviewText)
+                RatingSection(selectedRating: $selectedRating)
+                Button(action: submitReview) {
+                    Text("Submit Review")
                 }
-
-                // Star ratings ledger aligned to the left with 0.05 margin
-                VStack {
-                    Spacer()
-                    HStack {
-                        VStack(alignment: .leading) {
-                            Text("Star Ratings: like a...")
-                                .font(.headline)
-                                .padding(.bottom, 5)
-                            ForEach(StarRating.allCases, id: \.self) { rating in
-                                HStack {
-                                    ForEach(rating.stars, id: \.self) { star in
-                                        Image(systemName: star)
-                                    }
-                                    Text("= \"\(rating.description)\"")
-                                }
-                                .font(.caption)
-                            }
+                .disabled(isLoading)
+                .alert(isPresented: $showAlert) {
+                    Alert(
+                        title: Text("Review Submitted"),
+                        message: Text(alertMessage),
+                        dismissButton: .default(Text("OK")) {
+                            // Nothing here; dismissal will be handled after alert is shown
                         }
-                        .padding()
-                        .background(Color.white.opacity(0.8))
-                        .cornerRadius(10)
-                        .shadow(radius: 5)
-                        .padding(.leading, UIScreen.main.bounds.width * 0.05)  // Left margin of 0.05
-                        Spacer()
-                    }
-                }
-                
-                if isLoading {
-                    ProgressView()
+                    )
                 }
             }
-            .navigationTitle("Gym Mat Review")
+            
+            StarRatingsLedger()
+            
+            if isLoading {
+                ProgressView()
+            }
+        }
+        .navigationTitle("Gym Mat Review")
+        .onChange(of: showAlert) { newValue in
+            if !newValue && alertMessage == "Thank you for your review!" {
+                isPresented = false // Dismiss the view and navigate back to IslandMenu
+            }
         }
     }
 
     private func submitReview() {
-        guard !reviewText.isEmpty else {
-            alertMessage = "Please enter a review"
+        guard let island = selectedIsland else {
+            alertMessage = "Please select a gym/island"
             showAlert = true
             return
         }
         
         isLoading = true
         
-        // Create a new review and add it to the selected island's reviews
         let newReview = Review(context: viewContext)
         newReview.stars = Int16(selectedRating.rawValue)
         newReview.review = reviewText
-        newReview.createdTimestamp = Date() // Set the created timestamp to the current date and time
-        newReview.island = selectedIsland
-
-        // Calculate and set the average star rating (if applicable)
-        // This might involve fetching the existing reviews and calculating the average
+        newReview.createdTimestamp = Date()
+        newReview.island = island
+        
         let reviewsFetchRequest: NSFetchRequest<Review> = Review.fetchRequest()
-        reviewsFetchRequest.predicate = NSPredicate(format: "island == %@", selectedIsland)
+        reviewsFetchRequest.predicate = NSPredicate(format: "island == %@", island)
         
         do {
             let existingReviews = try viewContext.fetch(reviewsFetchRequest)
@@ -155,37 +125,127 @@ struct GymMatReviewView: View {
             newReview.averageStar = averageStars
         } catch {
             print("Error fetching existing reviews: \(error)")
-            newReview.averageStar = newReview.stars // Fall back to the current review's stars if there's an error
+            newReview.averageStar = newReview.stars
         }
 
-        // Save the context
         do {
             try viewContext.save()
             alertMessage = "Thank you for your review!"
-        } catch let error as NSError {
-            print("Error saving review: \(error.userInfo)")
-            alertMessage = "Failed to save review. Please try again."
+            presentationMode.wrappedValue.dismiss() // Dismiss the view
         } catch {
             print("Error saving review: \(error)")
             alertMessage = "Failed to save review. Please try again."
         }
+        
         isLoading = false
         reviewText = ""
         DispatchQueue.main.async {
             showAlert = true
         }
     }
-
 }
 
-// Preview
+struct ReviewSection: View {
+    @Binding var reviewText: String
+
+    let textEditorHeight: CGFloat = 150
+    let cornerRadius: CGFloat = 8
+
+    var body: some View {
+        Section(header: Text("Write Your Review")) {
+            TextEditor(text: $reviewText)
+                .frame(height: textEditorHeight)
+                .overlay(
+                    RoundedRectangle(cornerRadius: cornerRadius)
+                        .stroke(Color.gray, lineWidth: 1)
+                )
+        }
+    }
+}
+
+struct RatingSection: View {
+    @Binding var selectedRating: StarRating
+
+    var body: some View {
+        Section(header: Text("Rate the Gym")) {
+            HStack {
+                ForEach(0..<5) { index in
+                    Image(systemName: index < selectedRating.rawValue ? "star.fill" : "star")
+                        .foregroundColor(index < selectedRating.rawValue ? .yellow : .gray)
+                        .onTapGesture {
+                            if selectedRating.rawValue == index + 1 {
+                                selectedRating = .zero
+                            } else {
+                                selectedRating = StarRating(rawValue: index + 1) ?? .zero
+                            }
+                            
+                            print("Selected Rating: \(selectedRating.rawValue) star(s)")
+                        }
+                }
+            }
+        }
+    }
+}
+
+struct StarRatingsLedger: View {
+    var body: some View {
+        VStack {
+            Spacer()
+            HStack {
+                VStack(alignment: .leading) {
+                    Text("Star Ratings: like a...")
+                        .font(.headline)
+                        .padding(.bottom, 5)
+                    ForEach(StarRating.allCases, id: \.self) { rating in
+                        HStack {
+                            ForEach(rating.stars, id: \.self) { star in
+                                Image(systemName: star)
+                            }
+                            Text("= \"\(rating.description)\"")
+                        }
+                        .font(.caption)
+                    }
+                }
+                .padding()
+                .background(Color.white.opacity(0.8))
+                .cornerRadius(10)
+                .shadow(radius: 5)
+                .padding(.leading, UIScreen.main.bounds.width * 0.05)
+                Spacer()
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
 struct GymMatReviewView_Previews: PreviewProvider {
     static var previews: some View {
-        let context = PersistenceController.preview.container.viewContext
-        let dummyIsland = PirateIsland(context: context)
-        // Configure dummyIsland with any necessary default values
-
-        return GymMatReviewView(selectedIsland: dummyIsland)
-            .environment(\.managedObjectContext, context)
+        PreviewView()
     }
+}
+
+struct PreviewView: View {
+    @StateObject var viewModel = GymMatReviewViewModel()
+    
+    @State private var isGymMatReviewViewPresented = true
+
+    var body: some View {
+        let context = PersistenceController.preview.container.viewContext
+        viewModel.dummyIsland = PirateIsland(context: context)
+        viewModel.dummyIsland?.name = "Sample Island"
+
+        return Group {
+            if let island = viewModel.dummyIsland {
+                GymMatReviewView(selectedIsland: .constant(island), isPresented: $isGymMatReviewViewPresented)
+                    .environment(\.managedObjectContext, context)
+            } else {
+                Text("Failed to create dummy island")
+            }
+        }
+    }
+}
+
+
+class GymMatReviewViewModel: ObservableObject {
+    @Published var dummyIsland: PirateIsland?
 }
