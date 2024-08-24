@@ -51,12 +51,12 @@ struct DaysOfWeekFormView: View {
 
 
 
-                Section(header: Text("Add Open Mat")) {
+                Section(header: Text("Add Mat Schedule")) {
                     if selectedIsland != nil {
                         Button(action: {
                             self.showOpenMatModal = true
                         }) {
-                            Text("Add Open Mat")
+                            Text("Add Mat Schedule")
                         }
                         .sheet(isPresented: $showOpenMatModal) {
                             ScheduleFormView(
