@@ -14,7 +14,9 @@ struct GymMatReviewSelect: View {
     @State private var searchQuery: String = ""
     @State private var filteredIslands: [PirateIsland] = []
     @State private var showNoMatchAlert: Bool = false
-    @State private var selectedIslandForReview: PirateIsland? = nil
+    @State private var selectedIslandForReview: PirateIsland?
+    @State private var isReviewViewPresented: Bool = false
+    
 
     @Environment(\.managedObjectContext) private var viewContext
 
@@ -37,6 +39,7 @@ struct GymMatReviewSelect: View {
                 List(filteredIslands) { island in
                     Button(action: {
                         self.selectedIslandForReview = island
+                        self.isReviewViewPresented = true // Show review view when an island is selected
                     }) {
                         Text(island.islandName)
                     }
@@ -52,15 +55,25 @@ struct GymMatReviewSelect: View {
                 }
                 .background(
                     NavigationLink(
-                        destination: selectedIslandForReview.map { GymMatReviewView(selectedIsland: $0) },
-                        isActive: Binding(
-                            get: { selectedIslandForReview != nil },
-                            set: { if !$0 { selectedIslandForReview = nil } }
-                        )
+                        destination: Group {
+                            if let selectedIslandForReview = selectedIslandForReview {
+                                GymMatReviewView(selectedIsland: $selectedIslandForReview, isPresented: $isReviewViewPresented)
+                                    .onChange(of: isReviewViewPresented) { newValue in
+                                        if !newValue {
+                                            // Navigate back to IslandMenu
+                                            // You can add code here to navigate back to IslandMenu
+                                        }
+                                    }
+                            } else {
+                                EmptyView()
+                            }
+                        },
+                        isActive: $isReviewViewPresented
                     ) {
                         EmptyView()
                     }
                 )
+                
             }
             .onAppear {
                 updateFilteredIslands()

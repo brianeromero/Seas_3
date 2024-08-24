@@ -32,7 +32,7 @@ struct IslandMenu: View {
     ]
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
                 GIFView(name: "flashing2")
                     .frame(width: 500, height: 450)
@@ -148,6 +148,7 @@ struct IslandMenu: View {
         }
     }
 }
+
 
 // Closing bracket for the `IslandMenu` struct
 struct IslandMenu_Previews: PreviewProvider {
