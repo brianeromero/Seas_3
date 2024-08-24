@@ -1,4 +1,3 @@
-//
 //  GymMatReviewView.swift
 //  Seas_3
 //
@@ -9,7 +8,6 @@ import Foundation
 import SwiftUI
 import CoreData
 
-// Define StarRating Enum with descriptions and stars array
 enum StarRating: Int, CaseIterable {
     case zero = 0, one, two, three, four, five
 
@@ -17,22 +15,17 @@ enum StarRating: Int, CaseIterable {
         switch self {
         case .zero: return "Trial Class Guy"
         case .one: return "5 Stripe White Belt"
-        case .two: return "Under Ultra Heavy Weight Blue Belt's Half Guard"
+        case .two: return "Ultra Heavy Weight Blue Belt's Half Guard"
         case .three: return "Purple Belt's Knee"
-        case .four: return "Old Timey's Brown Belt's no-hand dogbar"
-        case .five: return "Blackbelt's cartwheel pass to back"
+        case .four: return "Old Timey's Brown Belt's Dogbar"
+        case .five: return "Blackbelt's Cartwheel Pass to the Back"
         }
     }
 
     var stars: [String] {
-        switch self {
-        case .zero: return ["star", "star", "star", "star", "star"]
-        case .one: return ["star.fill", "star", "star", "star", "star"]
-        case .two: return ["star.fill", "star.fill", "star", "star", "star"]
-        case .three: return ["star.fill", "star.fill", "star.fill", "star", "star"]
-        case .four: return ["star.fill", "star.fill", "star.fill", "star.fill", "star"]
-        case .five: return ["star.fill", "star.fill", "star.fill", "star.fill", "star.fill"]
-        }
+        let filledStars = Array(repeating: "star.fill", count: self.rawValue)
+        let emptyStars = Array(repeating: "star", count: 5 - self.rawValue)
+        return filledStars + emptyStars
     }
 }
 
@@ -41,8 +34,18 @@ struct GymMatReviewView: View {
     @State private var selectedRating: StarRating = .zero
     @State private var showAlert = false
     @State private var alertMessage = ""
+    @State private var isLoading = false
 
     @Environment(\.managedObjectContext) private var viewContext
+    var selectedIsland: PirateIsland // Ensure this property is non-optional
+
+    // Use a NSFetchedResultsController to manage the fetch results and avoid duplicate fetches
+    lazy var reviewsController: NSFetchedResultsController<Review> = {
+        let fetchRequest: NSFetchRequest<Review> = Review.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "island == %@", selectedIsland)
+        fetchRequest.sortDescriptors = [NSSortDescriptor(keyPath: \Review.stars, ascending: false)]
+        return NSFetchedResultsController(fetchRequest: fetchRequest, managedObjectContext: viewContext, sectionNameKeyPath: nil, cacheName: nil)
+    }()
 
     var body: some View {
         NavigationView {
@@ -55,11 +58,6 @@ struct GymMatReviewView: View {
                                 RoundedRectangle(cornerRadius: 8)
                                     .stroke(Color.gray, lineWidth: 1)
                             )
-                            .onChange(of: reviewText) { newValue in
-                                if newValue.count > 280 {
-                                    reviewText = String(newValue.prefix(280))
-                                }
-                            }
                     }
 
                     Section(header: Text("Rate the Gym")) {
@@ -81,12 +79,10 @@ struct GymMatReviewView: View {
                         }
                     }
 
-
-
-
                     Button(action: submitReview) {
                         Text("Submit Review")
                     }
+                    .disabled(isLoading)
                     .alert(isPresented: $showAlert) {
                         Alert(
                             title: Text("Review Submitted"),
@@ -100,8 +96,8 @@ struct GymMatReviewView: View {
                 VStack {
                     Spacer()
                     HStack {
-                        VStack(alignment: .leading) {  // Aligning the text to the left
-                            Text("Star Ratings:")
+                        VStack(alignment: .leading) {
+                            Text("Star Ratings: like a...")
                                 .font(.headline)
                                 .padding(.bottom, 5)
                             ForEach(StarRating.allCases, id: \.self) { rating in
@@ -122,6 +118,10 @@ struct GymMatReviewView: View {
                         Spacer()
                     }
                 }
+                
+                if isLoading {
+                    ProgressView()
+                }
             }
             .navigationTitle("Gym Mat Review")
         }
@@ -129,30 +129,63 @@ struct GymMatReviewView: View {
 
     private func submitReview() {
         guard !reviewText.isEmpty else {
-            alertMessage = "Review text cannot be empty."
+            alertMessage = "Please enter a review"
             showAlert = true
             return
         }
         
+        isLoading = true
+        
+        // Create a new review and add it to the selected island's reviews
         let newReview = Review(context: viewContext)
         newReview.stars = Int16(selectedRating.rawValue)
         newReview.review = reviewText
+        newReview.createdTimestamp = Date() // Set the created timestamp to the current date and time
+        newReview.island = selectedIsland
+
+        // Calculate and set the average star rating (if applicable)
+        // This might involve fetching the existing reviews and calculating the average
+        let reviewsFetchRequest: NSFetchRequest<Review> = Review.fetchRequest()
+        reviewsFetchRequest.predicate = NSPredicate(format: "island == %@", selectedIsland)
         
+        do {
+            let existingReviews = try viewContext.fetch(reviewsFetchRequest)
+            let totalStars = existingReviews.reduce(0) { $0 + $1.stars }
+            let averageStars = existingReviews.isEmpty ? newReview.stars : (totalStars + newReview.stars) / Int16(existingReviews.count + 1)
+            newReview.averageStar = averageStars
+        } catch {
+            print("Error fetching existing reviews: \(error)")
+            newReview.averageStar = newReview.stars // Fall back to the current review's stars if there's an error
+        }
+
+        // Save the context
         do {
             try viewContext.save()
             alertMessage = "Thank you for your review!"
+        } catch let error as NSError {
+            print("Error saving review: \(error.userInfo)")
+            alertMessage = "Failed to save review. Please try again."
         } catch {
+            print("Error saving review: \(error)")
             alertMessage = "Failed to save review. Please try again."
         }
-        
-        showAlert = true
+        isLoading = false
+        reviewText = ""
+        DispatchQueue.main.async {
+            showAlert = true
+        }
     }
+
 }
 
 // Preview
 struct GymMatReviewView_Previews: PreviewProvider {
     static var previews: some View {
-        GymMatReviewView()
-            .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
+        let context = PersistenceController.preview.container.viewContext
+        let dummyIsland = PirateIsland(context: context)
+        // Configure dummyIsland with any necessary default values
+
+        return GymMatReviewView(selectedIsland: dummyIsland)
+            .environment(\.managedObjectContext, context)
     }
 }

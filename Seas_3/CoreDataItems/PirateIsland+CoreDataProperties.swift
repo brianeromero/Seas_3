@@ -30,8 +30,12 @@ extension PirateIsland {
     @NSManaged public var latitude: Double
     @NSManaged public var longitude: Double
     @NSManaged public var name: String?
-    @NSManaged public var appDayOfWeeks: NSSet?
     
+    // MARK: - Relationships
+
+    @NSManaged public var appDayOfWeeks: NSSet?
+    @NSManaged public var reviews: NSOrderedSet?  // Make sure this is NSOrderedSet for ordered relationships
+
     // MARK: - Generated Accessors for appDayOfWeeks
     @objc(addAppDayOfWeeksObject:)
     @NSManaged public func addToAppDayOfWeeks(_ value: AppDayOfWeek)
@@ -62,7 +66,6 @@ extension PirateIsland {
         DateFormat.full.string(from: lastModifiedTimestamp ?? Date())
     }
     
-    
     // MARK: - Custom Methods
 
     static func logFetch(in context: NSManagedObjectContext) {
@@ -74,4 +77,23 @@ extension PirateIsland {
             print("Failed to fetch Gym: \(error)")
         }
     }
+    
+    // MARK: - Generated Accessors for reviews
+    @objc(insertObject:inReviewsAtIndex:)
+    @NSManaged public func insertIntoReviews(_ value: Review, at idx: Int)
+
+    @objc(removeObjectFromReviewsAtIndex:)
+    @NSManaged public func removeFromReviews(at idx: Int)
+
+    @objc(insertReviews:atIndexes:)
+    @NSManaged public func insertIntoReviews(_ values: [Review], at indexes: NSIndexSet)
+
+    @objc(removeReviewsAtIndexes:)
+    @NSManaged public func removeFromReviews(at indexes: NSIndexSet)
+
+    @objc(replaceObjectInReviewsAtIndex:withObject:)
+    @NSManaged public func replaceReviews(at idx: Int, with value: Review)
+
+    @objc(replaceReviewsAtIndexes:withReviews:)
+    @NSManaged public func replaceReviews(at indexes: NSIndexSet, with values: [Review])
 }

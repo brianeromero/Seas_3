@@ -37,10 +37,14 @@
         <attribute name="longitude" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="name" optional="YES" attributeType="String"/>
         <relationship name="appDayOfWeeks" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="AppDayOfWeek" inverseName="pIsland" inverseEntity="AppDayOfWeek"/>
+        <relationship name="reviews" optional="YES" toMany="YES" deletionRule="Nullify" ordered="YES" destinationEntity="Review" inverseName="island" inverseEntity="Review"/>
     </entity>
     <entity name="Review" representedClassName="Review" syncable="YES">
+        <attribute name="averageStar" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="createdTimestamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="review" optional="YES" attributeType="String"/>
         <attribute name="stars" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <relationship name="island" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PirateIsland" inverseName="reviews" inverseEntity="PirateIsland"/>
     </entity>
     <entity name="UserInfo" representedClassName="UserInfo" syncable="YES">
         <attribute name="belt" optional="YES" attributeType="String"/>

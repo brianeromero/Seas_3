@@ -61,6 +61,7 @@
 		0C689F7A2C4704FD009ED982 /* DayPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C689F792C4704FC009ED982 /* DayPickerView.swift */; };
 		0C6F7BD92C79193B00072237 /* Review+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCA11C52C79105F003CAB7C /* Review+CoreDataClass.swift */; };
 		0C6F7BDA2C79194500072237 /* Review+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCA11C62C79105F003CAB7C /* Review+CoreDataProperties.swift */; };
+		0C6F7BDC2C7931E600072237 /* GymMatReviewSelect.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C6F7BDB2C7931E600072237 /* GymMatReviewSelect.swift */; };
 		0C8817752C3371B7008FE469 /* MapDetails.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8817742C3371B7008FE469 /* MapDetails.swift */; };
 		0C8AEC252C59301F00D38635 /* ScheduleFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8AEC242C59301F00D38635 /* ScheduleFormView.swift */; };
 		0C8AEC272C59679300D38635 /* AppDayOfWeekFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8AEC262C59679300D38635 /* AppDayOfWeekFormView.swift */; };
@@ -184,6 +185,7 @@
 		0C524E942C308E4A008D6623 /* EnterZipCodeViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnterZipCodeViewModel.swift; sourceTree = "<group>"; };
 		0C524E962C30E859008D6623 /* AppDayOfWeek+Extensions..swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppDayOfWeek+Extensions..swift"; sourceTree = "<group>"; };
 		0C689F792C4704FC009ED982 /* DayPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayPickerView.swift; sourceTree = "<group>"; };
+		0C6F7BDB2C7931E600072237 /* GymMatReviewSelect.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GymMatReviewSelect.swift; sourceTree = "<group>"; };
 		0C8817742C3371B7008FE469 /* MapDetails.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapDetails.swift; sourceTree = "<group>"; };
 		0C8AEC242C59301F00D38635 /* ScheduleFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleFormView.swift; sourceTree = "<group>"; };
 		0C8AEC262C59679300D38635 /* AppDayOfWeekFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDayOfWeekFormView.swift; sourceTree = "<group>"; };
@@ -283,6 +285,7 @@
 		0C07B0972C2CFF7000D0BFB2 /* MatReview */ = {
 			isa = PBXGroup;
 			children = (
+				0C6F7BDB2C7931E600072237 /* GymMatReviewSelect.swift */,
 				0C07B0982C2CFF8500D0BFB2 /* GymMatReviewView.swift */,
 			);
 			path = MatReview;
@@ -684,6 +687,7 @@
 				0C07B0BB2C2D018D00D0BFB2 /* Disclaimer.swift in Sources */,
 				0C1635542C3613A2008FC297 /* ToastView.swift in Sources */,
 				0C07B0B92C2D017500D0BFB2 /* WhoWeAre.swift in Sources */,
+				0C6F7BDC2C7931E600072237 /* GymMatReviewSelect.swift in Sources */,
 				0C07B0A42C2D002000D0BFB2 /* EnterZipCodeView.swift in Sources */,
 				0C524E8F2C2F8592008D6623 /* LocationManager.swift in Sources */,
 				0C07B0992C2CFF8500D0BFB2 /* GymMatReviewView.swift in Sources */,
