@@ -48,7 +48,7 @@ struct DayOfWeekSearchView: View {
             .pickerStyle(SegmentedPickerStyle())
             .padding()
 
-            Text("Radius: \(Int(radius)) km") // Move the radius text here
+            Text("Radius: \(Int(radius * 1.60934)) miles")
                 .padding(.bottom, 5)
 
             Slider(value: $radius, in: 1...50, step: 1)
@@ -89,6 +89,8 @@ struct DayOfWeekSearchView: View {
     }
 
     private func fetchGyms(day: String, radius: Double) {
+        let radiusInKilometers = radius * 1.60934 // Convert miles to kilometers
+
         guard !isLoading else { return }
         isLoading = true
 
@@ -133,9 +135,11 @@ struct DayOfWeekSearchView: View {
     }
 
     private func updateRegion(newRadius: Double) {
+        let newRadiusInKilometers = newRadius * 1.60934 // Convert miles to kilometers
+
         guard let userLocation = userLocationMapViewModel.getCurrentUserLocation() else { return }
-        let latitudeDelta = newRadius / 111.0
-        let longitudeDelta = newRadius / (111.0 * cos(userLocation.coordinate.latitude * .pi / 180))
+        let latitudeDelta = newRadiusInKilometers / 111.0
+        let longitudeDelta = newRadiusInKilometers / (111.0 * cos(userLocation.coordinate.latitude * .pi / 180))
         equatableRegion = MKCoordinateRegion(
             center: userLocation.coordinate,
             span: MKCoordinateSpan(latitudeDelta: latitudeDelta, longitudeDelta: longitudeDelta)
