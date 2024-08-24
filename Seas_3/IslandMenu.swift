@@ -23,12 +23,12 @@ struct IslandMenu: View {
 
     @State private var selectedIsland: PirateIsland? = nil
 
-    // Use the shared PersistenceController instance
     let persistenceController = PersistenceController.shared
     let menuItems: [MenuItem] = [
-        .init(title: "Search", subMenuItems: ["All Entered Locations", "Current Location", "ZipCode", "Day Of Week"]),
-        .init(title: "Manage", subMenuItems: ["Add New Gym", "Update Existing Gyms", "Add or Edit Schedule/Open Mat"]),
-        .init(title: "Review", subMenuItems: ["Add Gym/Open Mat Review"]),
+        .init(title: "Search Gym Entries by", subMenuItems: ["All Entered Locations", "Current Location", "ZipCode", "Day Of Week"]),
+        .init(title: "Manage Gyms Entries", subMenuItems: ["Add New Gym", "Update Existing Gyms", "Add or Edit Schedule/Open Mat"]),
+        .init(title: "Gym Reviews", subMenuItems: ["Submit Gym/Open Mat Review"]),
+        .init(title: "FAQ", subMenuItems: ["FAQ & Disclaimer"])
     ]
 
     var body: some View {
@@ -37,7 +37,7 @@ struct IslandMenu: View {
                 GIFView(name: "flashing2")
                     .frame(width: 500, height: 450)
                     .offset(x: 100, y: -150)
-                
+
                 VStack(alignment: .leading, spacing: 5) {
                     Text("Main Menu")
                         .font(.title)
@@ -66,34 +66,30 @@ struct IslandMenu: View {
                         .padding(.bottom, 20)
                     }
 
+                    // New section for the main views in smaller font
                     NavigationLink(destination: ContentView()) {
-                        Text("ContentView")
+                        Text("All Gyms")
+                            .font(.footnote) // Smaller font size
                             .foregroundColor(.blue)
                             .padding(.leading, 0)
                             .padding(.top, 10)
                     }
 
-                    NavigationLink(destination: FAQnDisclaimerMenuView()) {
-                        Text("FAQ & Disclaimer")
-                            .foregroundColor(.blue)
-                            .padding(.top, 10)
-                    }
-
-                    // NavigationLink to pIslandScheduleView
                     NavigationLink(destination: pIslandScheduleView(viewModel: AppDayOfWeekViewModel(
                         selectedIsland: selectedIsland,
                         repository: AppDayOfWeekRepository(persistenceController: persistenceController)
                     ))) {
-                        Text("View Gym Schedules")
+                        Text("ALL Gym Schedules")
+                            .font(.footnote) // Smaller font size
                             .foregroundColor(.blue)
                             .padding(.top, 10)
                     }
 
-                    // NavigationLink to AllpIslandScheduleView
                     NavigationLink(destination: AllpIslandScheduleView(viewModel: AppDayOfWeekViewModel(
                         repository: AppDayOfWeekRepository(persistenceController: persistenceController)
                     ))) {
-                        Text("View ALL Mat Schedules")
+                        Text("ALL Mat Schedules")
+                            .font(.footnote) // Smaller font size
                             .foregroundColor(.blue)
                             .padding(.top, 10)
                     }
@@ -137,20 +133,20 @@ struct IslandMenu: View {
             DaysOfWeekFormView(
                 viewModel: viewModel,
                 selectedIsland: $selectedIsland,
-                selectedMatTime: .constant(nil) // Provide a default value for selectedMatTime
+                selectedMatTime: .constant(nil)
             )
         case "Day Of Week":
-            DayOfWeekSearchView() // Navigate to the new DayOfWeekSearchView
+            DayOfWeekSearchView()
         case "Add Gym/Open Mat Review":
-            GymMatReviewSelect(selectedIsland: $selectedIsland) // Link to GymMatReviewSelect
+            GymMatReviewSelect(selectedIsland: $selectedIsland)
+        case "FAQ & Disclaimer":
+            FAQnDisclaimerMenuView()
         default:
             EmptyView()
         }
     }
 }
 
-
-// Closing bracket for the `IslandMenu` struct
 struct IslandMenu_Previews: PreviewProvider {
     static var previews: some View {
         let persistenceController = PersistenceController.preview

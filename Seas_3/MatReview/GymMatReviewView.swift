@@ -37,17 +37,18 @@ struct IslandSection: View {
         Section(header: Text("Select Gym/Island")) {
             Picker("Gym/Island", selection: $selectedIsland) {
                 ForEach(islands, id: \.self) { island in
-                    Text(island.islandName ?? "").tag(island as PirateIsland?)
+                    Text(island.islandName).tag(island as PirateIsland?)
                 }
             }
             .onChange(of: selectedIsland) { newIsland in
                 if let island = newIsland {
-                    print("Selected Gym/Island: \(island.islandName ?? "")")
+                    print("Selected Gym/Island: \(island.islandName)")
                 }
             }
         }
     }
 }
+
 
 struct GymMatReviewView: View {
     @State private var reviewText: String = ""
@@ -64,9 +65,30 @@ struct GymMatReviewView: View {
         entity: PirateIsland.entity(),
         sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.islandName, ascending: true)]
     ) private var islands: FetchedResults<PirateIsland>
+    
+    
+    
+    var averageRating: Double {
+        guard let island = selectedIsland else {
+            return 0
+        }
+        
+        let reviewsFetchRequest: NSFetchRequest<Review> = Review.fetchRequest()
+        reviewsFetchRequest.predicate = NSPredicate(format: "island == %@", island)
+        
+        do {
+            let reviews = try viewContext.fetch(reviewsFetchRequest)
+            let totalStars = reviews.reduce(0) { $0 + Int($1.stars) }
+            return Double(totalStars) / Double(reviews.count)
+        } catch {
+            print("Error fetching reviews: \(error)")
+            return 0
+        }
+    }
+    
 
     var body: some View {
-        ZStack {
+        ZStack(alignment: .bottom) {
             Form {
                 IslandSection(selectedIsland: $selectedIsland, islands: islands)
                 ReviewSection(reviewText: $reviewText)
@@ -84,9 +106,24 @@ struct GymMatReviewView: View {
                         }
                     )
                 }
+                Section(header: Text("Average Rating")) {
+                    HStack {
+                        ForEach(0..<Int(averageRating.rounded()), id: \.self) { _ in
+                            Image(systemName: "star.fill")
+                                .foregroundColor(.yellow)
+                        }
+                        Text(String(format: "%.1f", averageRating))
+                    }
+                }
             }
             
             StarRatingsLedger()
+                .frame(height: 150) // Set the height to 150
+                .padding(.horizontal, 20)
+                .padding(.bottom, 20)
+                .background(Color.white.opacity(0.8))
+                .cornerRadius(10)
+                .shadow(radius: 5)
             
             if isLoading {
                 ProgressView()
@@ -189,34 +226,29 @@ struct RatingSection: View {
 
 struct StarRatingsLedger: View {
     var body: some View {
-        VStack {
-            Spacer()
-            HStack {
-                VStack(alignment: .leading) {
-                    Text("Star Ratings: like a...")
-                        .font(.headline)
-                        .padding(.bottom, 5)
-                    ForEach(StarRating.allCases, id: \.self) { rating in
-                        HStack {
-                            ForEach(rating.stars, id: \.self) { star in
-                                Image(systemName: star)
-                            }
-                            Text("= \"\(rating.description)\"")
-                        }
-                        .font(.caption)
+        VStack(alignment: .leading) {
+            Text("Star Ratings:")
+                .font(.subheadline)
+            ForEach(StarRating.allCases, id: \.self) { rating in
+                HStack {
+                    ForEach(rating.stars, id: \.self) { star in
+                        Image(systemName: star)
+                            .font(.caption)
                     }
+                    Text("\(rating.description)")
+                        .font(.caption)
                 }
-                .padding()
-                .background(Color.white.opacity(0.8))
-                .cornerRadius(10)
-                .shadow(radius: 5)
-                .padding(.leading, UIScreen.main.bounds.width * 0.05)
-                Spacer()
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(maxWidth: .infinity) // Make the VStack as wide as its parent
+        .padding(.horizontal, 20)
+        .padding(.bottom, 20)
+        .background(Color.white.opacity(0.8))
+        .cornerRadius(10)
+        .shadow(radius: 5)
     }
 }
+
 
 struct GymMatReviewView_Previews: PreviewProvider {
     static var previews: some View {
@@ -226,18 +258,19 @@ struct GymMatReviewView_Previews: PreviewProvider {
 
 struct PreviewView: View {
     @StateObject var viewModel = GymMatReviewViewModel()
-    
     @State private var isGymMatReviewViewPresented = true
 
     var body: some View {
         let context = PersistenceController.preview.container.viewContext
-        viewModel.dummyIsland = PirateIsland(context: context)
-        viewModel.dummyIsland?.name = "Sample Island"
+        viewModel.createDummyIsland(in: context)
 
         return Group {
             if let island = viewModel.dummyIsland {
-                GymMatReviewView(selectedIsland: .constant(island), isPresented: $isGymMatReviewViewPresented)
-                    .environment(\.managedObjectContext, context)
+                GymMatReviewView(
+                    selectedIsland: .constant(island),
+                    isPresented: $isGymMatReviewViewPresented
+                )
+                .environment(\.managedObjectContext, context)
             } else {
                 Text("Failed to create dummy island")
             }
@@ -245,7 +278,12 @@ struct PreviewView: View {
     }
 }
 
-
 class GymMatReviewViewModel: ObservableObject {
     @Published var dummyIsland: PirateIsland?
+
+    func createDummyIsland(in context: NSManagedObjectContext) {
+        let island = PirateIsland(context: context)
+        island.islandName = "Sample Island"
+        self.dummyIsland = island
+    }
 }
