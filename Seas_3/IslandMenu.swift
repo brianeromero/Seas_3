@@ -142,13 +142,11 @@ struct IslandMenu: View {
         case "Day Of Week":
             DayOfWeekSearchView() // Navigate to the new DayOfWeekSearchView
         case "Add Gym/Open Mat Review":
-            GymMatReviewView() // Link to GymMatReviewView
+            GymMatReviewSelect(selectedIsland: $selectedIsland) // Link to GymMatReviewSelect
         default:
             EmptyView()
         }
     }
-
-
 }
 
 // Closing bracket for the `IslandMenu` struct

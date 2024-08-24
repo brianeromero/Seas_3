@@ -17,5 +17,12 @@ extension Review {
 
     @NSManaged public var stars: Int16
     @NSManaged public var review: String
+    @NSManaged public var createdTimestamp: Date
+    @NSManaged public var averageStar: Int16
 
+
+    // MARK: - Relationships
+    @NSManaged public var island: PirateIsland?
+
+    
 }
