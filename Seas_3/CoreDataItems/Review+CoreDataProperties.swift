@@ -9,8 +9,7 @@
 import Foundation
 import CoreData
 
-extension Review {
-
+extension Review: Identifiable {
     @nonobjc public class func fetchRequest() -> NSFetchRequest<Review> {
         return NSFetchRequest<Review>(entityName: "Review")
     }
@@ -20,9 +19,11 @@ extension Review {
     @NSManaged public var createdTimestamp: Date
     @NSManaged public var averageStar: Int16
 
-
     // MARK: - Relationships
     @NSManaged public var island: PirateIsland?
-
     
+    // Identifiable conformance
+    public var id: NSManagedObjectID {
+        return self.objectID
+    }
 }
