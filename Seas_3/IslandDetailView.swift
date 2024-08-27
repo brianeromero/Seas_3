@@ -46,11 +46,11 @@ struct IslandDetailContent: View {
     @Binding var selectedDestination: IslandDestination?
     @State private var showMapView = false
 
-    @Environment(\.managedObjectContext) private var viewContext // Add this line
+    @Environment(\.managedObjectContext) private var viewContext
 
     var body: some View {
         VStack(alignment: .leading) {
-            Text(island.islandName)
+            Text(island.islandName ?? "Unnamed Island")
                 .font(.headline)
                 .bold()
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -59,7 +59,7 @@ struct IslandDetailContent: View {
             Button(action: {
                 showMapView = true
             }) {
-                Text(island.islandLocation)
+                Text(island.islandLocation ?? "Unknown Location")
                     .foregroundColor(.blue)
                     .font(.system(size: 16, weight: .light))
                     .multilineTextAlignment(.leading)
@@ -91,10 +91,10 @@ struct IslandDetailContent: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .foregroundColor(.blue)
                     }
-
                 } else if destination == .schedule {
                     NavigationLink(destination: IslandScheduleAsCal(
                         viewModel: AppDayOfWeekViewModel(
+                            PersistenceController.shared,
                             selectedIsland: island,
                             repository: AppDayOfWeekRepository(persistenceController: PersistenceController.shared)
                         ),
@@ -117,6 +117,7 @@ struct IslandDetailContent: View {
         return DateFormat.mediumDateTime.string(from: date)
     }
 }
+
 
 struct IslandDetailView_Previews: PreviewProvider {
     static var previews: some View {

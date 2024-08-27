@@ -12,4 +12,8 @@ import CoreData
 @objc(MatTime)
 public class MatTime: NSManagedObject {
 
+    public static func == (lhs: MatTime, rhs: MatTime) -> Bool {
+        lhs.time == rhs.time &&
+        lhs.type == rhs.type
+    }
 }

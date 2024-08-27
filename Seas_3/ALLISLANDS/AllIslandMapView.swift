@@ -1,8 +1,6 @@
 // AllIslandMapView.swift
 // Seas_3
-//
 // Created by Brian Romero on 6/26/24.
-//
 
 import SwiftUI
 import CoreData
@@ -36,51 +34,61 @@ struct EquatableMKCoordinateRegion: Equatable {
 struct IslandModalContentView: View {
     @Binding var selectedIsland: PirateIsland?
     @Binding var showModal: Bool
+    @State private var selectedAppDayOfWeek: AppDayOfWeek?
+    var viewModel: AppDayOfWeekViewModel
+    @Binding var selectedDay: DayOfWeek?
 
-    var body: some View {
-        Group {
-            if let selectedIsland = selectedIsland {
-                let reviewsArray = getReviews(from: selectedIsland.reviews)
-                let averageRating = averageStarRating(for: reviewsArray)
-                VStack {
-                    IslandModalView(
-                        islandName: selectedIsland.islandName,
-                        islandLocation: selectedIsland.islandLocation,
-                        formattedCoordinates: "\(selectedIsland.latitude), \(selectedIsland.longitude)",
-                        createdByUserId: selectedIsland.createdByUserId,
-                        createdTimestamp: DateFormatter.localizedString(from: selectedIsland.createdTimestamp, dateStyle: .short, timeStyle: .short),
-                        lastModifiedByUserId: selectedIsland.lastModifiedByUserId,
-                        formattedTimestamp: DateFormatter.localizedString(from: selectedIsland.lastModifiedTimestamp ?? Date(), dateStyle: .short, timeStyle: .short),
-                        gymWebsite: selectedIsland.gymWebsite,
-                        reviews: reviewsArray,
-                        averageStarRating: averageRating
-                    )
-                    .font(.system(size: 5)) // Apply font to the entire IslandModalView
-                    .frame(width: 200, height: 150)
-                    .background(Color.white)
-                    .cornerRadius(10)
-                    .padding()
-                    
-                    Button(action: {
-                        showModal = false
-                    }) {
-                        Text("Close")
-                            .font(.system(size: 8))
-                            .padding(5)
-                            .background(Color.red)
-                            .foregroundColor(.white)
-                            .cornerRadius(5)
-                    }
-                }
-            } else {
-                EmptyView()
-            }
-        }
+    init(selectedIsland: Binding<PirateIsland?>, showModal: Binding<Bool>, viewModel: AppDayOfWeekViewModel, selectedDay: Binding<DayOfWeek?>) {
+        _selectedIsland = selectedIsland
+        _showModal = showModal
+        self.viewModel = viewModel
+        _selectedDay = selectedDay
     }
 
-    private func getReviews(from reviews: NSOrderedSet?) -> [Review] {
-        guard let reviews = reviews else { return [] }
-        return reviews.compactMap { $0 as? Review }.sorted(by: { $0.createdTimestamp > $1.createdTimestamp })
+    var body: some View {
+        if let selectedIsland = selectedIsland {
+            let reviewsArray = ReviewUtils.getReviews(from: selectedIsland.reviews) // Updated
+            let averageRating = averageStarRating(for: reviewsArray)
+
+            // Convert AppDayOfWeek instances to DayOfWeek enum values
+            let dayOfWeekData: [DayOfWeek] = (selectedIsland.appDayOfWeeks?.allObjects as? [AppDayOfWeek])?
+                .compactMap { $0.dayOfWeek } ?? []
+
+            VStack {
+                IslandModalView(
+                    islandName: selectedIsland.islandName ?? "Unknown Island",
+                    islandLocation: selectedIsland.islandLocation ?? "Unknown Location",
+                    formattedCoordinates: "\(selectedIsland.latitude), \(selectedIsland.longitude)",
+                    createdTimestamp: DateFormatter.localizedString(from: selectedIsland.createdTimestamp, dateStyle: .short, timeStyle: .short),
+                    formattedTimestamp: DateFormatter.localizedString(from: selectedIsland.lastModifiedTimestamp ?? Date(), dateStyle: .short, timeStyle: .short),
+                    gymWebsite: selectedIsland.gymWebsite,
+                    reviews: reviewsArray,
+                    averageStarRating: averageRating,
+                    dayOfWeekData: dayOfWeekData,
+                    selectedAppDayOfWeek: $selectedAppDayOfWeek,
+                    selectedIsland: $selectedIsland,
+                    viewModel: viewModel,
+                    selectedDay: $selectedDay
+                )
+                .frame(width: 200, height: 150)
+                .background(Color.white)
+                .cornerRadius(10)
+                .padding()
+
+                Button(action: {
+                    showModal = false
+                }) {
+                    Text("Close")
+                        .font(.system(size: 8, design: .default))
+                        .padding(5)
+                        .background(Color.red)
+                        .foregroundColor(.white)
+                        .cornerRadius(5)
+                }
+            }
+        } else {
+            EmptyView()
+        }
     }
 
     private func averageStarRating(for reviews: [Review]) -> String {
@@ -102,7 +110,8 @@ struct ConsolidatedIslandMapView: View {
     )
     private var islands: FetchedResults<PirateIsland>
 
-    @ObservedObject private var locationManager: UserLocationMapViewModel
+    @StateObject private var viewModel: AppDayOfWeekViewModel
+    @StateObject private var locationManager: UserLocationMapViewModel
     @State private var selectedRadius: Double = 5.0
     @State private var equatableRegion: EquatableMKCoordinateRegion = EquatableMKCoordinateRegion(
         region: MKCoordinateRegion(
@@ -113,21 +122,20 @@ struct ConsolidatedIslandMapView: View {
     @State private var pirateMarkers: [CustomMapMarker] = []
     @State private var showModal = false
     @State private var selectedIsland: PirateIsland?
-    
-    
-    init() {
-        self.locationManager = UserLocationMapViewModel()
+    @State private var selectedAppDayOfWeek: AppDayOfWeek?
+    @State private var selectedDay: DayOfWeek? = .monday
+
+    init(viewModel: AppDayOfWeekViewModel) {
+        _viewModel = StateObject(wrappedValue: viewModel)
+        _locationManager = StateObject(wrappedValue: UserLocationMapViewModel())
     }
 
     var body: some View {
-        let mapView = makeMapView()
-        let radiusPicker = makeRadiusPicker()
-
-        return NavigationView {
+        NavigationView {
             VStack {
                 if locationManager.userLocation != nil {
-                    mapView
-                    radiusPicker
+                    makeMapView()
+                    makeRadiusPicker()
                 } else {
                     Text("Fetching user location...")
                         .navigationTitle("Locations Near Me")
@@ -139,11 +147,16 @@ struct ConsolidatedIslandMapView: View {
                     Rectangle()
                         .fill(Color.black)
                         .opacity(0.5)
-                    IslandModalContentView(selectedIsland: $selectedIsland, showModal: $showModal)
-                        .background(Color.white)
-                        .cornerRadius(10)
-                        .shadow(radius: 5)
-                        .padding()
+                    IslandModalContentView(
+                        selectedIsland: $selectedIsland,
+                        showModal: $showModal,
+                        viewModel: viewModel,
+                        selectedDay: $selectedDay
+                    )
+                    .background(Color.white)
+                    .cornerRadius(10)
+                    .shadow(radius: 5)
+                    .padding()
                 }
                 .opacity(showModal ? 1 : 0)
             )
@@ -192,11 +205,12 @@ struct ConsolidatedIslandMapView: View {
     }
 
     private func onChangeUserLocation(_ newUserLocation: CLLocation?) {
-        if let newUserLocation = newUserLocation {
-            updateRegion(newUserLocation, radius: selectedRadius)
-            fetchPirateIslandsNear(newUserLocation, within: selectedRadius * 1609.34)
-            addCurrentLocationMarker(newUserLocation)
+        guard let newUserLocation = newUserLocation else {
+            return
         }
+        updateRegion(newUserLocation, radius: selectedRadius)
+        fetchPirateIslandsNear(newUserLocation, within: selectedRadius * 1609.34)
+        addCurrentLocationMarker(newUserLocation)
     }
 
     private func onChangeEquatableRegion(_ newRegion: EquatableMKCoordinateRegion) {
@@ -214,7 +228,11 @@ struct ConsolidatedIslandMapView: View {
         // Implement your logic to fetch pirate islands near a location
         // For now, mock implementation with preview data
         pirateMarkers = islands.map { island in
-            CustomMapMarker(id: island.islandID ?? UUID(), coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude), title: island.islandName)
+            CustomMapMarker(
+                id: island.islandID ?? UUID(), // Default to a new UUID if islandID is nil
+                coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude),
+                title: island.islandName ?? "Unnamed Island" // Default to "Unnamed Island" if islandName is nil
+            )
         }
     }
 
@@ -224,37 +242,45 @@ struct ConsolidatedIslandMapView: View {
     }
 
     private func addCurrentLocationMarker(_ userLocation: CLLocation) {
-        let currentLocationMarker = CustomMapMarker(id: UUID(), coordinate: userLocation.coordinate, title: "You are Here")
+        let currentLocationMarker = CustomMapMarker(
+            id: UUID(), // Generate a unique ID for the current location marker
+            coordinate: userLocation.coordinate,
+            title: "You are Here"
+        )
         pirateMarkers.append(currentLocationMarker)
     }
 
-    private func updateMarkersForRegion(_ newRegion: MKCoordinateRegion) {
-        // Clear existing markers
-        pirateMarkers.removeAll()
-
-        // Fetch new markers based on the current region
-        let center = CLLocation(latitude: newRegion.center.latitude, longitude: newRegion.center.longitude)
-        fetchPirateIslandsNear(center, within: selectedRadius * 1609.34)
-
-        // Add current location marker if available
-        if let userLocation = locationManager.userLocation {
-            addCurrentLocationMarker(userLocation)
+    private func updateMarkersForRegion(_ region: MKCoordinateRegion) {
+        // Implement your logic to update markers based on the visible region
+        // For now, mock implementation with preview data
+        pirateMarkers = islands.map { island in
+            CustomMapMarker(
+                id: island.islandID ?? UUID(), // Default to a new UUID if islandID is nil
+                coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude),
+                title: island.islandName ?? "Unnamed Island" // Default to "Unnamed Island" if islandName is nil
+            )
         }
     }
 }
 
 struct ConsolidatedIslandMapView_Previews: PreviewProvider {
     static var previews: some View {
-        // Ensure the preview works with a valid managed object context and mock data
-        let context = PersistenceController.preview.container.viewContext
-        let previewIsland = PirateIsland(context: context)
-        previewIsland.islandName = "Sample Gym"
-        previewIsland.latitude = 37.7749
-        previewIsland.longitude = -122.4194
+        // Create a preview persistence controller and context
+        let persistenceController = PersistenceController.preview
+        let context = persistenceController.container.viewContext
 
-        return ConsolidatedIslandMapView()
+        // Create a repository using the preview persistence controller
+        let repository = AppDayOfWeekRepository(persistenceController: persistenceController)
+
+        // Initialize the viewModel with the required parameters
+        let viewModel = AppDayOfWeekViewModel(
+            persistenceController, // Remove extraneous argument label
+            selectedIsland: nil,
+            repository: repository
+        )
+
+        // Pass the viewModel and the managed object context to the preview view
+        ConsolidatedIslandMapView(viewModel: viewModel)
             .environment(\.managedObjectContext, context)
     }
 }
-
-

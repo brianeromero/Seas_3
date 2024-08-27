@@ -8,22 +8,26 @@
 import Foundation
 import SwiftUI
 import MapKit
+import CoreLocation
 
-// Custom Equatable conformance for CLLocationCoordinate2D
-extension CLLocationCoordinate2D: @retroactive Equatable {
-    public static func == (lhs: CLLocationCoordinate2D, rhs: CLLocationCoordinate2D) -> Bool {
-        return lhs.latitude == rhs.latitude && lhs.longitude == rhs.longitude
+
+struct CoordinateWrapper: Equatable {
+    let coordinate: CLLocationCoordinate2D
+    
+    static func == (lhs: CoordinateWrapper, rhs: CoordinateWrapper) -> Bool {
+        return lhs.coordinate.latitude == rhs.coordinate.latitude &&
+               lhs.coordinate.longitude == rhs.coordinate.longitude
     }
 }
 
 struct AllMapView: View {
     @State private var region: MKCoordinateRegion
     let islands: [PirateIsland]
-    let userLocation: CLLocationCoordinate2D
+    let userLocation: CoordinateWrapper
 
     init(islands: [PirateIsland], userLocation: CLLocationCoordinate2D) {
         self.islands = islands
-        self.userLocation = userLocation
+        self.userLocation = CoordinateWrapper(coordinate: userLocation)
         
         let initialRegion = MKCoordinateRegion(
             center: userLocation,
@@ -34,15 +38,22 @@ struct AllMapView: View {
 
     var body: some View {
         Map(coordinateRegion: $region, annotationItems: islands.compactMap { island -> CustomMapMarker? in
-            let title = island.islandName
+            let title = island.islandName ?? "Unnamed Island"
             let latitude = island.latitude
             let longitude = island.longitude
             
+            // Use ReviewUtils to get the reviews for the island
+            let reviews = ReviewUtils.getReviews(from: island.reviews)
+            
+            // Example: Printing reviews for debugging
+            print("Reviews for \(title): \(reviews)")
+
+            // Create a CustomMapMarker for each island
             return CustomMapMarker(id: island.islandID ?? UUID(), coordinate: CLLocationCoordinate2D(latitude: latitude, longitude: longitude), title: title)
-        }) { location in
-            MapAnnotation(coordinate: location.coordinate) {
+        }) { marker in
+            MapAnnotation(coordinate: marker.coordinate) {
                 VStack {
-                    Text(location.title)
+                    Text(marker.title)
                         .font(.caption)
                         .padding(5)
                         .background(Color.white)
@@ -59,15 +70,14 @@ struct AllMapView: View {
             updateRegion()
             print("Map appeared with region: \(region)")
         }
-        .onChange(of: region.center) { newCenter in
-            print("Region center changed to: \(newCenter.latitude), \(newCenter.longitude)")
+        .onChange(of: CoordinateWrapper(coordinate: region.center)) { newCenter in
+            print("Region center changed to: \(newCenter.coordinate.latitude), \(newCenter.coordinate.longitude)")
         }
     }
 
-    
     private func updateRegion() {
         region = MKCoordinateRegion(
-            center: userLocation,
+            center: userLocation.coordinate,
             span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
         )
         print("Updated region to: \(region.center.latitude), \(region.center.longitude)")

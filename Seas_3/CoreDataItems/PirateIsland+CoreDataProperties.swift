@@ -1,7 +1,7 @@
-//  PirateIsland+CoreDataProperties.swift
-//  Seas_3
+// PirateIsland+CoreDataProperties.swift
+// Seas_3
 //
-//  Created by Brian Romero on 6/24/24.
+// Created by Brian Romero on 6/24/24.
 //
 
 import Foundation
@@ -11,30 +11,80 @@ import CoreData
 extension PirateIsland: Identifiable {}
 
 extension PirateIsland {
-    
+
     @nonobjc public class func fetchRequest() -> NSFetchRequest<PirateIsland> {
         return NSFetchRequest<PirateIsland>(entityName: "PirateIsland")
     }
-    
+
     // MARK: - Attributes
-    
+
     @NSManaged public var coordinate: Double
     @NSManaged public var createdByUserId: String?
     @NSManaged public var createdTimestamp: Date
     @NSManaged public var gymWebsite: URL?
     @NSManaged public var islandID: UUID?
-    @NSManaged public var islandLocation: String
-    @NSManaged public var islandName: String
+    @NSManaged public var islandLocation: String?
+    @NSManaged public var islandName: String?
     @NSManaged public var lastModifiedByUserId: String?
     @NSManaged public var lastModifiedTimestamp: Date?
     @NSManaged public var latitude: Double
     @NSManaged public var longitude: Double
     @NSManaged public var name: String?
-    
+
     // MARK: - Relationships
 
     @NSManaged public var appDayOfWeeks: NSSet?
     @NSManaged public var reviews: NSOrderedSet?  // Make sure this is NSOrderedSet for ordered relationships
+
+    // MARK: - Computed Properties
+
+    public var formattedCoordinates: String {
+        String(format: "%.6f, %.6f", latitude, longitude)
+    }
+
+    public var formattedLatitude: String {
+        String(format: "%.6f", latitude)
+    }
+
+    public var formattedLongitude: String {
+        String(format: "%.6f", longitude)
+    }
+
+    public var formattedTimestamp: String {
+        DateFormat.full.string(from: lastModifiedTimestamp ?? Date())
+    }
+
+    // Ensure you have appropriate default values or handling for optional properties
+    public var safeIslandLocation: String {
+        islandLocation ?? "Unknown Location"
+    }
+
+    public var safeName: String {
+        name ?? "Unnamed Island"
+    }
+
+    // Convert the NSSet of appDayOfWeeks to an array of AppDayOfWeek
+    public var daysOfWeekArray: [AppDayOfWeek] {
+        let set = appDayOfWeeks as? Set<AppDayOfWeek> ?? []
+        return set.sorted {
+            // Safely unwrap and sort by day; provide a default value if day is nil
+            let day1 = $0.day ?? ""
+            let day2 = $1.day ?? ""
+            return day1 < day2
+        }
+    }
+
+    // MARK: - Custom Methods
+
+    static func logFetch(in context: NSManagedObjectContext) {
+        let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
+        do {
+            let results = try context.fetch(fetchRequest)
+            print("Fetched \(results.count) Gym objects.")
+        } catch {
+            print("Failed to fetch Gym: \(error)")
+        }
+    }
 
     // MARK: - Generated Accessors for appDayOfWeeks
     @objc(addAppDayOfWeeksObject:)
@@ -48,36 +98,7 @@ extension PirateIsland {
 
     @objc(removeAppDayOfWeeks:)
     @NSManaged public func removeFromAppDayOfWeeks(_ values: NSSet)
-    
-    // MARK: - Computed Properties
-    public var formattedCoordinates: String {
-        String(format: "%.6f, %.6f", latitude, longitude)
-    }
-    
-    public var formattedLatitude: String {
-        String(format: "%.6f", latitude)
-    }
-    
-    public var formattedLongitude: String {
-        String(format: "%.6f", longitude)
-    }
-    
-    public var formattedTimestamp: String {
-        DateFormat.full.string(from: lastModifiedTimestamp ?? Date())
-    }
-    
-    // MARK: - Custom Methods
 
-    static func logFetch(in context: NSManagedObjectContext) {
-        let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
-        do {
-            let results = try context.fetch(fetchRequest)
-            print("Fetched \(results.count) Gym objects.")
-        } catch {
-            print("Failed to fetch Gym: \(error)")
-        }
-    }
-    
     // MARK: - Generated Accessors for reviews
     @objc(insertObject:inReviewsAtIndex:)
     @NSManaged public func insertIntoReviews(_ value: Review, at idx: Int)

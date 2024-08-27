@@ -41,7 +41,7 @@ struct DaysOfWeekFormView: View {
             Form {
                 if let selectedIsland = selectedIsland {
                     Section(header: Text("Gyms")) {
-                        Text("Selected Gym: \(selectedIsland.islandName)")
+                        Text("Selected Gym: \(selectedIsland.islandName ?? "")")
                     }
                 } else {
                     Section(header: Text("Search by Gym Name, Zip Code, or Address/Location")) {
@@ -73,8 +73,7 @@ struct DaysOfWeekFormView: View {
                     Section(header: Text("Edit Mat Time")) {
                         TextField("Time", text: Binding(
                             get: { matTime.time ?? "" },
-                            set: { matTime.time = $0 }
-                        ))
+                            set: { matTime.time = $0 }))
                         // Add other fields and save button as needed
                     }
                 }
@@ -145,8 +144,7 @@ struct InsertIslandSearch: View {
                     self.viewModel.currentAppDayOfWeek = AppDayOfWeek(context: self.viewContext)
                     self.viewModel.currentAppDayOfWeek?.pIsland = island
                 }) {
-                    Text(island.islandName)
-                }
+                    Text(island.islandName?.description ?? "Unknown Gym")                }
             }
             .listStyle(PlainListStyle())
             .navigationTitle("Select Gym")
@@ -168,11 +166,11 @@ struct InsertIslandSearch: View {
         let lowercasedQuery = searchQuery.lowercased()
         if !searchQuery.isEmpty {
             filteredIslands = islands.filter { island in
-                return (island.islandName.lowercased().contains(lowercasedQuery)) ||
-                (island.islandLocation.lowercased().contains(lowercasedQuery)) ||
-                    (island.gymWebsite?.absoluteString.lowercased().contains(lowercasedQuery) ?? false) ||
-                    (String(island.latitude).contains(lowercasedQuery)) ||
-                    (String(island.longitude).contains(lowercasedQuery))
+                return (island.islandName?.lowercased().contains(lowercasedQuery) ?? false) ||
+                (island.islandLocation?.lowercased().contains(lowercasedQuery) ?? false) ||
+                (island.gymWebsite?.absoluteString.lowercased().contains(lowercasedQuery) ?? false) ||
+                (String(island.latitude).contains(lowercasedQuery)) ||
+                (String(island.longitude).contains(lowercasedQuery))
             }
         } else {
             filteredIslands = Array(islands)
@@ -211,7 +209,11 @@ struct DaysOfWeekFormView_Previews: PreviewProvider {
         let mockRepository = MockAppDayOfWeekRepository(persistenceController: PersistenceController.preview)
         
         // Create a mock AppDayOfWeekViewModel
-        let viewModel = AppDayOfWeekViewModel(selectedIsland: mockIsland, repository: mockRepository)
+        let viewModel = AppDayOfWeekViewModel(
+            PersistenceController.preview,
+            selectedIsland: mockIsland,
+            repository: mockRepository
+        )
         
         // Create a Binding for selectedIsland
         let selectedIsland = Binding<PirateIsland?>(

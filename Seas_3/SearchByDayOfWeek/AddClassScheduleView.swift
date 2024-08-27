@@ -87,6 +87,7 @@ struct AddClassScheduleView_Previews: PreviewProvider {
 
         // Initialize AppDayOfWeekViewModel with mock data
         let viewModel = AppDayOfWeekViewModel(
+            persistenceController, // Move this to the first argument
             selectedIsland: nil,
             repository: mockRepository
         )

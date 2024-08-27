@@ -10,7 +10,7 @@ import CoreData
 
 struct AddNewMatTimeSection: View {
     @Binding var selectedAppDayOfWeek: AppDayOfWeek?
-    @Binding var selectedDay: DayOfWeek
+    @Binding var selectedDay: DayOfWeek // Change this to non-optional if that fits the use case
     @Binding var daySelected: Bool
     @State var matTime: MatTime?
     @State private var isMatTimeSet: Bool = false
@@ -28,7 +28,6 @@ struct AddNewMatTimeSection: View {
     @State private var goodForBeginners: Bool = false
     @State private var kids: Bool = false
     @State private var restrictions: Bool = false
-
     @ObservedObject var viewModel: AppDayOfWeekViewModel
 
     var body: some View {

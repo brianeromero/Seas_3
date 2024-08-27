@@ -11,7 +11,17 @@ import Combine
 struct Seas3App: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject var appState = AppState()
-    @StateObject var viewModel = AppDayOfWeekViewModel(selectedIsland: nil, repository: AppDayOfWeekRepository(persistenceController: PersistenceController.shared))
+    @StateObject var viewModel: AppDayOfWeekViewModel
+
+    init() {
+        let persistenceController = PersistenceController.shared
+        let repository = AppDayOfWeekRepository(persistenceController: persistenceController)
+        _viewModel = StateObject(wrappedValue: AppDayOfWeekViewModel(
+            persistenceController, // Remove extraneous argument label
+            selectedIsland: nil,
+            repository: repository
+        ))
+    }
 
     var body: some Scene {
         WindowGroup {

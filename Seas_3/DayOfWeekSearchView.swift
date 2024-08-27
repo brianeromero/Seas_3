@@ -112,7 +112,7 @@ struct DayOfWeekSearchView: View {
                     fetchedGyms.append(
                         Gym(
                             id: island.islandID ?? UUID(),
-                            name: island.islandName,
+                            name: island.islandName ?? "Unknown Island",
                             latitude: island.latitude,
                             longitude: island.longitude,
                             hasScheduledMatTime: hasScheduledMatTime,

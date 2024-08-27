@@ -39,7 +39,8 @@ struct ScheduleFormView: View {
     @State private var alertTitle = ""
     @State private var alertMessage = ""
     @State private var daySelected = false
-    @State private var selectedDay: DayOfWeek = .monday
+    @State private var selectedDay: DayOfWeek? = .monday // Optional
+
 
     init(
         selectedAppDayOfWeek: Binding<AppDayOfWeek?>,
@@ -57,7 +58,13 @@ struct ScheduleFormView: View {
                 islandSelectionSection
                 daySelectionSection
                 addNewMatTimeSection
-                scheduledMatTimesSection
+
+                // Replace with the new `ScheduledMatTimesSection`
+                ScheduledMatTimesSection(
+                    matTimesForDay: $viewModel.matTimesForDay,
+                    selectedDay: $selectedDay
+                )
+                
                 errorHandlingSection
             }
             .navigationTitle("Schedule Entry")
@@ -71,13 +78,15 @@ struct ScheduleFormView: View {
         Section(header: Text("Select Gym")) {
             Picker("Select Gym", selection: $selectedIsland) {
                 ForEach(islands, id: \.self) { island in
-                    Text(island.islandName).tag(island)
+                    Text(island.islandName ?? "Unknown Island").tag(island)
                 }
             }
             .onChange(of: selectedIsland) { newIsland in
                 if let island = newIsland {
                     print("Selected Gym: \(island.islandName)")
-                    viewModel.fetchCurrentDayOfWeek(for: island, day: selectedDay)
+                    if let day = selectedDay {
+                        viewModel.fetchCurrentDayOfWeek(for: island, day: day)
+                    }
                     
                     if let appDayOfWeek = selectedAppDayOfWeek {
                         viewModel.viewContext.delete(appDayOfWeek)
@@ -89,6 +98,8 @@ struct ScheduleFormView: View {
         }
     }
 
+
+
     private var daySelectionSection: some View {
         Section(header: Text("Select Day")) {
             Picker("Day", selection: $selectedDay) {
@@ -99,102 +110,33 @@ struct ScheduleFormView: View {
             }
             .pickerStyle(SegmentedPickerStyle())
             .onChange(of: selectedDay) { newDay in
-                print("Selected Day: \(newDay.displayName)")
+                // Provide a default value if newDay is nil
+                let day = newDay ?? .monday
+                print("Selected Day: \(day.displayName)")
                 viewModel.updateSchedules()
                 daySelected = true
                 if let island = selectedIsland {
-                    viewModel.fetchCurrentDayOfWeek(for: island, day: newDay)
+                    viewModel.fetchCurrentDayOfWeek(for: island, day: day)
                 }
                 selectedAppDayOfWeek = viewModel.currentAppDayOfWeek
             }
         }
     }
 
-    private func dayButton(day: DayOfWeek) -> some View {
-        Button(action: {
-            selectedDay = day
-            print("Selected Day: \(day.displayName)")
-            viewModel.updateSchedules()
-            daySelected = true
-            if let island = selectedIsland {
-                viewModel.fetchCurrentDayOfWeek(for: island, day: day)
-            }
-            selectedAppDayOfWeek = viewModel.currentAppDayOfWeek
-        }) {
-            Text(day.displayName)
-                .font(.caption)
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .foregroundColor(selectedDay == day ? Color.white : Color.black)
-                .padding(.vertical, 2)
-                .padding(.horizontal, 5)
-                .background(selectedDay == day ? Color.blue : Color.gray.opacity(0.1))
-        }
-        .cornerRadius(10, corners: {
-            if selectedDay == day {
-                if day.number == 2 { // Monday
-                    return [.topLeft, .bottomLeft]
-                } else if day.number == 7 { // Saturday
-                    return [.topRight, .bottomRight]
-                } else {
-                    return [.topLeft, .topRight]
-                }
-            } else {
-                return []
-            }
-        }())
-    }
-
     private var addNewMatTimeSection: some View {
         AddNewMatTimeSection(
             selectedAppDayOfWeek: $selectedAppDayOfWeek,
-            selectedDay: $selectedDay,
+            selectedDay: Binding(
+                get: { selectedDay ?? .monday }, // Provide a default value if `selectedDay` is nil
+                set: { newDay in
+                    selectedDay = newDay
+                }
+            ),
             daySelected: $daySelected,
             viewModel: viewModel
         )
     }
 
-    private var scheduledMatTimesSection: some View {
-        Section(header: Text("Scheduled Mat Times")) {
-            if let matTimes = viewModel.matTimesForDay[selectedDay], !matTimes.isEmpty {
-                List {
-                    ForEach(matTimes.sorted { $0.time ?? "" < $1.time ?? "" }, id: \.self) { matTime in
-                        VStack(alignment: .leading) {
-                            Text("Time: \(formatTime(matTime.time ?? "Unknown"))")
-                                .font(.headline)
-                            HStack {
-                                Label("Gi", systemImage: matTime.gi ? "checkmark.circle.fill" : "xmark.circle")
-                                    .foregroundColor(matTime.gi ? .green : .red)
-                                Label("NoGi", systemImage: matTime.noGi ? "checkmark.circle.fill" : "xmark.circle")
-                                    .foregroundColor(matTime.noGi ? .green : .red)
-                                Label("Open Mat", systemImage: matTime.openMat ? "checkmark.circle.fill" : "xmark.circle")
-                                    .foregroundColor(matTime.openMat ? .green : .red)
-                            }
-                            if matTime.restrictions {
-                                Text("Restrictions: \(matTime.restrictionDescription ?? "Yes")")
-                                    .font(.caption)
-                                    .foregroundColor(.red)
-                            }
-                            if matTime.goodForBeginners {
-                                Text("Good for Beginners")
-                                    .font(.caption)
-                                    .foregroundColor(.blue)
-                            }
-                            if matTime.kids {
-                                Text("Kids")
-                                    .font(.caption)
-                                    .foregroundColor(.blue)
-                            }
-                        }
-                        .padding()
-                    }
-                }
-            } else {
-                Text("No mat times available.")
-                    .foregroundColor(.gray)
-            }
-        }
-    }
 
     private var errorHandlingSection: some View {
         Group {
@@ -214,8 +156,6 @@ struct ScheduleFormView: View {
             return time
         }
     }
-
-
 }
 
 struct CornerRadiusStyle: ViewModifier {
@@ -255,19 +195,20 @@ struct ScheduleFormView_Previews: PreviewProvider {
         island.islandID = UUID()
         island.islandName = "Gym Name"
         
-        // Create a valid AppDayOfWeek object
-        let appDayOfWeek = AppDayOfWeek(context: context)
-        appDayOfWeek.appDayOfWeekID = UUID().uuidString
-        appDayOfWeek.day = DayOfWeek.monday.rawValue
-        appDayOfWeek.name = "Schedule Name"
-        
         // Create a mock repository for the view model
         let mockRepository = AppDayOfWeekRepository(persistenceController: persistenceController)
         
+        // Initialize AppDayOfWeekViewModel with mock data
+        let viewModel = AppDayOfWeekViewModel(
+            persistenceController,
+            selectedIsland: island,
+            repository: mockRepository
+        )
+        
         return ScheduleFormView(
-            selectedAppDayOfWeek: .constant(appDayOfWeek),
+            selectedAppDayOfWeek: .constant(nil),
             selectedIsland: .constant(island),
-            viewModel: AppDayOfWeekViewModel(selectedIsland: island, repository: mockRepository)
+            viewModel: viewModel
         )
         .environment(\.managedObjectContext, context)
         .previewDisplayName("Schedule Entry Preview")

@@ -1,9 +1,6 @@
-//
-//  IslandMenu.swift
-//  Seas_3
-//
-//  Created by Brian Romero on 6/26/24.
-//
+// IslandMenu.swift
+// Seas_3
+// Created by Brian Romero on 6/26/24.
 
 import SwiftUI
 import CoreData
@@ -15,15 +12,33 @@ struct MenuItem: Identifiable {
 }
 
 struct IslandMenu: View {
-    @StateObject private var locationManager = UserLocationMapViewModel()
-    @Environment(\.managedObjectContext) private var viewContext
-
     @State private var showAlert = false
     @State private var alertMessage = ""
-
     @State private var selectedIsland: PirateIsland? = nil
+    @StateObject private var locationManager = UserLocationMapViewModel()
 
-    let persistenceController = PersistenceController.shared
+    // Initialize the repository
+    private var appDayOfWeekRepository: AppDayOfWeekRepository {
+        return AppDayOfWeekRepository(persistenceController: PersistenceController.shared)
+    }
+    
+    // Initialize the view model with the repository
+    @StateObject private var appDayOfWeekViewModel: AppDayOfWeekViewModel
+
+    init() {
+        let persistenceController = PersistenceController.shared
+        let repository = AppDayOfWeekRepository(persistenceController: persistenceController)
+
+        // Initialize the view model with required parameters
+        _appDayOfWeekViewModel = StateObject(wrappedValue: AppDayOfWeekViewModel(
+            persistenceController, // Remove extraneous argument label
+            selectedIsland: nil,
+            repository: repository
+        ))
+    }
+
+    @Environment(\.managedObjectContext) private var viewContext
+
     let menuItems: [MenuItem] = [
         .init(title: "Search Gym Entries by", subMenuItems: ["All Entered Locations", "Current Location", "ZipCode", "Day Of Week"]),
         .init(title: "Manage Gyms Entries", subMenuItems: ["Add New Gym", "Update Existing Gyms", "Add or Edit Schedule/Open Mat"]),
@@ -66,30 +81,24 @@ struct IslandMenu: View {
                         .padding(.bottom, 20)
                     }
 
-                    // New section for the main views in smaller font
                     NavigationLink(destination: ContentView()) {
                         Text("All Gyms")
-                            .font(.footnote) // Smaller font size
+                            .font(.footnote)
                             .foregroundColor(.blue)
                             .padding(.leading, 0)
                             .padding(.top, 10)
                     }
 
-                    NavigationLink(destination: pIslandScheduleView(viewModel: AppDayOfWeekViewModel(
-                        selectedIsland: selectedIsland,
-                        repository: AppDayOfWeekRepository(persistenceController: persistenceController)
-                    ))) {
+                    NavigationLink(destination: pIslandScheduleView(viewModel: appDayOfWeekViewModel)) {
                         Text("ALL Gym Schedules")
-                            .font(.footnote) // Smaller font size
+                            .font(.footnote)
                             .foregroundColor(.blue)
                             .padding(.top, 10)
                     }
 
-                    NavigationLink(destination: AllpIslandScheduleView(viewModel: AppDayOfWeekViewModel(
-                        repository: AppDayOfWeekRepository(persistenceController: persistenceController)
-                    ))) {
+                    NavigationLink(destination: AllpIslandScheduleView(viewModel: appDayOfWeekViewModel, persistenceController: PersistenceController.shared)) {
                         Text("ALL Mat Schedules")
-                            .font(.footnote) // Smaller font size
+                            .font(.footnote)
                             .foregroundColor(.blue)
                             .padding(.top, 10)
                     }
@@ -101,7 +110,11 @@ struct IslandMenu: View {
         }
         .edgesIgnoringSafeArea(.all)
         .alert(isPresented: $showAlert) {
-            Alert(title: Text("Location Error"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
+            Alert(
+                title: Text("Location Error"),
+                message: Text(alertMessage),
+                dismissButton: .default(Text("OK"))
+            )
         }
         .onAppear {
             Logger.log("View appeared", view: "Main Menu")
@@ -118,27 +131,22 @@ struct IslandMenu: View {
         case "All Entered Locations":
             AllEnteredLocations(context: viewContext)
         case "Current Location":
-            ConsolidatedIslandMapView()
+            ConsolidatedIslandMapView(viewModel: appDayOfWeekViewModel)
         case "ZipCode":
-            let viewModel = EnterZipCodeViewModel(
-                repository: AppDayOfWeekRepository(persistenceController: persistenceController),
+            EnterZipCodeView(viewModel: EnterZipCodeViewModel(
+                repository: appDayOfWeekRepository, // Use the repository instance
                 context: viewContext
-            )
-            EnterZipCodeView(viewModel: viewModel)
+            ))
         case "Add or Edit Schedule/Open Mat":
-            let viewModel = AppDayOfWeekViewModel(
-                selectedIsland: selectedIsland,
-                repository: AppDayOfWeekRepository(persistenceController: persistenceController)
-            )
             DaysOfWeekFormView(
-                viewModel: viewModel,
+                viewModel: appDayOfWeekViewModel,
                 selectedIsland: $selectedIsland,
                 selectedMatTime: .constant(nil)
             )
         case "Day Of Week":
             DayOfWeekSearchView()
         case "Submit Gym/Open Mat Review":
-            GymMatReviewSelect(selectedIsland: .constant(nil))
+            GymMatReviewSelect(selectedIsland: $selectedIsland)
                 .navigationTitle("Select Gym for Review")
                 .navigationBarTitleDisplayMode(.inline)
         case "FAQ & Disclaimer":

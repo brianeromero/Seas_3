@@ -60,10 +60,11 @@ struct DayOfWeekView_Previews: PreviewProvider {
         mockIsland.islandName = "Mock Gym"
 
         // Create a mock repository
-        let mockRepository = AppDayOfWeekRepository.shared // Assuming this is a singleton
+        let mockRepository = AppDayOfWeekRepository(persistenceController: PersistenceController.preview)
 
         // Create the view model with the mock data
         let viewModel = AppDayOfWeekViewModel(
+            PersistenceController.preview, // Remove extraneous argument label
             selectedIsland: mockIsland,
             repository: mockRepository
         )

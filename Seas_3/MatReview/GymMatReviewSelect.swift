@@ -49,7 +49,7 @@ struct GymMatReviewSelect: View {
                         self.selectedIslandForReview = island
                         self.showReviewView = true
                     }) {
-                        Text(island.islandName)
+                        Text(island.islandName ?? "Unknown Island")
                     }
                     .sheet(isPresented: $showReviewView) {
                         GymMatReviewView(selectedIsland: $selectedIslandForReview, isPresented: $showReviewView)
