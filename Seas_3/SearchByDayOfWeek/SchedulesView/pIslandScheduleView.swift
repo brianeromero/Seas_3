@@ -89,7 +89,7 @@ struct pIslandScheduleView: View {
                         self.selectedIsland = island
                         viewModel.loadSchedules(for: island)
                     }) {
-                        Text(island.islandName)
+                        Text(island.islandName ?? "Unknown Island")
                     }
                 }
                 .padding()
@@ -120,6 +120,7 @@ struct pIslandScheduleView_Previews: PreviewProvider {
 
         // Initialize AppDayOfWeekViewModel with mock data
         let viewModel = AppDayOfWeekViewModel(
+            persistenceController,
             selectedIsland: nil,
             repository: mockRepository
         )

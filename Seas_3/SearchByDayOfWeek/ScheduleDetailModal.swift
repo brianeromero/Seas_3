@@ -94,6 +94,7 @@ struct ScheduleDetailModal_Previews: PreviewProvider {
 
         // Mock ViewModel with mock data
         let viewModel = AppDayOfWeekViewModel(
+            PersistenceController.preview, // Remove extraneous argument label
             selectedIsland: nil,
             repository: MockAppDayOfWeekRepository(persistenceController: PersistenceController.preview)
         )

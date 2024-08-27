@@ -22,4 +22,12 @@ public class PirateIsland: NSManagedObject {
         
         print("Gym object created with ID: \(self.islandID?.uuidString ?? "unknown")")
     }
+    
+    public static func == (lhs: PirateIsland, rhs: PirateIsland) -> Bool {
+        lhs.islandID == rhs.islandID &&
+        lhs.islandName == rhs.islandName &&
+        lhs.islandLocation == rhs.islandLocation &&
+        lhs.latitude == rhs.latitude &&
+        lhs.longitude == rhs.longitude
+    }
 }

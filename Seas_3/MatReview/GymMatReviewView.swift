@@ -1,7 +1,7 @@
-//  GymMatReviewView.swift
-//  Seas_3
+// GymMatReviewView.swift
+// Seas_3
 //
-//  Created by Brian Romero on 6/26/24.
+// Created by Brian Romero on 6/26/24.
 //
 
 import Foundation
@@ -37,18 +37,18 @@ struct IslandSection: View {
         Section(header: Text("Select Gym/Island")) {
             Picker("Gym/Island", selection: $selectedIsland) {
                 ForEach(islands, id: \.self) { island in
-                    Text(island.islandName).tag(island as PirateIsland?)
+                    Text(island.islandName ?? "Unknown Island")
+                        .tag(island as PirateIsland?)
                 }
             }
             .onChange(of: selectedIsland) { newIsland in
                 if let island = newIsland {
-                    print("Selected Gym/Island: \(island.islandName)")
+                    print("Selected Gym/Island: \(String(describing: island.islandName))")
                 }
             }
         }
     }
 }
-
 
 struct GymMatReviewView: View {
     @State private var reviewText: String = ""
@@ -65,9 +65,7 @@ struct GymMatReviewView: View {
         entity: PirateIsland.entity(),
         sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.islandName, ascending: true)]
     ) private var islands: FetchedResults<PirateIsland>
-    
-    
-    
+
     var averageRating: Double {
         guard let island = selectedIsland else {
             return 0
@@ -89,7 +87,6 @@ struct GymMatReviewView: View {
             return 0
         }
     }
-    
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -105,9 +102,7 @@ struct GymMatReviewView: View {
                     Alert(
                         title: Text("Review Submitted"),
                         message: Text(alertMessage),
-                        dismissButton: .default(Text("OK")) {
-                            // Nothing here; dismissal will be handled after alert is shown
-                        }
+                        dismissButton: .default(Text("OK"))
                     )
                 }
                 Section(header: Text("Average Rating")) {
@@ -252,7 +247,6 @@ struct StarRatingsLedger: View {
         .shadow(radius: 5)
     }
 }
-
 
 struct GymMatReviewView_Previews: PreviewProvider {
     static var previews: some View {

@@ -102,7 +102,7 @@ class EnterZipCodeViewModel: ObservableObject {
             let filteredIslands = islands.filter { island in
                 let islandLocation = CLLocation(latitude: island.latitude, longitude: island.longitude)
                 let distance = islandLocation.distance(from: location)
-                print("Gym \(island.islandName) is \(distance) meters away")
+                print("Gym \(String(describing: island.islandName)) is \(distance) meters away")
                 return distance <= radius
             }
 
@@ -113,7 +113,7 @@ class EnterZipCodeViewModel: ObservableObject {
                         CustomMapMarker(
                             id: island.islandID ?? UUID(),
                             coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude),
-                            title: island.islandName
+                            title: island.islandName ?? "Unknown Island"
                         )
                     }
                     print("Filtered gyms: \(self.pirateIslands)")

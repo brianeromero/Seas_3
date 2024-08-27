@@ -27,7 +27,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
 
     var viewContext: NSManagedObjectContext
     private let dataManager: PirateIslandDataManager
-    public let repository: AppDayOfWeekRepository
+    public var repository: AppDayOfWeekRepository
 
 
     // MARK: - Day Settings
@@ -73,20 +73,20 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
     
     // MARK: - Initializer
     
-    init(selectedIsland: PirateIsland? = nil, repository: AppDayOfWeekRepository) {
+    init(_ persistenceController: PersistenceController, selectedIsland: PirateIsland? = nil, repository: AppDayOfWeekRepository) {
         self.selectedIsland = selectedIsland
-        self.repository = repository
-        self.viewContext = repository.getViewContext()
+        self.viewContext = persistenceController.viewContext
+        self.repository = repository // Keep this line only
         self.dataManager = PirateIslandDataManager(viewContext: viewContext)
-        
+
         print("AppDayOfWeekViewModel initialized with context: \(viewContext) and repository: \(repository)")
-        
+
         // Initialization logic
         fetchPirateIslands()
         initializeDaySettings()
     }
 
-
+    
     // Method to fetch AppDayOfWeek later
     func updateDayAndFetch(day: DayOfWeek) {
         guard let island = selectedIsland else {
@@ -107,6 +107,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
             errorMessage = "Failed to save context: \(error.localizedDescription)"
         }
     }
+
 
     
     func saveAppDayOfWeek() {
@@ -162,7 +163,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
     // MARK: - Fetch Current Day Of Week
     func fetchCurrentDayOfWeek(for island: PirateIsland, day: DayOfWeek) {
         let context = repository.getViewContext()
-        
+
         if let appDayOfWeek = repository.fetchOrCreateAppDayOfWeek(for: day.rawValue, pirateIsland: island, context: context) {
             currentAppDayOfWeek = appDayOfWeek
             matTimesForDay[day] = appDayOfWeek.matTimes?.allObjects as? [MatTime] ?? []
@@ -172,6 +173,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
             print("Failed to fetch or create AppDayOfWeek.")
         }
     }
+
 
     // MARK: - Add or Update Mat Time
     func addOrUpdateMatTime(
@@ -282,6 +284,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
         }
         initializeNewMatTime()
     }
+
     // MARK: - Fetch MatTimes for Day
     func fetchMatTimes(for day: DayOfWeek) -> [MatTime] {
         print("Fetching MatTimes for day: \(day)")
@@ -412,31 +415,33 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
     }
     // MARK: - Equatable Implementation
     static func == (lhs: AppDayOfWeekViewModel, rhs: AppDayOfWeekViewModel) -> Bool {
-        print("Comparing AppDayOfWeekViewModel instances for equality")
-        return lhs.selectedDay == rhs.selectedDay &&
-               lhs.selectedIsland == rhs.selectedIsland &&
-               lhs.currentAppDayOfWeek == rhs.currentAppDayOfWeek &&
-               lhs.appDayOfWeekList == rhs.appDayOfWeekList &&
-               lhs.schedules == rhs.schedules &&
-               lhs.allIslands == rhs.allIslands &&
-               lhs.errorMessage == rhs.errorMessage &&
-               lhs.dayOfWeekStates == rhs.dayOfWeekStates &&
-               lhs.giForDay == rhs.giForDay &&
-               lhs.noGiForDay == rhs.noGiForDay &&
-               lhs.openMatForDay == rhs.openMatForDay &&
-               lhs.restrictionsForDay == rhs.restrictionsForDay &&
-               lhs.restrictionDescriptionForDay == rhs.restrictionDescriptionForDay &&
-               lhs.goodForBeginnersForDay == rhs.goodForBeginnersForDay &&
-               lhs.kidsForDay == rhs.kidsForDay &&
-               lhs.matTimeForDay == rhs.matTimeForDay &&
-               lhs.selectedTimeForDay == rhs.selectedTimeForDay &&
-               lhs.matTimesForDay == rhs.matTimesForDay &&
-               lhs.showError == rhs.showError &&
-               lhs.selectedAppDayOfWeek == rhs.selectedAppDayOfWeek &&
-               lhs.name == rhs.name &&
-               lhs.selectedType == rhs.selectedType
+        lhs.selectedIsland == rhs.selectedIsland &&
+        lhs.currentAppDayOfWeek == rhs.currentAppDayOfWeek &&
+        lhs.matTime == rhs.matTime &&
+        lhs.islandsWithMatTimes == rhs.islandsWithMatTimes &&
+        lhs.islandSchedules == rhs.islandSchedules &&
+        lhs.appDayOfWeekList == rhs.appDayOfWeekList &&
+        lhs.appDayOfWeekID == rhs.appDayOfWeekID &&
+        lhs.saveEnabled == rhs.saveEnabled &&
+        lhs.schedules == rhs.schedules &&
+        lhs.allIslands == rhs.allIslands &&
+        lhs.errorMessage == rhs.errorMessage &&
+        lhs.newMatTime == rhs.newMatTime &&
+        lhs.dayOfWeekStates == rhs.dayOfWeekStates &&
+        lhs.giForDay == rhs.giForDay &&
+        lhs.noGiForDay == rhs.noGiForDay &&
+        lhs.openMatForDay == rhs.openMatForDay &&
+        lhs.restrictionsForDay == rhs.restrictionsForDay &&
+        lhs.restrictionDescriptionForDay == rhs.restrictionDescriptionForDay &&
+        lhs.goodForBeginnersForDay == rhs.goodForBeginnersForDay &&
+        lhs.kidsForDay == rhs.kidsForDay &&
+        lhs.matTimeForDay == rhs.matTimeForDay &&
+        lhs.selectedTimeForDay == rhs.selectedTimeForDay &&
+        lhs.matTimesForDay == rhs.matTimesForDay &&
+        lhs.showError == rhs.showError &&
+        lhs.selectedAppDayOfWeek == rhs.selectedAppDayOfWeek
     }
-    
+
     // MARK: - Add New Mat Time
     func addNewMatTime() {
         guard let day = selectedDay, let island = selectedIsland else {
@@ -721,7 +726,6 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
         let islands = await repository.fetchAllIslands(forDay: day.rawValue)
         self.islandsWithMatTimes = islands
     }
-
 }
 
 extension MatTime {
@@ -757,9 +761,9 @@ extension MatTime {
         self.goodForBeginners = goodForBeginners
         self.kids = kids
     }
-        
 
 }
+
 
 private extension String {
     var isNilOrEmpty: Bool {

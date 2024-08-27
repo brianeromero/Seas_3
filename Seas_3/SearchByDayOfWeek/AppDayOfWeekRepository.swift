@@ -11,7 +11,7 @@ import CoreLocation
 
 
 class AppDayOfWeekRepository {
-    public let persistenceController: PersistenceController
+    let persistenceController: PersistenceController
     private var currentAppDayOfWeek: AppDayOfWeek?
     private var selectedIsland: PirateIsland?
 
@@ -254,12 +254,12 @@ class AppDayOfWeekRepository {
                     let hasScheduledMatTime = appDayOfWeek.matTimes?.count ?? 0 > 0
                     fetchedGyms.append(
                         Gym(
-                            id: island.islandID ?? UUID(),  // This line is now removed
-                            name: island.islandName,
+                            id: island.islandID ?? UUID(), // Ensure that islandID is properly handled or provide a default
+                            name: island.islandName ?? "Unnamed Gym", // Use default value if name is nil
                             latitude: island.latitude,
                             longitude: island.longitude,
                             hasScheduledMatTime: hasScheduledMatTime,
-                            days: [appDayOfWeek.day ?? ""]
+                            days: [appDayOfWeek.day ?? "Unknown Day"] // Provide a default value if day is nil
                         )
                     )
                 }
@@ -270,7 +270,6 @@ class AppDayOfWeekRepository {
 
         return fetchedGyms
     }
-
 
 
     func fetchAllIslands(forDay day: String) async -> [(PirateIsland, [MatTime])] {

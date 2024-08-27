@@ -15,6 +15,14 @@ struct AllpIslandScheduleView: View {
     @State private var showAddMatTimeForm = false
     @State private var selectedMatTime: MatTime?
 
+    
+    let persistenceController: PersistenceController
+
+    init(viewModel: AppDayOfWeekViewModel, persistenceController: PersistenceController) {
+        self.viewModel = viewModel
+        self.persistenceController = persistenceController
+    }
+    
     var body: some View {
         VStack {
             Text("All Gyms Schedules")
@@ -71,8 +79,8 @@ struct AllpIslandScheduleView: View {
 
     private func islandSection(island: PirateIsland, matTimes: [MatTime]) -> some View {
         Group {
-            if !island.islandName.isEmpty {
-                Section(header: Text(island.islandName)) {
+            if let islandName = island.islandName, !islandName.isEmpty {
+                Section(header: Text(island.islandName ?? "Unknown Island")) {
                     ForEach(filteredAndSortedMatTimes(matTimes), id: \.self) { matTime in
                         ScheduleRow(matTime: matTime)
                             .onTapGesture {
@@ -153,11 +161,15 @@ struct AllpIslandScheduleView: View {
 
 // MARK: - Preview
 
+
 struct AllpIslandScheduleView_Previews: PreviewProvider {
     static var previews: some View {
         let persistenceController = PersistenceController.preview
         let context = persistenceController.container.viewContext
 
+
+        
+        
         let mockIsland = PirateIsland(context: context)
         mockIsland.islandName = "Sample Island"
 
@@ -176,12 +188,16 @@ struct AllpIslandScheduleView_Previews: PreviewProvider {
         mockMatTime2.time = DateFormat.time.string(from: Date().addingTimeInterval(3600))
         mockAppDayOfWeek.addToMatTimes(mockMatTime2)
 
+        try? context.save()
+
         let viewModel = AppDayOfWeekViewModel(
+            persistenceController, // Remove extraneous argument label
             selectedIsland: mockIsland,
             repository: AppDayOfWeekRepository(persistenceController: persistenceController)
         )
+        viewModel.selectedDay = DayOfWeek.monday
 
-        return AllpIslandScheduleView(viewModel: viewModel)
+        return AllpIslandScheduleView(viewModel: viewModel, persistenceController: persistenceController)
             .environment(\.managedObjectContext, context)
     }
 }

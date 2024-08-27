@@ -202,6 +202,7 @@ struct AddOpenMatFormView_Previews: PreviewProvider {
         
         let mockRepository = AppDayOfWeekRepository(persistenceController: persistenceController)
         let mockViewModel = AppDayOfWeekViewModel(
+            persistenceController, // Remove extraneous argument label
             selectedIsland: sampleIsland,
             repository: mockRepository
         )
@@ -214,7 +215,7 @@ struct AddOpenMatFormView_Previews: PreviewProvider {
         return AddOpenMatFormView(
             viewModel: mockViewModel,
             selectedAppDayOfWeek: binding,
-            selectedIsland: sampleIsland // Use optional binding
+            selectedIsland: sampleIsland
         )
         .previewLayout(.sizeThatFits)
     }

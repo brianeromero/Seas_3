@@ -16,6 +16,12 @@ extension AppDayOfWeek {
     func setSelected(day: DayOfWeek, selected: Bool) {
         self.day = selected ? day.displayName : nil
     }
+
+    // Convert AppDayOfWeek to DayOfWeek
+    var dayOfWeek: DayOfWeek? {
+        guard let dayString = day else { return nil }
+        return DayOfWeek(rawValue: dayString.lowercased())
+    }
 }
 
 extension AppDayOfWeek {

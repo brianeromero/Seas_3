@@ -25,8 +25,8 @@ struct EditExistingIsland: View {
 
     init(island: PirateIsland) {
         self.island = island
-        _islandName = State(initialValue: island.islandName)
-        _islandLocation = State(initialValue: island.islandLocation)
+        _islandName = State(initialValue: island.islandName ?? "")
+        _islandLocation = State(initialValue: island.islandLocation ?? "")
         _createdByUserId = State(initialValue: island.createdByUserId ?? "")
         _gymWebsite = State(initialValue: island.gymWebsite?.absoluteString ?? "")
         _lastModifiedByUserId = State(initialValue: island.lastModifiedByUserId ?? "")
