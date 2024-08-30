@@ -71,7 +71,7 @@ struct AddNewMatTimeSection: View {
                         // Add to AppDayOfWeek
                         if let appDayOfWeek = selectedAppDayOfWeek {
                             appDayOfWeek.addToMatTimes(matTime!)
-                            viewModel.saveContext()
+                            viewModel.saveData()
                         }
                         
                         // Reset state variables after saving

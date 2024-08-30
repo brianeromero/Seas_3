@@ -64,7 +64,6 @@ struct DayOfWeekView_Previews: PreviewProvider {
 
         // Create the view model with the mock data
         let viewModel = AppDayOfWeekViewModel(
-            PersistenceController.preview, // Remove extraneous argument label
             selectedIsland: mockIsland,
             repository: mockRepository
         )

@@ -47,7 +47,9 @@ class PersistenceController: ObservableObject {
 
     // Save context method
     func saveContext() throws {
-        try viewContext.save()
+        if viewContext.hasChanges {
+            try viewContext.save()
+        }
     }
 
     // Delete method

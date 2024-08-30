@@ -26,12 +26,10 @@ struct IslandMenu: View {
     @StateObject private var appDayOfWeekViewModel: AppDayOfWeekViewModel
 
     init() {
-        let persistenceController = PersistenceController.shared
-        let repository = AppDayOfWeekRepository(persistenceController: persistenceController)
+        let repository = AppDayOfWeekRepository(persistenceController: PersistenceController.shared)
 
         // Initialize the view model with required parameters
         _appDayOfWeekViewModel = StateObject(wrappedValue: AppDayOfWeekViewModel(
-            persistenceController, // Remove extraneous argument label
             selectedIsland: nil,
             repository: repository
         ))

@@ -202,7 +202,6 @@ struct AddOpenMatFormView_Previews: PreviewProvider {
         
         let mockRepository = AppDayOfWeekRepository(persistenceController: persistenceController)
         let mockViewModel = AppDayOfWeekViewModel(
-            persistenceController, // Remove extraneous argument label
             selectedIsland: sampleIsland,
             repository: mockRepository
         )

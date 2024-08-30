@@ -64,21 +64,21 @@ class AppDayOfWeekRepository {
         return request
     }
 
-    func saveContext() {
-        print("AppDayOfWeekRepository - Saving context")
+    func saveData() {
+        print("AppDayOfWeekRepository - Saving data")
         do {
-            try persistenceController.viewContext.save()
+            try persistenceController.saveContext()
         } catch {
-            print("Error saving context: \(error)")
+            print("Error saving data: \(error)")
         }
     }
 
     func generateName(for island: PirateIsland, day: DayOfWeek) -> String {
-        return "\(island.islandName) \(day.displayName)"
+        return "\(String(describing: island.islandName)) \(day.displayName)"
     }
     
     func generateAppDayOfWeekID(for island: PirateIsland, day: DayOfWeek) -> String {
-        return "\(island.islandName)-\(day.rawValue)"
+        return "\(String(describing: island.islandName))-\(day.rawValue)"
     }
 
     func getAppDayOfWeek(for day: String, pirateIsland: PirateIsland, context: NSManagedObjectContext) -> AppDayOfWeek? {
@@ -187,20 +187,20 @@ class AppDayOfWeekRepository {
                 }
                 persistenceController.viewContext.delete(dayToDelete)
             }
-            saveContext()
+            saveData()
         } catch {
             print("Error deleting schedule: \(error.localizedDescription)")
         }
     }
 
     func fetchSchedules(for island: PirateIsland) -> [AppDayOfWeek] {
-        print("AppDayOfWeekRepository - Fetching schedules for island: \(island.islandName)")
+        print("AppDayOfWeekRepository - Fetching schedules for island: \(String(describing: island.islandName))")
         let predicate = NSPredicate(format: "pIsland == %@", island)
         return persistenceController.fetchSchedules(for: predicate)
     }
 
     func fetchSchedules(for island: PirateIsland, day: DayOfWeek) -> [AppDayOfWeek] {
-        print("AppDayOfWeekRepository - Fetching schedules for island: \(island.islandName) and day: \(day.displayName)")
+        print("AppDayOfWeekRepository - Fetching schedules for island: \(String(describing: island.islandName)) and day: \(day.displayName)")
         let predicate = NSPredicate(format: "pIsland == %@ AND day == %@", island, day.rawValue)
         return persistenceController.fetchSchedules(for: predicate)
     }
@@ -216,7 +216,7 @@ class AppDayOfWeekRepository {
             }
         }
         persistenceController.viewContext.delete(appDayOfWeek)
-        saveContext()
+        saveData()
     }
     private func performFetch(request: NSFetchRequest<AppDayOfWeek>) -> [AppDayOfWeek] {
         do {

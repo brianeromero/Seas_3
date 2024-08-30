@@ -13,6 +13,8 @@ import Foundation
 import MapKit
 
 
+
+
 struct IslandMap: View {
     let islands: [PirateIsland]
     @State private var region: MKCoordinateRegion
@@ -65,7 +67,7 @@ struct IslandMap: View {
         .onAppear {
             print("Gym Map appeared with gyms count: \(islands.count)")
             for island in islands {
-                print("Gym: \(island.islandName), Location: \(island.islandLocation), Latitude: \(island.latitude), Longitude: \(island.longitude)")
+                print("Gym: \(String(describing: island.islandName)), Location: \(String(describing: island.islandLocation)), Latitude: \(island.latitude), Longitude: \(island.longitude)")
             }
         }
     }

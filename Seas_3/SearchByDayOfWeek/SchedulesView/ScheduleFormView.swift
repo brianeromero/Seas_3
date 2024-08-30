@@ -60,11 +60,20 @@ struct ScheduleFormView: View {
                 addNewMatTimeSection
 
                 // Replace with the new `ScheduledMatTimesSection`
-                ScheduledMatTimesSection(
-                    matTimesForDay: $viewModel.matTimesForDay,
-                    selectedDay: $selectedDay
-                )
-                
+                if let selectedDay = selectedDay, let selectedIsland = selectedIsland {
+                    ScheduledMatTimesSection(
+                        island: selectedIsland,
+                        day: selectedDay,
+                        viewModel: viewModel,
+                        matTimesForDay: $viewModel.matTimesForDay,
+                        selectedDay: $selectedDay
+                    )
+                } else {
+                    Text("Please select a day and island to view the schedule.")
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                }
+
                 errorHandlingSection
             }
             .navigationTitle("Schedule Entry")
@@ -83,21 +92,20 @@ struct ScheduleFormView: View {
             }
             .onChange(of: selectedIsland) { newIsland in
                 if let island = newIsland {
-                    print("Selected Gym: \(island.islandName)")
+                    print("Selected Gym: \(island.islandName ?? "Unknown Island")")
                     if let day = selectedDay {
                         viewModel.fetchCurrentDayOfWeek(for: island, day: day)
                     }
                     
                     if let appDayOfWeek = selectedAppDayOfWeek {
                         viewModel.viewContext.delete(appDayOfWeek)
-                        viewModel.saveContext()
+                        viewModel.saveData()
                         selectedAppDayOfWeek = nil
                     }
                 }
             }
         }
     }
-
 
 
     private var daySelectionSection: some View {
@@ -200,7 +208,6 @@ struct ScheduleFormView_Previews: PreviewProvider {
         
         // Initialize AppDayOfWeekViewModel with mock data
         let viewModel = AppDayOfWeekViewModel(
-            persistenceController,
             selectedIsland: island,
             repository: mockRepository
         )
