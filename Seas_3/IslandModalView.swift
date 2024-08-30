@@ -9,6 +9,7 @@ import Foundation
 import SwiftUI
 
 struct IslandModalView: View {
+    let customMapMarker: CustomMapMarker?
     @Binding var width: CGFloat
     @Binding var height: CGFloat
     @State private var scheduleExists: Bool = false
@@ -29,6 +30,9 @@ struct IslandModalView: View {
     @Binding var showModal: Bool
 
     init(
+        customMapMarker: CustomMapMarker?,
+        width: Binding<CGFloat>,
+        height: Binding<CGFloat>,
         islandName: String,
         islandLocation: String,
         formattedCoordinates: String,
@@ -42,10 +46,9 @@ struct IslandModalView: View {
         selectedIsland: Binding<PirateIsland?>,
         viewModel: AppDayOfWeekViewModel,
         selectedDay: Binding<DayOfWeek?>,
-        showModal: Binding<Bool>,
-        width: Binding<CGFloat>,
-        height: Binding<CGFloat>
+        showModal: Binding<Bool>
     ) {
+        self.customMapMarker = customMapMarker
         self.islandName = islandName
         self.islandLocation = islandLocation
         self.formattedCoordinates = formattedCoordinates
@@ -63,93 +66,80 @@ struct IslandModalView: View {
         self._width = width
         self._height = height
     }
-    
-    var body: some View {
-        GeometryReader { geometry in
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    // Basic Information
-                    Text(islandName)
-                        .font(.system(size: 14)) // Increased font size
-                        .bold()
-                    Text(islandLocation)
-                        .font(.system(size: 12)) // Slightly increased font size
-                        .foregroundColor(.secondary)
 
-                    // Website (if available)
-                    if let gymWebsite = gymWebsite {
-                        HStack {
-                            Text("Website:")
-                                .font(.system(size: 12))
-                            Spacer()
-                            Link("Visit Website", destination: gymWebsite)
-                                .font(.system(size: 12))
-                                .foregroundColor(.blue)
-                        }
-                    } else {
-                        Text("No website available.")
+    var body: some View {
+        NavigationView {
+            GeometryReader { geometry in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 20) {
+                        // Basic Information
+                        Text(islandName)
+                            .font(.system(size: 14))
+                            .bold()
+                        Text(islandLocation)
                             .font(.system(size: 12))
                             .foregroundColor(.secondary)
-                    }
 
-                    // Schedule NavigationLink
-                    Group {
-                        if let island = selectedIsland {
-                            if scheduleExists {
-                                NavigationLink(
-                                    destination: ViewScheduleForIsland(
-                                        viewModel: viewModel,
-                                        island: island
-                                    )
-                                ) {
-                                    Text("View Schedule")
+                        // Website (if available)
+                        if let gymWebsite = gymWebsite {
+                            HStack {
+                                Text("Website:")
+                                    .font(.system(size: 12))
+                                Spacer()
+                                Link("Visit Website", destination: gymWebsite)
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.blue)
+                            }
+                        } else {
+                            Text("No website available.")
+                                .font(.system(size: 12))
+                                .foregroundColor(.secondary)
+                        }
+
+                        // Schedule NavigationLink
+                        Group {
+                            if let island = selectedIsland {
+                                if scheduleExists {
+                                    NavigationLink(
+                                        destination: ViewScheduleForIsland(
+                                            viewModel: viewModel,
+                                            island: island
+                                        )
+                                    ) {
+                                        Text("View Schedule")
+                                            .font(.system(size: 12))
+                                            .foregroundColor(.blue)
+                                            .padding(.top, 10)
+                                    }
+                                } else {
+                                    Text("No schedule is available for this Gym; be the first to enter.")
                                         .font(.system(size: 12))
-                                        .foregroundColor(.blue)
-                                        .padding(.top, 10)
+                                        .foregroundColor(.secondary)
                                 }
                             } else {
-                                Text("No schedule is available for this Gym; be the first to enter.")
+                                Text("Select an island first")
                                     .font(.system(size: 12))
                                     .foregroundColor(.secondary)
                             }
+                        }
+
+                        // Reviews (if available)
+                        if !reviews.isEmpty {
+                            HStack {
+                                Text("Average Rating:")
+                                    .font(.system(size: 12))
+                                Spacer()
+                                Text(averageStarRating)
+                                    .font(.system(size: 12))
+                            }
                         } else {
-                            Text("Select an island first")
+                            Text("No reviews available.")
                                 .font(.system(size: 12))
                                 .foregroundColor(.secondary)
                         }
                     }
-
-         /*           // Scheduled Mat Times Section
-                    if let selectedDay = selectedDay, let selectedIsland = selectedIsland {
-                        ScheduledMatTimesSection(
-                            island: selectedIsland,
-                            day: selectedDay, // Pass the unwrapped value directly
-                            viewModel: viewModel,
-                            matTimesForDay: $viewModel.matTimesForDay,
-                            selectedDay: .constant(selectedDay) // Create a binding from the unwrapped value
-                        )
-                    } else {
-                        Text("Please select a day and island to view the schedule.")
-                            .font(.system(size: 12))
-                            .foregroundColor(.secondary)
-                    }
-*/
-                    // Reviews (if available)
-                    if !reviews.isEmpty {
-                        HStack {
-                            Text("Average Rating:")
-                                .font(.system(size: 12))
-                            Spacer()
-                            Text(averageStarRating)
-                                .font(.system(size: 12))
-                        }
-                    } else {
-                        Text("No reviews available.")
-                            .font(.system(size: 12))
-                            .foregroundColor(.secondary)
-                    }
+                    .padding()
                 }
-                .padding()
             }
             .onAppear {
                 guard let island = selectedIsland, let day = selectedDay else {
@@ -157,7 +147,6 @@ struct IslandModalView: View {
                 }
                 Task {
                     let fetchedSchedules = PersistenceController.shared.fetchAppDayOfWeekForIslandAndDay(for: island, day: day)
-                    // Update the islandSchedules and scheduleExists accordingly
                     islandSchedules = [(island, fetchedSchedules.flatMap { $0.matTimes?.allObjects as? [MatTime] ?? [] })]
                     scheduleExists = !fetchedSchedules.isEmpty
                 }

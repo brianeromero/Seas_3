@@ -15,7 +15,7 @@ struct IslandMapContent: View {
     @Binding var showModal: Bool
     @Binding var selectedAppDayOfWeek: AppDayOfWeek?
     @Binding var selectedDay: DayOfWeek
-    @ObservedObject var viewModel: AppDayOfWeekViewModel // Updated
+    @ObservedObject var viewModel: AppDayOfWeekViewModel
 
     var body: some View {
         VStack(alignment: .leading) {
@@ -63,64 +63,65 @@ struct IslandMapContent: View {
 }
 
 struct IslandMapView: View {
-    var islands: [PirateIsland]
-    @State private var selectedIsland: PirateIsland?
-    @State private var showConfirmationDialog = false
-    @State private var selectedDay: DayOfWeek? = .monday
-    @State private var showModal = false
-    @State private var selectedAppDayOfWeek: AppDayOfWeek?
-    @ObservedObject var viewModel: AppDayOfWeekViewModel // Updated
-    
+    @ObservedObject var viewModel: AllEnteredLocationsViewModel
+    @Binding var selectedIsland: PirateIsland?
+    @Binding var showModal: Bool
+
     var body: some View {
-        NavigationView {
-            IslandMapContent(
-                islands: islands,
-                selectedIsland: $selectedIsland,
-                showModal: $showModal,
-                selectedAppDayOfWeek: $selectedAppDayOfWeek,
-                selectedDay: Binding<DayOfWeek>(
-                    get: { self.selectedDay ?? .monday },
-                    set: { self.selectedDay = $0 }
-                ),
-                viewModel: viewModel // Add this line
-            )
-            .padding()
-            .navigationTitle("Gym Details")
-            .sheet(isPresented: $showModal) {
-                if let island = selectedIsland {
-                    let reviews = Array(island.reviews ?? []) as? [Review] ?? []
-                    let averageRating = ReviewUtils.averageStarRating(for: reviews)
-                    IslandModalView(
-                        islandName: island.islandName ?? "Unknown Name",
-                        islandLocation: island.islandLocation ?? "Unknown Location",
-                        formattedCoordinates: island.formattedCoordinates,
-                        createdTimestamp: island.createdTimestamp.description,
-                        formattedTimestamp: island.formattedTimestamp.description,
-                        gymWebsite: island.gymWebsite,
-                        reviews: reviews,
-                        averageStarRating: averageRating,
-                        dayOfWeekData: [],
-                        selectedAppDayOfWeek: $selectedAppDayOfWeek,
-                        selectedIsland: $selectedIsland,
-                        viewModel: viewModel,
-                        selectedDay: $selectedDay,
-                        showModal: $showModal,
-                        width: .constant(UIScreen.main.bounds.width * 0.8),
-                        height: .constant(UIScreen.main.bounds.height * 0.7)
-                    )
-                } else {
-                    Text("No Island Selected")
-                        .padding()
+        ZStack {
+            Map(coordinateRegion: $viewModel.region, annotationItems: viewModel.pirateMarkers) { marker in
+                MapAnnotation(coordinate: marker.coordinate) {
+                    VStack {
+                        Text(marker.title ?? "Unknown Title")
+                            .font(.system(size: 10))
+                            .foregroundColor(.black)
+                            .background(Color.white.opacity(0.7))
+                            .cornerRadius(5)
+                            .padding(5)
+                    }
+                    .onTapGesture {
+                        if let island = viewModel.getPirateIsland(from: marker) {
+                            selectedIsland = island
+                            showModal = true
+                        }
+                    }
                 }
             }
-            .onAppear {
-                print("Gym MapView appeared with gym count: \(islands.count)")
+            .edgesIgnoringSafeArea(.all)
+        }
+        .sheet(isPresented: $showModal) {
+            if let island = selectedIsland {
+                IslandModalView(
+                    customMapMarker: CustomMapMarker(
+                        id: UUID(),
+                        coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude),
+                        title: island.name ?? "",
+                        pirateIsland: island
+                    ),                    width: .constant(300),
+                    height: .constant(500),
+                    islandName: island.name ?? "",
+                    islandLocation: island.islandLocation ?? "",
+                    formattedCoordinates: island.formattedCoordinates,
+                    createdTimestamp: DateFormat.full.string(from: island.createdTimestamp),
+                    formattedTimestamp: DateFormat.full.string(from: island.lastModifiedTimestamp ?? Date()),
+                    gymWebsite: island.gymWebsite,
+                    reviews: island.reviews?.compactMap { $0 as? Review } ?? [],
+                    averageStarRating: ReviewUtils.averageStarRating(for: island.reviews?.compactMap { $0 as? Review } ?? []),
+                    dayOfWeekData: island.daysOfWeekArray.compactMap { DayOfWeek(rawValue: $0.day ?? "") },
+                    selectedAppDayOfWeek: .constant(nil),
+                    selectedIsland: .constant(nil),
+                    viewModel: AppDayOfWeekViewModel(repository: AppDayOfWeekRepository.shared),
+                    selectedDay: .constant(.monday),
+                    showModal: $showModal
+                )
+            } else {
+                Text("No Island Selected")
+                    .padding()
             }
         }
     }
 }
-                
-                
+
 struct CustomMarker: Identifiable {
     let id = UUID()
     var coordinate: CLLocationCoordinate2D
@@ -131,8 +132,7 @@ struct IslandMapViewMap: View {
     var islandName: String
     var islandLocation: String
     var onTap: (PirateIsland) -> Void
-    var island: PirateIsland // Add this property
-
+    var island: PirateIsland
 
     @State private var showConfirmationDialog = false
 
@@ -160,7 +160,7 @@ struct IslandMapViewMap: View {
                         .padding(5)
                 }
                 .onTapGesture {
-                    onTap(island) // Pass the island object to the onTap action
+                    onTap(island)
                 }
             }
         }
@@ -205,15 +205,14 @@ struct IslandMapView_Previews: PreviewProvider {
         island2.createdTimestamp = Date()
         island2.gymWebsite = URL(string: "https://gym2.com")
         
-        // Create a sample AppDayOfWeekViewModel instance
-        let viewModel = AppDayOfWeekViewModel(
-            selectedIsland: nil,
-            repository: AppDayOfWeekRepository(persistenceController: PersistenceController.preview)
-        )
+        // Create a sample AllEnteredLocationsViewModel instance
+        let dataManager = PirateIslandDataManager(viewContext: context)
+        let viewModel = AllEnteredLocationsViewModel(dataManager: dataManager)
         
         return IslandMapView(
-            islands: [island1, island2],
-            viewModel: viewModel // Pass the viewModel instance
+            viewModel: viewModel,
+            selectedIsland: .constant(nil),
+            showModal: .constant(false)
         )
     }
 }

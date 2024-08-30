@@ -36,7 +36,7 @@ struct IslandModalContentView: View {
     @Binding var selectedIsland: PirateIsland?
     @Binding var showModal: Bool
     @ObservedObject var viewModel: AppDayOfWeekViewModel
-    @Binding var selectedDay: DayOfWeek? // Make this optional
+    @Binding var selectedDay: DayOfWeek?
 
     init(selectedIsland: Binding<PirateIsland?>, showModal: Binding<Bool>, viewModel: AppDayOfWeekViewModel, selectedDay: Binding<DayOfWeek?>) {
         _selectedIsland = selectedIsland
@@ -55,7 +55,15 @@ struct IslandModalContentView: View {
 
             VStack {
                 IslandModalView(
-                    islandName: selectedIsland.islandName ?? "Unknown Island",
+                    customMapMarker: CustomMapMarker( // Create a CustomMapMarker instance
+                        id: selectedIsland.islandID ?? UUID(),
+                        coordinate: CLLocationCoordinate2D(latitude: selectedIsland.latitude, longitude: selectedIsland.longitude),
+                        title: selectedIsland.islandName ?? "Unknown Island",
+                        pirateIsland: selectedIsland
+                    ),
+                    width: .constant(300),
+                    height: .constant(400),
+                    islandName: selectedIsland.islandName ?? "Unknown Island", // Unwrap the optional
                     islandLocation: selectedIsland.islandLocation ?? "Unknown Location",
                     formattedCoordinates: "\(selectedIsland.latitude), \(selectedIsland.longitude)",
                     createdTimestamp: DateFormatter.localizedString(from: selectedIsland.createdTimestamp, dateStyle: .short, timeStyle: .short),
@@ -67,10 +75,8 @@ struct IslandModalContentView: View {
                     selectedAppDayOfWeek: $selectedAppDayOfWeek,
                     selectedIsland: $selectedIsland,
                     viewModel: viewModel,
-                    selectedDay: $selectedDay, // Now this matches the optional type
-                    showModal: $showModal,
-                    width: .constant(300),
-                    height: .constant(400)
+                    selectedDay: $selectedDay,
+                    showModal: $showModal
                 )
                 .frame(width: 300, height: 400)
                 .background(Color.white)
@@ -92,8 +98,6 @@ struct IslandModalContentView: View {
             EmptyView()
         }
     }
-
-
 
     private func averageStarRating(for reviews: [Review]) -> String {
         guard !reviews.isEmpty else {
@@ -178,17 +182,17 @@ struct ConsolidatedIslandMapView: View {
         ), showsUserLocation: true, annotationItems: pirateMarkers) { marker in
             MapAnnotation(coordinate: marker.coordinate) {
                 VStack {
-                    Text(marker.title)
+                    Text(marker.title ?? "") // Unwrap the optional
                         .font(.caption)
                         .padding(5)
                         .background(Color.white)
                         .cornerRadius(5)
                         .shadow(radius: 3)
-                    Image(systemName: marker.title == "You are Here" ? "figure.wrestling" : "mappin.circle.fill")
-                        .foregroundColor(marker.title == "You are Here" ? .red : .blue)
+                    Image(systemName: (marker.title ?? "") == "You are Here" ? "figure.wrestling" : "mappin.circle.fill") // Unwrap the optional
+                        .foregroundColor((marker.title ?? "") == "You are Here" ? .red : .blue) // Unwrap the optional
                         .onTapGesture {
-                            if let island = islands.first(where: { $0.islandName == marker.title }) {
-                                selectedIsland = island
+                            if let pirateIsland = marker.pirateIsland {
+                                selectedIsland = pirateIsland
                                 showModal = true
                             }
                         }
@@ -235,7 +239,8 @@ struct ConsolidatedIslandMapView: View {
             CustomMapMarker(
                 id: island.islandID ?? UUID(), // Default to a new UUID if islandID is nil
                 coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude),
-                title: island.islandName ?? "Unnamed Island" // Default to "Unnamed Island" if islandName is nil
+                title: island.islandName ?? "Unnamed Island", // Default to "Unnamed Island" if islandName is nil
+                pirateIsland: island
             )
         }
     }
@@ -249,19 +254,19 @@ struct ConsolidatedIslandMapView: View {
         let currentLocationMarker = CustomMapMarker(
             id: UUID(), // Generate a unique ID for the current location marker
             coordinate: userLocation.coordinate,
-            title: "You are Here"
+            title: "You are Here",
+            pirateIsland: nil
         )
         pirateMarkers.append(currentLocationMarker)
     }
 
     private func updateMarkersForRegion(_ region: MKCoordinateRegion) {
-        // Implement your logic to update markers based on the visible region
-        // For now, mock implementation with preview data
         pirateMarkers = islands.map { island in
             CustomMapMarker(
-                id: island.islandID ?? UUID(), // Default to a new UUID if islandID is nil
+                id: island.islandID ?? UUID(),
                 coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude),
-                title: island.islandName ?? "Unnamed Island" // Default to "Unnamed Island" if islandName is nil
+                title: island.islandName ?? "Unnamed Island", // Unwrap the optional
+                pirateIsland: island
             )
         }
     }

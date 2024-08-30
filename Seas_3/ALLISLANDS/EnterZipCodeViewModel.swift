@@ -77,7 +77,7 @@ class EnterZipCodeViewModel: ObservableObject {
                 guard let self = self else { return }
                 DispatchQueue.main.async {
                     self.region = MKCoordinateRegion(center: coordinate, span: MKCoordinateSpan(latitudeDelta: selectedRadius / 69.0, longitudeDelta: selectedRadius / 69.0))
-                    self.enteredLocation = CustomMapMarker(id: UUID(), coordinate: coordinate, title: address)
+                    self.enteredLocation = CustomMapMarker(id: UUID(), coordinate: coordinate, title: address, pirateIsland: nil)
                 }
             }
 
@@ -113,7 +113,8 @@ class EnterZipCodeViewModel: ObservableObject {
                         CustomMapMarker(
                             id: island.islandID ?? UUID(),
                             coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude),
-                            title: island.islandName ?? "Unknown Island"
+                            title: island.islandName ?? "Unknown Island",
+                            pirateIsland: island
                         )
                     }
                     print("Filtered gyms: \(self.pirateIslands)")

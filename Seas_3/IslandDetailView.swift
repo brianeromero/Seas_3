@@ -12,13 +12,13 @@ enum IslandDestination: String, CaseIterable {
 struct IslandDetailView: View {
     let island: PirateIsland
     @Binding var selectedDestination: IslandDestination?
-    @StateObject var viewModel: AppDayOfWeekViewModel // Remove the initializer
+    @StateObject var viewModel: AllEnteredLocationsViewModel
 
     init(island: PirateIsland, selectedDestination: Binding<IslandDestination?>) {
         self.island = island
         self._selectedDestination = selectedDestination
-        let repository = AppDayOfWeekRepository.shared
-        _viewModel = StateObject(wrappedValue: AppDayOfWeekViewModel(repository: repository))
+        let dataManager = PirateIslandDataManager(viewContext: PersistenceController.shared.container.viewContext)
+        _viewModel = StateObject(wrappedValue: AllEnteredLocationsViewModel(dataManager: dataManager))
     }
 
     @Environment(\.managedObjectContext) private var viewContext
@@ -57,7 +57,7 @@ struct IslandDetailContent: View {
     let island: PirateIsland
     @Binding var selectedDestination: IslandDestination?
     @State private var showMapView = false
-    @ObservedObject var viewModel: AppDayOfWeekViewModel
+    @ObservedObject var viewModel: AllEnteredLocationsViewModel
 
     @Environment(\.managedObjectContext) private var viewContext
 
@@ -80,11 +80,11 @@ struct IslandDetailContent: View {
             }
             .sheet(isPresented: $showMapView) {
                 IslandMapView(
-                    islands: [island],
-                    viewModel: self.viewModel
+                    viewModel: self.viewModel,
+                    selectedIsland: .constant(nil),
+                    showModal: .constant(false)
                 )
             }
-
             Text("Entered By: \(island.createdByUserId ?? "Unknown")")
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.bottom, 10)

@@ -26,12 +26,10 @@ struct IslandMenu: View {
     @StateObject private var appDayOfWeekViewModel: AppDayOfWeekViewModel
 
     init() {
-        let repository = AppDayOfWeekRepository(persistenceController: PersistenceController.shared)
-
         // Initialize the view model with required parameters
         _appDayOfWeekViewModel = StateObject(wrappedValue: AppDayOfWeekViewModel(
             selectedIsland: nil,
-            repository: repository
+            repository: AppDayOfWeekRepository(persistenceController: PersistenceController.shared)
         ))
     }
 
@@ -132,7 +130,7 @@ struct IslandMenu: View {
             ConsolidatedIslandMapView(viewModel: appDayOfWeekViewModel)
         case "ZipCode":
             EnterZipCodeView(viewModel: EnterZipCodeViewModel(
-                repository: appDayOfWeekRepository, // Use the repository instance
+                repository: appDayOfWeekRepository,
                 context: viewContext
             ))
         case "Add or Edit Schedule/Open Mat":
