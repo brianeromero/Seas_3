@@ -12,12 +12,24 @@ enum IslandDestination: String, CaseIterable {
 struct IslandDetailView: View {
     let island: PirateIsland
     @Binding var selectedDestination: IslandDestination?
+    @StateObject var viewModel: AppDayOfWeekViewModel // Remove the initializer
+
+    init(island: PirateIsland, selectedDestination: Binding<IslandDestination?>) {
+        self.island = island
+        self._selectedDestination = selectedDestination
+        let repository = AppDayOfWeekRepository.shared
+        _viewModel = StateObject(wrappedValue: AppDayOfWeekViewModel(repository: repository))
+    }
 
     @Environment(\.managedObjectContext) private var viewContext
 
     var body: some View {
-        IslandDetailContent(island: island, selectedDestination: $selectedDestination)
-            .onAppear(perform: fetchIsland)
+        IslandDetailContent(
+            island: island,
+            selectedDestination: $selectedDestination,
+            viewModel: viewModel
+        )
+        .onAppear(perform: fetchIsland)
     }
 
     private func fetchIsland() {
@@ -45,6 +57,7 @@ struct IslandDetailContent: View {
     let island: PirateIsland
     @Binding var selectedDestination: IslandDestination?
     @State private var showMapView = false
+    @ObservedObject var viewModel: AppDayOfWeekViewModel
 
     @Environment(\.managedObjectContext) private var viewContext
 
@@ -66,7 +79,10 @@ struct IslandDetailContent: View {
                     .padding(.bottom, 10)
             }
             .sheet(isPresented: $showMapView) {
-                IslandMapView(islands: [island])
+                IslandMapView(
+                    islands: [island],
+                    viewModel: self.viewModel
+                )
             }
 
             Text("Entered By: \(island.createdByUserId ?? "Unknown")")
@@ -94,7 +110,6 @@ struct IslandDetailContent: View {
                 } else if destination == .schedule {
                     NavigationLink(destination: IslandScheduleAsCal(
                         viewModel: AppDayOfWeekViewModel(
-                            PersistenceController.shared,
                             selectedIsland: island,
                             repository: AppDayOfWeekRepository(persistenceController: PersistenceController.shared)
                         ),
@@ -117,7 +132,6 @@ struct IslandDetailContent: View {
         return DateFormat.mediumDateTime.string(from: date)
     }
 }
-
 
 struct IslandDetailView_Previews: PreviewProvider {
     static var previews: some View {

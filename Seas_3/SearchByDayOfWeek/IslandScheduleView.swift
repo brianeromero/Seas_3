@@ -111,7 +111,6 @@ struct IslandScheduleView_Previews: PreviewProvider {
         
         // Create a mock AppDayOfWeekViewModel with mock data
         let viewModel = AppDayOfWeekViewModel(
-            PersistenceController.preview,
             selectedIsland: mockIsland,
             repository: MockAppDayOfWeekRepository(persistenceController: PersistenceController.preview)
         )

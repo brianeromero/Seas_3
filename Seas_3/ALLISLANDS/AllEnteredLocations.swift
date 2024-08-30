@@ -9,11 +9,16 @@ import CoreLocation
 import MapKit
 
 struct AllEnteredLocations: View {
+    @State private var selectedDay: DayOfWeek? = .monday
     @Environment(\.managedObjectContext) private var viewContext
     @StateObject private var viewModel: AllEnteredLocationsViewModel
+    @State private var showModal = false
+    @State private var selectedIsland: PirateIsland?
+    @State private var selectedAppDayOfWeek: AppDayOfWeek?
 
     init(context: NSManagedObjectContext) {
-        _viewModel = StateObject(wrappedValue: AllEnteredLocationsViewModel(dataManager: PirateIslandDataManager(viewContext: context)))
+        let dataManager = PirateIslandDataManager(viewContext: context)
+        _viewModel = StateObject(wrappedValue: AllEnteredLocationsViewModel(dataManager: dataManager))
     }
 
     var body: some View {
@@ -38,6 +43,9 @@ struct AllEnteredLocations: View {
                                     .shadow(radius: 3)
                                 CustomMarkerView()
                             }
+                            .onTapGesture {
+                                handleTap(location: location)
+                            }
                         }
                     }
                     .onAppear {
@@ -49,6 +57,49 @@ struct AllEnteredLocations: View {
             .onAppear {
                 viewModel.fetchPirateIslands()
             }
+            .sheet(isPresented: $showModal) {
+                if let island = selectedIsland {
+                    let name = island.name ?? ""
+                    let location = island.islandLocation ?? ""
+                    let coordinates = island.formattedCoordinates
+                    let created = DateFormat.full.string(from: island.createdTimestamp)
+                    let modified = DateFormat.full.string(from: island.lastModifiedTimestamp ?? Date())
+                    let website = island.gymWebsite
+                    let reviews = island.reviews?.compactMap { $0 as? Review } ?? [] // Keep reviews as [Review]
+                    let avgRating = ReviewUtils.averageStarRating(for: reviews) // Use the same array
+                    let days = island.daysOfWeekArray.compactMap { DayOfWeek(rawValue: $0.day ?? "") }
+
+                    IslandModalView(
+                        islandName: name,
+                        islandLocation: location,
+                        formattedCoordinates: coordinates,
+                        createdTimestamp: created,
+                        formattedTimestamp: modified,
+                        gymWebsite: website,
+                        reviews: reviews, // Pass the array of Review objects
+                        averageStarRating: avgRating,
+                        dayOfWeekData: days,
+                        selectedAppDayOfWeek: $selectedAppDayOfWeek,
+                        selectedIsland: $selectedIsland,
+                        viewModel: AppDayOfWeekViewModel(repository: AppDayOfWeekRepository.shared),
+                        selectedDay: $selectedDay,
+                        showModal: $showModal,
+                        width: .constant(300),
+                        height: .constant(500)
+                    )
+                } else {
+                    Text("No Island Selected")
+                        .padding()
+                }
+            }
+
+        }
+    }
+
+    func handleTap(location: CustomMapMarker) {
+        if let pirateIsland = viewModel.getPirateIsland(from: location) {
+            self.selectedIsland = pirateIsland
+            self.showModal = true
         }
     }
 }
@@ -57,7 +108,7 @@ struct AllEnteredLocations_Previews: PreviewProvider {
     static var previews: some View {
         let persistenceController = PersistenceController.preview
         let context = persistenceController.viewContext
-        
+
         return AllEnteredLocations(context: context)
             .environment(\.managedObjectContext, context)
             .previewDisplayName("All Entered Locations Preview")

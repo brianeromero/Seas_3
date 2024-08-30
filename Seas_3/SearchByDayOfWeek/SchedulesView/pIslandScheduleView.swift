@@ -15,7 +15,7 @@ struct pIslandScheduleView: View {
     var body: some View {
         VStack {
             if let selectedIsland = selectedIsland {
-                Text("Schedules for \(selectedIsland.islandName)")
+                Text("Schedules for \(String(describing: selectedIsland.islandName))")
                     .font(.title)
                     .padding()
 
@@ -120,7 +120,6 @@ struct pIslandScheduleView_Previews: PreviewProvider {
 
         // Initialize AppDayOfWeekViewModel with mock data
         let viewModel = AppDayOfWeekViewModel(
-            persistenceController,
             selectedIsland: nil,
             repository: mockRepository
         )

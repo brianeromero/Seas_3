@@ -258,7 +258,6 @@ struct IslandScheduleAsCal_Previews: PreviewProvider {
         
         // Initialize the view model
         let viewModel = AppDayOfWeekViewModel(
-            persistenceController,
             selectedIsland: mockIsland,
             repository: AppDayOfWeekRepository(persistenceController: persistenceController)
         )

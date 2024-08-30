@@ -14,10 +14,8 @@ struct Seas3App: App {
     @StateObject var viewModel: AppDayOfWeekViewModel
 
     init() {
-        let persistenceController = PersistenceController.shared
-        let repository = AppDayOfWeekRepository(persistenceController: persistenceController)
+        let repository = AppDayOfWeekRepository(persistenceController: PersistenceController.shared)
         _viewModel = StateObject(wrappedValue: AppDayOfWeekViewModel(
-            persistenceController, // Remove extraneous argument label
             selectedIsland: nil,
             repository: repository
         ))

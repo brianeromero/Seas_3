@@ -72,20 +72,19 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
     public let dateFormatter: DateFormatter = DateFormat.time
     
     // MARK: - Initializer
-    
-    init(_ persistenceController: PersistenceController, selectedIsland: PirateIsland? = nil, repository: AppDayOfWeekRepository) {
-        self.selectedIsland = selectedIsland
-        self.viewContext = persistenceController.viewContext
-        self.repository = repository // Keep this line only
-        self.dataManager = PirateIslandDataManager(viewContext: viewContext)
 
-        print("AppDayOfWeekViewModel initialized with context: \(viewContext) and repository: \(repository)")
+    init(selectedIsland: PirateIsland? = nil, repository: AppDayOfWeekRepository) {
+        self.selectedIsland = selectedIsland
+        self.repository = repository
+        self.viewContext = repository.persistenceController.viewContext // Initialize viewContext here
+        self.dataManager = PirateIslandDataManager(viewContext: self.viewContext)
+
+        print("AppDayOfWeekViewModel initialized with repository: \(repository)")
 
         // Initialization logic
         fetchPirateIslands()
         initializeDaySettings()
     }
-
     
     // Method to fetch AppDayOfWeek later
     func updateDayAndFetch(day: DayOfWeek) {
@@ -96,19 +95,14 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
         fetchCurrentDayOfWeek(for: island, day: day)
     }
     // MARK: - Methods
-    // MARK: - Save Context
-    func saveContext() {
-        print("Saving context...")
-        do {
-            try viewContext.save()
-            print("Context saved successfully.")
-        } catch {
-            print("Failed to save context: \(error.localizedDescription)")
-            errorMessage = "Failed to save context: \(error.localizedDescription)"
-        }
+    // MARK: - Save Data
+
+    func saveData() {
+        print("Saving data...")
+        try? repository.persistenceController.saveContext()
     }
-
-
+    
+    
     
     func saveAppDayOfWeek() {
         guard let island = selectedIsland,
@@ -161,6 +155,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
 
     
     // MARK: - Fetch Current Day Of Week
+        //populates the matTimesForDay dictionary with the scheduled mat times for each day
     func fetchCurrentDayOfWeek(for island: PirateIsland, day: DayOfWeek) {
         let context = repository.getViewContext()
 
@@ -315,7 +310,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
             print("Failed to fetch or create AppDayOfWeek.")
         }
 
-        saveContext()
+        saveData()
         refreshMatTimes()
     }
 
@@ -401,18 +396,27 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
 
     // MARK: - Fetch and Update List of AppDayOfWeek for a Specific Day
     func fetchAppDayOfWeekAndUpdateList(for island: PirateIsland, day: DayOfWeek, context: NSManagedObjectContext) {
-        print("Fetching AppDayOfWeek for island: \(island) and day: \(day)")
+        print("Fetching AppDayOfWeek for island: \(island.islandName ?? "Unknown") and day: \(day.displayName)")
+
+        // Fetching the AppDayOfWeek entity
         if let appDayOfWeek = repository.fetchAppDayOfWeek(for: island, day: day, context: context) {
+            print("Fetched AppDayOfWeek: \(appDayOfWeek)")
+
+            // Check if matTimes is available and cast to [MatTime]
             if let matTimes = appDayOfWeek.matTimes?.allObjects as? [MatTime] {
                 matTimesForDay[day] = matTimes
-                print("Updated matTimesForDay for \(day): \(matTimesForDay[day] ?? [])")
+                print("Updated matTimesForDay for \(day.displayName): \(matTimesForDay[day] ?? [])")
             } else {
-                print("No mat times found for \(day) on island \(island).")
+                print("No mat times found for \(day.displayName) on island \(island.islandName ?? "Unknown")")
             }
         } else {
-            print("No AppDayOfWeek found for \(day) on island \(island).")
+            print("No AppDayOfWeek found for \(day.displayName) on island \(island.islandName ?? "Unknown")")
         }
+        
+        // Log the entire matTimesForDay dictionary after update
+        print("Current matTimesForDay: \(matTimesForDay)")
     }
+
     // MARK: - Equatable Implementation
     static func == (lhs: AppDayOfWeekViewModel, rhs: AppDayOfWeekViewModel) -> Bool {
         lhs.selectedIsland == rhs.selectedIsland &&
@@ -462,7 +466,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
         
         appDayOfWeek.day = day.rawValue
         appDayOfWeek.pIsland = island
-        appDayOfWeek.name = "\(island.islandName) \(day.displayName)"
+        appDayOfWeek.name = "\(String(describing: island.islandName)) \(day.displayName)"
         appDayOfWeek.createdTimestamp = Date()
         
         if let unwrappedMatTime = newMatTime {
@@ -471,7 +475,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
             print("Error: newMatTime is nil")
         }
         
-        saveContext()
+        saveData()
         newMatTime = nil // Reset newMatTime to nil
     }
 
@@ -497,8 +501,8 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
         appDayOfWeek.addToMatTimes(newMatTimeObject)
         
         // Save the context
-        saveContext()
-    }
+        saveData()
+        print("Added MatTime: \(newMatTimeObject) FROM func addMatTime(matTime: MatTime, for day: DayOfWeek, appDayOfWeek: AppDayOfWeek)")    }
     // MARK: - Update Bindings
     func updateBindings() {
         print("Updating bindings...")
@@ -571,7 +575,9 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
         day: DayOfWeek,
         matTimes: [(time: String, type: String, gi: Bool, noGi: Bool, openMat: Bool, restrictions: Bool, restrictionDescription: String?, goodForBeginners: Bool, kids: Bool)]
     ) {
+        print("Adding mat times: \(matTimes)")
         matTimes.forEach { matTime in
+            print("Adding mat time: \(matTime)")
             let newMatTime = MatTime(context: viewContext)  // Ensure using viewContext here
             newMatTime.configure(
                 time: matTime.time,
@@ -584,8 +590,11 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
                 goodForBeginners: matTime.goodForBeginners,
                 kids: matTime.kids
             )
+            print("Configured mat time: \(newMatTime)")
             addMatTime(matTime: newMatTime, for: day)
         }
+        print("Added \(matTimes.count) mat times for day: \(day)")
+
     }
 
     // MARK: - GENERAL ADD MAT TIME
@@ -639,14 +648,15 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
             )
         }
         
-        saveContext()
+        saveData()
         refreshMatTimes()
+        print("Mat times for day: \(day) - \(matTimesForDay[day] ?? []) FROM func addMatTime")
     }
     // MARK: - Remove MatTime
     func removeMatTime(_ matTime: MatTime) {
         print("Removing MatTime: \(matTime)")
         viewContext.delete(matTime)
-        saveContext()
+        saveData()
     }
     // MARK: - Clear Selections
     func clearSelections() {

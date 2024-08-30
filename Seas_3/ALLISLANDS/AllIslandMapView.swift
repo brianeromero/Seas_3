@@ -32,11 +32,11 @@ struct EquatableMKCoordinateRegion: Equatable {
 
 // Extracted modal content view
 struct IslandModalContentView: View {
+    @State private var selectedAppDayOfWeek: AppDayOfWeek?
     @Binding var selectedIsland: PirateIsland?
     @Binding var showModal: Bool
-    @State private var selectedAppDayOfWeek: AppDayOfWeek?
-    var viewModel: AppDayOfWeekViewModel
-    @Binding var selectedDay: DayOfWeek?
+    @ObservedObject var viewModel: AppDayOfWeekViewModel
+    @Binding var selectedDay: DayOfWeek? // Make this optional
 
     init(selectedIsland: Binding<PirateIsland?>, showModal: Binding<Bool>, viewModel: AppDayOfWeekViewModel, selectedDay: Binding<DayOfWeek?>) {
         _selectedIsland = selectedIsland
@@ -47,10 +47,9 @@ struct IslandModalContentView: View {
 
     var body: some View {
         if let selectedIsland = selectedIsland {
-            let reviewsArray = ReviewUtils.getReviews(from: selectedIsland.reviews) // Updated
-            let averageRating = averageStarRating(for: reviewsArray)
+            let reviewsArray = ReviewUtils.getReviews(from: selectedIsland.reviews)
+            let averageRating = ReviewUtils.averageStarRating(for: reviewsArray)
 
-            // Convert AppDayOfWeek instances to DayOfWeek enum values
             let dayOfWeekData: [DayOfWeek] = (selectedIsland.appDayOfWeeks?.allObjects as? [AppDayOfWeek])?
                 .compactMap { $0.dayOfWeek } ?? []
 
@@ -68,9 +67,12 @@ struct IslandModalContentView: View {
                     selectedAppDayOfWeek: $selectedAppDayOfWeek,
                     selectedIsland: $selectedIsland,
                     viewModel: viewModel,
-                    selectedDay: $selectedDay
+                    selectedDay: $selectedDay, // Now this matches the optional type
+                    showModal: $showModal,
+                    width: .constant(300),
+                    height: .constant(400)
                 )
-                .frame(width: 200, height: 150)
+                .frame(width: 300, height: 400)
                 .background(Color.white)
                 .cornerRadius(10)
                 .padding()
@@ -90,6 +92,8 @@ struct IslandModalContentView: View {
             EmptyView()
         }
     }
+
+
 
     private func averageStarRating(for reviews: [Review]) -> String {
         guard !reviews.isEmpty else {
@@ -274,7 +278,6 @@ struct ConsolidatedIslandMapView_Previews: PreviewProvider {
 
         // Initialize the viewModel with the required parameters
         let viewModel = AppDayOfWeekViewModel(
-            persistenceController, // Remove extraneous argument label
             selectedIsland: nil,
             repository: repository
         )

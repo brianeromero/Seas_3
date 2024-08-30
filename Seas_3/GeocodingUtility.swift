@@ -29,11 +29,12 @@ func geocodeAddress(_ address: String, completion: @escaping (Result<(latitude: 
         return
     }
     
-    let encodedAddress = address.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
+    let encodedAddress = address.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)!
     let urlString = "https://maps.googleapis.com/maps/api/geocode/json?address=\(encodedAddress)&key=\(apiKey)"
+    print("URL: \(urlString)") // Print the formatted URL
     
     guard let url = URL(string: urlString) else {
-        completion(.failure(NSError(domain: "GeocodingError", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])))
+        completion(.failure(NSError(domain: "GeocodingError", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid URL: \(urlString)"])))
         return
     }
     
@@ -42,6 +43,7 @@ func geocodeAddress(_ address: String, completion: @escaping (Result<(latitude: 
         lastRequestTime = Date()
         
         if let error = error {
+            print("Error: \(error.localizedDescription)")
             completion(.failure(error))
             return
         }
@@ -50,6 +52,8 @@ func geocodeAddress(_ address: String, completion: @escaping (Result<(latitude: 
             completion(.failure(NSError(domain: "GeocodingError", code: 0, userInfo: [NSLocalizedDescriptionKey: "No data received"])))
             return
         }
+        
+        print("Response: \(String(data: data, encoding: .utf8) ?? "Unknown response")")
         
         do {
             let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
@@ -67,6 +71,7 @@ func geocodeAddress(_ address: String, completion: @escaping (Result<(latitude: 
                 completion(.failure(NSError(domain: "GeocodingError", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid response format"])))
             }
         } catch {
+            print("JSON parsing error: \(error.localizedDescription)")
             completion(.failure(error))
         }
     }.resume()

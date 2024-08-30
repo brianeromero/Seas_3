@@ -48,6 +48,9 @@
 		0C1635542C3613A2008FC297 /* ToastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1635532C3613A2008FC297 /* ToastView.swift */; };
 		0C1635562C361CBB008FC297 /* OpenMats (by Day of Week).swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1635552C361CBB008FC297 /* OpenMats (by Day of Week).swift */; };
 		0C1893D12C7D18F0007BFADB /* ReviewUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1893D02C7D18F0007BFADB /* ReviewUtils.swift */; };
+		0C1893D32C7F95FB007BFADB /* ViewReviewforIsland.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1893D22C7F95FB007BFADB /* ViewReviewforIsland.swift */; };
+		0C1893D52C7F9621007BFADB /* ViewScheduleforIsland.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1893D42C7F9621007BFADB /* ViewScheduleforIsland.swift */; };
+		0C1893D72C8108EA007BFADB /* IslandModalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1893D62C8108EA007BFADB /* IslandModalView.swift */; };
 		0C4B34362C61A32700FD6893 /* PirateIslandDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4B34352C61A32700FD6893 /* PirateIslandDataManager.swift */; };
 		0C4F3C412C3C4645008D04B9 /* IslandScheduleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4F3C402C3C4645008D04B9 /* IslandScheduleView.swift */; };
 		0C524E8C2C2F408F008D6623 /* ExampleUsuageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C524E8B2C2F408F008D6623 /* ExampleUsuageView.swift */; };
@@ -179,6 +182,9 @@
 		0C1635532C3613A2008FC297 /* ToastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastView.swift; sourceTree = "<group>"; };
 		0C1635552C361CBB008FC297 /* OpenMats (by Day of Week).swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OpenMats (by Day of Week).swift"; sourceTree = "<group>"; };
 		0C1893D02C7D18F0007BFADB /* ReviewUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewUtils.swift; sourceTree = "<group>"; };
+		0C1893D22C7F95FB007BFADB /* ViewReviewforIsland.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewReviewforIsland.swift; sourceTree = "<group>"; };
+		0C1893D42C7F9621007BFADB /* ViewScheduleforIsland.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewScheduleforIsland.swift; sourceTree = "<group>"; };
+		0C1893D62C8108EA007BFADB /* IslandModalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandModalView.swift; sourceTree = "<group>"; };
 		0C4B34352C61A32700FD6893 /* PirateIslandDataManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PirateIslandDataManager.swift; sourceTree = "<group>"; };
 		0C4F3C402C3C4645008D04B9 /* IslandScheduleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandScheduleView.swift; sourceTree = "<group>"; };
 		0C524E8B2C2F408F008D6623 /* ExampleUsuageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExampleUsuageView.swift; sourceTree = "<group>"; };
@@ -292,6 +298,7 @@
 				0C6F7BDB2C7931E600072237 /* GymMatReviewSelect.swift */,
 				0C07B0982C2CFF8500D0BFB2 /* GymMatReviewView.swift */,
 				0C1893D02C7D18F0007BFADB /* ReviewUtils.swift */,
+				0C1893D22C7F95FB007BFADB /* ViewReviewforIsland.swift */,
 			);
 			path = MatReview;
 			sourceTree = "<group>";
@@ -362,6 +369,7 @@
 				0C8AEC242C59301F00D38635 /* ScheduleFormView.swift */,
 				0C8AEC282C5C246800D38635 /* AddNewMatTimeSection.swift */,
 				0CD4E2BE2C7CDA0C005082AC /* ScheduledMatTimesSection.swift */,
+				0C1893D42C7F9621007BFADB /* ViewScheduleforIsland.swift */,
 			);
 			path = SchedulesView;
 			sourceTree = "<group>";
@@ -412,6 +420,7 @@
 				0C07B0C22C2D020C00D0BFB2 /* AppDelegate.swift */,
 				0C07B0C02C2D01F300D0BFB2 /* CustomUnarchiveTransformer.swift */,
 				0C07B0BE2C2D01D700D0BFB2 /* Logger.swift */,
+				0C1893D62C8108EA007BFADB /* IslandModalView.swift */,
 				0C07B0C52C2D022C00D0BFB2 /* calendar Image.png */,
 				0C07B0C42C2D022C00D0BFB2 /* flashing.gif */,
 				0C07B0C92C2D022D00D0BFB2 /* flashing2.gif */,
@@ -539,7 +548,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1540;
-				LastUpgradeCheck = 1540;
+				LastUpgradeCheck = 1600;
 				TargetAttributes = {
 					0CF13E402C2A326700D714C0 = {
 						CreatedOnToolsVersion = 15.4;
@@ -641,6 +650,8 @@
 				0C6F7BD92C79193B00072237 /* Review+CoreDataClass.swift in Sources */,
 				0C07B08C2C2CFED400D0BFB2 /* AppDayOfWeekViewModel.swift in Sources */,
 				0C07B0812C2CFE3600D0BFB2 /* IslandMap.swift in Sources */,
+				0C1893D32C7F95FB007BFADB /* ViewReviewforIsland.swift in Sources */,
+				0C1893D72C8108EA007BFADB /* IslandModalView.swift in Sources */,
 				0C07B0A82C2D004900D0BFB2 /* RenderingManager.swift in Sources */,
 				0C07B0AA2C2D007000D0BFB2 /* GIFBackgroundView.swift in Sources */,
 				0C524E952C308E4A008D6623 /* EnterZipCodeViewModel.swift in Sources */,
@@ -658,6 +669,7 @@
 				0CF13E792C2A36B500D714C0 /* AppDayOfWeek+CoreDataClass.swift in Sources */,
 				0C07B0942C2CFF3B00D0BFB2 /* AddClassScheduleView.swift in Sources */,
 				0C07B0712C2CFD0300D0BFB2 /* IslandMenu.swift in Sources */,
+				0C1893D52C7F9621007BFADB /* ViewScheduleforIsland.swift in Sources */,
 				0CC1120F2C45F7D80066CF80 /* MatTime+CoreDataClass.swift in Sources */,
 				0CC112102C45F7D80066CF80 /* MatTime+CoreDataProperties.swift in Sources */,
 				0C1893D12C7D18F0007BFADB /* ReviewUtils.swift in Sources */,
@@ -921,7 +933,6 @@
 		0CF13E6E2C2A326A00D714C0 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -941,7 +952,6 @@
 		0CF13E6F2C2A326A00D714C0 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -961,7 +971,6 @@
 		0CF13E712C2A326A00D714C0 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 84463TFCZ4;
@@ -979,7 +988,6 @@
 		0CF13E722C2A326A00D714C0 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 84463TFCZ4;

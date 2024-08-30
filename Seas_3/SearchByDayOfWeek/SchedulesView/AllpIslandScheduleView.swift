@@ -191,7 +191,6 @@ struct AllpIslandScheduleView_Previews: PreviewProvider {
         try? context.save()
 
         let viewModel = AppDayOfWeekViewModel(
-            persistenceController, // Remove extraneous argument label
             selectedIsland: mockIsland,
             repository: AppDayOfWeekRepository(persistenceController: persistenceController)
         )
