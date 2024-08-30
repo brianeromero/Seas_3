@@ -35,7 +35,7 @@ struct AllEnteredLocations: View {
                     Map(coordinateRegion: $viewModel.region, annotationItems: viewModel.pirateMarkers) { location in
                         MapAnnotation(coordinate: location.coordinate) {
                             VStack {
-                                Text(location.title)
+                                Text(location.title ?? "Unknown Title")
                                     .font(.caption)
                                     .padding(5)
                                     .background(Color.white)
@@ -61,31 +61,37 @@ struct AllEnteredLocations: View {
                 if let island = selectedIsland {
                     let name = island.name ?? ""
                     let location = island.islandLocation ?? ""
-                    let coordinates = island.formattedCoordinates
+                    let coordinates = island.formattedCoordinates ?? ""
                     let created = DateFormat.full.string(from: island.createdTimestamp)
                     let modified = DateFormat.full.string(from: island.lastModifiedTimestamp ?? Date())
                     let website = island.gymWebsite
-                    let reviews = island.reviews?.compactMap { $0 as? Review } ?? [] // Keep reviews as [Review]
-                    let avgRating = ReviewUtils.averageStarRating(for: reviews) // Use the same array
+                    let reviews = island.reviews?.compactMap { $0 as? Review } ?? []
+                    let avgRating = ReviewUtils.averageStarRating(for: reviews)
                     let days = island.daysOfWeekArray.compactMap { DayOfWeek(rawValue: $0.day ?? "") }
 
                     IslandModalView(
+                        customMapMarker: CustomMapMarker(
+                            id: UUID(),
+                            coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude),
+                            title: name,
+                            pirateIsland: island
+                        ),
+                        width: .constant(300),
+                        height: .constant(500),
                         islandName: name,
                         islandLocation: location,
                         formattedCoordinates: coordinates,
                         createdTimestamp: created,
                         formattedTimestamp: modified,
                         gymWebsite: website,
-                        reviews: reviews, // Pass the array of Review objects
+                        reviews: reviews,
                         averageStarRating: avgRating,
                         dayOfWeekData: days,
                         selectedAppDayOfWeek: $selectedAppDayOfWeek,
                         selectedIsland: $selectedIsland,
                         viewModel: AppDayOfWeekViewModel(repository: AppDayOfWeekRepository.shared),
                         selectedDay: $selectedDay,
-                        showModal: $showModal,
-                        width: .constant(300),
-                        height: .constant(500)
+                        showModal: $showModal
                     )
                 } else {
                     Text("No Island Selected")

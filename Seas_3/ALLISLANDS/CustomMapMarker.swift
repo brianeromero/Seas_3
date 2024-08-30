@@ -7,18 +7,28 @@
 
 import Foundation
 import CoreLocation
+import MapKit
 
-struct CustomMapMarker: Identifiable, Equatable {
+class CustomMapMarker: NSObject, MKAnnotation, Identifiable {
     let id: UUID
-    let coordinate: CLLocationCoordinate2D
-    let title: String
-}
+    var coordinate: CLLocationCoordinate2D
+    var title: String? // Make title optional
+    var subtitle: String?
+    var pirateIsland: PirateIsland?
 
-extension CustomMapMarker {
+    init(id: UUID, coordinate: CLLocationCoordinate2D, title: String?, pirateIsland: PirateIsland?) {
+        self.id = id
+        self.coordinate = coordinate
+        self.title = title // Now title is optional
+        self.subtitle = nil // You can set a subtitle if needed
+        self.pirateIsland = pirateIsland
+    }
+
     static func == (lhs: CustomMapMarker, rhs: CustomMapMarker) -> Bool {
-        // Compare coordinate and title to determine equality
+        // Compare coordinate, title, and pirateIsland to determine equality
         return lhs.coordinate.latitude == rhs.coordinate.latitude &&
                lhs.coordinate.longitude == rhs.coordinate.longitude &&
-               lhs.title == rhs.title
+               lhs.title == rhs.title &&
+               lhs.pirateIsland == rhs.pirateIsland
     }
 }

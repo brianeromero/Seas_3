@@ -10,7 +10,6 @@ import SwiftUI
 import MapKit
 import CoreLocation
 
-
 struct CoordinateWrapper: Equatable {
     let coordinate: CLLocationCoordinate2D
     
@@ -38,6 +37,7 @@ struct AllMapView: View {
 
     var body: some View {
         Map(coordinateRegion: $region, annotationItems: islands.compactMap { island -> CustomMapMarker? in
+            // Use optional coalescing to provide default values for optional properties
             let title = island.islandName ?? "Unnamed Island"
             let latitude = island.latitude
             let longitude = island.longitude
@@ -49,11 +49,16 @@ struct AllMapView: View {
             print("Reviews for \(title): \(reviews)")
 
             // Create a CustomMapMarker for each island
-            return CustomMapMarker(id: island.islandID ?? UUID(), coordinate: CLLocationCoordinate2D(latitude: latitude, longitude: longitude), title: title)
+            return CustomMapMarker(
+                id: island.islandID ?? UUID(), // Use default UUID if islandID is nil
+                coordinate: CLLocationCoordinate2D(latitude: latitude, longitude: longitude),
+                title: title,
+                pirateIsland: island
+            )
         }) { marker in
             MapAnnotation(coordinate: marker.coordinate) {
                 VStack {
-                    Text(marker.title)
+                    Text(marker.title ?? "Unnamed Island")
                         .font(.caption)
                         .padding(5)
                         .background(Color.white)
