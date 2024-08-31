@@ -17,10 +17,6 @@ struct EnterZipCodeView: View {
     @State private var tappedLocation: CustomMapMarker?
     @StateObject private var viewModel: EnterZipCodeViewModel
     @State private var selectedIsland: PirateIsland?
-    @State private var width: CGFloat = 100
-    @State private var height: CGFloat = 100
-    @State private var selectedAppDayOfWeek: AppDayOfWeek?
-    @State private var selectedDay: DayOfWeek?
 
     init(viewModel: EnterZipCodeViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -42,26 +38,7 @@ struct EnterZipCodeView: View {
             .padding()
 
             if viewModel.hasLocationOrPirateIslands {
-                Map(coordinateRegion: $viewModel.region, annotationItems: viewModel.annotationItems) { location in
-                    MapAnnotation(coordinate: location.coordinate) {
-                        VStack {
-                            Text(location.title ?? "")
-                                .font(.caption)
-                                .padding(5)
-                                .background(Color.white)
-                                .cornerRadius(5)
-                                .shadow(radius: 3)
-                            Image(systemName: (location.pirateIsland?.id == viewModel.enteredLocation?.pirateIsland?.id) ? "pin.square.fill" : "mappin.circle.fill")
-                                .foregroundColor((location.pirateIsland?.id == viewModel.enteredLocation?.pirateIsland?.id) ? .red : .blue)
-                        }
-                        .onTapGesture {
-                            tappedLocation = location
-                            showPinModal = true
-                        }
-                    }
-                }
-                .frame(height: 300)
-                .padding()
+                createMapView()
             }
         }
         .onAppear {
@@ -69,32 +46,81 @@ struct EnterZipCodeView: View {
         }
         .navigationBarTitle("Enter Address or Zip Code")
         .onChange(of: tappedLocation) { newTappedLocation in
-            if let newTappedLocation = newTappedLocation {
-                selectedIsland = newTappedLocation.pirateIsland
+            if let pirateIsland = newTappedLocation?.pirateIsland {
+                self.selectedIsland = pirateIsland
             }
         }
         .sheet(isPresented: $showPinModal) {
-            if let tappedLocation = tappedLocation {
+            createIslandModalView()
+        }
+    }
+
+    private func createMapView() -> some View {
+        Map(coordinateRegion: $viewModel.region, annotationItems: viewModel.annotationItems) { location in
+            MapAnnotation(coordinate: location.coordinate) {
+                annotationView(for: location)
+            }
+        }
+        .frame(height: 300)
+        .padding()
+    }
+
+    private func annotationView(for location: CustomMapMarker) -> some View {
+        VStack {
+            Text(location.title ?? "")
+                .font(.caption)
+                .padding(5)
+                .background(Color.white)
+                .cornerRadius(5)
+                .shadow(radius: 3)
+
+            Image(systemName: pinImageName(for: location))
+                .foregroundColor(pinColor(for: location))
+        }
+        .onTapGesture {
+            tappedLocation = location
+            showPinModal = true
+        }
+    }
+
+    private func pinImageName(for location: CustomMapMarker) -> String {
+        location.pirateIsland?.id == viewModel.enteredLocation?.pirateIsland?.id ? "pin.square.fill" : "mappin.circle.fill"
+    }
+
+    private func pinColor(for location: CustomMapMarker) -> Color {
+        location.pirateIsland?.id == viewModel.enteredLocation?.pirateIsland?.id ? .red : .blue
+    }
+    
+    @ViewBuilder
+    private func createIslandModalView() -> some View {
+        if let tappedLocation = tappedLocation {
+            if let pirateIsland = tappedLocation.pirateIsland {
                 IslandModalView(
                     customMapMarker: tappedLocation,
-                    width: $width,
-                    height: $height,
-                    islandName: tappedLocation.title ?? "",
-                    islandLocation: "\(tappedLocation.coordinate.latitude), \(tappedLocation.coordinate.longitude)",
-                    formattedCoordinates: "",
-                    createdTimestamp: Date().formatted(),
-                    formattedTimestamp: "",
-                    gymWebsite: nil,
-                    reviews: [],
-                    averageStarRating: "0",
-                    dayOfWeekData: [],
-                    selectedAppDayOfWeek: $selectedAppDayOfWeek,
+                    width: .constant(300),
+                    height: .constant(500),
+                    islandName: pirateIsland.name ?? "",
+                    islandLocation: pirateIsland.islandLocation ?? "",
+                    formattedCoordinates: pirateIsland.formattedCoordinates,
+                    createdTimestamp: DateFormat.full.string(from: pirateIsland.createdTimestamp),
+                    formattedTimestamp: DateFormat.full.string(from: pirateIsland.lastModifiedTimestamp ?? Date()),
+                    gymWebsite: pirateIsland.gymWebsite,
+                    reviews: ReviewUtils.getReviews(from: pirateIsland.reviews),
+                    averageStarRating: ReviewUtils.averageStarRating(for: ReviewUtils.getReviews(from: pirateIsland.reviews)),
+                    dayOfWeekData: pirateIsland.daysOfWeekArray.compactMap { DayOfWeek(rawValue: $0.day ?? "") },
+                    selectedAppDayOfWeek: .constant(nil),
                     selectedIsland: $selectedIsland,
                     viewModel: AppDayOfWeekViewModel(repository: AppDayOfWeekRepository(persistenceController: PersistenceController.shared)),
-                    selectedDay: $selectedDay,
-                    showModal: .constant(false)
+                    selectedDay: .constant(.monday),
+                    showModal: $showPinModal
                 )
+            } else {
+                Text("No Pirate Island Selected")
+                    .padding()
             }
+        } else {
+            Text("No Location Selected")
+                .padding()
         }
     }
 }
