@@ -61,7 +61,7 @@ struct AllEnteredLocations: View {
                 if let island = selectedIsland {
                     let name = island.name ?? ""
                     let location = island.islandLocation ?? ""
-                    let coordinates = island.formattedCoordinates ?? ""
+                    let coordinates = island.formattedCoordinates
                     let created = DateFormat.full.string(from: island.createdTimestamp)
                     let modified = DateFormat.full.string(from: island.lastModifiedTimestamp ?? Date())
                     let website = island.gymWebsite
