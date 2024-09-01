@@ -132,10 +132,20 @@ struct IslandModalView: View {
                                 Text(averageStarRating)
                                     .font(.system(size: 12))
                             }
+                            NavigationLink(destination: ViewReviewforIsland(selectedIsland: selectedIsland)) {
+                                Text("View Reviews")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.blue)
+                            }
                         } else {
                             Text("No reviews available.")
                                 .font(.system(size: 12))
                                 .foregroundColor(.secondary)
+                            NavigationLink(destination: ViewReviewforIsland(selectedIsland: selectedIsland)) {
+                                Text("Leave a Review")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.blue)
+                            }
                         }
                     }
                     .padding()

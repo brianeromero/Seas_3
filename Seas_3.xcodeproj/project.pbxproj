@@ -297,8 +297,8 @@
 			children = (
 				0C6F7BDB2C7931E600072237 /* GymMatReviewSelect.swift */,
 				0C07B0982C2CFF8500D0BFB2 /* GymMatReviewView.swift */,
-				0C1893D02C7D18F0007BFADB /* ReviewUtils.swift */,
 				0C1893D22C7F95FB007BFADB /* ViewReviewforIsland.swift */,
+				0C1893D02C7D18F0007BFADB /* ReviewUtils.swift */,
 			);
 			path = MatReview;
 			sourceTree = "<group>";

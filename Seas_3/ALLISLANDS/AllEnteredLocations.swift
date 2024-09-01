@@ -53,7 +53,7 @@ struct AllEnteredLocations: View {
                     }
                 }
             }
-            .navigationTitle("All Open Mats Map")
+            .navigationTitle("All Gyms Entered")
             .onAppear {
                 viewModel.fetchPirateIslands()
             }
