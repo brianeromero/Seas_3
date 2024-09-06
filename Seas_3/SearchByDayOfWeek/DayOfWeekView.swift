@@ -62,10 +62,14 @@ struct DayOfWeekView_Previews: PreviewProvider {
         // Create a mock repository
         let mockRepository = AppDayOfWeekRepository(persistenceController: PersistenceController.preview)
 
+        // Create a mock enterZipCodeViewModel
+        let mockEnterZipCodeViewModel = EnterZipCodeViewModel(repository: mockRepository, context: context)
+
         // Create the view model with the mock data
         let viewModel = AppDayOfWeekViewModel(
             selectedIsland: mockIsland,
-            repository: mockRepository
+            repository: mockRepository,
+            enterZipCodeViewModel: mockEnterZipCodeViewModel
         )
 
         return DayOfWeekView(viewModel: viewModel, selectedAppDayOfWeek: .constant(nil))

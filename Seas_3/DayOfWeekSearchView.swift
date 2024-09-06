@@ -37,7 +37,7 @@ struct DayOfWeekSearchView: View {
         center: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
         span: MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1)
     )
-
+    
     var body: some View {
         VStack {
             Picker("Select Day", selection: $selectedDay) {
@@ -47,13 +47,12 @@ struct DayOfWeekSearchView: View {
             }
             .pickerStyle(SegmentedPickerStyle())
             .padding()
-
-            Text("Radius: \(Int(radius * 1.60934)) miles")
-                .padding(.bottom, 5)
-
+            
+            Text("Radius: \(Int(radius)) miles")                .padding(.bottom, 5)
+            
             Slider(value: $radius, in: 1...50, step: 1)
                 .padding()
-
+            
             if isLoading {
                 ProgressView()
             } else {
@@ -74,7 +73,7 @@ struct DayOfWeekSearchView: View {
                 .edgesIgnoringSafeArea(.all)
             }
         }
-
+        
         .onAppear {
             userLocationMapViewModel.requestLocation()
             fetchGyms(day: selectedDay, radius: radius)
@@ -85,42 +84,42 @@ struct DayOfWeekSearchView: View {
         }
         .onChange(of: selectedDay) { newDay in
             fetchGyms(day: newDay, radius: radius)
+            updateRegion(newRadius: radius)
         }
     }
-
+    
     private func fetchGyms(day: String, radius: Double) {
-        let radiusInKilometers = radius * 1.60934 // Convert miles to kilometers
-
         guard !isLoading else { return }
         isLoading = true
-
+        
         Task {
             let normalizedDay = day.lowercased()
             let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "day BEGINSWITH[c] %@", normalizedDay)
             fetchRequest.relationshipKeyPathsForPrefetching = ["pIsland"]
-
+            
             do {
                 let appDayOfWeeks = try PersistenceController.shared.container.viewContext.fetch(fetchRequest)
-
+                
                 var fetchedGyms: [Gym] = []
-
+                
                 for appDayOfWeek in appDayOfWeeks {
                     guard let island = appDayOfWeek.pIsland else { continue }
-
-                    let hasScheduledMatTime = appDayOfWeek.matTimes?.count ?? 0 > 0
-                    fetchedGyms.append(
-                        Gym(
-                            id: island.islandID ?? UUID(),
-                            name: island.islandName ?? "Unknown Island",
-                            latitude: island.latitude,
-                            longitude: island.longitude,
-                            hasScheduledMatTime: hasScheduledMatTime,
-                            days: [appDayOfWeek.day ?? ""]
+                    if appDayOfWeek.day == day { // Filter gyms based on the selected day
+                        let hasScheduledMatTime = appDayOfWeek.matTimes?.count ?? 0 > 0
+                        fetchedGyms.append(
+                            Gym(
+                                id: island.islandID ?? UUID(),
+                                name: island.islandName ?? "Unknown Island",
+                                latitude: island.latitude,
+                                longitude: island.longitude,
+                                hasScheduledMatTime: hasScheduledMatTime,
+                                days: [appDayOfWeek.day ?? ""]
+                            )
                         )
-                    )
+                    }
                 }
-
+                
                 DispatchQueue.main.async {
                     self.gyms = fetchedGyms
                     self.isLoading = false
@@ -133,17 +132,19 @@ struct DayOfWeekSearchView: View {
             }
         }
     }
-
+    
     private func updateRegion(newRadius: Double) {
-        let newRadiusInKilometers = newRadius * 1.60934 // Convert miles to kilometers
-
-        guard let userLocation = userLocationMapViewModel.getCurrentUserLocation() else { return }
-        let latitudeDelta = newRadiusInKilometers / 111.0
-        let longitudeDelta = newRadiusInKilometers / (111.0 * cos(userLocation.coordinate.latitude * .pi / 180))
-        equatableRegion = MKCoordinateRegion(
-            center: userLocation.coordinate,
-            span: MKCoordinateSpan(latitudeDelta: latitudeDelta, longitudeDelta: longitudeDelta)
-        )
+        withAnimation {
+            equatableRegion = MapUtils.updateRegion(
+                markers: gyms.map { CustomMapMarker(
+                    id: $0.id ?? UUID(),
+                    coordinate: CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude),
+                    title: $0.name,
+                    pirateIsland: nil // Replace with the actual pirateIsland value if needed
+                ) },
+                selectedRadius: newRadius
+            )
+        }
     }
 }
 

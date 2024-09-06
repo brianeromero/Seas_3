@@ -11,162 +11,162 @@ import MapKit
 import CoreData
 
 struct EnterZipCodeView: View {
-    @Environment(\.managedObjectContext) private var viewContext
-    @State private var showPinModal = false
-    @State private var showMap = false
-    @State private var tappedLocation: CustomMapMarker?
-    @StateObject private var viewModel: EnterZipCodeViewModel
-    @State private var selectedIsland: PirateIsland?
+    @ObservedObject var viewModel: EnterZipCodeViewModel
+    @ObservedObject var appDayOfWeekViewModel: AppDayOfWeekViewModel
+    @ObservedObject var allEnteredLocationsViewModel: AllEnteredLocationsViewModel
 
-    init(viewModel: EnterZipCodeViewModel) {
-        _viewModel = StateObject(wrappedValue: viewModel)
-    }
+    @State private var locationInput: String = ""
+    @State private var searchResults: [PirateIsland] = []
+    @State private var region: MKCoordinateRegion = MKCoordinateRegion(
+        center: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
+        span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
+    )
+    @State private var selectedIsland: PirateIsland? = nil
+    @State private var showModal: Bool = false
+    @State private var selectedAppDayOfWeek: AppDayOfWeek? = nil
+    @State private var selectedDay: DayOfWeek? = .monday
+    @State private var selectedRadius: Double = 5.0 // Radius in miles
 
     var body: some View {
         VStack {
-            TextField("Enter Address, location, or Zipcode", text: $viewModel.address)
+            TextField("Enter Location (Zip Code, Address, City, State)", text: $locationInput)
+                .padding()
                 .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding()
 
-            RadiusPicker(selectedRadius: $viewModel.currentRadius)
-                .padding()
+            // Use the reusable RadiusPicker component
+            RadiusPicker(selectedRadius: $selectedRadius)
 
-            Button("Search") {
-                viewModel.fetchLocation(for: viewModel.address, selectedRadius: viewModel.currentRadius)
-                showMap = true
+            Button(action: search) {
+                Text("Search")
             }
             .padding()
 
-            if viewModel.hasLocationOrPirateIslands {
-                createMapView()
+            // Map View
+            IslandMapView(
+                viewModel: appDayOfWeekViewModel, // Corrected to AppDayOfWeekViewModel
+                selectedIsland: $selectedIsland,
+                showModal: $showModal,
+                selectedAppDayOfWeek: $selectedAppDayOfWeek,
+                selectedDay: $selectedDay, // Added this line
+                allEnteredLocationsViewModel: allEnteredLocationsViewModel,
+                enterZipCodeViewModel: viewModel // Corrected to EnterZipCodeViewModel
+            )
+            .frame(height: 400)
+            .onChange(of: searchResults) { _ in
+                if let firstIsland = searchResults.first {
+                    self.region.center = CLLocationCoordinate2D(latitude: firstIsland.latitude, longitude: firstIsland.longitude)
+                }
             }
         }
-        .onAppear {
-            viewModel.locationManager.requestLocation()
-        }
-        .navigationBarTitle("Enter Address or Zip Code")
-        .onChange(of: tappedLocation) { newTappedLocation in
-            if let pirateIsland = newTappedLocation?.pirateIsland {
-                self.selectedIsland = pirateIsland
-            }
-        }
-        .sheet(isPresented: $showPinModal) {
-            createIslandModalView()
-        }
-    }
-
-    private func createMapView() -> some View {
-        Map(coordinateRegion: $viewModel.region, annotationItems: viewModel.annotationItems) { location in
-            MapAnnotation(coordinate: location.coordinate) {
-                annotationView(for: location)
-            }
-        }
-        .frame(height: 300)
         .padding()
-    }
-
-    private func annotationView(for location: CustomMapMarker) -> some View {
-        VStack {
-            Text(location.title ?? "")
-                .font(.caption)
-                .padding(5)
-                .background(Color.white)
-                .cornerRadius(5)
-                .shadow(radius: 3)
-
-            Image(systemName: pinImageName(for: location))
-                .foregroundColor(pinColor(for: location))
-        }
-        .onTapGesture {
-            tappedLocation = location
-            showPinModal = true
-        }
-    }
-
-    private func pinImageName(for location: CustomMapMarker) -> String {
-        location.pirateIsland?.id == viewModel.enteredLocation?.pirateIsland?.id ? "pin.square.fill" : "mappin.circle.fill"
-    }
-
-    private func pinColor(for location: CustomMapMarker) -> Color {
-        location.pirateIsland?.id == viewModel.enteredLocation?.pirateIsland?.id ? .red : .blue
-    }
-    
-    @ViewBuilder
-    private func createIslandModalView() -> some View {
-        if let tappedLocation = tappedLocation {
-            if let pirateIsland = tappedLocation.pirateIsland {
+        .sheet(isPresented: $showModal) {
+            if let island = selectedIsland {
                 IslandModalView(
-                    customMapMarker: tappedLocation,
-                    width: .constant(300),
-                    height: .constant(500),
-                    islandName: pirateIsland.name ?? "",
-                    islandLocation: pirateIsland.islandLocation ?? "",
-                    formattedCoordinates: pirateIsland.formattedCoordinates,
-                    createdTimestamp: DateFormat.full.string(from: pirateIsland.createdTimestamp),
-                    formattedTimestamp: DateFormat.full.string(from: pirateIsland.lastModifiedTimestamp ?? Date()),
-                    gymWebsite: pirateIsland.gymWebsite,
-                    reviews: ReviewUtils.getReviews(from: pirateIsland.reviews),
-                    averageStarRating: ReviewUtils.averageStarRating(for: ReviewUtils.getReviews(from: pirateIsland.reviews)),
-                    dayOfWeekData: pirateIsland.daysOfWeekArray.compactMap { DayOfWeek(rawValue: $0.day ?? "") },
-                    selectedAppDayOfWeek: .constant(nil),
+                    customMapMarker: CustomMapMarker(
+                        id: UUID(),
+                        coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude),
+                        title: island.name ?? "", // Use a default value if name is nil
+                        pirateIsland: island // Unwrapped here
+                    ),
+                    islandName: island.name ?? "", // Default to empty string if nil
+                    islandLocation: island.islandLocation ?? "", // Default to empty string if nil
+                    formattedCoordinates: island.formattedCoordinates,
+                    createdTimestamp: DateFormat.full.string(from: island.createdTimestamp),
+                    formattedTimestamp: DateFormat.full.string(from: island.lastModifiedTimestamp ?? Date()),
+                    gymWebsite: island.gymWebsite,
+                    reviews: island.reviews?.compactMap { $0 as? Review } ?? [],
+                    averageStarRating: ReviewUtils.averageStarRating(for: island.reviews?.compactMap { $0 as? Review } ?? []),
+                    dayOfWeekData: island.daysOfWeekArray.compactMap { DayOfWeek(rawValue: $0.day ?? "") },
+                    selectedAppDayOfWeek: $selectedAppDayOfWeek,
                     selectedIsland: $selectedIsland,
-                    viewModel: AppDayOfWeekViewModel(repository: AppDayOfWeekRepository(persistenceController: PersistenceController.shared)),
-                    selectedDay: .constant(.monday),
-                    showModal: $showPinModal
+                    viewModel: appDayOfWeekViewModel, // Corrected to AppDayOfWeekViewModel
+                    selectedDay: $selectedDay, // Corrected to Binding<DayOfWeek?>
+                    showModal: $showModal, // Corrected order
+                    enterZipCodeViewModel: viewModel // Corrected to EnterZipCodeViewModel
                 )
             } else {
-                Text("No Pirate Island Selected")
+                Text("No Island Selected")
                     .padding()
             }
-        } else {
-            Text("No Location Selected")
-                .padding()
         }
     }
-}
 
-extension EnterZipCodeViewModel {
-    var hasLocationOrPirateIslands: Bool {
-        enteredLocation != nil || !pirateIslands.isEmpty
-    }
-    
-    var annotationItems: [CustomMapMarker] {
-        // Map each `CustomMapMarker` to a new `CustomMapMarker`
-        let pirateIslandMarkers = pirateIslands.map { marker in
-            CustomMapMarker(
-                id: marker.id,
-                coordinate: marker.coordinate,
-                title: marker.title,
-                pirateIsland: marker.pirateIsland
+    private func search() {
+        MapUtils.fetchLocation(for: locationInput, selectedRadius: selectedRadius) { coordinate, error in
+            if let error = error {
+                print("Geocoding error: \(error.localizedDescription)")
+                return
+            }
+
+            guard let coordinate = coordinate else {
+                print("No location found for the input.")
+                return
+            }
+
+            // Update the region with the new coordinates
+            self.region = MKCoordinateRegion(center: coordinate, span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05))
+
+            // Fetch Pirate Islands near the found location
+            self.viewModel.fetchPirateIslandsNear(
+                CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude),
+                within: selectedRadius * 1609.34 // Convert miles to meters
             )
+
+            // Safely unwrap optional PirateIsland
+            self.searchResults = self.viewModel.pirateIslands.compactMap { $0.pirateIsland }
         }
-
-        // Create an array starting with the `enteredLocation` marker, if available
-        var markers: [CustomMapMarker] = []
-        if let location = enteredLocation {
-            markers.append(CustomMapMarker(
-                id: location.id,
-                coordinate: location.coordinate,
-                title: location.title,
-                pirateIsland: location.pirateIsland
-            ))
-        }
-
-        // Append the converted pirate island markers
-        markers.append(contentsOf: pirateIslandMarkers)
-
-        return markers
     }
+
 }
 
-#if DEBUG
 struct EnterZipCodeView_Previews: PreviewProvider {
     static var previews: some View {
-        EnterZipCodeView(viewModel: EnterZipCodeViewModel(
-            repository: AppDayOfWeekRepository(persistenceController: PersistenceController.preview),
-            context: PersistenceController.preview.viewContext
-        ))
-        .environment(\.managedObjectContext, PersistenceController.preview.viewContext)
+        // Create mock context and repository
+        let context = PersistenceController.preview.container.viewContext
+        let mockRepository = AppDayOfWeekRepository(persistenceController: PersistenceController.preview)
+        let mockIsland = PirateIsland(context: context)
+        
+        
+        // Create mock PirateIsland (Gym) objects
+        let newYorkIsland = PirateIsland(context: context)
+        newYorkIsland.latitude = 40.7128
+        newYorkIsland.longitude = -74.0060
+        newYorkIsland.islandName = "NY Gym"
+        newYorkIsland.islandID = UUID()
+
+        let eugeneIsland = PirateIsland(context: context)
+        eugeneIsland.latitude = 44.0521
+        eugeneIsland.longitude = -123.0868
+        eugeneIsland.islandName = "Eugene Gym"
+        eugeneIsland.islandID = UUID()
+        
+        do {
+            try context.save()
+        } catch {
+            print("Failed to save mock data: \(error.localizedDescription)")
+        }
+
+        // Create mock view models
+        let mockEnterZipCodeViewModel = EnterZipCodeViewModel(
+            repository: mockRepository,
+            context: context
+        )
+        
+        let mockAppDayOfWeekViewModel = AppDayOfWeekViewModel(
+            selectedIsland: mockIsland, // Pass the mock PirateIsland instance
+            repository: AppDayOfWeekRepository.shared,
+            enterZipCodeViewModel: mockEnterZipCodeViewModel
+        )
+        
+        let mockAllEnteredLocationsViewModel = AllEnteredLocationsViewModel(
+            dataManager: PirateIslandDataManager(viewContext: context)
+        )
+        
+        return EnterZipCodeView(
+            viewModel: mockEnterZipCodeViewModel,
+            appDayOfWeekViewModel: mockAppDayOfWeekViewModel,
+            allEnteredLocationsViewModel: mockAllEnteredLocationsViewModel
+        )
+        .environment(\.managedObjectContext, context)
     }
 }
-#endif

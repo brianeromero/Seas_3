@@ -81,10 +81,8 @@ struct AllMapView: View {
     }
 
     private func updateRegion() {
-        region = MKCoordinateRegion(
-            center: userLocation.coordinate,
-            span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
-        )
+        let radius: Double = 5.0 // Replace with your desired radius
+        region = MapUtils.updateRegion(markers: [CustomMapMarker(id: UUID(), coordinate: userLocation.coordinate, title: "", pirateIsland: nil)], selectedRadius: radius)
         print("Updated region to: \(region.center.latitude), \(region.center.longitude)")
     }
 }

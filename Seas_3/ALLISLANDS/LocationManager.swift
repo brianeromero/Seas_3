@@ -18,6 +18,9 @@ class UserLocationMapViewModel: NSObject, ObservableObject, CLLocationManagerDel
     )
     @Published var userLocation: CLLocation?
     private let locationManager = CLLocationManager()
+    private var isAuthorized = false
+
+    
 
     override init() {
         super.init()
@@ -28,19 +31,14 @@ class UserLocationMapViewModel: NSObject, ObservableObject, CLLocationManagerDel
     }
 
     func startLocationServices() {
-        DispatchQueue.global().async {
+        DispatchQueue.global(qos: .utility).async {
             if CLLocationManager.locationServicesEnabled() {
-                DispatchQueue.main.async {
-                    self.locationManager.requestWhenInUseAuthorization()
-                }
+                self.locationManager.requestWhenInUseAuthorization()
             } else {
-                DispatchQueue.main.async {
-                    print("Alert: Your location services are off and must be turned on.")
-                }
+                print("Alert: Your location services are off and must be turned on.")
             }
         }
     }
-
     func requestLocation() {
         // Ensure the authorization status is handled correctly
         if locationManager.authorizationStatus == .authorizedWhenInUse || locationManager.authorizationStatus == .authorizedAlways {
@@ -50,45 +48,43 @@ class UserLocationMapViewModel: NSObject, ObservableObject, CLLocationManagerDel
         }
     }
 
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+    func locationManager(_: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
-        DispatchQueue.main.async {
-            self.userLocation = location
-            self.updateRegion()
-        }
+        userLocation = location
+        updateRegion()
     }
 
-    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+    func locationManager(_: CLLocationManager, didFailWithError error: Error) {
         print("Failed to get user location: \(error.localizedDescription)")
-        // Additional error handling or user alert can be added here
+        // Display a user alert or retry the location request
     }
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        DispatchQueue.main.async {
-            switch manager.authorizationStatus {
-            case .notDetermined:
-                self.locationManager.requestWhenInUseAuthorization()
-            case .restricted:
-                print("Your location appears to be restricted - perhaps due to Parent Controls.")
-            case .denied:
-                print("You have denied this app's location permissions. Go into settings to change this.")
-            case .authorizedAlways, .authorizedWhenInUse:
-                self.locationManager.startUpdatingLocation()
-                self.requestLocation() // Optionally request location if needed
-            @unknown default:
-                print("Unknown authorization status.")
-            }
+        switch manager.authorizationStatus {
+        case .notDetermined:
+            break
+        case .restricted:
+            print("Location restricted. Check Parent Controls.")
+        case .denied:
+            print("Enable location permissions in Settings.")
+        case .authorizedAlways, .authorizedWhenInUse:
+            guard !isAuthorized else { return }
+            isAuthorized = true
+            locationManager.startUpdatingLocation()
+        default:
+            print("Unknown authorization status.")
         }
     }
 
     private func updateRegion() {
         if let location = userLocation {
-            DispatchQueue.main.async {
-                self.region = MKCoordinateRegion(
-                    center: location.coordinate,
-                    span: MapDetails.defaultSpan
+            region = MKCoordinateRegion(
+                center: location.coordinate,
+                span: MKCoordinateSpan(
+                    latitudeDelta: MapDetails.defaultSpan.latitudeDelta,
+                    longitudeDelta: MapDetails.defaultSpan.longitudeDelta
                 )
-            }
+            )
         }
     }
 

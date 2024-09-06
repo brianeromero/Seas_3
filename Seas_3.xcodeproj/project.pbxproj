@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -241,6 +241,22 @@
 		0CF13E782C2A36B500D714C0 /* UserInfo+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UserInfo+CoreDataProperties.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		0C66E6102C88DB9700BCD2DE /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				CalloutView.swift,
+				MapUtils.swift,
+				RadiusPicker.swift,
+			);
+			target = 0CF13E402C2A326700D714C0 /* Seas_3 */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		0C66E60F2C88DB8C00BCD2DE /* MapUtilities */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (0C66E6102C88DB9700BCD2DE /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = MapUtilities; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
 /* Begin PBXFrameworksBuildPhase section */
 		0CF13E3E2C2A326700D714C0 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
@@ -306,6 +322,7 @@
 		0C07B09A2C2CFF9400D0BFB2 /* ALLISLANDS */ = {
 			isa = PBXGroup;
 			children = (
+				0C66E60F2C88DB8C00BCD2DE /* MapUtilities */,
 				0C524E922C308DB9008D6623 /* AllEnteredLocationsViewModel.swift */,
 				0C07B09B2C2CFFA500D0BFB2 /* AllEnteredLocations.swift */,
 				0C07B09D2C2CFFC400D0BFB2 /* AllIslandMapView.swift */,

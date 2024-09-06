@@ -6,7 +6,6 @@ import SwiftUI
 import CoreData
 import Combine
 
-
 @main
 struct Seas3App: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
@@ -14,10 +13,13 @@ struct Seas3App: App {
     @StateObject var viewModel: AppDayOfWeekViewModel
 
     init() {
-        let repository = AppDayOfWeekRepository(persistenceController: PersistenceController.shared)
+        let persistenceController = PersistenceController.shared
+        let repository = AppDayOfWeekRepository(persistenceController: persistenceController)
+        let enterZipCodeViewModel = EnterZipCodeViewModel(repository: repository, context: persistenceController.container.viewContext)
         _viewModel = StateObject(wrappedValue: AppDayOfWeekViewModel(
             selectedIsland: nil,
-            repository: repository
+            repository: repository,
+            enterZipCodeViewModel: enterZipCodeViewModel
         ))
     }
 

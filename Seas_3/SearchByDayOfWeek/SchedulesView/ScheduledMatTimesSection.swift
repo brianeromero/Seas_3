@@ -100,8 +100,15 @@ struct ScheduledMatTimesSection_Previews: PreviewProvider {
         // Create a mock AppDayOfWeekRepository
         let repository = AppDayOfWeekRepository.shared
 
+        // Create a mock EnterZipCodeViewModel
+        let mockEnterZipCodeViewModel = EnterZipCodeViewModel(repository: repository, context: context)
+
         // Create a mock AppDayOfWeekViewModel
-        let viewModel = AppDayOfWeekViewModel(repository: repository)
+        let viewModel = AppDayOfWeekViewModel(
+            selectedIsland: pirateIsland,
+            repository: repository,
+            enterZipCodeViewModel: mockEnterZipCodeViewModel
+        )
 
         // Create a mock DayOfWeek
         let day: DayOfWeek = .monday
@@ -114,7 +121,7 @@ struct ScheduledMatTimesSection_Previews: PreviewProvider {
             day: day,
             viewModel: viewModel,
             matTimesForDay: .constant(matTimesForDay),
-            selectedDay: .constant(day) // Update this line
+            selectedDay: .constant(day)
         )
         .environment(\.managedObjectContext, context)
         .previewLayout(.sizeThatFits)

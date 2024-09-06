@@ -14,8 +14,10 @@ struct IslandMapContent: View {
     @Binding var selectedIsland: PirateIsland?
     @Binding var showModal: Bool
     @Binding var selectedAppDayOfWeek: AppDayOfWeek?
-    @Binding var selectedDay: DayOfWeek
+    @Binding var selectedDay: DayOfWeek? // Changed to optional
     @ObservedObject var viewModel: AppDayOfWeekViewModel
+    var enterZipCodeViewModel: EnterZipCodeViewModel
+
 
     var body: some View {
         VStack(alignment: .leading) {
@@ -38,7 +40,7 @@ struct IslandMapContent: View {
                                 },
                                 island: island
                             )
-                            .frame(height: 300)
+                            .frame(height: 400) // Adjust height to match `AllEnteredLocations`
                             .padding()
                         } else {
                             Text("Gym location not available")
@@ -63,13 +65,17 @@ struct IslandMapContent: View {
 }
 
 struct IslandMapView: View {
-    @ObservedObject var viewModel: AllEnteredLocationsViewModel
+    @ObservedObject var viewModel: AppDayOfWeekViewModel
     @Binding var selectedIsland: PirateIsland?
     @Binding var showModal: Bool
+    @Binding var selectedAppDayOfWeek: AppDayOfWeek?
+    @Binding var selectedDay: DayOfWeek?
+    @ObservedObject var allEnteredLocationsViewModel: AllEnteredLocationsViewModel
+    @ObservedObject var enterZipCodeViewModel: EnterZipCodeViewModel
 
     var body: some View {
         ZStack {
-            Map(coordinateRegion: $viewModel.region, annotationItems: viewModel.pirateMarkers) { marker in
+            Map(coordinateRegion: $allEnteredLocationsViewModel.region, annotationItems: allEnteredLocationsViewModel.pirateMarkers) { marker in
                 MapAnnotation(coordinate: marker.coordinate) {
                     VStack {
                         Text(marker.title ?? "Unknown Title")
@@ -80,13 +86,14 @@ struct IslandMapView: View {
                             .padding(5)
                     }
                     .onTapGesture {
-                        if let island = viewModel.getPirateIsland(from: marker) {
+                        if let island = allEnteredLocationsViewModel.getPirateIsland(from: marker) {
                             selectedIsland = island
                             showModal = true
                         }
                     }
                 }
             }
+            .frame(height: 400) // Add this line to set the map height
             .edgesIgnoringSafeArea(.all)
         }
         .sheet(isPresented: $showModal) {
@@ -97,8 +104,7 @@ struct IslandMapView: View {
                         coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude),
                         title: island.name ?? "",
                         pirateIsland: island
-                    ),                    width: .constant(300),
-                    height: .constant(500),
+                    ),
                     islandName: island.name ?? "",
                     islandLocation: island.islandLocation ?? "",
                     formattedCoordinates: island.formattedCoordinates,
@@ -108,11 +114,12 @@ struct IslandMapView: View {
                     reviews: island.reviews?.compactMap { $0 as? Review } ?? [],
                     averageStarRating: ReviewUtils.averageStarRating(for: island.reviews?.compactMap { $0 as? Review } ?? []),
                     dayOfWeekData: island.daysOfWeekArray.compactMap { DayOfWeek(rawValue: $0.day ?? "") },
-                    selectedAppDayOfWeek: .constant(nil),
-                    selectedIsland: .constant(nil),
-                    viewModel: AppDayOfWeekViewModel(repository: AppDayOfWeekRepository.shared),
-                    selectedDay: .constant(.monday),
-                    showModal: $showModal
+                    selectedAppDayOfWeek: $selectedAppDayOfWeek,
+                    selectedIsland: $selectedIsland,
+                    viewModel: viewModel,
+                    selectedDay: $selectedDay, // Corrected to Binding<DayOfWeek?>
+                    showModal: $showModal,
+                    enterZipCodeViewModel: self.enterZipCodeViewModel // Use the property here
                 )
             } else {
                 Text("No Island Selected")
@@ -185,10 +192,8 @@ struct IslandMapViewMap: View {
 
 struct IslandMapView_Previews: PreviewProvider {
     static var previews: some View {
-        // Create a Core Data preview context
-        let context = PersistenceController.preview.container.viewContext
+        let context = PersistenceController.preview.viewContext
         
-        // Create sample PirateIsland entities
         let island1 = PirateIsland(context: context)
         island1.islandName = "Gym 1"
         island1.islandLocation = "123 Main St"
@@ -205,14 +210,25 @@ struct IslandMapView_Previews: PreviewProvider {
         island2.createdTimestamp = Date()
         island2.gymWebsite = URL(string: "https://gym2.com")
         
-        // Create a sample AllEnteredLocationsViewModel instance
         let dataManager = PirateIslandDataManager(viewContext: context)
-        let viewModel = AllEnteredLocationsViewModel(dataManager: dataManager)
+        let allEnteredLocationsViewModel = AllEnteredLocationsViewModel(dataManager: dataManager)
+        let enterZipCodeViewModel = EnterZipCodeViewModel(
+            repository: AppDayOfWeekRepository.shared,
+            context: context
+        )
+        let appDayOfWeekViewModel = AppDayOfWeekViewModel(
+            repository: AppDayOfWeekRepository.shared,
+            enterZipCodeViewModel: enterZipCodeViewModel
+        )
         
         return IslandMapView(
-            viewModel: viewModel,
+            viewModel: appDayOfWeekViewModel,
             selectedIsland: .constant(nil),
-            showModal: .constant(false)
+            showModal: .constant(false),
+            selectedAppDayOfWeek: .constant(nil),
+            selectedDay: .constant(nil),
+            allEnteredLocationsViewModel: allEnteredLocationsViewModel,
+            enterZipCodeViewModel: enterZipCodeViewModel // Add this line
         )
     }
 }

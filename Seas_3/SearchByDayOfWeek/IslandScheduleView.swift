@@ -7,14 +7,22 @@
 
 import SwiftUI
 import CoreData
-
 struct IslandScheduleView: View {
     @ObservedObject var viewModel: AppDayOfWeekViewModel
     var pIsland: PirateIsland?
 
     @State private var selectedDay: DayOfWeek?
     @State private var selectedMatTime: MatTime?
+    @StateObject private var enterZipCodeViewModel: EnterZipCodeViewModel
 
+    init(viewModel: AppDayOfWeekViewModel, pIsland: PirateIsland?) {
+        self.viewModel = viewModel
+        self.pIsland = pIsland
+        _enterZipCodeViewModel = StateObject(wrappedValue: EnterZipCodeViewModel(
+            repository: AppDayOfWeekRepository.shared,
+            context: viewModel.viewContext
+        ))
+    }
     var body: some View {
         NavigationView {
             ScrollView {
@@ -55,14 +63,21 @@ struct IslandScheduleView: View {
             }
             .navigationBarTitle("Mat Schedule", displayMode: .inline)
             .sheet(item: $selectedDay) { day in
-                ScheduleDetailModal(viewModel: viewModel, day: day)
+                ScheduleDetailModal(
+                    viewModel: AppDayOfWeekViewModel(
+                        selectedIsland: pIsland,
+                        repository: AppDayOfWeekRepository.shared,
+                        enterZipCodeViewModel: enterZipCodeViewModel
+                    ),
+                    day: day
+                )
             }
-            .onAppear {
-                if let pIsland = pIsland {
-                    // Use a default or previously selected day here
-                    let dayToFetch: DayOfWeek = selectedDay ?? .monday // Default to .monday if selectedDay is nil
-                    viewModel.fetchCurrentDayOfWeek(for: pIsland, day: dayToFetch)
-                }
+        }
+        .onAppear {
+            if let pIsland = pIsland {
+                // Use a default or previously selected day here
+                let dayToFetch: DayOfWeek = selectedDay ?? .monday // Default to .monday if selectedDay is nil
+                viewModel.fetchCurrentDayOfWeek(for: pIsland, day: dayToFetch)
             }
         }
     }
@@ -100,7 +115,6 @@ struct IslandScheduleView: View {
     }
 }
 
-
 struct IslandScheduleView_Previews: PreviewProvider {
     static var previews: some View {
         let context = PersistenceController.preview.container.viewContext
@@ -109,10 +123,17 @@ struct IslandScheduleView_Previews: PreviewProvider {
         let mockIsland = PirateIsland(context: context)
         mockIsland.islandName = "Mock Gym"
         
+        // Create a mock EnterZipCodeViewModel
+        let enterZipCodeViewModel = EnterZipCodeViewModel(
+            repository: AppDayOfWeekRepository.shared,
+            context: context
+        )
+        
         // Create a mock AppDayOfWeekViewModel with mock data
         let viewModel = AppDayOfWeekViewModel(
             selectedIsland: mockIsland,
-            repository: MockAppDayOfWeekRepository(persistenceController: PersistenceController.preview)
+            repository: MockAppDayOfWeekRepository(persistenceController: PersistenceController.preview),
+            enterZipCodeViewModel: enterZipCodeViewModel
         )
         
         // Populate viewModel with mock AppDayOfWeek data

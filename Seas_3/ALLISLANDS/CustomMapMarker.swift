@@ -31,4 +31,21 @@ class CustomMapMarker: NSObject, MKAnnotation, Identifiable {
                lhs.title == rhs.title &&
                lhs.pirateIsland == rhs.pirateIsland
     }
+    
+    static func forPirateIsland(_ island: PirateIsland) -> CustomMapMarker {
+        CustomMapMarker(
+            id: UUID(),
+            coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude),
+            title: island.name,
+            pirateIsland: island
+        )
+    }
+    
+    func distance(from location: CLLocation) -> CLLocationDistance {
+        let islandLocation = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+        return islandLocation.distance(from: location)
+    }
+    
+    
+    
 }

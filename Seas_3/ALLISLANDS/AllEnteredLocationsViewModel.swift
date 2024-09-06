@@ -26,12 +26,10 @@ class AllEnteredLocationsViewModel: NSObject, ObservableObject, NSFetchedResults
     init(dataManager: PirateIslandDataManager) {
         self.dataManager = dataManager
         super.init()
-        // Consider fetching pirate islands here only if this is a background initialization.
-        fetchPirateIslands()
+        fetchPirateIslands()  // Fetch pirate islands at initialization
     }
     
     func fetchPirateIslands() {
-        // Ensure that this function is not called from view updates.
         print("Fetching gyms...")
         DispatchQueue.global(qos: .userInitiated).async {
             let result = self.dataManager.fetchPirateIslands()
@@ -55,57 +53,35 @@ class AllEnteredLocationsViewModel: NSObject, ObservableObject, NSFetchedResults
                 id: island.islandID ?? UUID(),
                 coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude),
                 title: island.islandName ?? "Unknown Island",
-                pirateIsland: island // Add this line
+                pirateIsland: island
             )
         }
-        
+
         DispatchQueue.main.async {
             self.pirateMarkers = markers
-            self.updateRegion()
+            self.updateRegion()  // Use dynamic region update
         }
     }
     
-    private func updateRegion() {
+    func updateRegion() {
         guard !pirateMarkers.isEmpty else { return }
-        
-        var minLat = pirateMarkers.first!.coordinate.latitude
-        var maxLat = pirateMarkers.first!.coordinate.latitude
-        var minLon = pirateMarkers.first!.coordinate.longitude
-        var maxLon = pirateMarkers.first!.coordinate.longitude
-        
-        for marker in pirateMarkers {
-            let lat = marker.coordinate.latitude
-            let lon = marker.coordinate.longitude
-            if lat < minLat { minLat = lat }
-            if lat > maxLat { maxLat = lat }
-            if lon < minLon { minLon = lon }
-            if lon > maxLon { maxLon = lon }
-        }
-        
-        let padding = 0.2
-        let span = MKCoordinateSpan(latitudeDelta: abs(maxLat - minLat) + padding, longitudeDelta: abs(maxLon - minLon) + padding)
-        let center = CLLocationCoordinate2D(latitude: (minLat + maxLat) / 2, longitude: (minLon + maxLon) / 2)
-        
-        DispatchQueue.main.async {
-            self.region = MKCoordinateRegion(center: center, span: span)
-        }
+
+        // Get coordinates for all markers
+        let coordinates = pirateMarkers.map { $0.coordinate }
+
+        // Calculate the region to fit all coordinates
+        region = MapUtils.calculateRegionToFit(coordinates: coordinates)
     }
-    
     
     // MARK: - Logging Methods for Debugging
     
-    private func logFetchRequestConfiguration() {
-        // This method is no longer needed if using dataManager
-    }
-    
     func logTileInformation() {
         for marker in pirateMarkers {
-            print("Marker ID: \(marker.id), Coordinate: \(marker.coordinate), Title: \(marker.title)")
+            print("Marker ID: \(marker.id), Coordinate: \(marker.coordinate), Title: \(String(describing: marker.title))")
         }
     }
     
     func getPirateIsland(from marker: CustomMapMarker) -> PirateIsland? {
         return allIslands.first(where: { $0.islandName == marker.title })
     }
-    
 }
