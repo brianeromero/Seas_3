@@ -208,6 +208,8 @@ struct EventView: View {
         scheduleView(for: event)
     }
 }
+
+
 struct IslandScheduleAsCal_Previews: PreviewProvider {
     static var previews: some View {
         let persistenceController = PersistenceController.preview
@@ -256,10 +258,14 @@ struct IslandScheduleAsCal_Previews: PreviewProvider {
         appDayOfWeek1.addToMatTimes(matTime1)
         appDayOfWeek2.addToMatTimes(matTime2)
         
+        // Initialize EnterZipCodeViewModel
+        let mockEnterZipCodeViewModel = EnterZipCodeViewModel(repository: AppDayOfWeekRepository(persistenceController: persistenceController), context: context)
+        
         // Initialize the view model
         let viewModel = AppDayOfWeekViewModel(
             selectedIsland: mockIsland,
-            repository: AppDayOfWeekRepository(persistenceController: persistenceController)
+            repository: AppDayOfWeekRepository(persistenceController: persistenceController),
+            enterZipCodeViewModel: mockEnterZipCodeViewModel
         )
         viewModel.appDayOfWeekList = [appDayOfWeek1, appDayOfWeek2]
 

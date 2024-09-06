@@ -15,6 +15,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
     @Published var matTime: MatTime?
     @Published var islandsWithMatTimes: [(PirateIsland, [MatTime])] = []
     @Published var islandSchedules: [DayOfWeek: [(PirateIsland, [MatTime])]] = [:]
+    var enterZipCodeViewModel: EnterZipCodeViewModel
 
 
     @Published var appDayOfWeekList: [AppDayOfWeek] = []
@@ -73,11 +74,12 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
     
     // MARK: - Initializer
 
-    init(selectedIsland: PirateIsland? = nil, repository: AppDayOfWeekRepository) {
+    init(selectedIsland: PirateIsland? = nil, repository: AppDayOfWeekRepository, enterZipCodeViewModel: EnterZipCodeViewModel) {
         self.selectedIsland = selectedIsland
         self.repository = repository
         self.viewContext = repository.persistenceController.viewContext // Initialize viewContext here
         self.dataManager = PirateIslandDataManager(viewContext: self.viewContext)
+        self.enterZipCodeViewModel = enterZipCodeViewModel // Initialize enterZipCodeViewModel here
 
         print("AppDayOfWeekViewModel initialized with repository: \(repository)")
 

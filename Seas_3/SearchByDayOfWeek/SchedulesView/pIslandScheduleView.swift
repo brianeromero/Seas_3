@@ -118,10 +118,14 @@ struct pIslandScheduleView_Previews: PreviewProvider {
         // Initialize AppDayOfWeekRepository with the preview PersistenceController
         let mockRepository = AppDayOfWeekRepository(persistenceController: persistenceController)
 
+        // Initialize a mock EnterZipCodeViewModel
+        let mockEnterZipCodeViewModel = EnterZipCodeViewModel(repository: mockRepository, context: context)
+
         // Initialize AppDayOfWeekViewModel with mock data
         let viewModel = AppDayOfWeekViewModel(
             selectedIsland: nil,
-            repository: mockRepository
+            repository: mockRepository,
+            enterZipCodeViewModel: mockEnterZipCodeViewModel
         )
 
         return pIslandScheduleView(viewModel: viewModel)

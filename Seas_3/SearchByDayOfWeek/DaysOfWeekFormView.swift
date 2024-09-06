@@ -192,6 +192,16 @@ class MockAppDayOfWeekRepository: AppDayOfWeekRepository {
     }
 }
 
+
+#if DEBUG
+// Create a basic implementation or mock for EnterZipCodeViewModel
+class MockEnterZipCodeViewModel: EnterZipCodeViewModel {
+    init() {
+        super.init(repository: MockAppDayOfWeekRepository(persistenceController: PersistenceController.preview), context: PersistenceController.preview.container.viewContext)
+    }
+}
+#endif
+
 #if DEBUG
 struct DaysOfWeekFormView_Previews: PreviewProvider {
     static var previews: some View {
@@ -208,10 +218,14 @@ struct DaysOfWeekFormView_Previews: PreviewProvider {
         // Initialize the mock repository
         let mockRepository = MockAppDayOfWeekRepository(persistenceController: PersistenceController.preview)
         
+        // Create a mock EnterZipCodeViewModel
+        let mockEnterZipCodeViewModel = MockEnterZipCodeViewModel()
+        
         // Create a mock AppDayOfWeekViewModel
         let viewModel = AppDayOfWeekViewModel(
             selectedIsland: mockIsland,
-            repository: mockRepository
+            repository: mockRepository,
+            enterZipCodeViewModel: mockEnterZipCodeViewModel // Ensure this is included
         )
         
         // Create a Binding for selectedIsland

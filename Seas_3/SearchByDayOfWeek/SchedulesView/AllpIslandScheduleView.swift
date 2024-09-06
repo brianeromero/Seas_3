@@ -15,12 +15,13 @@ struct AllpIslandScheduleView: View {
     @State private var showAddMatTimeForm = false
     @State private var selectedMatTime: MatTime?
 
-    
     let persistenceController: PersistenceController
+    let enterZipCodeViewModel: EnterZipCodeViewModel // Add this line
 
-    init(viewModel: AppDayOfWeekViewModel, persistenceController: PersistenceController) {
+    init(viewModel: AppDayOfWeekViewModel, persistenceController: PersistenceController, enterZipCodeViewModel: EnterZipCodeViewModel) {
         self.viewModel = viewModel
         self.persistenceController = persistenceController
+        self.enterZipCodeViewModel = enterZipCodeViewModel // Initialize this
     }
     
     var body: some View {
@@ -161,14 +162,10 @@ struct AllpIslandScheduleView: View {
 
 // MARK: - Preview
 
-
 struct AllpIslandScheduleView_Previews: PreviewProvider {
     static var previews: some View {
         let persistenceController = PersistenceController.preview
         let context = persistenceController.container.viewContext
-
-
-        
         
         let mockIsland = PirateIsland(context: context)
         mockIsland.islandName = "Sample Island"
@@ -190,13 +187,19 @@ struct AllpIslandScheduleView_Previews: PreviewProvider {
 
         try? context.save()
 
+        let repository = AppDayOfWeekRepository(persistenceController: persistenceController)
+        let enterZipCodeViewModel = EnterZipCodeViewModel(repository: repository, context: context)
         let viewModel = AppDayOfWeekViewModel(
             selectedIsland: mockIsland,
-            repository: AppDayOfWeekRepository(persistenceController: persistenceController)
+            repository: repository,
+            enterZipCodeViewModel: enterZipCodeViewModel
         )
-        viewModel.selectedDay = DayOfWeek.monday
 
-        return AllpIslandScheduleView(viewModel: viewModel, persistenceController: persistenceController)
-            .environment(\.managedObjectContext, context)
+        return AllpIslandScheduleView(
+            viewModel: viewModel,
+            persistenceController: persistenceController,
+            enterZipCodeViewModel: enterZipCodeViewModel // Add this line
+        )
+        .environment(\.managedObjectContext, context)
     }
 }

@@ -58,7 +58,10 @@ struct GymMatReviewView: View {
     @State private var isLoading = false
     @Binding var selectedIsland: PirateIsland?
     @Binding var isPresented: Bool
-
+    @StateObject var enterZipCodeViewModel: EnterZipCodeViewModel = EnterZipCodeViewModel(
+        repository: AppDayOfWeekRepository.shared,
+        context: PersistenceController.preview.container.viewContext
+    )
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.presentationMode) private var presentationMode
     @FetchRequest(
@@ -66,6 +69,18 @@ struct GymMatReviewView: View {
         sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.islandName, ascending: true)]
     ) private var islands: FetchedResults<PirateIsland>
 
+    
+    init(
+        selectedIsland: Binding<PirateIsland?>,
+        isPresented: Binding<Bool>,
+        enterZipCodeViewModel: EnterZipCodeViewModel // Add this parameter
+    ) {
+        self._selectedIsland = selectedIsland
+        self._isPresented = isPresented
+        self._enterZipCodeViewModel = StateObject(wrappedValue: enterZipCodeViewModel)
+    }
+
+    
     var averageRating: Double {
         guard let island = selectedIsland else {
             return 0
@@ -257,6 +272,10 @@ struct GymMatReviewView_Previews: PreviewProvider {
 struct PreviewView: View {
     @StateObject var viewModel = GymMatReviewViewModel()
     @State private var isGymMatReviewViewPresented = true
+    @StateObject var enterZipCodeViewModel = EnterZipCodeViewModel(
+        repository: AppDayOfWeekRepository.shared,
+        context: PersistenceController.preview.container.viewContext
+    )
 
     var body: some View {
         let context = PersistenceController.preview.container.viewContext
@@ -266,7 +285,8 @@ struct PreviewView: View {
             if let island = viewModel.dummyIsland {
                 GymMatReviewView(
                     selectedIsland: .constant(island),
-                    isPresented: $isGymMatReviewViewPresented
+                    isPresented: $isGymMatReviewViewPresented,
+                    enterZipCodeViewModel: enterZipCodeViewModel // Pass the same instance here
                 )
                 .environment(\.managedObjectContext, context)
             } else {

@@ -58,6 +58,14 @@ struct IslandDetailContent: View {
     @Binding var selectedDestination: IslandDestination?
     @State private var showMapView = false
     @ObservedObject var viewModel: AllEnteredLocationsViewModel
+    @StateObject var mapViewModel = AppDayOfWeekViewModel(
+        selectedIsland: nil,
+        repository: AppDayOfWeekRepository(persistenceController: PersistenceController.shared),
+        enterZipCodeViewModel: EnterZipCodeViewModel(
+            repository: AppDayOfWeekRepository.shared,
+            context: PersistenceController.shared.container.viewContext
+        )
+    )
 
     @Environment(\.managedObjectContext) private var viewContext
 
@@ -79,11 +87,7 @@ struct IslandDetailContent: View {
                     .padding(.bottom, 10)
             }
             .sheet(isPresented: $showMapView) {
-                IslandMapView(
-                    viewModel: self.viewModel,
-                    selectedIsland: .constant(nil),
-                    showModal: .constant(false)
-                )
+                ConsolidatedIslandMapView(viewModel: mapViewModel)
             }
             Text("Entered By: \(island.createdByUserId ?? "Unknown")")
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -109,10 +113,7 @@ struct IslandDetailContent: View {
                     }
                 } else if destination == .schedule {
                     NavigationLink(destination: IslandScheduleAsCal(
-                        viewModel: AppDayOfWeekViewModel(
-                            selectedIsland: island,
-                            repository: AppDayOfWeekRepository(persistenceController: PersistenceController.shared)
-                        ),
+                        viewModel: mapViewModel,
                         pIsland: island
                     )) {
                         Text("Go to \(destination.rawValue)")

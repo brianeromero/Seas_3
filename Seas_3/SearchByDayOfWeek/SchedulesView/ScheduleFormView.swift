@@ -206,10 +206,14 @@ struct ScheduleFormView_Previews: PreviewProvider {
         // Create a mock repository for the view model
         let mockRepository = AppDayOfWeekRepository(persistenceController: persistenceController)
         
+        // Initialize EnterZipCodeViewModel with mock data
+        let mockEnterZipCodeViewModel = EnterZipCodeViewModel(repository: mockRepository, context: context)
+        
         // Initialize AppDayOfWeekViewModel with mock data
         let viewModel = AppDayOfWeekViewModel(
             selectedIsland: island,
-            repository: mockRepository
+            repository: mockRepository,
+            enterZipCodeViewModel: mockEnterZipCodeViewModel
         )
         
         return ScheduleFormView(

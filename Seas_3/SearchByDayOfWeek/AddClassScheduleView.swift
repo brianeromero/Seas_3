@@ -85,10 +85,14 @@ struct AddClassScheduleView_Previews: PreviewProvider {
         // Initialize AppDayOfWeekRepository with the preview PersistenceController
         let mockRepository = AppDayOfWeekRepository(persistenceController: persistenceController)
 
+        // Initialize EnterZipCodeViewModel with mock data
+        let mockEnterZipCodeViewModel = EnterZipCodeViewModel(repository: mockRepository, context: context)
+
         // Initialize AppDayOfWeekViewModel with mock data
         let viewModel = AppDayOfWeekViewModel(
             selectedIsland: nil,
-            repository: mockRepository
+            repository: mockRepository,
+            enterZipCodeViewModel: mockEnterZipCodeViewModel
         )
 
         // Provide a constant binding for `isPresented`

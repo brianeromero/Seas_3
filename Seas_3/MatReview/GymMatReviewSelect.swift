@@ -19,6 +19,14 @@ struct GymMatReviewSelect: View {
 
     @Environment(\.managedObjectContext) private var viewContext
 
+    // Ensure this is not private
+    var enterZipCodeViewModel: EnterZipCodeViewModel
+
+    init(selectedIsland: Binding<PirateIsland?>, enterZipCodeViewModel: EnterZipCodeViewModel) {
+        _selectedIsland = selectedIsland
+        self.enterZipCodeViewModel = enterZipCodeViewModel
+    }
+
     @FetchRequest(
         entity: PirateIsland.entity(),
         sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.islandName, ascending: true)]
@@ -52,7 +60,7 @@ struct GymMatReviewSelect: View {
                         Text(island.islandName ?? "Unknown Island")
                     }
                     .sheet(isPresented: $showReviewView) {
-                        GymMatReviewView(selectedIsland: $selectedIslandForReview, isPresented: $showReviewView)
+                        GymMatReviewView(selectedIsland: $selectedIslandForReview, isPresented: $showReviewView, enterZipCodeViewModel: enterZipCodeViewModel)
                     }
                 }
                 .listStyle(PlainListStyle())
@@ -100,8 +108,12 @@ struct GymMatReviewSelect_Previews: PreviewProvider {
         mockIsland.latitude = 0.0
         mockIsland.longitude = 0.0
         mockIsland.gymWebsite = URL(string: "https://www.example.com")
+
+        // Create a mock instance of EnterZipCodeViewModel
+        let mockRepository = AppDayOfWeekRepository(persistenceController: PersistenceController.preview)
+        let mockEnterZipCodeViewModel = EnterZipCodeViewModel(repository: mockRepository, context: context)
         
-        return GymMatReviewSelect(selectedIsland: .constant(mockIsland))
+        return GymMatReviewSelect(selectedIsland: .constant(mockIsland), enterZipCodeViewModel: mockEnterZipCodeViewModel) // Pass the view model here
             .environment(\.managedObjectContext, context)
     }
 }

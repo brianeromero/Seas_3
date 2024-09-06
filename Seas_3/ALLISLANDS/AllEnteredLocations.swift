@@ -3,6 +3,7 @@
 // Seas2
 //
 // Created by Brian Romero on 6/17/24.
+
 import SwiftUI
 import CoreData
 import CoreLocation
@@ -15,11 +16,20 @@ struct AllEnteredLocations: View {
     @State private var showModal = false
     @State private var selectedIsland: PirateIsland?
     @State private var selectedAppDayOfWeek: AppDayOfWeek?
+    
+    @StateObject private var enterZipCodeViewModel: EnterZipCodeViewModel
 
     init(context: NSManagedObjectContext) {
         let dataManager = PirateIslandDataManager(viewContext: context)
         _viewModel = StateObject(wrappedValue: AllEnteredLocationsViewModel(dataManager: dataManager))
+        
+        // Initialize EnterZipCodeViewModel here
+        _enterZipCodeViewModel = StateObject(wrappedValue: EnterZipCodeViewModel(
+            repository: AppDayOfWeekRepository.shared,
+            context: context
+        ))
     }
+
 
     var body: some View {
         NavigationView {
@@ -50,6 +60,7 @@ struct AllEnteredLocations: View {
                     }
                     .onAppear {
                         viewModel.logTileInformation()
+                        viewModel.updateRegion()
                     }
                 }
             }
@@ -59,53 +70,50 @@ struct AllEnteredLocations: View {
             }
             .sheet(isPresented: $showModal) {
                 if let island = selectedIsland {
-                    let name = island.name ?? ""
-                    let location = island.islandLocation ?? ""
-                    let coordinates = island.formattedCoordinates
-                    let created = DateFormat.full.string(from: island.createdTimestamp)
-                    let modified = DateFormat.full.string(from: island.lastModifiedTimestamp ?? Date())
-                    let website = island.gymWebsite
-                    let reviews = island.reviews?.compactMap { $0 as? Review } ?? []
-                    let avgRating = ReviewUtils.averageStarRating(for: reviews)
-                    let days = island.daysOfWeekArray.compactMap { DayOfWeek(rawValue: $0.day ?? "") }
-
                     IslandModalView(
-                        customMapMarker: CustomMapMarker(
-                            id: UUID(),
-                            coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude),
-                            title: name,
-                            pirateIsland: island
-                        ),
-                        width: .constant(300),
-                        height: .constant(500),
-                        islandName: name,
-                        islandLocation: location,
-                        formattedCoordinates: coordinates,
-                        createdTimestamp: created,
-                        formattedTimestamp: modified,
-                        gymWebsite: website,
-                        reviews: reviews,
-                        averageStarRating: avgRating,
-                        dayOfWeekData: days,
+                        customMapMarker: CustomMapMarker.forPirateIsland(island),
+                        islandName: island.name ?? "Unknown",
+                        islandLocation: island.safeIslandLocation,
+                        formattedCoordinates: island.formattedCoordinates,
+                        createdTimestamp: island.formattedTimestamp,
+                        formattedTimestamp: island.formattedTimestamp,
+                        gymWebsite: island.gymWebsite,
+                        reviews: ReviewUtils.getReviews(from: island.reviews),
+                        averageStarRating: ReviewUtils.averageStarRating(for: ReviewUtils.getReviews(from: island.reviews)),
+                        dayOfWeekData: island.daysOfWeekArray.compactMap { DayOfWeek(rawValue: $0.day ?? "") },
                         selectedAppDayOfWeek: $selectedAppDayOfWeek,
                         selectedIsland: $selectedIsland,
-                        viewModel: AppDayOfWeekViewModel(repository: AppDayOfWeekRepository.shared),
+                        viewModel: AppDayOfWeekViewModel(
+                            repository: AppDayOfWeekRepository.shared,
+                            enterZipCodeViewModel: enterZipCodeViewModel
+                        ),
                         selectedDay: $selectedDay,
-                        showModal: $showModal
+                        showModal: $showModal,
+                        enterZipCodeViewModel: enterZipCodeViewModel
                     )
                 } else {
                     Text("No Island Selected")
                         .padding()
                 }
             }
-
         }
     }
 
     func handleTap(location: CustomMapMarker) {
+        print("Tapped on location: \(location.title ?? "Unknown Title")")
+
         if let pirateIsland = viewModel.getPirateIsland(from: location) {
+            print("Fetched pirate island: \(pirateIsland.name ?? "Unknown Name")")
+
             self.selectedIsland = pirateIsland
-            self.showModal = true
+            print("Updated selectedIsland: \(selectedIsland?.name ?? "Unknown Name")")
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                print("Presenting modal")
+                self.showModal = true
+            }
+        } else {
+            print("No pirate island found")
         }
     }
 }
@@ -114,7 +122,6 @@ struct AllEnteredLocations_Previews: PreviewProvider {
     static var previews: some View {
         let persistenceController = PersistenceController.preview
         let context = persistenceController.viewContext
-
         return AllEnteredLocations(context: context)
             .environment(\.managedObjectContext, context)
             .previewDisplayName("All Entered Locations Preview")

@@ -5,6 +5,7 @@
 import SwiftUI
 import CoreData
 
+
 struct MenuItem: Identifiable {
     let id = UUID()
     let title: String
@@ -16,24 +17,18 @@ struct IslandMenu: View {
     @State private var alertMessage = ""
     @State private var selectedIsland: PirateIsland? = nil
     @StateObject private var locationManager = UserLocationMapViewModel()
+    @Environment(\.managedObjectContext) private var viewContext
 
-    // Initialize the repository
+    // Initialize the repository and data manager
     private var appDayOfWeekRepository: AppDayOfWeekRepository {
         return AppDayOfWeekRepository(persistenceController: PersistenceController.shared)
     }
     
-    // Initialize the view model with the repository
-    @StateObject private var appDayOfWeekViewModel: AppDayOfWeekViewModel
-
-    init() {
-        // Initialize the view model with required parameters
-        _appDayOfWeekViewModel = StateObject(wrappedValue: AppDayOfWeekViewModel(
-            selectedIsland: nil,
-            repository: AppDayOfWeekRepository(persistenceController: PersistenceController.shared)
-        ))
+    private var pirateIslandDataManager: PirateIslandDataManager {
+        return PirateIslandDataManager(viewContext: viewContext)
     }
 
-    @Environment(\.managedObjectContext) private var viewContext
+    @State private var appDayOfWeekViewModel: AppDayOfWeekViewModel?
 
     let menuItems: [MenuItem] = [
         .init(title: "Search Gym Entries by", subMenuItems: ["All Entered Locations", "Current Location", "ZipCode", "Day Of Week"]),
@@ -85,18 +80,33 @@ struct IslandMenu: View {
                             .padding(.top, 10)
                     }
 
-                    NavigationLink(destination: pIslandScheduleView(viewModel: appDayOfWeekViewModel)) {
-                        Text("ALL Gym Schedules")
-                            .font(.footnote)
-                            .foregroundColor(.blue)
-                            .padding(.top, 10)
+                    if let viewModel = appDayOfWeekViewModel {
+                        NavigationLink(destination: pIslandScheduleView(viewModel: viewModel)) {
+                            Text("ALL Gym Schedules")
+                                .font(.footnote)
+                                .foregroundColor(.blue)
+                                .padding(.top, 10)
+                        }
+                    } else {
+                        Text("Loading...")
                     }
 
-                    NavigationLink(destination: AllpIslandScheduleView(viewModel: appDayOfWeekViewModel, persistenceController: PersistenceController.shared)) {
-                        Text("ALL Mat Schedules")
-                            .font(.footnote)
-                            .foregroundColor(.blue)
-                            .padding(.top, 10)
+                    if let viewModel = appDayOfWeekViewModel {
+                        NavigationLink(destination: AllpIslandScheduleView(
+                            viewModel: viewModel,
+                            persistenceController: PersistenceController.shared,
+                            enterZipCodeViewModel: EnterZipCodeViewModel(
+                                repository: appDayOfWeekRepository,
+                                context: viewContext
+                            )
+                        )) {
+                            Text("ALL Mat Schedules")
+                                .font(.footnote)
+                                .foregroundColor(.blue)
+                                .padding(.top, 10)
+                        }
+                    } else {
+                        Text("Loading...")
                     }
                 }
                 .padding(.horizontal, 20)
@@ -113,7 +123,17 @@ struct IslandMenu: View {
             )
         }
         .onAppear {
-            Logger.log("View appeared", view: "Main Menu")
+            print("Initializing appDayOfWeekViewModel")
+            let repository = AppDayOfWeekRepository(persistenceController: PersistenceController.shared)
+            let enterZipCodeViewModel = EnterZipCodeViewModel(
+                repository: repository,
+                context: viewContext
+            )
+            appDayOfWeekViewModel = AppDayOfWeekViewModel(
+                selectedIsland: nil,
+                repository: repository,
+                enterZipCodeViewModel: enterZipCodeViewModel
+            )
         }
     }
 
@@ -127,24 +147,53 @@ struct IslandMenu: View {
         case "All Entered Locations":
             AllEnteredLocations(context: viewContext)
         case "Current Location":
-            ConsolidatedIslandMapView(viewModel: appDayOfWeekViewModel)
-        case "ZipCode":
-            EnterZipCodeView(viewModel: EnterZipCodeViewModel(
-                repository: appDayOfWeekRepository,
-                context: viewContext
-            ))
-        case "Add or Edit Schedule/Open Mat":
-            DaysOfWeekFormView(
-                viewModel: appDayOfWeekViewModel,
-                selectedIsland: $selectedIsland,
-                selectedMatTime: .constant(nil)
+            ConsolidatedIslandMapView(
+                viewModel: AppDayOfWeekViewModel(
+                    selectedIsland: nil,
+                    repository: appDayOfWeekRepository,
+                    enterZipCodeViewModel: EnterZipCodeViewModel(
+                        repository: appDayOfWeekRepository,
+                        context: viewContext
+                    )
+                )
             )
+        case "ZipCode":
+            if let viewModel = appDayOfWeekViewModel {
+                EnterZipCodeView(
+                    viewModel: EnterZipCodeViewModel(
+                        repository: appDayOfWeekRepository,
+                        context: viewContext
+                    ),
+                    appDayOfWeekViewModel: viewModel,
+                    allEnteredLocationsViewModel: AllEnteredLocationsViewModel(
+                        dataManager: pirateIslandDataManager
+                    )
+                )
+            } else {
+                Text("Loading...")
+            }
+        case "Add or Edit Schedule/Open Mat":
+            if let viewModel = appDayOfWeekViewModel {
+                DaysOfWeekFormView(
+                    viewModel: viewModel,
+                    selectedIsland: $selectedIsland,
+                    selectedMatTime: .constant(nil)
+                )
+            } else {
+                Text("Loading...")
+            }
         case "Day Of Week":
             DayOfWeekSearchView()
         case "Submit Gym/Open Mat Review":
-            GymMatReviewSelect(selectedIsland: $selectedIsland)
-                .navigationTitle("Select Gym for Review")
-                .navigationBarTitleDisplayMode(.inline)
+            GymMatReviewSelect(
+                selectedIsland: $selectedIsland,
+                enterZipCodeViewModel: EnterZipCodeViewModel(
+                    repository: appDayOfWeekRepository,
+                    context: viewContext
+                )
+            )
+            .navigationTitle("Select Gym for Review")
+            .navigationBarTitleDisplayMode(.inline)
         case "FAQ & Disclaimer":
             FAQnDisclaimerMenuView()
         default:
@@ -158,8 +207,17 @@ struct IslandMenu_Previews: PreviewProvider {
         let persistenceController = PersistenceController.preview
         let context = persistenceController.container.viewContext
 
+        let repository = AppDayOfWeekRepository(persistenceController: persistenceController)
+        let enterZipCodeViewModel = EnterZipCodeViewModel(repository: repository, context: context)
+        let appDayOfWeekViewModel = AppDayOfWeekViewModel(
+            selectedIsland: nil,
+            repository: repository,
+            enterZipCodeViewModel: enterZipCodeViewModel
+        )
+
         return IslandMenu()
             .environment(\.managedObjectContext, context)
+            .environmentObject(appDayOfWeekViewModel)
             .previewDisplayName("Mat Menu Preview")
     }
 }
