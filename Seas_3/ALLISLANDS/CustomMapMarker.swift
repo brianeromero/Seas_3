@@ -36,7 +36,7 @@ class CustomMapMarker: NSObject, MKAnnotation, Identifiable {
         CustomMapMarker(
             id: UUID(),
             coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude),
-            title: island.name,
+            title: island.islandName,
             pirateIsland: island
         )
     }

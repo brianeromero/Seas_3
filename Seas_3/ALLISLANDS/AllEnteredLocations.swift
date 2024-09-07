@@ -72,7 +72,7 @@ struct AllEnteredLocations: View {
                 if let island = selectedIsland {
                     IslandModalView(
                         customMapMarker: CustomMapMarker.forPirateIsland(island),
-                        islandName: island.name ?? "Unknown",
+                        islandName: island.islandName ?? "Unknown", // Change this line
                         islandLocation: island.safeIslandLocation,
                         formattedCoordinates: island.formattedCoordinates,
                         createdTimestamp: island.formattedTimestamp,
@@ -103,10 +103,10 @@ struct AllEnteredLocations: View {
         print("Tapped on location: \(location.title ?? "Unknown Title")")
 
         if let pirateIsland = viewModel.getPirateIsland(from: location) {
-            print("Fetched pirate island: \(pirateIsland.name ?? "Unknown Name")")
+            print("Fetched pirate island: \(pirateIsland.islandName ?? "Unknown Name")")
 
             self.selectedIsland = pirateIsland
-            print("Updated selectedIsland: \(selectedIsland?.name ?? "Unknown Name")")
+            print("Updated selectedIsland: \(selectedIsland?.islandName ?? "Unknown Name")")
 
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 print("Presenting modal")

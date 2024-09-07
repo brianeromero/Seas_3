@@ -11,9 +11,9 @@ import MapKit
 import CoreData
 
 struct EnterZipCodeView: View {
-    @ObservedObject var viewModel: EnterZipCodeViewModel
     @ObservedObject var appDayOfWeekViewModel: AppDayOfWeekViewModel
     @ObservedObject var allEnteredLocationsViewModel: AllEnteredLocationsViewModel
+    @ObservedObject var enterZipCodeViewModel: EnterZipCodeViewModel
 
     @State private var locationInput: String = ""
     @State private var searchResults: [PirateIsland] = []
@@ -43,50 +43,21 @@ struct EnterZipCodeView: View {
 
             // Map View
             IslandMapView(
-                viewModel: appDayOfWeekViewModel, // Corrected to AppDayOfWeekViewModel
+                viewModel: appDayOfWeekViewModel,
                 selectedIsland: $selectedIsland,
                 showModal: $showModal,
                 selectedAppDayOfWeek: $selectedAppDayOfWeek,
-                selectedDay: $selectedDay, // Added this line
+                selectedDay: $selectedDay,
                 allEnteredLocationsViewModel: allEnteredLocationsViewModel,
-                enterZipCodeViewModel: viewModel // Corrected to EnterZipCodeViewModel
+                enterZipCodeViewModel: enterZipCodeViewModel,
+                region: $region, // Pass the region as a binding
+                searchResults: $searchResults // Pass the search results as a binding
             )
             .frame(height: 400)
             .onChange(of: searchResults) { _ in
                 if let firstIsland = searchResults.first {
                     self.region.center = CLLocationCoordinate2D(latitude: firstIsland.latitude, longitude: firstIsland.longitude)
                 }
-            }
-        }
-        .padding()
-        .sheet(isPresented: $showModal) {
-            if let island = selectedIsland {
-                IslandModalView(
-                    customMapMarker: CustomMapMarker(
-                        id: UUID(),
-                        coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude),
-                        title: island.name ?? "", // Use a default value if name is nil
-                        pirateIsland: island // Unwrapped here
-                    ),
-                    islandName: island.name ?? "", // Default to empty string if nil
-                    islandLocation: island.islandLocation ?? "", // Default to empty string if nil
-                    formattedCoordinates: island.formattedCoordinates,
-                    createdTimestamp: DateFormat.full.string(from: island.createdTimestamp),
-                    formattedTimestamp: DateFormat.full.string(from: island.lastModifiedTimestamp ?? Date()),
-                    gymWebsite: island.gymWebsite,
-                    reviews: island.reviews?.compactMap { $0 as? Review } ?? [],
-                    averageStarRating: ReviewUtils.averageStarRating(for: island.reviews?.compactMap { $0 as? Review } ?? []),
-                    dayOfWeekData: island.daysOfWeekArray.compactMap { DayOfWeek(rawValue: $0.day ?? "") },
-                    selectedAppDayOfWeek: $selectedAppDayOfWeek,
-                    selectedIsland: $selectedIsland,
-                    viewModel: appDayOfWeekViewModel, // Corrected to AppDayOfWeekViewModel
-                    selectedDay: $selectedDay, // Corrected to Binding<DayOfWeek?>
-                    showModal: $showModal, // Corrected order
-                    enterZipCodeViewModel: viewModel // Corrected to EnterZipCodeViewModel
-                )
-            } else {
-                Text("No Island Selected")
-                    .padding()
             }
         }
     }
@@ -104,28 +75,42 @@ struct EnterZipCodeView: View {
             }
 
             // Update the region with the new coordinates
-            self.region = MKCoordinateRegion(center: coordinate, span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05))
-
-            // Fetch Pirate Islands near the found location
-            self.viewModel.fetchPirateIslandsNear(
-                CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude),
-                within: selectedRadius * 1609.34 // Convert miles to meters
+            self.region = MKCoordinateRegion(
+                center: coordinate,
+                span: MKCoordinateSpan(
+                    latitudeDelta: self.selectedRadius * 0.01, // Convert miles to degrees
+                    longitudeDelta: self.selectedRadius * 0.01
+                )
             )
 
-            // Safely unwrap optional PirateIsland
-            self.searchResults = self.viewModel.pirateIslands.compactMap { $0.pirateIsland }
+            // Fetch Pirate Islands near the found location
+            self.enterZipCodeViewModel.fetchPirateIslandsNear(
+                CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude),
+                within: self.selectedRadius * 1609.34 // Convert miles to meters
+            )
+
+
+            // Filter results based on the selected radius
+            let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+            self.searchResults = self.enterZipCodeViewModel.pirateIslands.compactMap { $0.pirateIsland }.filter {
+                let marker = CustomMapMarker(
+                    id: UUID(),
+                    coordinate: CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude),
+                    title: $0.name ?? "",
+                    pirateIsland: $0
+                )
+                return marker.distance(from: location) <= self.selectedRadius * 1609.34
+            }
         }
     }
 
 }
-
 struct EnterZipCodeView_Previews: PreviewProvider {
     static var previews: some View {
         // Create mock context and repository
         let context = PersistenceController.preview.container.viewContext
         let mockRepository = AppDayOfWeekRepository(persistenceController: PersistenceController.preview)
         let mockIsland = PirateIsland(context: context)
-        
         
         // Create mock PirateIsland (Gym) objects
         let newYorkIsland = PirateIsland(context: context)
@@ -162,10 +147,11 @@ struct EnterZipCodeView_Previews: PreviewProvider {
             dataManager: PirateIslandDataManager(viewContext: context)
         )
         
+        // Use correct initializer
         return EnterZipCodeView(
-            viewModel: mockEnterZipCodeViewModel,
             appDayOfWeekViewModel: mockAppDayOfWeekViewModel,
-            allEnteredLocationsViewModel: mockAllEnteredLocationsViewModel
+            allEnteredLocationsViewModel: mockAllEnteredLocationsViewModel,
+            enterZipCodeViewModel: mockEnterZipCodeViewModel // Correct argument name
         )
         .environment(\.managedObjectContext, context)
     }
