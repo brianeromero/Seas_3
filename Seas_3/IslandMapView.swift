@@ -72,24 +72,24 @@ struct IslandMapView: View {
     @Binding var selectedDay: DayOfWeek?
     @ObservedObject var allEnteredLocationsViewModel: AllEnteredLocationsViewModel
     @ObservedObject var enterZipCodeViewModel: EnterZipCodeViewModel
+    @Binding var region: MKCoordinateRegion
+    @Binding var searchResults: [PirateIsland]
 
     var body: some View {
         ZStack {
-            Map(coordinateRegion: $allEnteredLocationsViewModel.region, annotationItems: allEnteredLocationsViewModel.pirateMarkers) { marker in
-                MapAnnotation(coordinate: marker.coordinate) {
+            Map(coordinateRegion: $region, annotationItems: searchResults) { island in
+                MapAnnotation(coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude)) {
                     VStack {
-                        Text(marker.title ?? "Unknown Title")
-                            .font(.system(size: 10))
-                            .foregroundColor(.black)
-                            .background(Color.white.opacity(0.7))
-                            .cornerRadius(5)
+                        Text(island.islandName ?? "Unknown Title")
+                            .font(.caption)
                             .padding(5)
+                            .background(Color.white)
+                            .cornerRadius(5)
+                            .shadow(radius: 3)
+                        CustomMarkerView()
                     }
                     .onTapGesture {
-                        if let island = allEnteredLocationsViewModel.getPirateIsland(from: marker) {
-                            selectedIsland = island
-                            showModal = true
-                        }
+                        handleTap(island: island)
                     }
                 }
             }
@@ -99,32 +99,39 @@ struct IslandMapView: View {
         .sheet(isPresented: $showModal) {
             if let island = selectedIsland {
                 IslandModalView(
-                    customMapMarker: CustomMapMarker(
-                        id: UUID(),
-                        coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude),
-                        title: island.name ?? "",
-                        pirateIsland: island
-                    ),
-                    islandName: island.name ?? "",
-                    islandLocation: island.islandLocation ?? "",
+                    customMapMarker: CustomMapMarker.forPirateIsland(island),
+                    islandName: island.islandName ?? "Unknown",
+                    islandLocation: island.islandLocation ?? "Unknown",
                     formattedCoordinates: island.formattedCoordinates,
-                    createdTimestamp: DateFormat.full.string(from: island.createdTimestamp),
-                    formattedTimestamp: DateFormat.full.string(from: island.lastModifiedTimestamp ?? Date()),
+                    createdTimestamp: island.formattedTimestamp,
+                    formattedTimestamp: island.formattedTimestamp,
                     gymWebsite: island.gymWebsite,
-                    reviews: island.reviews?.compactMap { $0 as? Review } ?? [],
-                    averageStarRating: ReviewUtils.averageStarRating(for: island.reviews?.compactMap { $0 as? Review } ?? []),
+                    reviews: ReviewUtils.getReviews(from: island.reviews),
+                    averageStarRating: ReviewUtils.averageStarRating(for: ReviewUtils.getReviews(from: island.reviews)),
                     dayOfWeekData: island.daysOfWeekArray.compactMap { DayOfWeek(rawValue: $0.day ?? "") },
                     selectedAppDayOfWeek: $selectedAppDayOfWeek,
                     selectedIsland: $selectedIsland,
                     viewModel: viewModel,
-                    selectedDay: $selectedDay, // Corrected to Binding<DayOfWeek?>
+                    selectedDay: $selectedDay,
                     showModal: $showModal,
-                    enterZipCodeViewModel: self.enterZipCodeViewModel // Use the property here
+                    enterZipCodeViewModel: self.enterZipCodeViewModel
                 )
             } else {
                 Text("No Island Selected")
                     .padding()
             }
+        }
+    }
+
+    func handleTap(island: PirateIsland) {
+        print("Tapped on island: \(island.islandName ?? "Unknown Title")")
+
+        self.selectedIsland = island
+        print("Updated selectedIsland: \(selectedIsland?.islandName ?? "Unknown Title")")
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            print("Presenting modal")
+            self.showModal = true
         }
     }
 }
@@ -154,17 +161,12 @@ struct IslandMapViewMap: View {
             MapAnnotation(coordinate: marker.coordinate) {
                 VStack {
                     Text(islandName)
-                        .font(.system(size: 10))
-                        .foregroundColor(.black)
-                        .background(Color.white.opacity(0.7))
-                        .cornerRadius(5)
+                        .font(.caption)
                         .padding(5)
-                    Text(islandLocation)
-                        .font(.footnote)
-                        .foregroundColor(.black)
-                        .background(Color.white.opacity(0.7))
+                        .background(Color.white)
                         .cornerRadius(5)
-                        .padding(5)
+                        .shadow(radius: 3)
+                    CustomMarkerView()
                 }
                 .onTapGesture {
                     onTap(island)
@@ -228,7 +230,12 @@ struct IslandMapView_Previews: PreviewProvider {
             selectedAppDayOfWeek: .constant(nil),
             selectedDay: .constant(nil),
             allEnteredLocationsViewModel: allEnteredLocationsViewModel,
-            enterZipCodeViewModel: enterZipCodeViewModel // Add this line
+            enterZipCodeViewModel: enterZipCodeViewModel,
+            region: .constant(MKCoordinateRegion(
+                center: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
+                span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
+            )),
+            searchResults: .constant([island1, island2])
         )
     }
 }

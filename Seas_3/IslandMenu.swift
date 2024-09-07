@@ -160,18 +160,19 @@ struct IslandMenu: View {
         case "ZipCode":
             if let viewModel = appDayOfWeekViewModel {
                 EnterZipCodeView(
-                    viewModel: EnterZipCodeViewModel(
-                        repository: appDayOfWeekRepository,
-                        context: viewContext
-                    ),
-                    appDayOfWeekViewModel: viewModel,
+                    appDayOfWeekViewModel: viewModel, // Correct parameter name
                     allEnteredLocationsViewModel: AllEnteredLocationsViewModel(
                         dataManager: pirateIslandDataManager
+                    ),
+                    enterZipCodeViewModel: EnterZipCodeViewModel( // Correct parameter name
+                        repository: appDayOfWeekRepository,
+                        context: viewContext
                     )
                 )
             } else {
                 Text("Loading...")
             }
+
         case "Add or Edit Schedule/Open Mat":
             if let viewModel = appDayOfWeekViewModel {
                 DaysOfWeekFormView(
