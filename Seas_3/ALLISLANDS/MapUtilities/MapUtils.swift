@@ -44,20 +44,14 @@ struct MapUtils {
         }
     }
     
-    static func updateRegion(markers: [CustomMapMarker], selectedRadius: Double) -> MKCoordinateRegion {
-        guard !markers.isEmpty else {
-            print("Warning: No markers available to update region.")
-            return MKCoordinateRegion()
-        }
-
-        let center = calculateCenter(from: markers)
+    static func updateRegion(markers: [CustomMapMarker], selectedRadius: Double, center: CLLocationCoordinate2D) -> MKCoordinateRegion {
         let latitudeDelta = selectedRadius / 69.0
         let longitudeDelta = selectedRadius / (69.0 * cos(center.latitude * .pi / 180))
         return MKCoordinateRegion(center: center, span: MKCoordinateSpan(latitudeDelta: latitudeDelta, longitudeDelta: longitudeDelta))
     }
     
-    static func updateRegionWithRadiusChange(markers: [CustomMapMarker], selectedRadius: Double) -> MKCoordinateRegion {
-        return updateRegion(markers: markers, selectedRadius: selectedRadius)
+    static func updateRegionWithRadiusChange(markers: [CustomMapMarker], selectedRadius: Double, center: CLLocationCoordinate2D) -> MKCoordinateRegion {
+        return updateRegion(markers: markers, selectedRadius: selectedRadius, center: center)
     }
     
     private static func calculateCenter(from markers: [CustomMapMarker]) -> CLLocationCoordinate2D {

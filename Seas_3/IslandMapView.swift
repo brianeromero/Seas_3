@@ -9,61 +9,6 @@ import CoreLocation
 import Foundation
 import MapKit
 
-struct IslandMapContent: View {
-    var islands: [PirateIsland]
-    @Binding var selectedIsland: PirateIsland?
-    @Binding var showModal: Bool
-    @Binding var selectedAppDayOfWeek: AppDayOfWeek?
-    @Binding var selectedDay: DayOfWeek? // Changed to optional
-    @ObservedObject var viewModel: AppDayOfWeekViewModel
-    var enterZipCodeViewModel: EnterZipCodeViewModel
-
-
-    var body: some View {
-        VStack(alignment: .leading) {
-            if islands.isEmpty {
-                Text("No islands available.")
-                    .padding()
-            } else {
-                ForEach(islands, id: \.islandID) { island in
-                    VStack(alignment: .leading) {
-                        Text("Gym: \(island.islandName ?? "Unknown Name")")
-                        Text("Location: \(island.islandLocation ?? "Unknown Location")")
-
-                        if island.latitude != 0 && island.longitude != 0 {
-                            IslandMapViewMap(
-                                coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude),
-                                islandName: island.islandName ?? "Unknown Name",
-                                islandLocation: island.islandLocation ?? "Unknown Location",
-                                onTap: { tappedIsland in
-                                    self.selectedIsland = tappedIsland
-                                },
-                                island: island
-                            )
-                            .frame(height: 400) // Adjust height to match `AllEnteredLocations`
-                            .padding()
-                        } else {
-                            Text("Gym location not available")
-                        }
-                    }
-                    .padding()
-                }
-
-                if let selectedIsland = selectedIsland {
-                    NavigationLink(
-                        destination: ViewScheduleForIsland(
-                            viewModel: viewModel,
-                            island: selectedIsland
-                        )
-                    ) {
-                        Text("View Schedule")
-                    }
-                }
-            }
-        }
-    }
-}
-
 struct IslandMapView: View {
     @ObservedObject var viewModel: AppDayOfWeekViewModel
     @Binding var selectedIsland: PirateIsland?
@@ -93,7 +38,7 @@ struct IslandMapView: View {
                     }
                 }
             }
-            .frame(height: 400) // Add this line to set the map height
+            .frame(height: 400)
             .edgesIgnoringSafeArea(.all)
         }
         .sheet(isPresented: $showModal) {
@@ -124,17 +69,67 @@ struct IslandMapView: View {
     }
 
     func handleTap(island: PirateIsland) {
-        print("Tapped on island: \(island.islandName ?? "Unknown Title")")
-
         self.selectedIsland = island
-        print("Updated selectedIsland: \(selectedIsland?.islandName ?? "Unknown Title")")
+        self.showModal = true
+    }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            print("Presenting modal")
-            self.showModal = true
+}
+
+
+struct IslandMapContent: View {
+    var islands: [PirateIsland]
+    @Binding var selectedIsland: PirateIsland?
+    @Binding var showModal: Bool
+    @Binding var selectedAppDayOfWeek: AppDayOfWeek?
+    @Binding var selectedDay: DayOfWeek? // Changed to optional
+    @ObservedObject var viewModel: AppDayOfWeekViewModel
+    var enterZipCodeViewModel: EnterZipCodeViewModel
+
+    var body: some View {
+        VStack(alignment: .leading) {
+            if islands.isEmpty {
+                Text("No islands available.")
+                    .padding()
+            } else {
+                ForEach(islands, id: \.islandID) { island in
+                    VStack(alignment: .leading) {
+                        Text("Gym: \(island.islandName ?? "Unknown Name")")
+                        Text("Location: \(island.islandLocation ?? "Unknown Location")")
+
+                        if island.latitude != 0 && island.longitude != 0 {
+                            IslandMapViewMap(
+                                coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude),
+                                islandName: island.islandName ?? "Unknown Name",
+                                islandLocation: island.islandLocation ?? "Unknown Location",
+                                onTap: { tappedIsland in
+                                    self.selectedIsland = tappedIsland
+                                },
+                                island: island
+                            )
+                            .frame(height: 400)
+                            .padding()
+                        } else {
+                            Text("Gym location not available")
+                        }
+                    }
+                    .padding()
+                }
+
+                if let selectedIsland = selectedIsland {
+                    NavigationLink(
+                        destination: ViewScheduleForIsland(
+                            viewModel: viewModel,
+                            island: selectedIsland
+                        )
+                    ) {
+                        Text("View Schedule")
+                    }
+                }
+            }
         }
     }
 }
+
 
 struct CustomMarker: Identifiable {
     let id = UUID()
@@ -191,7 +186,6 @@ struct IslandMapViewMap: View {
         }
     }
 }
-
 struct IslandMapView_Previews: PreviewProvider {
     static var previews: some View {
         let context = PersistenceController.preview.viewContext
@@ -223,19 +217,37 @@ struct IslandMapView_Previews: PreviewProvider {
             enterZipCodeViewModel: enterZipCodeViewModel
         )
         
-        return IslandMapView(
-            viewModel: appDayOfWeekViewModel,
-            selectedIsland: .constant(nil),
-            showModal: .constant(false),
-            selectedAppDayOfWeek: .constant(nil),
-            selectedDay: .constant(nil),
-            allEnteredLocationsViewModel: allEnteredLocationsViewModel,
-            enterZipCodeViewModel: enterZipCodeViewModel,
-            region: .constant(MKCoordinateRegion(
-                center: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
-                span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
-            )),
-            searchResults: .constant([island1, island2])
-        )
+        return Group {
+            IslandMapView(
+                viewModel: appDayOfWeekViewModel,
+                selectedIsland: .constant(island1),
+                showModal: .constant(false),
+                selectedAppDayOfWeek: .constant(nil),
+                selectedDay: .constant(nil),
+                allEnteredLocationsViewModel: allEnteredLocationsViewModel,
+                enterZipCodeViewModel: enterZipCodeViewModel,
+                region: .constant(MKCoordinateRegion(
+                    center: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
+                    span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
+                )),
+                searchResults: .constant([island1, island2])
+            )
+            .previewDisplayName("Island Map View")
+            
+            IslandMapViewMap(
+                coordinate: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
+                islandName: "Gym 1",
+                islandLocation: "123 Main St",
+                onTap: { _ in },
+                island: island1
+            )
+            .previewDisplayName("Island Map View Map")
+            
+            CustomMarkerView()
+                .previewLayout(.sizeThatFits)
+                .padding()
+                .background(Color.white)
+                .previewDisplayName("Custom Marker View")
+        }
     }
 }

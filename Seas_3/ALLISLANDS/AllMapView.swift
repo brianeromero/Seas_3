@@ -64,8 +64,7 @@ struct AllMapView: View {
                         .background(Color.white)
                         .cornerRadius(5)
                         .shadow(radius: 3)
-                    Image(systemName: "mappin.circle.fill")
-                        .foregroundColor(.blue)
+                    CustomMarkerView() // Use your custom marker view here
                 }
             }
         }
@@ -82,7 +81,7 @@ struct AllMapView: View {
 
     private func updateRegion() {
         let radius: Double = 5.0 // Replace with your desired radius
-        region = MapUtils.updateRegion(markers: [CustomMapMarker(id: UUID(), coordinate: userLocation.coordinate, title: "", pirateIsland: nil)], selectedRadius: radius)
+        region = MapUtils.updateRegion(markers: [CustomMapMarker(id: UUID(), coordinate: userLocation.coordinate, title: "", pirateIsland: nil)], selectedRadius: radius, center: userLocation.coordinate)
         print("Updated region to: \(region.center.latitude), \(region.center.longitude)")
     }
 }
