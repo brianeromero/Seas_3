@@ -1,10 +1,3 @@
-//
-//  EnterZipCodeView.swift
-//  Seas_3
-//
-//  Created by Brian Romero on 6/26/24.
-//
-
 import SwiftUI
 import CoreLocation
 import MapKit
@@ -28,37 +21,41 @@ struct EnterZipCodeView: View {
     @State private var selectedRadius: Double = 5.0 // Radius in miles
 
     var body: some View {
-        VStack {
-            TextField("Enter Location (Zip Code, Address, City, State)", text: $locationInput)
+        NavigationView {
+            VStack {
+                TextField("Enter Location (Zip Code, Address, City, State)", text: $locationInput)
+                    .padding()
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+
+                // Use the reusable RadiusPicker component
+                RadiusPicker(selectedRadius: $selectedRadius)
+
+                Button(action: search) {
+                    Text("Search")
+                }
                 .padding()
-                .textFieldStyle(RoundedBorderTextFieldStyle())
 
-            // Use the reusable RadiusPicker component
-            RadiusPicker(selectedRadius: $selectedRadius)
-
-            Button(action: search) {
-                Text("Search")
-            }
-            .padding()
-
-            // Map View
-            IslandMapView(
-                viewModel: appDayOfWeekViewModel,
-                selectedIsland: $selectedIsland,
-                showModal: $showModal,
-                selectedAppDayOfWeek: $selectedAppDayOfWeek,
-                selectedDay: $selectedDay,
-                allEnteredLocationsViewModel: allEnteredLocationsViewModel,
-                enterZipCodeViewModel: enterZipCodeViewModel,
-                region: $region, // Pass the region as a binding
-                searchResults: $searchResults // Pass the search results as a binding
-            )
-            .frame(height: 400)
-            .onChange(of: searchResults) { _ in
-                if let firstIsland = searchResults.first {
-                    self.region.center = CLLocationCoordinate2D(latitude: firstIsland.latitude, longitude: firstIsland.longitude)
+                // Map View
+                IslandMapView(
+                    viewModel: appDayOfWeekViewModel,
+                    selectedIsland: $selectedIsland,
+                    showModal: $showModal,
+                    selectedAppDayOfWeek: $selectedAppDayOfWeek,
+                    selectedDay: $selectedDay,
+                    allEnteredLocationsViewModel: allEnteredLocationsViewModel,
+                    enterZipCodeViewModel: enterZipCodeViewModel,
+                    region: $region, // Pass the region as a binding
+                    searchResults: $searchResults // Pass the search results as a binding
+                )
+                .frame(height: 400)
+                .onChange(of: searchResults) { _ in
+                    if let firstIsland = searchResults.first {
+                        self.region.center = CLLocationCoordinate2D(latitude: firstIsland.latitude, longitude: firstIsland.longitude)
+                    }
                 }
             }
+            .padding() // Add padding to match overall view
+            .navigationTitle("Enter Location")
         }
     }
 
@@ -89,7 +86,6 @@ struct EnterZipCodeView: View {
                 within: self.selectedRadius * 1609.34 // Convert miles to meters
             )
 
-
             // Filter results based on the selected radius
             let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
             self.searchResults = self.enterZipCodeViewModel.pirateIslands.compactMap { $0.pirateIsland }.filter {
@@ -103,16 +99,14 @@ struct EnterZipCodeView: View {
             }
         }
     }
-
 }
+
 struct EnterZipCodeView_Previews: PreviewProvider {
     static var previews: some View {
-        // Create mock context and repository
         let context = PersistenceController.preview.container.viewContext
         let mockRepository = AppDayOfWeekRepository(persistenceController: PersistenceController.preview)
         let mockIsland = PirateIsland(context: context)
         
-        // Create mock PirateIsland (Gym) objects
         let newYorkIsland = PirateIsland(context: context)
         newYorkIsland.latitude = 40.7128
         newYorkIsland.longitude = -74.0060
@@ -131,14 +125,13 @@ struct EnterZipCodeView_Previews: PreviewProvider {
             print("Failed to save mock data: \(error.localizedDescription)")
         }
 
-        // Create mock view models
         let mockEnterZipCodeViewModel = EnterZipCodeViewModel(
             repository: mockRepository,
             context: context
         )
         
         let mockAppDayOfWeekViewModel = AppDayOfWeekViewModel(
-            selectedIsland: mockIsland, // Pass the mock PirateIsland instance
+            selectedIsland: mockIsland,
             repository: AppDayOfWeekRepository.shared,
             enterZipCodeViewModel: mockEnterZipCodeViewModel
         )
@@ -147,11 +140,10 @@ struct EnterZipCodeView_Previews: PreviewProvider {
             dataManager: PirateIslandDataManager(viewContext: context)
         )
         
-        // Use correct initializer
         return EnterZipCodeView(
             appDayOfWeekViewModel: mockAppDayOfWeekViewModel,
             allEnteredLocationsViewModel: mockAllEnteredLocationsViewModel,
-            enterZipCodeViewModel: mockEnterZipCodeViewModel // Correct argument name
+            enterZipCodeViewModel: mockEnterZipCodeViewModel
         )
         .environment(\.managedObjectContext, context)
     }

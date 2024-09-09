@@ -4,6 +4,8 @@
 
 import SwiftUI
 import CoreData
+import MapKit
+
 
 
 struct MenuItem: Identifiable {
@@ -31,7 +33,7 @@ struct IslandMenu: View {
     @State private var appDayOfWeekViewModel: AppDayOfWeekViewModel?
 
     let menuItems: [MenuItem] = [
-        .init(title: "Search Gym Entries by", subMenuItems: ["All Entered Locations", "Current Location", "ZipCode", "Day Of Week"]),
+        .init(title: "Search Gym Entries By", subMenuItems: ["All Locations", "Current Location", "ZipCode", "Day of the Week"]),
         .init(title: "Manage Gyms Entries", subMenuItems: ["Add New Gym", "Update Existing Gyms", "Add or Edit Schedule/Open Mat"]),
         .init(title: "Gym Reviews", subMenuItems: ["Submit Gym/Open Mat Review"]),
         .init(title: "FAQ", subMenuItems: ["FAQ & Disclaimer"])
@@ -144,7 +146,7 @@ struct IslandMenu: View {
             AddNewIsland(viewModel: PirateIslandViewModel(context: viewContext))
         case "Update Existing Gyms":
             EditExistingIslandList()
-        case "All Entered Locations":
+        case "All Locations":
             AllEnteredLocations(context: viewContext)
         case "Current Location":
             ConsolidatedIslandMapView(
@@ -183,8 +185,29 @@ struct IslandMenu: View {
             } else {
                 Text("Loading...")
             }
-        case "Day Of Week":
-            DayOfWeekSearchView()
+        case "Day of the Week":
+            DayOfWeekSearchView(
+                selectedIsland: .constant(nil),
+                selectedGym: .constant(nil),
+                viewModel: appDayOfWeekViewModel ?? AppDayOfWeekViewModel(
+                    selectedIsland: nil,
+                    repository: appDayOfWeekRepository,
+                    enterZipCodeViewModel: EnterZipCodeViewModel(
+                        repository: appDayOfWeekRepository,
+                        context: viewContext
+                    )
+                ),
+                selectedAppDayOfWeek: .constant(nil),
+                allEnteredLocationsViewModel: AllEnteredLocationsViewModel(
+                    dataManager: pirateIslandDataManager
+                ),
+                enterZipCodeViewModel: EnterZipCodeViewModel(
+                    repository: appDayOfWeekRepository,
+                    context: viewContext
+                ),
+                region: .constant(MKCoordinateRegion()),
+                searchResults: .constant([])
+            )
         case "Submit Gym/Open Mat Review":
             GymMatReviewSelect(
                 selectedIsland: $selectedIsland,

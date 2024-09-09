@@ -119,10 +119,10 @@ struct ConsolidatedIslandMapView: View {
                     makeRadiusPicker()
                 } else {
                     Text("Fetching user location...")
-                        .navigationTitle("Locations Near Me")
+                        .navigationTitle("Gyms Near Me")
                 }
             }
-            .navigationTitle("Locations Near Me")
+            .navigationTitle("Gyms Near Me")
             .overlay(
                 overlayContentView()
             )
@@ -214,8 +214,7 @@ struct ConsolidatedIslandMapView: View {
                 .background(Color.white)
                 .cornerRadius(5)
                 .shadow(radius: 3)
-            Image(systemName: (marker.title ?? "") == "You are Here" ? "figure.wrestling" : "mappin.circle.fill")
-                .foregroundColor((marker.title ?? "") == "You are Here" ? .red : .blue)
+            CustomMarkerView() // Use your custom marker view here
                 .onTapGesture {
                     if let pirateIsland = marker.pirateIsland {
                         selectedIsland = pirateIsland

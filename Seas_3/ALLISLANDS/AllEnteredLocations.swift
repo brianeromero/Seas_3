@@ -64,7 +64,7 @@ struct AllEnteredLocations: View {
                     }
                 }
             }
-            .navigationTitle("All Gyms Entered")
+            .navigationTitle("All Gyms")
             .onAppear {
                 viewModel.fetchPirateIslands()
             }
