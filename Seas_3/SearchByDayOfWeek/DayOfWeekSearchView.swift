@@ -8,6 +8,7 @@ import SwiftUI
 import MapKit
 import CoreLocation
 import CoreData
+import Combine
 
 struct Gym: Identifiable, Hashable {
     let id: UUID?
@@ -45,91 +46,63 @@ struct DayOfWeekSearchView: View {
     @ObservedObject var enterZipCodeViewModel: EnterZipCodeViewModel
     @Binding var region: MKCoordinateRegion
     @Binding var searchResults: [PirateIsland]
-    
+    @State private var cancellables: Set<AnyCancellable> = []
+
     var body: some View {
         NavigationView {
             VStack {
                 DayPickerView(selectedDay: $selectedDay)
                     .onChange(of: selectedDay) { newDay in
                         print("Selected Day: \(newDay?.displayName ?? "nil")")
-                        self.gyms = fetchGyms(day: newDay, radius: radius, locationManager: userLocationMapViewModel)
+                        self.gyms = AppDayOfWeekRepository.shared.fetchGyms(day: selectedDay, radius: radius, locationManager: userLocationMapViewModel)
                         updateRegion(newRadius: radius)
                     }
-                
+
                 RadiusPicker(selectedRadius: $radius)
                     .onChange(of: radius) { newRadius in
                         print("Selected Radius: \(newRadius)")
                         updateRegion(newRadius: newRadius)
-                        self.gyms = fetchGyms(day: selectedDay, radius: newRadius, locationManager: userLocationMapViewModel)
+                        self.gyms = AppDayOfWeekRepository.shared.fetchGyms(day: selectedDay, radius: newRadius, locationManager: userLocationMapViewModel)
                     }
-                
+
                 if let errorMessage = errorMessage {
                     Text(errorMessage)
                         .foregroundColor(.red)
                 } else {
                     Map(coordinateRegion: $equatableRegion, annotationItems: gyms) { gym in
                         MapAnnotation(coordinate: CLLocationCoordinate2D(latitude: gym.latitude, longitude: gym.longitude)) {
-                            Button(action: {
-                                print("Toggling showModal")
-                                self.selectedGym = gym
-                                if let islandID = gym.id {
-                                    let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
-                                    fetchRequest.predicate = NSPredicate(format: "islandID == %@", islandID as CVarArg)
-                                    do {
-                                        let pirateIslands = try PersistenceController.shared.container.viewContext.fetch(fetchRequest)
-                                        if let pirateIsland = pirateIslands.first {
-                                            self.selectedIsland = pirateIsland
-                                        }
-                                    } catch {
-                                        print("Error fetching PirateIsland: \(error.localizedDescription)")
-                                    }
+                            GymAnnotationView(gym: gym)
+                                .onTapGesture {
+                                    handleGymTap(gym: gym)
                                 }
-                                self.showModal = true // Toggle the showModal binding to show the modal
-                            }) {
-                                VStack {
-                                    Text(gym.name)
-                                        .font(.caption)
-                                        .padding(5)
-                                        .background(Color.white)
-                                        .cornerRadius(5)
-                                        .shadow(radius: 3)
-                                    CustomMarkerView() // Use your custom marker view here
-                                }
-                            }
-                        }
-                    }
-                    .sheet(isPresented: $showModal) {
-                        VStack {
-                            if let selectedGym = selectedGym {
-                                IslandModalView(
-                                    customMapMarker: nil,
-                                    islandName: selectedGym.name,
-                                    islandLocation: "\(selectedGym.latitude), \(selectedGym.longitude)",
-                                    formattedCoordinates: "",
-                                    createdTimestamp: "",
-                                    formattedTimestamp: "",
-                                    gymWebsite: nil,
-                                    reviews: [],
-                                    averageStarRating: "",
-                                    dayOfWeekData: [],
-                                    selectedAppDayOfWeek: .constant(nil),
-                                    selectedIsland: .constant(nil),
-                                    viewModel: AppDayOfWeekViewModel(
-                                        repository: AppDayOfWeekRepository.shared,
-                                        enterZipCodeViewModel: enterZipCodeViewModel
-                                    ),
-                                    selectedDay: $selectedDay,
-                                    showModal: $showModal, // Pass showModal
-                                    enterZipCodeViewModel: enterZipCodeViewModel // Pass enterZipCodeViewModel
-                                )
-                            } else {
-                                Text("No Gym Selected")
-                                    .padding()
-                            }
                         }
                     }
                 }
             }
+            .sheet(isPresented: $showModal) {
+                IslandModalView(
+                    customMapMarker: nil,
+                    islandName: selectedGym?.name ?? "Unknown Gym",
+                    islandLocation: "\(selectedGym?.latitude ?? 0), \(selectedGym?.longitude ?? 0)",
+                    formattedCoordinates: "",
+                    createdTimestamp: "",
+                    formattedTimestamp: "",
+                    gymWebsite: nil,
+                    reviews: [],
+                    averageStarRating: "",
+                    dayOfWeekData: [],
+                    selectedAppDayOfWeek: .constant(nil),
+                    selectedIsland: .constant(selectedIsland),
+                    viewModel: AppDayOfWeekViewModel(
+                        repository: AppDayOfWeekRepository.shared,
+                        enterZipCodeViewModel: enterZipCodeViewModel
+                    ),
+                    selectedDay: $selectedDay,
+                    showModal: $showModal,
+                    enterZipCodeViewModel: enterZipCodeViewModel
+                )
+            }
+
             .onAppear {
                 userLocationMapViewModel.requestLocation()
                 DispatchQueue.main.async {
@@ -145,59 +118,60 @@ struct DayOfWeekSearchView: View {
                         center: location.coordinate,
                         span: MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1)
                     )
-                    self.gyms = fetchGyms(day: selectedDay, radius: radius, locationManager: userLocationMapViewModel)
+                    self.gyms = AppDayOfWeekRepository.shared.fetchGyms(day: selectedDay, radius: radius, locationManager: userLocationMapViewModel)
                     print("Fetched \(self.gyms.count) gyms")
+                }
+            }
+            .onChange(of: selectedIsland) { newIsland in
+                if let newIsland = newIsland {
+                    print("Selected island changed to: \(newIsland.islandName ?? "Unknown")")
+                    if let matchingGym = gyms.first(where: { $0.id == newIsland.islandID }) {
+                        selectedGym = matchingGym
+                        print("Selected gym set to: \(matchingGym.name)")
+                    }
                 }
             }
         }
     }
-    
-    func fetchGyms(day: DayOfWeek?, radius: Double, locationManager: UserLocationMapViewModel) -> [Gym] {
-        guard let day = day else {
-            print("Day is nil")
-            return []
-        }
-        
-        var fetchedGyms: [Gym] = []
-        
-        let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "day ==[c] %@", day.rawValue)
-        fetchRequest.relationshipKeyPathsForPrefetching = ["pIsland", "matTimes"]
-        
-        do {
-            let appDayOfWeeks = try PersistenceController.shared.container.viewContext.fetch(fetchRequest)
-            print("Fetched \(appDayOfWeeks.count) AppDayOfWeek objects")
-            
-            for appDayOfWeek in appDayOfWeeks {
-                guard let island = appDayOfWeek.pIsland else { continue }
-                guard let appDay = appDayOfWeek.day, appDay.lowercased() == day.displayName.lowercased() else { continue }
-                guard appDayOfWeek.matTimes?.count ?? 0 > 0 else { continue }
-                
-                let distance = locationManager.userLocation.map {
-                    locationManager.calculateDistance(from: $0, to: CLLocation(latitude: island.latitude, longitude: island.longitude))
-                } ?? 0
-                print("Distance to Island: \(distance)")
-                
-                fetchedGyms.append(
-                    Gym(
-                        id: island.islandID ?? UUID(),
-                        name: island.islandName ?? "Unnamed Gym",
-                        latitude: island.latitude,
-                        longitude: island.longitude,
-                        hasScheduledMatTime: true,
-                        days: [appDayOfWeek.day ?? "Unknown Day"]
-                    )
-                )
+
+    private func handleGymTap(gym: Gym) {
+        print("Map pin clicked")
+        print("Selected island/Gym: \(gym.name)")
+        self.selectedGym = gym
+        self.showModal = true
+
+        if let islandID = gym.id {
+            let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
+            fetchRequest.predicate = NSPredicate(format: "islandID == %@", islandID as CVarArg)
+
+            do {
+                let pirateIslands = try PersistenceController.shared.container.viewContext.fetch(fetchRequest)
+                if let pirateIsland = pirateIslands.first {
+                    self.selectedIsland = pirateIsland
+                    print("Selected island set to: \(pirateIsland.islandName ?? "Unknown")")
+                }
+            } catch {
+                print("Error fetching PirateIsland: \(error.localizedDescription)")
             }
-        } catch {
-            print("Failed to fetch AppDayOfWeek: \(error.localizedDescription)")
-            errorMessage = "Error fetching gyms: \(error.localizedDescription)"
         }
-        
-        print("Fetched \(fetchedGyms.count) gyms")
-        return fetchedGyms
     }
-    
+
+    private struct GymAnnotationView: View {
+        let gym: Gym
+
+        var body: some View {
+            VStack {
+                Text(gym.name)
+                    .font(.caption)
+                    .padding(5)
+                    .background(Color.white)
+                    .cornerRadius(5)
+                    .shadow(radius: 3)
+                CustomMarkerView() // Use your custom marker view here
+            }
+        }
+    }
+
     private func updateRegion(newRadius: Double) {
         if let location = userLocationMapViewModel.userLocation {
             withAnimation {
@@ -215,10 +189,10 @@ struct DayOfWeekSearchView: View {
         } else {
             print("User location is nil")
             errorMessage = "Error updating region: User location is nil"
-
         }
     }
 }
+
 
 struct DayOfWeekSearchView_Previews: PreviewProvider {
     static var previews: some View {
@@ -233,7 +207,6 @@ struct DayOfWeekSearchView_Previews: PreviewProvider {
                 selectedIsland: .constant(nil),
                 selectedGym: .constant(nil),
                 viewModel: AppDayOfWeekViewModel(
-                    selectedIsland: nil,
                     repository: AppDayOfWeekRepository.shared,
                     enterZipCodeViewModel: EnterZipCodeViewModel(
                         repository: AppDayOfWeekRepository.shared,
@@ -250,16 +223,13 @@ struct DayOfWeekSearchView_Previews: PreviewProvider {
                     repository: AppDayOfWeekRepository.shared,
                     context: viewContext
                 ),
-                region: .constant(
-                    MKCoordinateRegion(
-                        center: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
-                        span: MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1)
-                    )
-                ),
+                region: .constant(MKCoordinateRegion()),
                 searchResults: .constant([])
             )
+            .environment(\.managedObjectContext, persistenceController.container.viewContext)
         }
     }
+
     
     private static func createSampleData(viewContext: NSManagedObjectContext) {
         // Clear existing data

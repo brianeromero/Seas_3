@@ -11,6 +11,7 @@ import CoreLocation
 
 
 class AppDayOfWeekRepository {
+    @State private var errorMessage: String?
     let persistenceController: PersistenceController
     private var currentAppDayOfWeek: AppDayOfWeek?
     private var selectedIsland: PirateIsland?
@@ -250,19 +251,17 @@ class AppDayOfWeekRepository {
                 let distance = locationManager.calculateDistance(from: userLocation, to: CLLocation(latitude: island.latitude, longitude: island.longitude))
                 print("Distance to Island: \(distance)")
 
-                if distance <= radius {
-                    let hasScheduledMatTime = appDayOfWeek.matTimes?.count ?? 0 > 0
-                    fetchedGyms.append(
-                        Gym(
-                            id: island.islandID ?? UUID(), // Ensure that islandID is properly handled or provide a default
-                            name: island.islandName ?? "Unnamed Gym", // Use default value if name is nil
-                            latitude: island.latitude,
-                            longitude: island.longitude,
-                            hasScheduledMatTime: hasScheduledMatTime,
-                            days: [appDayOfWeek.day ?? "Unknown Day"] // Provide a default value if day is nil
-                        )
+                let hasScheduledMatTime = appDayOfWeek.matTimes?.count ?? 0 > 0
+                fetchedGyms.append(
+                    Gym(
+                        id: island.islandID ?? UUID(),
+                        name: island.islandName ?? "Unnamed Gym",
+                        latitude: island.latitude,
+                        longitude: island.longitude,
+                        hasScheduledMatTime: hasScheduledMatTime,
+                        days: [appDayOfWeek.day ?? "Unknown Day"]
                     )
-                }
+                )
             }
         } catch {
             print("Failed to fetch AppDayOfWeek: \(error)")
@@ -270,8 +269,54 @@ class AppDayOfWeekRepository {
 
         return fetchedGyms
     }
-
-
+    
+    func fetchGyms(day: DayOfWeek?, radius: Double, locationManager: UserLocationMapViewModel) -> [Gym] {
+        guard let day = day else {
+            print("Day is nil")
+            return []
+        }
+        
+        var fetchedGyms: [Gym] = []
+        
+        let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "day ==[c] %@", day.rawValue)
+        fetchRequest.relationshipKeyPathsForPrefetching = ["pIsland", "matTimes"]
+        
+        do {
+            let appDayOfWeeks = try PersistenceController.shared.container.viewContext.fetch(fetchRequest)
+            print("Fetched \(appDayOfWeeks.count) AppDayOfWeek objects")
+            
+            for appDayOfWeek in appDayOfWeeks {
+                guard let island = appDayOfWeek.pIsland else { continue }
+                guard let appDay = appDayOfWeek.day, appDay.lowercased() == day.displayName.lowercased() else { continue }
+                guard appDayOfWeek.matTimes?.count ?? 0 > 0 else { continue }
+                
+                /*let distance = locationManager.userLocation.map {
+                    locationManager.calculateDistance(from: $0, to: CLLocation(latitude: island.latitude, longitude: island.longitude))
+                } ?? 0
+                print("Distance to Island: \(distance)")*/
+                
+                fetchedGyms.append(
+                    Gym(
+                        id: island.islandID ?? UUID(),
+                        name: island.islandName ?? "Unnamed Gym",
+                        latitude: island.latitude,
+                        longitude: island.longitude,
+                        hasScheduledMatTime: true,
+                        days: [appDayOfWeek.day ?? "Unknown Day"]
+                    )
+                )
+            }
+        } catch {
+            print("Failed to fetch AppDayOfWeek: \(error.localizedDescription)")
+            errorMessage = "Error fetching gyms: \(error.localizedDescription)"
+        }
+        
+        print("Fetched \(fetchedGyms.count) gyms")
+        return fetchedGyms
+    }
+    
+    
     func fetchAllIslands(forDay day: String) async -> [(PirateIsland, [MatTime])] {
         let context = PersistenceController.shared.container.viewContext
         let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
