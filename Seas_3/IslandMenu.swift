@@ -13,13 +13,16 @@ struct MenuItem: Identifiable {
     let title: String
     let subMenuItems: [String]?
 }
-
 struct IslandMenu: View {
     @State private var showAlert = false
     @State private var alertMessage = ""
     @State private var selectedIsland: PirateIsland? = nil
     @StateObject private var locationManager = UserLocationMapViewModel()
     @Environment(\.managedObjectContext) private var viewContext
+    
+    @State private var selectedAppDayOfWeek: AppDayOfWeek? = nil // Add this
+    @State private var region: MKCoordinateRegion = MKCoordinateRegion() // Add this
+    @State private var searchResults: [PirateIsland] = [] // Add this
 
     // Initialize the repository and data manager
     private var appDayOfWeekRepository: AppDayOfWeekRepository {
@@ -162,11 +165,11 @@ struct IslandMenu: View {
         case "ZipCode":
             if let viewModel = appDayOfWeekViewModel {
                 EnterZipCodeView(
-                    appDayOfWeekViewModel: viewModel, // Correct parameter name
+                    appDayOfWeekViewModel: viewModel,
                     allEnteredLocationsViewModel: AllEnteredLocationsViewModel(
                         dataManager: pirateIslandDataManager
                     ),
-                    enterZipCodeViewModel: EnterZipCodeViewModel( // Correct parameter name
+                    enterZipCodeViewModel: EnterZipCodeViewModel(
                         repository: appDayOfWeekRepository,
                         context: viewContext
                     )
@@ -187,26 +190,10 @@ struct IslandMenu: View {
             }
         case "Day of the Week":
             DayOfWeekSearchView(
-                selectedIsland: .constant(nil),
-                selectedGym: .constant(nil),
-                viewModel: appDayOfWeekViewModel ?? AppDayOfWeekViewModel(
-                    selectedIsland: nil,
-                    repository: appDayOfWeekRepository,
-                    enterZipCodeViewModel: EnterZipCodeViewModel(
-                        repository: appDayOfWeekRepository,
-                        context: viewContext
-                    )
-                ),
-                selectedAppDayOfWeek: .constant(nil),
-                allEnteredLocationsViewModel: AllEnteredLocationsViewModel(
-                    dataManager: pirateIslandDataManager
-                ),
-                enterZipCodeViewModel: EnterZipCodeViewModel(
-                    repository: appDayOfWeekRepository,
-                    context: viewContext
-                ),
-                region: .constant(MKCoordinateRegion()),
-                searchResults: .constant([])
+                selectedIsland: $selectedIsland,
+                selectedAppDayOfWeek: $selectedAppDayOfWeek,
+                region: $region,
+                searchResults: $searchResults
             )
         case "Submit Gym/Open Mat Review":
             GymMatReviewSelect(
@@ -225,6 +212,7 @@ struct IslandMenu: View {
         }
     }
 }
+
 
 struct IslandMenu_Previews: PreviewProvider {
     static var previews: some View {

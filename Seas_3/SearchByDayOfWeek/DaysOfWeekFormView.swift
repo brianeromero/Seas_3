@@ -122,6 +122,18 @@ struct InsertIslandSearch: View {
 
     var body: some View {
         VStack(alignment: .leading) {
+            
+            // Display selected island name or "No island selected"
+            if let island = selectedIsland {
+                Text(island.islandName ?? "Unknown Gym")
+                    .font(.headline)
+                    .padding(.bottom, 8)
+            } else {
+                Text("No island selected")
+                    .font(.headline)
+                    .padding(.bottom, 8)
+            }
+            
             HStack {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(.gray)
@@ -144,7 +156,8 @@ struct InsertIslandSearch: View {
                     self.viewModel.currentAppDayOfWeek = AppDayOfWeek(context: self.viewContext)
                     self.viewModel.currentAppDayOfWeek?.pIsland = island
                 }) {
-                    Text(island.islandName?.description ?? "Unknown Gym")                }
+                    Text(island.islandName?.description ?? "Unknown Gym")
+                }
             }
             .listStyle(PlainListStyle())
             .navigationTitle("Select Gym")

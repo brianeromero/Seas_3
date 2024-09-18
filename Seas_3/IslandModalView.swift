@@ -5,7 +5,6 @@
 //  Created by Brian Romero on 8/29/24.
 //
 
-
 import Foundation
 import SwiftUI
 import CoreLocation
@@ -14,7 +13,10 @@ struct IslandModalView: View {
     @ObservedObject var enterZipCodeViewModel: EnterZipCodeViewModel
     @Binding var selectedDay: DayOfWeek?
     @Binding var showModal: Bool
-
+    @State private var isLoadingData: Bool = false
+    var isLoading: Bool {
+        islandSchedules.isEmpty && !scheduleExists || isLoadingData
+    }
     let customMapMarker: CustomMapMarker?
     @State private var scheduleExists: Bool = false
     @State private var islandSchedules: [(PirateIsland, [MatTime])] = []
@@ -76,180 +78,180 @@ struct IslandModalView: View {
                         showModal = false
                     }
 
-                VStack(alignment: .leading, spacing: 16) {
-                    Text(islandName)
-                        .font(.system(size: 14))
-                        .bold()
-                    
-                    Text(islandLocation)
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
+                if isLoading {
+                    ProgressView("Loading schedules...")
+                } else if !islandSchedules.isEmpty {
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text(islandName)
+                            .font(.system(size: 14))
+                            .bold()
 
-                    if let gymWebsite = gymWebsite {
-                        HStack {
-                            Text("Website:")
-                                .font(.system(size: 12))
-                            Spacer()
-                            Link("Visit Website", destination: gymWebsite)
-                                .font(.system(size: 12))
-                                .foregroundColor(.blue)
-                        }
-                        .padding(.top, 10)
-                    } else {
-                        Text("No website available.")
+                        Text(islandLocation)
                             .font(.system(size: 12))
                             .foregroundColor(.secondary)
-                            .padding(.top, 10)
-                    }
 
-                    if let island = selectedIsland {
-                        if scheduleExists {
-                            NavigationLink(
-                                destination: ViewScheduleForIsland(
-                                    viewModel: viewModel,
-                                    island: island
-                                )
-                            ) {
-                                Text("View Schedule")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.blue)
-                            }
-                            .padding(.top, 20)
-                        } else {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("No schedule is available for this Gym; be the first to enter.")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.secondary)
-                                
-                                NavigationLink(destination: DaysOfWeekFormView(
-                                    viewModel: viewModel,
-                                    selectedIsland: $selectedIsland,
-                                    selectedMatTime: .constant(nil)
-                                )) {
-                                    Text("Add Schedule")
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.blue)
-                                }
-                            }
-                            .padding(.top, 20)
-                        }
-                    } else {
-                        Text("Select an island first")
-                            .font(.system(size: 12))
-                            .foregroundColor(.secondary)
-                            .padding(.top, 20)
-                    }
-
-                    if !reviews.isEmpty {
-                        VStack(alignment: .leading, spacing: 8) {
+                        // Check if gymWebsite is available and display accordingly
+                        if let gymWebsite = gymWebsite {
                             HStack {
-                                Text("Average Rating:")
+                                Text("Website:")
                                     .font(.system(size: 12))
                                 Spacer()
-                                Text(averageStarRating)
-                                    .font(.system(size: 12))
-                            }
-                            
-                            NavigationLink(destination: ViewReviewforIsland(selectedIsland: selectedIsland)) {
-                                Text("View Reviews")
+                                Link("Visit Website", destination: gymWebsite)
                                     .font(.system(size: 12))
                                     .foregroundColor(.blue)
                             }
-                        }
-                        .padding(.top, 20)
-                    } else {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("No reviews available.")
+                            .padding(.top, 10)
+                        } else {
+                            Text("No website available.")
                                 .font(.system(size: 12))
                                 .foregroundColor(.secondary)
-                            
-                            NavigationLink(destination: GymMatReviewView(
-                                selectedIsland: $selectedIsland,
-                                isPresented: $showModal,
-                                enterZipCodeViewModel: enterZipCodeViewModel
-                            )) {
-                                Text("Leave a Review")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.blue)
+                                .padding(.top, 10)
+                        }
+
+                        if let island = selectedIsland {
+                            if scheduleExists {
+                                NavigationLink(
+                                    destination: ViewScheduleForIsland(
+                                        viewModel: viewModel,
+                                        island: island
+                                    )
+                                ) {
+                                    Text("View Schedule")
+                                }
+                            }
+                        }
+
+                        // Display reviews or option to leave a review
+                        VStack(alignment: .leading, spacing: 8) {
+                            if !reviews.isEmpty {
+                                HStack {
+                                    Text("Average Rating:")
+                                    Spacer()
+                                    Text(averageStarRating)
+                                }
+
+                                NavigationLink(destination: ViewReviewforIsland(selectedIsland: selectedIsland)) {
+                                    Text("View Reviews")
+                                }
+                            } else {
+                                Text("No reviews available.")
+                                    .foregroundColor(.secondary)
+
+                                NavigationLink(destination: GymMatReviewView(
+                                    selectedIsland: $selectedIsland,
+                                    isPresented: $showModal,
+                                    enterZipCodeViewModel: enterZipCodeViewModel
+                                )) {
+                                    Text("Leave a Review")
+                                }
                             }
                         }
                         .padding(.top, 20)
-                    }
 
-                    Spacer()
+                        Spacer()
 
-                    Button(action: {
-                        showModal = false
-                    }) {
-                        Text("Close")
-                            .font(.system(size: 12))
-                            .padding(10)
-                            .background(Color.red)
-                            .foregroundColor(.white)
-                            .cornerRadius(5)
-                            .padding(.horizontal, 10)
+                        Button(action: {
+                            print("Close button tapped")
+                            showModal = false
+                        }) {
+                            Text("Close")
+                                .font(.system(size: 12))
+                                .padding(10)
+                                .background(Color.red)
+                                .foregroundColor(.white)
+                                .cornerRadius(5)
+                                .padding(.horizontal, 10)
+                        }
                     }
+                    .padding()
+                    .background(Color.white)
+                    .cornerRadius(10)
+                    .shadow(radius: 10)
+                    .frame(width: UIScreen.main.bounds.width * 0.8, height: UIScreen.main.bounds.height * 0.6)
+                } else {
+                    // Display message when no schedules are found
+                    Text("No schedules found for this Gym.")
+                        .font(.system(size: 14))
+                        .bold()
+                        .padding()
+                        .background(Color.white)
+                        .cornerRadius(10)
+                        .shadow(radius: 10)
                 }
-                .padding()
-                .background(Color.white)
-                .cornerRadius(10)
-                .shadow(radius: 10)
-                .frame(width: UIScreen.main.bounds.width * 0.8, height: UIScreen.main.bounds.height * 0.6)
             }
         }
         .interactiveDismissDisabled(false)
         .onAppear {
+            isLoadingData = true // Start loading
             guard let island = selectedIsland, let day = selectedDay else {
+                print("Error: selectedIsland or selectedDay is nil.")
+                isLoadingData = false
                 return
             }
+            print("Fetching schedules for island: \(island.islandName ?? "Unknown") on day: \(day.displayName)")
             Task {
                 let fetchedSchedules = PersistenceController.shared.fetchAppDayOfWeekForIslandAndDay(for: island, day: day)
                 islandSchedules = [(island, fetchedSchedules.flatMap { $0.matTimes?.allObjects as? [MatTime] ?? [] })]
                 scheduleExists = !fetchedSchedules.isEmpty
+                isLoadingData = false // Stop loading when done
+                print("Schedules loaded: \(islandSchedules.count) schedules")
             }
         }
     }
 }
 
+
 struct IslandModalView_Previews: PreviewProvider {
     static var previews: some View {
-        // Create mock or dummy instances for all parameters
+        let mockIsland = PirateIsland(
+            context: PersistenceController.preview.container.viewContext
+        )
+        mockIsland.islandName = "Big Bad Island"
+        mockIsland.islandLocation = "Island Address"
+        mockIsland.latitude = 37.7749
+        mockIsland.longitude = -122.4194
+        mockIsland.createdTimestamp = Date()
+        mockIsland.lastModifiedTimestamp = Date()
+
         let mockEnterZipCodeViewModel = EnterZipCodeViewModel(
             repository: AppDayOfWeekRepository.shared,
             context: PersistenceController.preview.container.viewContext
         )
-        
-        let mockIsland = PirateIsland() // Ensure PirateIsland() is properly initialized
-
         let mockAppDayOfWeekViewModel = AppDayOfWeekViewModel(
-            selectedIsland: mockIsland, // Pass the mock PirateIsland instance
+            selectedIsland: mockIsland,
             repository: AppDayOfWeekRepository.shared,
             enterZipCodeViewModel: mockEnterZipCodeViewModel
         )
-        
-        return IslandModalView(
-            customMapMarker: CustomMapMarker(
-                id: UUID(),
-                coordinate: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
-                title: "Title",
-                pirateIsland: mockIsland // Pass a mock PirateIsland instance
-            ),
-            islandName: "Big Bad Island",
-            islandLocation: "Island Address",
-            formattedCoordinates: "12.3456, 78.9012",
+
+        let mockCustomMapMarker = CustomMapMarker(
+            id: UUID(),
+            coordinate: CLLocationCoordinate2D(latitude: mockIsland.latitude, longitude: mockIsland.longitude),
+            title: "Title",
+            pirateIsland: mockIsland
+        )
+
+        let mockReviews = [Review(), Review()]
+
+        let islandModalView = IslandModalView(
+            customMapMarker: mockCustomMapMarker,
+            islandName: mockIsland.islandName ?? "",
+            islandLocation: mockIsland.islandLocation ?? "",
+            formattedCoordinates: "\(mockIsland.latitude), \(mockIsland.longitude)",
             createdTimestamp: "2022-01-01 12:00:00",
             formattedTimestamp: "2022-01-01 12:00:00",
             gymWebsite: URL(string: "https://www.example.com"),
-            reviews: [Review(), Review()],
+            reviews: mockReviews,
             averageStarRating: "4.5",
             dayOfWeekData: [.monday, .tuesday, .wednesday],
             selectedAppDayOfWeek: .constant(nil),
-            selectedIsland: .constant(mockIsland), // Pass a mock PirateIsland instance
+            selectedIsland: .constant(mockIsland),
             viewModel: mockAppDayOfWeekViewModel,
             selectedDay: .constant(.monday),
             showModal: .constant(true),
-            enterZipCodeViewModel: mockEnterZipCodeViewModel // Pass the mock EnterZipCodeViewModel instance
+            enterZipCodeViewModel: mockEnterZipCodeViewModel
         )
-        .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
+
+        return islandModalView
+            .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
     }
 }

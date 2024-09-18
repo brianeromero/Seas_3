@@ -219,6 +219,8 @@ class AppDayOfWeekRepository {
         persistenceController.viewContext.delete(appDayOfWeek)
         saveData()
     }
+    
+    
     private func performFetch(request: NSFetchRequest<AppDayOfWeek>) -> [AppDayOfWeek] {
         do {
             let results = try persistenceController.viewContext.fetch(request)
@@ -230,12 +232,12 @@ class AppDayOfWeekRepository {
         }
     }
 
-    public func fetchGyms(day: String, radius: Double, locationManager: UserLocationMapViewModel) -> [Gym] {
-        var fetchedGyms: [Gym] = []
+    func fetchPirateIslands(day: String, radius: Double, locationManager: UserLocationMapViewModel) -> [PirateIsland] {
+        var fetchedIslands: [PirateIsland] = []
 
         guard let userLocation = locationManager.getCurrentUserLocation() else {
             print("Failed to get current user location.")
-            return fetchedGyms
+            return fetchedIslands
         }
 
         let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
@@ -251,32 +253,23 @@ class AppDayOfWeekRepository {
                 let distance = locationManager.calculateDistance(from: userLocation, to: CLLocation(latitude: island.latitude, longitude: island.longitude))
                 print("Distance to Island: \(distance)")
 
-                let hasScheduledMatTime = appDayOfWeek.matTimes?.count ?? 0 > 0
-                fetchedGyms.append(
-                    Gym(
-                        id: island.islandID ?? UUID(),
-                        name: island.islandName ?? "Unnamed Gym",
-                        latitude: island.latitude,
-                        longitude: island.longitude,
-                        hasScheduledMatTime: hasScheduledMatTime,
-                        days: [appDayOfWeek.day ?? "Unknown Day"]
-                    )
-                )
+                fetchedIslands.append(island)
             }
         } catch {
             print("Failed to fetch AppDayOfWeek: \(error)")
         }
 
-        return fetchedGyms
+        return fetchedIslands
     }
+
     
-    func fetchGyms(day: DayOfWeek?, radius: Double, locationManager: UserLocationMapViewModel) -> [Gym] {
+    func fetchPirateIslands(day: DayOfWeek?, radius: Double, locationManager: UserLocationMapViewModel) -> [PirateIsland] {
         guard let day = day else {
             print("Day is nil")
             return []
         }
         
-        var fetchedGyms: [Gym] = []
+        var fetchedIslands: [PirateIsland] = []
         
         let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
         fetchRequest.predicate = NSPredicate(format: "day ==[c] %@", day.rawValue)
@@ -291,30 +284,17 @@ class AppDayOfWeekRepository {
                 guard let appDay = appDayOfWeek.day, appDay.lowercased() == day.displayName.lowercased() else { continue }
                 guard appDayOfWeek.matTimes?.count ?? 0 > 0 else { continue }
                 
-                /*let distance = locationManager.userLocation.map {
-                    locationManager.calculateDistance(from: $0, to: CLLocation(latitude: island.latitude, longitude: island.longitude))
-                } ?? 0
-                print("Distance to Island: \(distance)")*/
-                
-                fetchedGyms.append(
-                    Gym(
-                        id: island.islandID ?? UUID(),
-                        name: island.islandName ?? "Unnamed Gym",
-                        latitude: island.latitude,
-                        longitude: island.longitude,
-                        hasScheduledMatTime: true,
-                        days: [appDayOfWeek.day ?? "Unknown Day"]
-                    )
-                )
+                fetchedIslands.append(island)
             }
         } catch {
             print("Failed to fetch AppDayOfWeek: \(error.localizedDescription)")
-            errorMessage = "Error fetching gyms: \(error.localizedDescription)"
+            errorMessage = "Error fetching pirate islands: \(error.localizedDescription)"
         }
         
-        print("Fetched \(fetchedGyms.count) gyms")
-        return fetchedGyms
+        print("Fetched \(fetchedIslands.count) pirate islands")
+        return fetchedIslands
     }
+
     
     
     func fetchAllIslands(forDay day: String) async -> [(PirateIsland, [MatTime])] {
@@ -339,5 +319,7 @@ class AppDayOfWeekRepository {
         }
     }
 
+    
+    
 
 }
