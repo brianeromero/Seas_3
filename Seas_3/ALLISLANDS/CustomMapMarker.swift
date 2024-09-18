@@ -46,6 +46,4 @@ class CustomMapMarker: NSObject, MKAnnotation, Identifiable {
         return islandLocation.distance(from: location)
     }
     
-    
-    
 }
