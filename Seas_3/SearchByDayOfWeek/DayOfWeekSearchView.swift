@@ -139,7 +139,7 @@ struct DayOfWeekSearchView: View {
                 IslandModalView(
                     customMapMarker: nil,
                     islandName: selectedIsland.islandName ?? "",
-                    islandLocation: "\(selectedIsland.latitude), \(selectedIsland.longitude)",
+                    islandLocation: selectedIsland.islandLocation ?? "",
                     formattedCoordinates: selectedIsland.formattedCoordinates,
                     createdTimestamp: selectedIsland.createdTimestamp.description,
                     formattedTimestamp: selectedIsland.formattedTimestamp,
@@ -211,8 +211,11 @@ struct DayOfWeekSearchView: View {
             errorMessage = "Day of week is not selected."
             return
         }
-
+        
+        print("Fetching islands for day: \(selectedDay)")
+        
         await viewModel.fetchIslands(forDay: selectedDay)
+        
         if let location = userLocationMapViewModel.userLocation {
             updateRegion(center: location.coordinate)
         }
@@ -240,61 +243,118 @@ struct IslandAnnotationView: View {
 }
 
 struct DayOfWeekSearchView_Previews: PreviewProvider {
+    
+    private static func clearExistingData(viewContext: NSManagedObjectContext) {
+        // Clear existing PirateIsland data
+        let fetchRequest: NSFetchRequest<NSFetchRequestResult> = PirateIsland.fetchRequest()
+        let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
+        do {
+            try viewContext.execute(deleteRequest)
+        } catch {
+            print("Error clearing existing PirateIsland data: \(error.localizedDescription)")
+        }
+        
+        // Clear existing AppDayOfWeek data
+        let fetchRequestAppDayOfWeek: NSFetchRequest<NSFetchRequestResult> = AppDayOfWeek.fetchRequest()
+        let deleteRequestAppDayOfWeek = NSBatchDeleteRequest(fetchRequest: fetchRequestAppDayOfWeek)
+        do {
+            try viewContext.execute(deleteRequestAppDayOfWeek)
+        } catch {
+            print("Error clearing existing AppDayOfWeek data: \(error.localizedDescription)")
+        }
+    }
+    
+    private static func createSampleIslands(_ viewContext: NSManagedObjectContext) -> [PirateIsland] {
+        // Create sample islands
+        let island1 = PirateIsland(context: viewContext)
+        island1.islandID = UUID()
+        island1.islandLocation = "Sunnyvale, CA"
+        island1.islandName = "Starbucks Gym"
+        island1.latitude = 37.385852
+        island1.longitude = -122.031517
+        
+        let island2 = PirateIsland(context: viewContext)
+        island2.islandID = UUID()
+        island2.islandLocation = "Mountain View, CA"
+        island2.islandName = "Google Gym"
+        island2.latitude = 37.422408
+        island2.longitude = -122.085608
+        
+        let island3 = PirateIsland(context: viewContext)
+        island3.islandID = UUID()
+        island3.islandLocation = "San Jose, CA"
+        island3.islandName = "Downtown Gym"
+        island3.latitude = 37.334772
+        island3.longitude = -121.886328
+        
+        return [island1, island2, island3]
+    }
+    
+    private static func createSampleAppDayOfWeekObjects(_ viewContext: NSManagedObjectContext, islands: [PirateIsland]) {
+        // Create sample AppDayOfWeek objects
+        let daysOfWeek = ["Monday", "Tuesday", "Wednesday"]
+        let matTimes = [["09:00", "17:00"], ["10:00", "18:00"], ["11:00", "19:00"]]
+        
+        for (index, island) in islands.enumerated() {
+            let appDayOfWeek = AppDayOfWeek(context: viewContext)
+            appDayOfWeek.day = daysOfWeek[index]
+            appDayOfWeek.pIsland = island
+            
+            let matTimesForDay = matTimes[index]
+            
+            for time in matTimesForDay {
+                let matTime = MatTime(context: viewContext)
+                matTime.time = time
+                // Set additional properties if needed
+                matTime.gi = true
+                matTime.noGi = false
+                matTime.openMat = false
+                matTime.restrictions = false
+                matTime.restrictionDescription = nil
+                matTime.goodForBeginners = false
+                matTime.kids = false
+                
+                appDayOfWeek.addToMatTimes(matTime)
+            }
+        }
+    }
+    
+    private static func clearAndCreateSampleData(viewContext: NSManagedObjectContext) {
+        clearExistingData(viewContext: viewContext)
+        
+        let islands = createSampleIslands(viewContext)
+        createSampleAppDayOfWeekObjects(viewContext, islands: islands)
+        
+        // Save the context
+        do {
+            try viewContext.save()
+        } catch {
+            print("Error saving preview data: \(error.localizedDescription)")
+        }
+    }
+    
     static var previews: some View {
         let persistenceController = PersistenceController.preview
         let viewContext = persistenceController.container.viewContext
         
-        createSampleData(viewContext: viewContext)
-
-        return VStack {
-            DayOfWeekSearchView(
-                selectedIsland: .constant(PirateIsland(context: viewContext)),
-                selectedAppDayOfWeek: .constant(AppDayOfWeek(context: viewContext)),
-                region: .constant(MKCoordinateRegion()),
-                searchResults: .constant([PirateIsland(context: viewContext)])
-            )
-            .environment(\.managedObjectContext, viewContext)
-            .previewDisplayName("Default Preview")
-
-            DayOfWeekSearchView(
-                selectedIsland: .constant(nil),
-                selectedAppDayOfWeek: .constant(nil),
-                region: .constant(MKCoordinateRegion(
-                    center: CLLocationCoordinate2D(latitude: 34.0522, longitude: -118.2437),
-                    span: MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1))),
-                searchResults: .constant([])
-            )
-            .environment(\.managedObjectContext, viewContext)
-            .previewDisplayName("Los Angeles Region")
-
-            DayOfWeekSearchView(
-                selectedIsland: .constant(PirateIsland(context: viewContext)),
-                selectedAppDayOfWeek: .constant(AppDayOfWeek(context: viewContext)),
-                region: .constant(MKCoordinateRegion()),
-                searchResults: .constant([PirateIsland(context: viewContext)])
-            )
-            .environment(\.managedObjectContext, viewContext)
-            .previewDisplayName("Selected Island and Day")
-
-            DayOfWeekSearchView(
-                selectedIsland: .constant(nil),
-                selectedAppDayOfWeek: .constant(nil),
-                region: .constant(MKCoordinateRegion()),
-                searchResults: .constant([PirateIsland(context: viewContext)])
-            )
-            .environment(\.managedObjectContext, viewContext)
-            .previewDisplayName("Search with no selections")
-        }
-    }
-
-    static func createSampleData(viewContext: NSManagedObjectContext) {
-        for i in 1..<5 {
-            let pirateIsland = PirateIsland(context: viewContext)
-            pirateIsland.islandID = UUID()
-            pirateIsland.islandName = "Island \(i)"
-            pirateIsland.latitude = 34.0522
-            pirateIsland.longitude = -118.2437
-        }
-        try? viewContext.save()
+        // Ensure sample data is created for previews
+        clearAndCreateSampleData(viewContext: viewContext)
+        
+        let pirateIslands = (try? viewContext.fetch(PirateIsland.fetchRequest())) ?? []
+        let mondayAppDayOfWeek = (try? viewContext.fetch(AppDayOfWeek.fetchRequest()))?.first(where: { $0.day == "Monday" }) ?? AppDayOfWeek(context: viewContext)
+        
+        // Debugging print
+        print("Preview - pirateIslands: \(pirateIslands)")
+        
+        return DayOfWeekSearchView(
+            selectedIsland: Binding.constant(pirateIslands.first),
+            selectedAppDayOfWeek: Binding.constant(mondayAppDayOfWeek),
+            region: .constant(MKCoordinateRegion(
+                center: CLLocationCoordinate2D(latitude: 37.385852, longitude: -122.031517),
+                span: MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1)
+            )),
+            searchResults: .constant(pirateIslands)
+        )
+        .environment(\.managedObjectContext, viewContext)
     }
 }
