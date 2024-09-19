@@ -295,31 +295,43 @@ class AppDayOfWeekRepository {
         return fetchedIslands
     }
 
-    
-    
-    func fetchAllIslands(forDay day: String) async -> [(PirateIsland, [MatTime])] {
-        let context = PersistenceController.shared.container.viewContext
-        let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "day ==[c] %@", day)
+    func fetchAllIslands(forDay day: String) async throws -> [(PirateIsland, [MatTime])] {
+        let context = getViewContext()
+
+        let fetchRequest = PirateIsland.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "ANY appDayOfWeeks.day == %@", day.lowercased())
+        fetchRequest.relationshipKeyPathsForPrefetching = ["appDayOfWeeks.matTimes"]
+        fetchRequest.returnsObjectsAsFaults = false
 
         do {
-            let appDayOfWeeks = try context.fetch(fetchRequest)
-            var result: [(PirateIsland, [MatTime])] = []
+            let islands = try await context.perform {
+                try context.fetch(fetchRequest)
+            }
+            
+            print("Fetched islands count: \(islands.count)")
 
-            for appDayOfWeek in appDayOfWeeks {
-                if let island = appDayOfWeek.pIsland, let matTimes = appDayOfWeek.matTimes?.allObjects as? [MatTime] {
-                    result.append((island, matTimes))
+            let islandsWithMatTimes = islands.compactMap { island -> (PirateIsland, [MatTime])? in
+                guard let appDayOfWeeks = island.appDayOfWeeks as? Set<AppDayOfWeek>,
+                      let selectedDayAppDayOfWeek = appDayOfWeeks.first(where: { $0.day?.lowercased() == day.lowercased() }),
+                      let matTimes = selectedDayAppDayOfWeek.matTimes?.allObjects as? [MatTime] else {
+                    print("Invalid relationship or no mat times found for island: \(island.name ?? "") on \(day.capitalized)")
+                    return nil
                 }
+                
+                print("Island: \(island.name ?? ""), MatTimes: \(matTimes)")
+                return (island, matTimes)
             }
 
-            return result
+            print("Transformed islands count: \(islandsWithMatTimes.count)")
+
+            if islandsWithMatTimes.isEmpty {
+                throw NSError(domain: "IslandFetchError", code: 1, userInfo: [NSLocalizedDescriptionKey: "No islands found"])
+            }
+
+            return islandsWithMatTimes
         } catch {
-            print("Error fetching islands: \(error)")
-            return []
+            print("Error fetching islands: \(error.localizedDescription)")
+            throw error
         }
     }
-
-    
-    
-
 }
