@@ -1,4 +1,3 @@
-//
 // AllEnteredLocations.swift
 // Seas2
 //
@@ -18,18 +17,23 @@ struct AllEnteredLocations: View {
     @State private var selectedAppDayOfWeek: AppDayOfWeek?
     
     @StateObject private var enterZipCodeViewModel: EnterZipCodeViewModel
+    @StateObject private var appDayOfWeekViewModel: AppDayOfWeekViewModel
 
     init(context: NSManagedObjectContext) {
         let dataManager = PirateIslandDataManager(viewContext: context)
         _viewModel = StateObject(wrappedValue: AllEnteredLocationsViewModel(dataManager: dataManager))
         
-        // Initialize EnterZipCodeViewModel here
-        _enterZipCodeViewModel = StateObject(wrappedValue: EnterZipCodeViewModel(
+        let enterZipCodeViewModel = StateObject(wrappedValue: EnterZipCodeViewModel(
             repository: AppDayOfWeekRepository.shared,
             context: context
         ))
+        
+        _enterZipCodeViewModel = enterZipCodeViewModel
+        _appDayOfWeekViewModel = StateObject(wrappedValue: AppDayOfWeekViewModel(
+            repository: AppDayOfWeekRepository.shared,
+            enterZipCodeViewModel: enterZipCodeViewModel.wrappedValue
+        ))
     }
-
 
     var body: some View {
         NavigationView {
@@ -42,20 +46,15 @@ struct AllEnteredLocations: View {
                     Text("No Open Mats found.")
                         .padding()
                 } else {
-                    Map(coordinateRegion: $viewModel.region, annotationItems: viewModel.pirateMarkers) { location in
-                        MapAnnotation(coordinate: location.coordinate) {
-                            VStack {
-                                Text(location.title ?? "Unknown Title")
-                                    .font(.caption)
-                                    .padding(5)
-                                    .background(Color.white)
-                                    .cornerRadius(5)
-                                    .shadow(radius: 3)
-                                CustomMarkerView()
-                            }
-                            .onTapGesture {
-                                handleTap(location: location)
-                            }
+                    let pirateIslands: [PirateIsland] = viewModel.pirateMarkers.compactMap { location in
+                        return viewModel.getPirateIsland(from: location)
+                    }
+                    
+                    Map(coordinateRegion: $viewModel.region, annotationItems: pirateIslands) { island in
+                        MapAnnotation(coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude)) {
+                            IslandAnnotationView(island: island, handleIslandTap: {
+                                handleIslandTap(island: island)
+                            })
                         }
                     }
                     .onAppear {
@@ -69,53 +68,57 @@ struct AllEnteredLocations: View {
                 viewModel.fetchPirateIslands()
             }
             .sheet(isPresented: $showModal) {
-                if let island = selectedIsland {
-                    IslandModalView(
-                        customMapMarker: CustomMapMarker.forPirateIsland(island),
-                        islandName: island.islandName ?? "Unknown", // Change this line
-                        islandLocation: island.safeIslandLocation,
-                        formattedCoordinates: island.formattedCoordinates,
-                        createdTimestamp: island.formattedTimestamp,
-                        formattedTimestamp: island.formattedTimestamp,
-                        gymWebsite: island.gymWebsite,
-                        reviews: ReviewUtils.getReviews(from: island.reviews),
-                        averageStarRating: ReviewUtils.averageStarRating(for: ReviewUtils.getReviews(from: island.reviews)),
-                        dayOfWeekData: island.daysOfWeekArray.compactMap { DayOfWeek(rawValue: $0.day ?? "") },
-                        selectedAppDayOfWeek: $selectedAppDayOfWeek,
-                        selectedIsland: $selectedIsland,
-                        viewModel: AppDayOfWeekViewModel(
-                            repository: AppDayOfWeekRepository.shared,
-                            enterZipCodeViewModel: enterZipCodeViewModel
-                        ),
-                        selectedDay: $selectedDay,
-                        showModal: $showModal,
-                        enterZipCodeViewModel: enterZipCodeViewModel
-                    )
-                } else {
-                    Text("No Island Selected")
-                        .padding()
-                }
+                IslandModalContainer(
+                    selectedIsland: $selectedIsland,
+                    viewModel: appDayOfWeekViewModel,
+                    selectedDay: $selectedDay,
+                    showModal: $showModal,
+                    enterZipCodeViewModel: enterZipCodeViewModel,
+                    selectedAppDayOfWeek: $selectedAppDayOfWeek
+                )
             }
         }
     }
 
-    func handleTap(location: CustomMapMarker) {
-        print("Tapped on location: \(location.title ?? "Unknown Title")")
+    private func handleIslandTap(island: PirateIsland) {
+        selectedIsland = island
+        showModal = true
+    }
+    
+    struct IslandModalContainer: View {
+        @Binding var selectedIsland: PirateIsland?
+        @ObservedObject var viewModel: AppDayOfWeekViewModel
+        @Binding var selectedDay: DayOfWeek?
+        @Binding var showModal: Bool
+        @ObservedObject var enterZipCodeViewModel: EnterZipCodeViewModel
+        @Binding var selectedAppDayOfWeek: AppDayOfWeek?
 
-        if let pirateIsland = viewModel.getPirateIsland(from: location) {
-            print("Fetched pirate island: \(pirateIsland.islandName ?? "Unknown Name")")
-
-            self.selectedIsland = pirateIsland
-            print("Updated selectedIsland: \(selectedIsland?.islandName ?? "Unknown Name")")
-
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                print("Presenting modal")
-                self.showModal = true
+        var body: some View {
+            if let selectedIsland = selectedIsland {
+                IslandModalView(
+                    customMapMarker: nil,
+                    islandName: selectedIsland.islandName ?? "",
+                    islandLocation: selectedIsland.islandLocation ?? "",
+                    formattedCoordinates: selectedIsland.formattedCoordinates,
+                    createdTimestamp: selectedIsland.createdTimestamp.description,
+                    formattedTimestamp: selectedIsland.formattedTimestamp,
+                    gymWebsite: selectedIsland.gymWebsite,
+                    reviews: selectedIsland.reviews?.array as? [Review] ?? [],
+                    averageStarRating: "",
+                    dayOfWeekData: [],
+                    selectedAppDayOfWeek: $selectedAppDayOfWeek,
+                    selectedIsland: $selectedIsland,
+                    viewModel: viewModel,
+                    selectedDay: $selectedDay,
+                    showModal: $showModal,
+                    enterZipCodeViewModel: enterZipCodeViewModel
+                )
+            } else {
+                EmptyView()
             }
-        } else {
-            print("No pirate island found")
         }
     }
+    
 }
 
 struct AllEnteredLocations_Previews: PreviewProvider {

@@ -20,6 +20,8 @@ class AllEnteredLocationsViewModel: NSObject, ObservableObject, NSFetchedResults
     )
     @Published var pirateMarkers: [CustomMapMarker] = []
     @Published var errorMessage: String?
+    @Published var isDataLoaded = false
+
     
     private let dataManager: PirateIslandDataManager
     
@@ -30,7 +32,7 @@ class AllEnteredLocationsViewModel: NSObject, ObservableObject, NSFetchedResults
     }
     
     func fetchPirateIslands() {
-        print("Fetching gyms...")
+        print("Fetching pirate islands...")
         DispatchQueue.global(qos: .userInitiated).async {
             let result = self.dataManager.fetchPirateIslands()
             switch result {
@@ -38,16 +40,23 @@ class AllEnteredLocationsViewModel: NSObject, ObservableObject, NSFetchedResults
                 DispatchQueue.main.async {
                     self.allIslands = pirateIslands
                     self.updatePirateMarkers(with: pirateIslands)
+                    self.isDataLoaded = true // Set to true after data is loaded
                 }
             case .failure(let error):
                 DispatchQueue.main.async {
-                    self.errorMessage = "Failed to fetch gyms: \(error.localizedDescription)"
+                    self.errorMessage = "Failed to fetch pirate islands: \(error.localizedDescription)"
+                    self.isDataLoaded = true // Set to true even if data loading failed
                 }
             }
         }
     }
     
     private func updatePirateMarkers(with islands: [PirateIsland]) {
+        guard !islands.isEmpty else {
+            print("Error: No pirate islands available to create markers.")
+            return
+        }
+        
         let markers = islands.map { island in
             CustomMapMarker(
                 id: island.islandID ?? UUID(),
@@ -59,10 +68,9 @@ class AllEnteredLocationsViewModel: NSObject, ObservableObject, NSFetchedResults
 
         DispatchQueue.main.async {
             self.pirateMarkers = markers
-            self.updateRegion()  // Use dynamic region update
+            self.updateRegion()  // Update map region after markers are set
         }
     }
-    
     func updateRegion() {
         guard !pirateMarkers.isEmpty else { return }
 
@@ -82,6 +90,26 @@ class AllEnteredLocationsViewModel: NSObject, ObservableObject, NSFetchedResults
     }
     
     func getPirateIsland(from marker: CustomMapMarker) -> PirateIsland? {
-        return allIslands.first(where: { $0.islandName == marker.title })
+        // Ensure allIslands has been populated and synced with markers
+        guard !allIslands.isEmpty else {
+            print("Error: allIslands is empty. Ensure fetchPirateIslands was called and completed.")
+            return nil
+        }
+        
+        // Attempt to find the pirate island using its name
+        if let pirateIsland = allIslands.first(where: { $0.islandName == marker.title }) {
+            return pirateIsland
+        } else {
+            // Log an error if the pirate island isn't found
+            print("Error: No PirateIsland found for marker title \(marker.title ?? "Unknown"). Ensure data is synced correctly.")
+            return nil
+        }
     }
+
+    
+    func handleError(_ message: String) {
+        self.errorMessage = message
+    }
+    
+    
 }
