@@ -16,14 +16,14 @@ struct ScheduledMatTimesSection: View {
     @Binding var selectedDay: DayOfWeek?
 
 
-
     var body: some View {
         Section(header: Text("Scheduled Mat Times")) {
             if let appDayOfWeek = island.daysOfWeekArray.first(where: { $0.day == day.rawValue }),
-               let day = appDayOfWeek.day {
+               let day = appDayOfWeek.day,
+               !viewModel.fetchMatTimes(for: self.day).isEmpty {
                 MatTimesList(day: day, matTimes: viewModel.fetchMatTimes(for: self.day))
             } else {
-                Text("No mat times available for \(self.day.rawValue) at \(island.islandName ??  "this island").")
+                Text("No mat times available for \(self.day.rawValue.capitalized) at \(island.islandName ??  "this island").")
                     .foregroundColor(.gray)
             }
         }

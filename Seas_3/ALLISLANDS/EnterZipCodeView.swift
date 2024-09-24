@@ -57,7 +57,19 @@ struct EnterZipCodeView: View {
             .padding() // Add padding to match overall view
             .navigationTitle("Enter Location")
         }
+        .sheet(isPresented: $showModal) {
+            IslandModalContainer(
+                selectedIsland: $selectedIsland,
+                viewModel: appDayOfWeekViewModel,
+                selectedDay: $selectedDay,
+                showModal: $showModal,
+                enterZipCodeViewModel: enterZipCodeViewModel,
+                selectedAppDayOfWeek: $selectedAppDayOfWeek
+            )
+        }
     }
+
+        
 
     private func search() {
         MapUtils.fetchLocation(for: locationInput, selectedRadius: selectedRadius) { coordinate, error in

@@ -32,7 +32,7 @@ struct IslandMap: View {
         .onAppear {
             print("Gym Map appeared with gyms count: \(islands.count)")
             for marker in islands {
-                print("Gym: \(String(describing: marker.title)), Location: \(String(describing: marker.subtitle)), Latitude: \(marker.coordinate.latitude), Longitude: \(marker.coordinate.longitude)")
+                print("Gym: \(marker.title ?? "Unknown Gym"), Location: \(marker.subtitle ?? "Unknown Location"), Latitude: \(marker.coordinate.latitude), Longitude: \(marker.coordinate.longitude)")
             }
         }
     }

@@ -15,7 +15,7 @@ struct pIslandScheduleView: View {
     var body: some View {
         VStack {
             if let selectedIsland = selectedIsland {
-                Text("Schedules for \(String(describing: selectedIsland.islandName))")
+                Text("Schedules for \(selectedIsland.islandName ?? "Unknown Island")")
                     .font(.title)
                     .padding()
 

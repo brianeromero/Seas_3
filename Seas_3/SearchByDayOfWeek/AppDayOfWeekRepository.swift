@@ -75,11 +75,11 @@ class AppDayOfWeekRepository {
     }
 
     func generateName(for island: PirateIsland, day: DayOfWeek) -> String {
-        return "\(String(describing: island.islandName)) \(day.displayName)"
+        return "\(island.islandName ?? "Unknown Island") \(day.displayName)"
     }
     
     func generateAppDayOfWeekID(for island: PirateIsland, day: DayOfWeek) -> String {
-        return "\(String(describing: island.islandName))-\(day.rawValue)"
+        return "\(island.islandName ?? "UnknownIsland")-\(day.rawValue)"
     }
 
     func getAppDayOfWeek(for day: String, pirateIsland: PirateIsland, context: NSManagedObjectContext) -> AppDayOfWeek? {
@@ -169,7 +169,7 @@ class AppDayOfWeekRepository {
         let newAppDayOfWeek = fetchOrCreateAppDayOfWeek(for: day.rawValue, pirateIsland: selectedIsland, context: context)
         currentAppDayOfWeek = newAppDayOfWeek
         
-        print("Created or fetched AppDayOfWeek: \(String(describing: newAppDayOfWeek))")
+        print("Created or fetched AppDayOfWeek: \(newAppDayOfWeek.debugDescription)")
     }
 
 
@@ -195,13 +195,13 @@ class AppDayOfWeekRepository {
     }
 
     func fetchSchedules(for island: PirateIsland) -> [AppDayOfWeek] {
-        print("AppDayOfWeekRepository - Fetching schedules for island: \(String(describing: island.islandName))")
+        print("AppDayOfWeekRepository - Fetching schedules for island: \(island.islandName ?? "Unknown Island")")
         let predicate = NSPredicate(format: "pIsland == %@", island)
         return persistenceController.fetchSchedules(for: predicate)
     }
 
     func fetchSchedules(for island: PirateIsland, day: DayOfWeek) -> [AppDayOfWeek] {
-        print("AppDayOfWeekRepository - Fetching schedules for island: \(String(describing: island.islandName)) and day: \(day.displayName)")
+        print("AppDayOfWeekRepository - Fetching schedules for island: \(island.islandName!) and day: \(day.displayName)")
         let predicate = NSPredicate(format: "pIsland == %@ AND day == %@", island, day.rawValue)
         return persistenceController.fetchSchedules(for: predicate)
     }

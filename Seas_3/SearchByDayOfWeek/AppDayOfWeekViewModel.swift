@@ -49,7 +49,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
     // MARK: - Property Observers
     @Published var name: String? {
         didSet {
-            print("Name updated: \(String(describing: name))")
+            print("Name updated: \(name ?? "None")")
             handleUserInteraction()
         }
     }
@@ -210,7 +210,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
     ) {
         // Log parameters
         print("updateOrCreateMatTime called with:")
-        print("  Existing MatTime: \(String(describing: existingMatTime))")
+        print("  Existing MatTime: \(existingMatTime?.debugDescription ?? "None")")
         print("  Time: \(time)")
         print("  Type: \(type)")
         print("  Gi: \(gi)")
@@ -473,19 +473,19 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
             pirateIsland: island,
             context: context
         ) else {
-            print("Error: appDayOfWeek is nil")
+            print("Error fetching or creating appDayOfWeek")
             return
         }
         
         appDayOfWeek.day = day.rawValue
         appDayOfWeek.pIsland = island
-        appDayOfWeek.name = "\(String(describing: island.islandName)) \(day.displayName)"
+        appDayOfWeek.name = "\(island.islandName ?? "Unknown Island") \(day.displayName)"
         appDayOfWeek.createdTimestamp = Date()
         
         if let unwrappedMatTime = newMatTime {
             addMatTime(matTime: unwrappedMatTime, for: day, appDayOfWeek: appDayOfWeek)
         } else {
-            print("Error: newMatTime is nil")
+            print("Error: newMatTime is unexpectedly nil")
         }
         
         saveData()
@@ -519,11 +519,10 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
     // MARK: - Update Bindings
     func updateBindings() {
         print("Updating bindings...")
-        print("Selected Gym: \(String(describing: selectedIsland))")
-        print("Current AppDayOfWeek: \(String(describing: currentAppDayOfWeek))")
-        print("New MatTime: \(String(describing: newMatTime))")
+        print("Selected Gym: \(selectedIsland?.islandName ?? "None")")
+        print("Current AppDayOfWeek: \(currentAppDayOfWeek?.debugDescription ?? "None")")
+        print("New MatTime: \(newMatTime?.debugDescription ?? "None")")
     }
-    
     
     // MARK: - Validate Fields
     func validateFields() -> Bool {

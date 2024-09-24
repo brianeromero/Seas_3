@@ -78,9 +78,9 @@ struct IslandModalView: View {
                         showModal = false
                     }
 
-                if isLoading {
+                if isLoadingData {
                     ProgressView("Loading schedules...")
-                } else if !islandSchedules.isEmpty {
+                } else if let selectedIsland = selectedIsland, let _ = selectedDay {
                     VStack(alignment: .leading, spacing: 16) {
                         Text(islandName)
                             .font(.system(size: 14))
@@ -108,17 +108,18 @@ struct IslandModalView: View {
                                 .padding(.top, 10)
                         }
 
-                        if let island = selectedIsland {
-                            if scheduleExists {
-                                NavigationLink(
-                                    destination: ViewScheduleForIsland(
-                                        viewModel: viewModel,
-                                        island: island
-                                    )
-                                ) {
-                                    Text("View Schedule")
-                                }
+                        if scheduleExists {
+                            NavigationLink(
+                                destination: ViewScheduleForIsland(
+                                    viewModel: viewModel,
+                                    island: selectedIsland
+                                )
+                            ) {
+                                Text("View Schedule")
                             }
+                        } else {
+                            Text("No schedules found for this Gym.")
+                                .foregroundColor(.secondary)
                         }
 
                         // Display reviews or option to leave a review
@@ -130,9 +131,10 @@ struct IslandModalView: View {
                                     Text(averageStarRating)
                                 }
 
-                                NavigationLink(destination: ViewReviewforIsland(selectedIsland: selectedIsland)) {
+                                NavigationLink(destination: ViewReviewforIsland()) {
                                     Text("View Reviews")
                                 }
+
                             } else {
                                 Text("No reviews available.")
                                     .foregroundColor(.secondary)
@@ -169,8 +171,7 @@ struct IslandModalView: View {
                     .shadow(radius: 10)
                     .frame(width: UIScreen.main.bounds.width * 0.8, height: UIScreen.main.bounds.height * 0.6)
                 } else {
-                    // Display message when no schedules are found
-                    Text("No schedules found for this Gym.")
+                    Text("Error: selectedIsland or selectedDay is nil.")
                         .font(.system(size: 14))
                         .bold()
                         .padding()
@@ -182,7 +183,7 @@ struct IslandModalView: View {
         }
         .interactiveDismissDisabled(false)
         .onAppear {
-            isLoadingData = true // Start loading
+            isLoadingData = true
             guard let island = selectedIsland, let day = selectedDay else {
                 print("Error: selectedIsland or selectedDay is nil.")
                 isLoadingData = false
@@ -193,13 +194,13 @@ struct IslandModalView: View {
                 let fetchedSchedules = PersistenceController.shared.fetchAppDayOfWeekForIslandAndDay(for: island, day: day)
                 islandSchedules = [(island, fetchedSchedules.flatMap { $0.matTimes?.allObjects as? [MatTime] ?? [] })]
                 scheduleExists = !fetchedSchedules.isEmpty
-                isLoadingData = false // Stop loading when done
+                isLoadingData = false
                 print("Schedules loaded: \(islandSchedules.count) schedules")
             }
         }
     }
-}
 
+}
 
 struct IslandModalView_Previews: PreviewProvider {
     static var previews: some View {

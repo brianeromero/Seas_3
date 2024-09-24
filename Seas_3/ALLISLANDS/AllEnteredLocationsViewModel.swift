@@ -85,7 +85,7 @@ class AllEnteredLocationsViewModel: NSObject, ObservableObject, NSFetchedResults
     
     func logTileInformation() {
         for marker in pirateMarkers {
-            print("Marker ID: \(marker.id), Coordinate: \(marker.coordinate), Title: \(String(describing: marker.title))")
+            print("Marker ID: \(marker.id), Coordinate: \(marker.coordinate), Title: \(marker.title ?? "Unknown")")
         }
     }
     
