@@ -38,7 +38,7 @@ struct IslandMenu: View {
     let menuItems: [MenuItem] = [
         .init(title: "Search Gym Entries By", subMenuItems: ["All Locations", "Current Location", "ZipCode", "Day of the Week"]),
         .init(title: "Manage Gyms Entries", subMenuItems: ["Add New Gym", "Update Existing Gyms", "Add or Edit Schedule/Open Mat"]),
-        .init(title: "Gym Reviews", subMenuItems: ["Submit Gym/Open Mat Review"]),
+        .init(title: "Mat Reviews", subMenuItems: ["Search Reviews", "Submit a Review"]),
         .init(title: "FAQ", subMenuItems: ["FAQ & Disclaimer"])
     ]
 
@@ -195,7 +195,13 @@ struct IslandMenu: View {
                 region: $region,
                 searchResults: $searchResults
             )
-        case "Submit Gym/Open Mat Review":
+        case "Search Reviews":
+            if let viewModel = appDayOfWeekViewModel {
+                ViewReviewSearch(selectedIsland: $selectedIsland, enterZipCodeViewModel: viewModel.enterZipCodeViewModel)
+            } else {
+                Text("Loading...") // Placeholder while the view model is not yet ready
+            }
+        case "Submit a Review":
             GymMatReviewSelect(
                 selectedIsland: $selectedIsland,
                 enterZipCodeViewModel: EnterZipCodeViewModel(

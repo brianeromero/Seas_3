@@ -29,27 +29,6 @@ enum StarRating: Int, CaseIterable {
     }
 }
 
-struct IslandSection: View {
-    @Binding var selectedIsland: PirateIsland?
-    let islands: FetchedResults<PirateIsland>
-
-    var body: some View {
-        Section(header: Text("Select Gym/Island")) {
-            Picker("Gym/Island", selection: $selectedIsland) {
-                ForEach(islands, id: \.self) { island in
-                    Text(island.islandName ?? "Unknown Island")
-                        .tag(island as PirateIsland?)
-                }
-            }
-            .onChange(of: selectedIsland) { newIsland in
-                if let island = newIsland {
-                    print("Selected Gym/Island: \(String(describing: island.islandName))")
-                }
-            }
-        }
-    }
-}
-
 struct GymMatReviewView: View {
     @State private var reviewText: String = ""
     @State private var selectedRating: StarRating = .zero
@@ -201,6 +180,7 @@ struct ReviewSection: View {
 
     let textEditorHeight: CGFloat = 150
     let cornerRadius: CGFloat = 8
+    let characterLimit: Int = 300
 
     var body: some View {
         Section(header: Text("Write Your Review")) {
@@ -210,9 +190,35 @@ struct ReviewSection: View {
                     RoundedRectangle(cornerRadius: cornerRadius)
                         .stroke(Color.gray, lineWidth: 1)
                 )
+                .onReceive(reviewText.publisher.collect()) { newText in
+                    let filteredText = String(newText.prefix(characterLimit))
+                    if filteredText != reviewText {
+                        reviewText = filteredText
+                    }
+                }
+
+            let charactersUsed = reviewText.count
+            let overLimit = max(0, charactersUsed - characterLimit)
+            let remainingCharacters = max(0, characterLimit - charactersUsed)
+
+            Text("\(charactersUsed) / \(characterLimit) characters used")
+                .font(.caption)
+                .foregroundColor(charactersUsed > characterLimit ? .red : .gray)
+
+            if overLimit > 0 {
+                Text("Over limit by \(overLimit) characters")
+                    .font(.caption)
+                    .foregroundColor(.red)
+            } else if remainingCharacters > 0 {
+                Text("\(remainingCharacters) characters remaining")
+                    .font(.caption)
+                    .foregroundColor(.gray)
+            }
         }
     }
 }
+
+
 
 struct RatingSection: View {
     @Binding var selectedRating: StarRating
