@@ -9,33 +9,30 @@ import UIKit
 import CoreData
 
 class AppDelegate: UIResponder, UIApplicationDelegate {
+    var window: UIWindow?
 
-    lazy var persistentContainer: NSPersistentContainer = {
-        let container = NSPersistentContainer(name: "Seas_3")
-        container.loadPersistentStores(completionHandler: { (storeDescription, error) in
-            if let error = error as NSError? {
-                fatalError("Unresolved error \(error), \(error.userInfo)")
-            }
-        })
-        return container
-    }()
+    // Access the shared PersistenceController
+    let persistenceController = PersistenceController.shared
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Custom initialization if needed
         return true
     }
 
-    // MARK: - Core Data Saving support
+    // You can call saveContext at appropriate lifecycle events
+    func applicationDidEnterBackground(_ application: UIApplication) {
+        do {
+            try persistenceController.saveContext() // Save changes when the app goes to the background
+        } catch {
+            print("Failed to save context when entering background: \(error.localizedDescription)")
+        }
+    }
 
-    func saveContext () {
-        let context = persistentContainer.viewContext
-        if context.hasChanges {
-            do {
-                try context.save()
-            } catch {
-                let nserror = error as NSError
-                fatalError("Unresolved error \(nserror), \(nserror.userInfo)")
-            }
+    func applicationWillTerminate(_ application: UIApplication) {
+        do {
+            try persistenceController.saveContext() // Save changes when the app is about to terminate
+        } catch {
+            print("Failed to save context when terminating: \(error.localizedDescription)")
         }
     }
 }

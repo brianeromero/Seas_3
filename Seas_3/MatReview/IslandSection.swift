@@ -10,8 +10,8 @@ import SwiftUI
 import CoreData
 
 struct IslandSection: View {
+    let islands: [PirateIsland]
     @Binding var selectedIsland: PirateIsland?
-    let islands: FetchedResults<PirateIsland>
 
     var body: some View {
         Section(header: Text("Select Island")) {

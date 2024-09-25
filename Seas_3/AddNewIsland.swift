@@ -165,18 +165,15 @@ struct AddNewIsland: View {
             }
         }
     }
-
-
     
     private func validateFields() {
         let nameValid = !islandName.isEmpty
         let locationValid = !street.isEmpty && !city.isEmpty && !state.isEmpty && !zip.isEmpty
-        let websiteValid = gymWebsiteURL == nil || validateURL(gymWebsite)
-
         let createdByValid = !createdByUserId.isEmpty
 
-        isSaveEnabled = nameValid && locationValid && websiteValid && createdByValid
+        isSaveEnabled = nameValid && locationValid && createdByValid
     }
+
 
     
     private func clearFields() {
@@ -205,7 +202,8 @@ struct AddNewIsland: View {
     }
     
     private func validateURL(_ urlString: String) -> Bool {
-        guard let url = URL(string: urlString) else { return false }
-        return UIApplication.shared.canOpenURL(url)
+        // Simplified URL validation using a regex pattern
+        let urlRegex = "^(https?:\\/\\/)?([\\da-z\\.-]+)\\.([a-z\\.]{2,6})([\\/\\w \\.-]*)*\\/?$"
+        return NSPredicate(format: "SELF MATCHES %@", urlRegex).evaluate(with: urlString)
     }
 }

@@ -131,7 +131,9 @@ struct IslandModalView: View {
                                     Text(averageStarRating)
                                 }
 
-                                NavigationLink(destination: ViewReviewforIsland()) {
+                                NavigationLink(destination: ViewReviewforIsland(
+                                    enterZipCodeViewModel: enterZipCodeViewModel // Pass the view model here
+                                )) {
                                     Text("View Reviews")
                                 }
 

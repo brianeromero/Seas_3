@@ -35,19 +35,22 @@ enum SortType: String, CaseIterable {
 struct ViewReviewforIsland: View {
     @State private var selectedIsland: PirateIsland?
     @State private var selectedSortType: SortType = .latest // Declare selectedSortType
-    @StateObject var enterZipCodeViewModel = EnterZipCodeViewModel(
-        repository: AppDayOfWeekRepository.shared,
-        context: PersistenceController.preview.container.viewContext
-    )
+    @StateObject var enterZipCodeViewModel: EnterZipCodeViewModel // Make this a parameter
+
     @FetchRequest(
         entity: PirateIsland.entity(),
         sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.islandName, ascending: true)]
     ) private var islands: FetchedResults<PirateIsland>
 
+    // Initializer that accepts EnterZipCodeViewModel
+    init(enterZipCodeViewModel: EnterZipCodeViewModel) {
+        self._enterZipCodeViewModel = StateObject(wrappedValue: enterZipCodeViewModel)
+    }
+
     var body: some View {
         NavigationView {
             Form {
-                IslandSection(selectedIsland: $selectedIsland, islands: islands)
+                IslandSection(islands: Array(islands), selectedIsland: $selectedIsland)
                     .padding(.horizontal, 16)
                     .padding(.top, 16)
 
@@ -57,8 +60,12 @@ struct ViewReviewforIsland: View {
                 }
 
                 if selectedIsland != nil {
-                    ReviewList(selectedIsland: $selectedIsland, selectedSortType: $selectedSortType, enterZipCodeViewModel: enterZipCodeViewModel)
-                        .padding(.horizontal, 16)
+                    ReviewList(
+                        selectedIsland: $selectedIsland,
+                        selectedSortType: $selectedSortType,
+                        enterZipCodeViewModel: enterZipCodeViewModel
+                    )
+                    .padding(.horizontal, 16)
                 } else {
                     Text("Please select an island to view reviews.")
                         .foregroundColor(.gray)
@@ -66,7 +73,8 @@ struct ViewReviewforIsland: View {
                         .padding()
                 }
             }
-            .navigationTitle("View Reviews for Island")        }
+            .navigationTitle("View Reviews for Island")
+        }
     }
 }
 
@@ -109,7 +117,7 @@ struct ReviewList: View {
 
         let fetchRequest: NSFetchRequest<Review> = Review.fetchRequest()
         fetchRequest.sortDescriptors = [NSSortDescriptor(key: selectedSortType.wrappedValue.sortKey, ascending: selectedSortType.wrappedValue.ascending)]
-        
+
         // Set initial predicate only if selectedIsland is not nil
         if let selectedIsland = selectedIsland.wrappedValue {
             fetchRequest.predicate = NSPredicate(format: "island == %@", selectedIsland)
@@ -117,7 +125,6 @@ struct ReviewList: View {
 
         self._reviews = FetchRequest<Review>(fetchRequest: fetchRequest, animation: .default)
     }
-
 
     var body: some View {
         VStack {
@@ -130,7 +137,7 @@ struct ReviewList: View {
                 NavigationLink(destination: GymMatReviewView(
                     selectedIsland: $selectedIsland,
                     isPresented: .constant(true),
-                    enterZipCodeViewModel: enterZipCodeViewModel
+                    enterZipCodeViewModel: enterZipCodeViewModel // Pass the enterZipCodeViewModel here
                 )) {
                     Text("Write a Review")
                         .font(.body)
@@ -188,7 +195,6 @@ struct ReviewList: View {
     }
 }
 
-
 struct FullReviewView: View {
     var review: Review
 
@@ -217,8 +223,6 @@ struct FullReviewView: View {
     }
 }
 
-
-
 struct ViewReviewforIsland_Previews: PreviewProvider {
     static var previews: some View {
         let context = PersistenceController.preview.container.viewContext
@@ -227,7 +231,12 @@ struct ViewReviewforIsland_Previews: PreviewProvider {
         let mockIsland = PirateIsland(context: context)
         mockIsland.islandName = "Mock Island"
 
-        return ViewReviewforIsland()
+        let mockViewModel = EnterZipCodeViewModel(
+            repository: AppDayOfWeekRepository.shared,
+            context: context
+        )
+
+        return ViewReviewforIsland(enterZipCodeViewModel: mockViewModel)
             .environment(\.managedObjectContext, context)
             .previewDisplayName("View Reviews for Island")
     }

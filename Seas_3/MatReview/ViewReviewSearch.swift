@@ -58,7 +58,7 @@ struct ViewReviewSearch: View {
                     }
                 }
                 .listStyle(PlainListStyle())
-                .navigationTitle("Select Island for Review")
+                .navigationTitle("Explore Gym Reviews")
                 .alert(isPresented: $showNoMatchAlert) {
                     Alert(
                         title: Text("No Match Found"),
@@ -71,12 +71,13 @@ struct ViewReviewSearch: View {
                 updateFilteredIslands()
             }
             .sheet(isPresented: $showReviewView) {
-                if let _ = selectedIsland {
-                    ViewReviewforIsland()
+                if selectedIsland != nil {
+                    ViewReviewforIsland(enterZipCodeViewModel: enterZipCodeViewModel) // Pass the view model here
                 } else {
                     EmptyView()
                 }
             }
+
         }
     }
 

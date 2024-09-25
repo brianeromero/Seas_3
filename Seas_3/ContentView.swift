@@ -10,8 +10,8 @@ import CoreData
 
 struct ContentView: View {
     @EnvironmentObject var persistenceController: PersistenceController
-    @StateObject var viewModel = PirateIslandViewModel(context: PersistenceController.shared.container.viewContext)
-    
+    @StateObject var viewModel: PirateIslandViewModel
+
     @State private var showAddIslandForm = false
     @State private var islandName = ""
     @State private var islandLocation = ""
@@ -34,6 +34,11 @@ struct ContentView: View {
         entity: PirateIsland.entity(),
         sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.createdTimestamp, ascending: true)]
     ) private var pirateIslands: FetchedResults<PirateIsland>
+
+    init() {
+        // Initialize the view model with the correct context
+        _viewModel = StateObject(wrappedValue: PirateIslandViewModel(context: PersistenceController.shared.container.viewContext))
+    }
     
     var body: some View {
         NavigationView {

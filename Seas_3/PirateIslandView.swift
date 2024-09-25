@@ -28,7 +28,7 @@ struct PirateIslandView: View {
         } else {
             // Placeholder view or navigate to the next screen
             // You can replace this with your actual main content
-            Text("Where All Your Mat Dreams Come True.")
+            Text("Where All Your Mat Dreams Come True!!!")
                 .padding()
                 .onAppear {
                     // Use Timer to perform some action after 5 seconds

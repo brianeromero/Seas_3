@@ -7,6 +7,11 @@ import Foundation
 import CoreData
 import UIKit
 
+// Notification Name extension
+extension Notification.Name {
+    static let contextSaved = Notification.Name("contextSaved")
+}
+
 class PersistenceController: ObservableObject {
     static let shared = PersistenceController(inMemory: false)
     let container: NSPersistentContainer
@@ -48,7 +53,12 @@ class PersistenceController: ObservableObject {
     // Save context method
     func saveContext() throws {
         if viewContext.hasChanges {
-            try viewContext.save()
+            do {
+                try viewContext.save()
+                NotificationCenter.default.post(name: .contextSaved, object: nil)
+            } catch {
+                throw PersistenceError.saveError(error)
+            }
         }
     }
 
@@ -60,13 +70,13 @@ class PersistenceController: ObservableObject {
             viewContext.delete(scheduleToDelete)
         }
         do {
-            try viewContext.save()
+            try saveContext() // Catch the error
         } catch {
-            print("Error saving context: \(error)")
+            print("Failed to save context after deletion: \(error.localizedDescription)")
         }
     }
 
-    // Specific fetch and delete methods
+    // Specific fetch methods
     func fetchSchedules(for predicate: NSPredicate) -> [AppDayOfWeek] {
         let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
         fetchRequest.predicate = predicate
@@ -90,7 +100,7 @@ class PersistenceController: ObservableObject {
         do {
             return try fetch(request: fetchRequest)
         } catch {
-            print("Error fetching gyms: \(error)")
+            print("Error fetching islands: \(error)")
             return []
         }
     }
@@ -103,7 +113,7 @@ class PersistenceController: ObservableObject {
             let results = try fetch(request: fetchRequest)
             return results.first
         } catch {
-            print("Error fetching last gym: \(error)")
+            print("Error fetching last island: \(error)")
             return nil
         }
     }
@@ -127,7 +137,8 @@ class PersistenceController: ObservableObject {
 
         for _ in 0..<10 {
             let newIsland = PirateIsland(context: viewContext)
-            newIsland.islandName = "Preview Gym"
+            newIsland.islandID = UUID() // Set the islandID
+            newIsland.islandName = "Preview Island"
             newIsland.latitude = 37.7749
             newIsland.longitude = -122.4194
             newIsland.createdTimestamp = Date()

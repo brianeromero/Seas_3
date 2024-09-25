@@ -95,22 +95,29 @@ struct EditExistingIsland: View {
             return
         }
         
-        context.performAndWait {
-            island.islandName = islandName
-            island.islandLocation = islandLocation
-            island.lastModifiedByUserId = lastModifiedByUserId // Save lastModifiedByUserId here
-            
-            if let url = gymWebsiteURL {
-                island.gymWebsite = url
-            }
-            
-            // Update last modified timestamp
-            island.lastModifiedTimestamp = Date()
-            
-            do {
-                try context.save()
-            } catch {
-                print("Error saving gym: \(error.localizedDescription)")
+        MapUtils.fetchLocation(for: islandLocation, selectedRadius: 0.0) { coordinate, error in
+            context.performAndWait {
+                island.islandName = islandName
+                island.islandLocation = islandLocation
+                island.lastModifiedByUserId = lastModifiedByUserId
+                
+                if let coordinate = coordinate {
+                    island.latitude = coordinate.latitude
+                    island.longitude = coordinate.longitude
+                }
+                
+                if let url = gymWebsiteURL {
+                    island.gymWebsite = url
+                }
+                
+                // Update last modified timestamp
+                island.lastModifiedTimestamp = Date()
+                
+                do {
+                    try context.save()
+                } catch {
+                    print("Error saving gym: \(error.localizedDescription)")
+                }
             }
         }
     }
