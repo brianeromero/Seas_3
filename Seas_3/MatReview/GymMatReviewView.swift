@@ -37,10 +37,7 @@ struct GymMatReviewView: View {
     @State private var isLoading = false
     @Binding var selectedIsland: PirateIsland?
     @Binding var isPresented: Bool
-    @StateObject var enterZipCodeViewModel: EnterZipCodeViewModel = EnterZipCodeViewModel(
-        repository: AppDayOfWeekRepository.shared,
-        context: PersistenceController.preview.container.viewContext
-    )
+    @StateObject var enterZipCodeViewModel: EnterZipCodeViewModel
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.presentationMode) private var presentationMode
     @FetchRequest(
@@ -52,28 +49,27 @@ struct GymMatReviewView: View {
     init(
         selectedIsland: Binding<PirateIsland?>,
         isPresented: Binding<Bool>,
-        enterZipCodeViewModel: EnterZipCodeViewModel // Add this parameter
+        enterZipCodeViewModel: EnterZipCodeViewModel
     ) {
         self._selectedIsland = selectedIsland
         self._isPresented = isPresented
         self._enterZipCodeViewModel = StateObject(wrappedValue: enterZipCodeViewModel)
     }
 
-    
     var averageRating: Double {
         guard let island = selectedIsland else {
             return 0
         }
-        
+
         let reviewsFetchRequest: NSFetchRequest<Review> = Review.fetchRequest()
         reviewsFetchRequest.predicate = NSPredicate(format: "island == %@", island)
-        
+
         do {
             let reviews = try viewContext.fetch(reviewsFetchRequest)
             if reviews.isEmpty {
                 return 0
             }
-            
+
             let totalStars = reviews.reduce(0) { $0 + Int($1.stars) }
             return Double(totalStars) / Double(reviews.count)
         } catch {
@@ -82,10 +78,12 @@ struct GymMatReviewView: View {
         }
     }
 
-    var body: some View {
-        ZStack(alignment: .bottom) {
+
+
+    var body: some View {        ZStack(alignment: .bottom) {
             Form {
-                IslandSection(selectedIsland: $selectedIsland, islands: islands)
+                // Transform `FetchedResults<PirateIsland>` to a regular array
+                IslandSection(islands: Array(islands), selectedIsland: $selectedIsland)
                 ReviewSection(reviewText: $reviewText)
                 RatingSection(selectedRating: $selectedRating)
                 Button(action: submitReview) {
@@ -109,15 +107,15 @@ struct GymMatReviewView: View {
                     }
                 }
             }
-            
+
             StarRatingsLedger()
-                .frame(height: 150) // Set the height to 150
+                .frame(height: 150)
                 .padding(.horizontal, 20)
                 .padding(.bottom, 20)
                 .background(Color.white.opacity(0.8))
                 .cornerRadius(10)
                 .shadow(radius: 5)
-            
+
             if isLoading {
                 ProgressView()
             }
@@ -136,18 +134,18 @@ struct GymMatReviewView: View {
             showAlert = true
             return
         }
-        
+
         isLoading = true
-        
+
         let newReview = Review(context: viewContext)
         newReview.stars = Int16(selectedRating.rawValue)
         newReview.review = reviewText
         newReview.createdTimestamp = Date()
         newReview.island = island
-        
+
         let reviewsFetchRequest: NSFetchRequest<Review> = Review.fetchRequest()
         reviewsFetchRequest.predicate = NSPredicate(format: "island == %@", island)
-        
+
         do {
             let existingReviews = try viewContext.fetch(reviewsFetchRequest)
             let totalStars = existingReviews.reduce(0) { $0 + $1.stars }
@@ -166,7 +164,7 @@ struct GymMatReviewView: View {
             print("Error saving review: \(error)")
             alertMessage = "Failed to save review. Please try again."
         }
-        
+
         isLoading = false
         reviewText = ""
         DispatchQueue.main.async {
@@ -175,9 +173,10 @@ struct GymMatReviewView: View {
     }
 }
 
+// Reusable components below
+
 struct ReviewSection: View {
     @Binding var reviewText: String
-
     let textEditorHeight: CGFloat = 150
     let cornerRadius: CGFloat = 8
     let characterLimit: Int = 300
@@ -217,8 +216,6 @@ struct ReviewSection: View {
         }
     }
 }
-
-
 
 struct RatingSection: View {
     @Binding var selectedRating: StarRating
@@ -260,7 +257,7 @@ struct StarRatingsLedger: View {
                 }
             }
         }
-        .frame(maxWidth: .infinity) // Make the VStack as wide as its parent
+        .frame(maxWidth: .infinity)
         .padding(.horizontal, 20)
         .padding(.bottom, 20)
         .background(Color.white.opacity(0.8))
@@ -268,6 +265,7 @@ struct StarRatingsLedger: View {
         .shadow(radius: 5)
     }
 }
+
 
 struct GymMatReviewView_Previews: PreviewProvider {
     static var previews: some View {

@@ -89,8 +89,7 @@ struct ScheduledMatTimesSection: View {
 
 struct ScheduledMatTimesSection_Previews: PreviewProvider {
     static var previews: some View {
-        let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
-
+        let context = (UIApplication.shared.delegate as! AppDelegate).persistenceController.container.viewContext
         // Create a mock PirateIsland
         let pirateIsland = PirateIsland(context: context)
         pirateIsland.islandName = "Mock Island"
