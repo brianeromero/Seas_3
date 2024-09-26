@@ -132,6 +132,7 @@ struct IslandModalView: View {
                                 }
 
                                 NavigationLink(destination: ViewReviewforIsland(
+                                    selectedIsland: selectedIsland, // Pass the selected island here
                                     enterZipCodeViewModel: enterZipCodeViewModel // Pass the view model here
                                 )) {
                                     Text("View Reviews")
@@ -150,6 +151,7 @@ struct IslandModalView: View {
                                 }
                             }
                         }
+
                         .padding(.top, 20)
 
                         Spacer()

@@ -32,42 +32,53 @@ enum SortType: String, CaseIterable {
     }
 }
 
-struct ViewReviewforIsland: View {
-    @State private var selectedIsland: PirateIsland?
-    @State private var selectedSortType: SortType = .latest // Declare selectedSortType
-    @StateObject var enterZipCodeViewModel: EnterZipCodeViewModel // Make this a parameter
 
+import SwiftUI
+import CoreData
+
+struct ViewReviewforIsland: View {
+    var selectedIsland: PirateIsland?
+    @State private var selectedSortType: SortType = .latest
+    @StateObject var enterZipCodeViewModel: EnterZipCodeViewModel
+
+    // FetchRequest for Reviews
+    @FetchRequest(
+        entity: Review.entity(),
+        sortDescriptors: [NSSortDescriptor(keyPath: \Review.createdTimestamp, ascending: false)]
+    ) private var reviews: FetchedResults<Review>
+
+    // FetchRequest for Pirate Islands
     @FetchRequest(
         entity: PirateIsland.entity(),
         sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.islandName, ascending: true)]
     ) private var islands: FetchedResults<PirateIsland>
 
-    // Initializer that accepts EnterZipCodeViewModel
-    init(enterZipCodeViewModel: EnterZipCodeViewModel) {
+    init(selectedIsland: PirateIsland?, enterZipCodeViewModel: EnterZipCodeViewModel) {
+        self.selectedIsland = selectedIsland
         self._enterZipCodeViewModel = StateObject(wrappedValue: enterZipCodeViewModel)
     }
 
     var body: some View {
         NavigationView {
             Form {
-                IslandSection(islands: Array(islands), selectedIsland: $selectedIsland)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 16)
+                IslandSection(islands: Array(islands), selectedIsland: .constant(selectedIsland))
 
-                if selectedIsland != nil {
+                if let selectedIsland = selectedIsland {
+                    Text("Selected: \(selectedIsland.islandName ?? "None")")
+                        .font(.headline)
+                        .padding(.horizontal, 16)
+
                     SortSection(selectedSortType: $selectedSortType)
                         .padding(.horizontal, 16)
-                }
 
-                if selectedIsland != nil {
                     ReviewList(
-                        selectedIsland: $selectedIsland,
+                        selectedIsland: .constant(selectedIsland),
                         selectedSortType: $selectedSortType,
                         enterZipCodeViewModel: enterZipCodeViewModel
                     )
                     .padding(.horizontal, 16)
                 } else {
-                    Text("Please select an island to view reviews.")
+                    Text("No Island Selected")
                         .foregroundColor(.gray)
                         .font(.headline)
                         .padding()
@@ -77,6 +88,8 @@ struct ViewReviewforIsland: View {
         }
     }
 }
+
+
 
 struct SortSection: View {
     @Binding var selectedSortType: SortType
@@ -105,7 +118,6 @@ struct ReviewList: View {
     @Binding var selectedSortType: SortType
     @Environment(\.managedObjectContext) private var viewContext
 
-    // FetchRequest for reviews, initialized without a predicate
     @FetchRequest var reviews: FetchedResults<Review>
 
     var enterZipCodeViewModel: EnterZipCodeViewModel
@@ -126,6 +138,7 @@ struct ReviewList: View {
         self._reviews = FetchRequest<Review>(fetchRequest: fetchRequest, animation: .default)
     }
 
+
     var body: some View {
         VStack {
             if reviews.isEmpty {
@@ -137,7 +150,7 @@ struct ReviewList: View {
                 NavigationLink(destination: GymMatReviewView(
                     selectedIsland: $selectedIsland,
                     isPresented: .constant(true),
-                    enterZipCodeViewModel: enterZipCodeViewModel // Pass the enterZipCodeViewModel here
+                    enterZipCodeViewModel: enterZipCodeViewModel
                 )) {
                     Text("Write a Review")
                         .font(.body)
@@ -236,7 +249,7 @@ struct ViewReviewforIsland_Previews: PreviewProvider {
             context: context
         )
 
-        return ViewReviewforIsland(enterZipCodeViewModel: mockViewModel)
+        return ViewReviewforIsland(selectedIsland: mockIsland, enterZipCodeViewModel: mockViewModel)
             .environment(\.managedObjectContext, context)
             .previewDisplayName("View Reviews for Island")
     }
