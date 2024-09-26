@@ -1,4 +1,5 @@
 // GymMatReviewView.swift
+//
 // Seas_3
 //
 // Created by Brian Romero on 6/26/24.
@@ -8,6 +9,7 @@ import Foundation
 import SwiftUI
 import CoreData
 
+// Enum for star ratings
 enum StarRating: Int, CaseIterable {
     case zero = 0, one, two, three, four, five
 
@@ -29,13 +31,15 @@ enum StarRating: Int, CaseIterable {
     }
 }
 
+// Main view for Gym Mat Review
 struct GymMatReviewView: View {
+    @State private var activeIsland: PirateIsland?
     @State private var reviewText: String = ""
     @State private var selectedRating: StarRating = .zero
     @State private var showAlert = false
     @State private var alertMessage = ""
     @State private var isLoading = false
-    @Binding var selectedIsland: PirateIsland?
+    @Binding var localSelectedIsland: PirateIsland?
     @Binding var isPresented: Bool
     @StateObject var enterZipCodeViewModel: EnterZipCodeViewModel
     @Environment(\.managedObjectContext) private var viewContext
@@ -45,19 +49,22 @@ struct GymMatReviewView: View {
         sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.islandName, ascending: true)]
     ) private var islands: FetchedResults<PirateIsland>
 
-    
+    let onIslandChange: (PirateIsland?) -> Void
+
     init(
-        selectedIsland: Binding<PirateIsland?>,
+        localSelectedIsland: Binding<PirateIsland?>,
         isPresented: Binding<Bool>,
-        enterZipCodeViewModel: EnterZipCodeViewModel
+        enterZipCodeViewModel: EnterZipCodeViewModel,
+        onIslandChange: @escaping (PirateIsland?) -> Void
     ) {
-        self._selectedIsland = selectedIsland
+        self._localSelectedIsland = localSelectedIsland
         self._isPresented = isPresented
         self._enterZipCodeViewModel = StateObject(wrappedValue: enterZipCodeViewModel)
+        self.onIslandChange = onIslandChange
     }
 
     var averageRating: Double {
-        guard let island = selectedIsland else {
+        guard let island = localSelectedIsland else {
             return 0
         }
 
@@ -69,7 +76,6 @@ struct GymMatReviewView: View {
             if reviews.isEmpty {
                 return 0
             }
-
             let totalStars = reviews.reduce(0) { $0 + Int($1.stars) }
             return Double(totalStars) / Double(reviews.count)
         } catch {
@@ -78,12 +84,15 @@ struct GymMatReviewView: View {
         }
     }
 
-
-
-    var body: some View {        ZStack(alignment: .bottom) {
+    var body: some View {
+        ZStack(alignment: .bottom) {
             Form {
-                // Transform `FetchedResults<PirateIsland>` to a regular array
-                IslandSection(islands: Array(islands), selectedIsland: $selectedIsland)
+                // Use the dedicated state for tracking changes
+                IslandSection(islands: Array(islands), selectedIsland: $activeIsland)
+                    .onChange(of: activeIsland) { newIsland in
+                        localSelectedIsland = newIsland
+                        onIslandChange(newIsland)
+                    }
                 ReviewSection(reviewText: $reviewText)
                 RatingSection(selectedRating: $selectedRating)
                 Button(action: submitReview) {
@@ -121,15 +130,13 @@ struct GymMatReviewView: View {
             }
         }
         .navigationTitle("Gym Mat Review")
-        .onChange(of: showAlert) { newValue in
-            if !newValue && alertMessage == "Thank you for your review!" {
-                isPresented = false // Dismiss the view and navigate back to IslandMenu
-            }
+        .onAppear {
+            activeIsland = localSelectedIsland
         }
     }
 
     private func submitReview() {
-        guard let island = selectedIsland else {
+        guard let island = localSelectedIsland else {
             alertMessage = "Please select a gym/island"
             showAlert = true
             return
@@ -173,8 +180,7 @@ struct GymMatReviewView: View {
     }
 }
 
-// Reusable components below
-
+// Reusable components for review section
 struct ReviewSection: View {
     @Binding var reviewText: String
     let textEditorHeight: CGFloat = 150
@@ -217,6 +223,7 @@ struct ReviewSection: View {
     }
 }
 
+// Reusable components for rating section
 struct RatingSection: View {
     @Binding var selectedRating: StarRating
 
@@ -232,7 +239,6 @@ struct RatingSection: View {
                             } else {
                                 selectedRating = StarRating(rawValue: index + 1) ?? .zero
                             }
-                            
                             print("Selected Rating: \(selectedRating.rawValue) star(s)")
                         }
                 }
@@ -241,6 +247,7 @@ struct RatingSection: View {
     }
 }
 
+// Ledger for displaying star ratings
 struct StarRatingsLedger: View {
     var body: some View {
         VStack(alignment: .leading) {
@@ -266,7 +273,7 @@ struct StarRatingsLedger: View {
     }
 }
 
-
+// Previews for GymMatReviewView
 struct GymMatReviewView_Previews: PreviewProvider {
     static var previews: some View {
         PreviewView()
@@ -274,38 +281,22 @@ struct GymMatReviewView_Previews: PreviewProvider {
 }
 
 struct PreviewView: View {
-    @StateObject var viewModel = GymMatReviewViewModel()
-    @State private var isGymMatReviewViewPresented = true
-    @StateObject var enterZipCodeViewModel = EnterZipCodeViewModel(
+    @StateObject private var enterZipCodeViewModel = EnterZipCodeViewModel(
         repository: AppDayOfWeekRepository.shared,
         context: PersistenceController.preview.container.viewContext
     )
+    @State private var selectedIsland: PirateIsland? = nil
 
     var body: some View {
-        let context = PersistenceController.preview.container.viewContext
-        viewModel.createDummyIsland(in: context)
-
-        return Group {
-            if let island = viewModel.dummyIsland {
-                GymMatReviewView(
-                    selectedIsland: .constant(island),
-                    isPresented: $isGymMatReviewViewPresented,
-                    enterZipCodeViewModel: enterZipCodeViewModel // Pass the same instance here
-                )
-                .environment(\.managedObjectContext, context)
-            } else {
-                Text("Failed to create dummy island")
+        NavigationView {
+            GymMatReviewView(
+                localSelectedIsland: $selectedIsland,
+                isPresented: .constant(true),
+                enterZipCodeViewModel: enterZipCodeViewModel
+            ) { newIsland in
+                selectedIsland = newIsland
             }
+            .navigationTitle("Gym Mat Review")
         }
-    }
-}
-
-class GymMatReviewViewModel: ObservableObject {
-    @Published var dummyIsland: PirateIsland?
-
-    func createDummyIsland(in context: NSManagedObjectContext) {
-        let island = PirateIsland(context: context)
-        island.islandName = "Sample Island"
-        self.dummyIsland = island
     }
 }

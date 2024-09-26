@@ -13,6 +13,7 @@ struct ViewReviewSearch: View {
     @State private var searchQuery: String = ""
     @State private var filteredIslands: [PirateIsland] = []
     @State private var showNoMatchAlert: Bool = false
+    @State private var showReview = false
 
     @Environment(\.managedObjectContext) private var viewContext
     var enterZipCodeViewModel: EnterZipCodeViewModel
@@ -47,14 +48,21 @@ struct ViewReviewSearch: View {
                 }
 
                 List(filteredIslands) { island in
-                    NavigationLink(destination: ViewReviewforIsland(
-                        selectedIsland: island, // Pass the selected island
-                        enterZipCodeViewModel: enterZipCodeViewModel
-                    )) {
+                    Button(action: {
+                        selectedIsland = island
+                        showReview = true
+                    }) {
                         Text(island.islandName ?? "Unknown Island")
                     }
+                    .background(
+                        NavigationLink(destination: ViewReviewforIsland(
+                            selectedIsland: $selectedIsland,
+                            enterZipCodeViewModel: enterZipCodeViewModel
+                        ), isActive: $showReview) {
+                            EmptyView()
+                        }
+                    )
                 }
-
 
                 .listStyle(PlainListStyle())
                 .navigationTitle("Explore Gym Reviews")

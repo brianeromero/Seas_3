@@ -132,8 +132,8 @@ struct IslandModalView: View {
                                 }
 
                                 NavigationLink(destination: ViewReviewforIsland(
-                                    selectedIsland: selectedIsland, // Pass the selected island here
-                                    enterZipCodeViewModel: enterZipCodeViewModel // Pass the view model here
+                                    selectedIsland: $selectedIsland,
+                                    enterZipCodeViewModel: enterZipCodeViewModel
                                 )) {
                                     Text("View Reviews")
                                 }
@@ -143,11 +143,14 @@ struct IslandModalView: View {
                                     .foregroundColor(.secondary)
 
                                 NavigationLink(destination: GymMatReviewView(
-                                    selectedIsland: $selectedIsland,
-                                    isPresented: $showModal,
-                                    enterZipCodeViewModel: enterZipCodeViewModel
+                                    localSelectedIsland: .constant(selectedIsland),
+                                    isPresented: .constant(false),
+                                    enterZipCodeViewModel: enterZipCodeViewModel,
+                                    onIslandChange: { newIsland in
+                                        // Handle island change
+                                    }
                                 )) {
-                                    Text("Leave a Review")
+                                    Text(selectedIsland.islandName ?? "Unknown Island")
                                 }
                             }
                         }
