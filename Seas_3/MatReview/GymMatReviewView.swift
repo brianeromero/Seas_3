@@ -17,8 +17,8 @@ enum StarRating: Int, CaseIterable {
         switch self {
         case .zero: return "Trial Class Guy"
         case .one: return "5 Stripe White Belt"
-        case .two: return "Ultra Heavy Weight Blue Belt's Half Guard"
-        case .three: return "Purple Belt's Knee"
+        case .two: return "Ultra Heavy Blue Belt's Knee Shield"
+        case .three: return "Purple Belt's Bolo Roll"
         case .four: return "Old Timey Brown Belt's Dogbar"
         case .five: return "Blackbelt's Cartwheel Pass to the Back"
         }
@@ -48,7 +48,14 @@ struct GymMatReviewView: View {
         entity: PirateIsland.entity(),
         sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.islandName, ascending: true)]
     ) private var islands: FetchedResults<PirateIsland>
+    
+    // Modified isReviewValid to require only a non-empty review text and a selected island
+    var isReviewValid: Bool {
+        let isReviewTextValid = !reviewText.trimmingCharacters(in: .whitespaces).isEmpty
+        return isReviewTextValid && localSelectedIsland != nil
+    }
 
+    
     let onIslandChange: (PirateIsland?) -> Void
 
     init(
@@ -62,7 +69,6 @@ struct GymMatReviewView: View {
         self._enterZipCodeViewModel = StateObject(wrappedValue: enterZipCodeViewModel)
         self.onIslandChange = onIslandChange
     }
-
     var averageRating: Double {
         guard let island = localSelectedIsland else {
             return 0
@@ -85,20 +91,26 @@ struct GymMatReviewView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .bottom) {
+        VStack { // Use VStack instead of ZStack
             Form {
-                // Use the dedicated state for tracking changes
                 IslandSection(islands: Array(islands), selectedIsland: $activeIsland)
                     .onChange(of: activeIsland) { newIsland in
-                        localSelectedIsland = newIsland
+                        // Assuming "Select an island" corresponds to a nil or specific island property
+                        if let island = newIsland {
+                            localSelectedIsland = island
+                        } else {
+                            localSelectedIsland = nil // or however you denote "Select an island"
+                        }
                         onIslandChange(newIsland)
                     }
-                ReviewSection(reviewText: $reviewText)
+
+
+                ReviewSection(reviewText: $reviewText, isReviewValid: isReviewValid)
                 RatingSection(selectedRating: $selectedRating)
                 Button(action: submitReview) {
                     Text("Submit Review")
                 }
-                .disabled(isLoading)
+                .disabled(isLoading || !isReviewValid)
                 .alert(isPresented: $showAlert) {
                     Alert(
                         title: Text("Review Submitted"),
@@ -117,17 +129,14 @@ struct GymMatReviewView: View {
                 }
             }
 
+            Spacer() // Push everything to the top
+            
             StarRatingsLedger()
                 .frame(height: 150)
                 .padding(.horizontal, 20)
-                .padding(.bottom, 20)
                 .background(Color.white.opacity(0.8))
                 .cornerRadius(10)
                 .shadow(radius: 5)
-
-            if isLoading {
-                ProgressView()
-            }
         }
         .navigationTitle("Gym Mat Review")
         .onAppear {
@@ -186,6 +195,7 @@ struct ReviewSection: View {
     let textEditorHeight: CGFloat = 150
     let cornerRadius: CGFloat = 8
     let characterLimit: Int = 300
+    var isReviewValid: Bool
 
     var body: some View {
         Section(header: Text("Write Your Review")) {
@@ -219,9 +229,14 @@ struct ReviewSection: View {
                     .font(.caption)
                     .foregroundColor(.gray)
             }
+            
+            Text(isReviewValid ? "" : "Please enter a review")
+                .font(.caption)
+                .foregroundColor(.red)
         }
     }
 }
+
 
 // Reusable components for rating section
 struct RatingSection: View {
@@ -260,7 +275,7 @@ struct StarRatingsLedger: View {
                             .font(.caption)
                     }
                     Text("\(rating.description)")
-                        .font(.caption)
+                        .font(.system(size: 10))
                 }
             }
         }
