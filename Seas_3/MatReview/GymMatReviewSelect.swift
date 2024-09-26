@@ -14,12 +14,9 @@ struct GymMatReviewSelect: View {
     @State private var searchQuery: String = ""
     @State private var filteredIslands: [PirateIsland] = []
     @State private var showNoMatchAlert: Bool = false
-    @State private var selectedIslandForReview: PirateIsland?
-    @State private var showReviewView = false
 
     @Environment(\.managedObjectContext) private var viewContext
 
-    // Ensure this is not private
     var enterZipCodeViewModel: EnterZipCodeViewModel
 
     init(selectedIsland: Binding<PirateIsland?>, enterZipCodeViewModel: EnterZipCodeViewModel) {
@@ -52,15 +49,14 @@ struct GymMatReviewSelect: View {
                     }
                 }
 
+                // Use NavigationLink to display the review view consistently
                 List(filteredIslands) { island in
-                    Button(action: {
-                        self.selectedIslandForReview = island
-                        self.showReviewView = true
-                    }) {
+                    NavigationLink(destination: GymMatReviewView(
+                        selectedIsland: .constant(island),
+                        isPresented: .constant(false), // NavigationLink does not require an isPresented binding
+                        enterZipCodeViewModel: enterZipCodeViewModel
+                    )) {
                         Text(island.islandName ?? "Unknown Island")
-                    }
-                    .sheet(isPresented: $showReviewView) {
-                        GymMatReviewView(selectedIsland: $selectedIslandForReview, isPresented: $showReviewView, enterZipCodeViewModel: enterZipCodeViewModel)
                     }
                 }
                 .listStyle(PlainListStyle())
@@ -87,10 +83,10 @@ struct GymMatReviewSelect: View {
                 let predicate = NSPredicate(format: "islandName CONTAINS[c] %@ OR islandLocation CONTAINS[c] %@ OR gymWebsite.absoluteString CONTAINS[c] %@", argumentArray: [lowercasedQuery, lowercasedQuery, lowercasedQuery])
                 return predicate.evaluate(with: island)
             }
-            print("Filtered Islands: \(filteredIslands.map { $0.islandName })") // Add this line
+            print("Filtered Islands: \(filteredIslands.map { $0.islandName })")
         } else {
             filteredIslands = Array(islands)
-            print("All Islands: \(filteredIslands.map { $0.islandName })") // Add this line
+            print("All Islands: \(filteredIslands.map { $0.islandName })")
         }
         
         showNoMatchAlert = filteredIslands.isEmpty && !searchQuery.isEmpty

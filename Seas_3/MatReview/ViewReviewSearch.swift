@@ -13,7 +13,6 @@ struct ViewReviewSearch: View {
     @State private var searchQuery: String = ""
     @State private var filteredIslands: [PirateIsland] = []
     @State private var showNoMatchAlert: Bool = false
-    @State private var showReviewView = false
 
     @Environment(\.managedObjectContext) private var viewContext
     var enterZipCodeViewModel: EnterZipCodeViewModel
@@ -48,15 +47,15 @@ struct ViewReviewSearch: View {
                 }
 
                 List(filteredIslands) { island in
-                    Button(action: {
-                        self.selectedIsland = island
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                            self.showReviewView = true
-                        }
-                    }) {
+                    NavigationLink(destination: ViewReviewforIsland(
+                        selectedIsland: island, // Pass the selected island
+                        enterZipCodeViewModel: enterZipCodeViewModel
+                    )) {
                         Text(island.islandName ?? "Unknown Island")
                     }
                 }
+
+
                 .listStyle(PlainListStyle())
                 .navigationTitle("Explore Gym Reviews")
                 .alert(isPresented: $showNoMatchAlert) {
@@ -70,14 +69,6 @@ struct ViewReviewSearch: View {
             .onAppear {
                 updateFilteredIslands()
             }
-            .sheet(isPresented: $showReviewView) {
-                if selectedIsland != nil {
-                    ViewReviewforIsland(enterZipCodeViewModel: enterZipCodeViewModel) // Pass the view model here
-                } else {
-                    EmptyView()
-                }
-            }
-
         }
     }
 
