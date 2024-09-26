@@ -5,6 +5,7 @@
 //  Created by Brian Romero on 8/28/24.
 //
 
+import Foundation
 import SwiftUI
 import CoreData
 
@@ -37,7 +38,7 @@ import SwiftUI
 import CoreData
 
 struct ViewReviewforIsland: View {
-    var selectedIsland: PirateIsland?
+    @Binding var selectedIsland: PirateIsland?
     @State private var selectedSortType: SortType = .latest
     @StateObject var enterZipCodeViewModel: EnterZipCodeViewModel
 
@@ -53,15 +54,15 @@ struct ViewReviewforIsland: View {
         sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.islandName, ascending: true)]
     ) private var islands: FetchedResults<PirateIsland>
 
-    init(selectedIsland: PirateIsland?, enterZipCodeViewModel: EnterZipCodeViewModel) {
-        self.selectedIsland = selectedIsland
+    init(selectedIsland: Binding<PirateIsland?>, enterZipCodeViewModel: EnterZipCodeViewModel) {
+        _selectedIsland = selectedIsland
         self._enterZipCodeViewModel = StateObject(wrappedValue: enterZipCodeViewModel)
     }
 
     var body: some View {
         NavigationView {
             Form {
-                IslandSection(islands: Array(islands), selectedIsland: .constant(selectedIsland))
+                IslandSection(islands: Array(islands), selectedIsland: $selectedIsland)
 
                 if let selectedIsland = selectedIsland {
                     Text("Selected: \(selectedIsland.islandName ?? "None")")
@@ -148,14 +149,15 @@ struct ReviewList: View {
                     .padding()
 
                 NavigationLink(destination: GymMatReviewView(
-                    selectedIsland: $selectedIsland,
+                    localSelectedIsland: $selectedIsland,
                     isPresented: .constant(true),
-                    enterZipCodeViewModel: enterZipCodeViewModel
+                    enterZipCodeViewModel: enterZipCodeViewModel,
+                    onIslandChange: { newIsland in
+                        // Handle island change
+                        self.selectedIsland = newIsland
+                    }
                 )) {
                     Text("Write a Review")
-                        .font(.body)
-                        .foregroundColor(.blue)
-                        .padding()
                 }
                 .buttonStyle(PlainButtonStyle())
             } else {
@@ -238,19 +240,26 @@ struct FullReviewView: View {
 
 struct ViewReviewforIsland_Previews: PreviewProvider {
     static var previews: some View {
-        let context = PersistenceController.preview.container.viewContext
+        IslandReviewPreview()
+    }
+}
 
-        // Create a mock island
+struct IslandReviewPreview: View {
+    @State private var selectedIsland: PirateIsland? = {
+        let context = PersistenceController.preview.container.viewContext
         let mockIsland = PirateIsland(context: context)
         mockIsland.islandName = "Mock Island"
+        return mockIsland
+    }()
 
+    var body: some View {
+        let context = PersistenceController.preview.container.viewContext
         let mockViewModel = EnterZipCodeViewModel(
             repository: AppDayOfWeekRepository.shared,
             context: context
         )
 
-        return ViewReviewforIsland(selectedIsland: mockIsland, enterZipCodeViewModel: mockViewModel)
+        return ViewReviewforIsland(selectedIsland: $selectedIsland, enterZipCodeViewModel: mockViewModel)
             .environment(\.managedObjectContext, context)
-            .previewDisplayName("View Reviews for Island")
     }
 }

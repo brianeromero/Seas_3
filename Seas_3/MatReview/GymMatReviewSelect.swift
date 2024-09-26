@@ -52,9 +52,13 @@ struct GymMatReviewSelect: View {
                 // Use NavigationLink to display the review view consistently
                 List(filteredIslands) { island in
                     NavigationLink(destination: GymMatReviewView(
-                        selectedIsland: .constant(island),
-                        isPresented: .constant(false), // NavigationLink does not require an isPresented binding
-                        enterZipCodeViewModel: enterZipCodeViewModel
+                        localSelectedIsland: .constant(island),
+                        isPresented: .constant(false),
+                        enterZipCodeViewModel: enterZipCodeViewModel,
+                        onIslandChange: { newIsland in
+                            // Handle island change
+                            self.selectedIsland = newIsland
+                        }
                     )) {
                         Text(island.islandName ?? "Unknown Island")
                     }
