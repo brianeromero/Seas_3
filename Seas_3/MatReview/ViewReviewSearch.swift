@@ -45,7 +45,12 @@ struct ViewReviewSearch: View {
                         selectedIsland = island
                         showReview = true
                     }) {
-                        Text(island.islandName ?? "Unknown Gym")
+                        VStack(alignment: .leading) {
+                            Text(island.islandName ?? "Unknown Gym")
+                                .font(.headline)
+                            Text(island.islandLocation ?? "")
+                                .foregroundColor(.secondary)
+                        }
                     }
                     .background(
                         NavigationLink(destination: ViewReviewforIsland(

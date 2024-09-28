@@ -1,6 +1,9 @@
-// EditExistingIslandList.swift
-// Seas_3
-// Created by Brian Romero on 6/26/24.
+//
+//  EditExistingIslandList.swift
+//  Seas_3
+//
+//  Created by Brian Romero on 6/26/24.
+//
 
 import Foundation
 import SwiftUI
@@ -44,7 +47,12 @@ struct EditExistingIslandList: View {
                 List {
                     ForEach(filteredIslands) { island in
                         NavigationLink(destination: EditExistingIsland(island: island)) {
-                            Text(island.islandName ?? "Unnamed Gym") // Provide a default value
+                            VStack(alignment: .leading) {
+                                Text(island.islandName ?? "Unknown Gym")
+                                    .font(.headline)
+                                Text(island.islandLocation ?? "")
+                                    .foregroundColor(.secondary)
+                            }
                         }
                     }
                 }
@@ -74,7 +82,7 @@ struct EditExistingIslandList: View {
             let websiteMatches = (island.gymWebsite?.absoluteString.lowercased().contains(lowercasedQuery) ?? false)
             let latitudeMatches = (String(island.latitude).contains(lowercasedQuery))
             let longitudeMatches = (String(island.longitude).contains(lowercasedQuery))
-            
+
             return nameMatches || locationMatches || websiteMatches || latitudeMatches || longitudeMatches
         }
         showNoMatchAlert = filteredIslands.isEmpty && !searchQuery.isEmpty
