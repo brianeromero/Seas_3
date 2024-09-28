@@ -24,75 +24,73 @@ extension MatTime {
     }
 }
 
+
 struct ScheduleFormView: View {
     @Environment(\.managedObjectContext) private var viewContext
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.islandName, ascending: true)],
-        animation: .default
-    ) private var islands: FetchedResults<PirateIsland>
-
+    var islands: [PirateIsland] // Receive islands from parent view
     @Binding var selectedAppDayOfWeek: AppDayOfWeek?
     @Binding var selectedIsland: PirateIsland?
-    @StateObject private var viewModel: AppDayOfWeekViewModel
+    @ObservedObject var viewModel: AppDayOfWeekViewModel
 
     @State private var showingAlert = false
     @State private var alertTitle = ""
     @State private var alertMessage = ""
     @State private var daySelected = false
     @State private var selectedDay: DayOfWeek? = .monday // Optional
-
-
-    init(
-        selectedAppDayOfWeek: Binding<AppDayOfWeek?>,
-        selectedIsland: Binding<PirateIsland?>,
-        viewModel: AppDayOfWeekViewModel
-    ) {
-        self._selectedAppDayOfWeek = selectedAppDayOfWeek
-        self._selectedIsland = selectedIsland
-        self._viewModel = StateObject(wrappedValue: viewModel)
-    }
+    @State private var showReview = false
 
     var body: some View {
-        NavigationView {
-            Form {
-                islandSelectionSection
-                daySelectionSection
-                addNewMatTimeSection
-
-                // Replace with the new `ScheduledMatTimesSection`
-                if let selectedDay = selectedDay, let selectedIsland = selectedIsland {
-                    ScheduledMatTimesSection(
-                        island: selectedIsland,
-                        day: selectedDay,
-                        viewModel: viewModel,
-                        matTimesForDay: $viewModel.matTimesForDay,
-                        selectedDay: $selectedDay
-                    )
-                } else {
-                    Text("Please select a day and island to view the schedule.")
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
+        Form {
+            IslandSection(
+                islands: islands,
+                selectedIsland: Binding(
+                    get: { selectedIsland ?? islands.first },
+                    set: { selectedIsland = $0 }
+                ),
+                showReview: $showReview
+            )
+            .onChange(of: selectedIsland) { newIsland in
+                if let island = newIsland, let day = selectedDay {
+                    viewModel.fetchCurrentDayOfWeek(for: island, day: day)
                 }
+            }
 
-                errorHandlingSection
+            daySelectionSection
+            addNewMatTimeSection
+
+            if let selectedDay = selectedDay, let selectedIsland = selectedIsland {
+                ScheduledMatTimesSection(
+                    island: selectedIsland,
+                    day: selectedDay,
+                    viewModel: viewModel,
+                    matTimesForDay: $viewModel.matTimesForDay,
+                    selectedDay: $selectedDay
+                )
+            } else {
+                Text("Please select a day and island to view the schedule.")
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
             }
-            .navigationTitle("Schedule Entry")
-            .alert(isPresented: $showingAlert) {
-                Alert(title: Text(alertTitle), message: Text(alertMessage), dismissButton: .default(Text("OK")))
-            }
+
+            errorHandlingSection
+        }
+        .navigationTitle("Schedule Entry")
+        .alert(isPresented: $showingAlert) {
+            Alert(title: Text(alertTitle), message: Text(alertMessage), dismissButton: .default(Text("OK")))
         }
     }
 
+    /*
     private var islandSelectionSection: some View {
         Section(header: Text("Select Gym")) {
             Picker("Select Gym", selection: $selectedIsland) {
                 ForEach(islands, id: \.self) { island in
-                    Text(island.islandName ?? "Unknown Island").tag(island)
+                    Text(island.islandName ?? "Unknown Gym").tag(island)
                 }
             }
             .onChange(of: selectedIsland) { newIsland in
                 if let island = newIsland {
-                    print("Selected Gym: \(island.islandName ?? "Unknown Island")")
+                    print("Selected Gym: \(island.islandName ?? "Unknown Gym")")
                     if let day = selectedDay {
                         viewModel.fetchCurrentDayOfWeek(for: island, day: day)
                     }
@@ -106,7 +104,7 @@ struct ScheduleFormView: View {
             }
         }
     }
-
+*/
 
     private var daySelectionSection: some View {
         Section(header: Text("Select Day")) {
@@ -127,6 +125,11 @@ struct ScheduleFormView: View {
                     viewModel.fetchCurrentDayOfWeek(for: island, day: day)
                 }
                 selectedAppDayOfWeek = viewModel.currentAppDayOfWeek
+            }
+            .onAppear {
+                if let island = selectedIsland, let day = selectedDay {
+                    viewModel.fetchCurrentDayOfWeek(for: island, day: day)
+                }
             }
         }
     }
@@ -198,10 +201,14 @@ struct ScheduleFormView_Previews: PreviewProvider {
         let persistenceController = PersistenceController.preview
         let context = persistenceController.container.viewContext
         
-        // Create a valid PirateIsland object
-        let island = PirateIsland(context: context)
-        island.islandID = UUID()
-        island.islandName = "Gym Name"
+        // Create multiple valid PirateIsland objects
+        let island1 = PirateIsland(context: context)
+        island1.islandID = UUID()
+        island1.islandName = "Gym Name 1"
+        
+        let island2 = PirateIsland(context: context)
+        island2.islandID = UUID()
+        island2.islandName = "Gym Name 2"
         
         // Create a mock repository for the view model
         let mockRepository = AppDayOfWeekRepository(persistenceController: persistenceController)
@@ -211,14 +218,15 @@ struct ScheduleFormView_Previews: PreviewProvider {
         
         // Initialize AppDayOfWeekViewModel with mock data
         let viewModel = AppDayOfWeekViewModel(
-            selectedIsland: island,
+            selectedIsland: island1,
             repository: mockRepository,
             enterZipCodeViewModel: mockEnterZipCodeViewModel
         )
         
         return ScheduleFormView(
+            islands: [island1, island2],
             selectedAppDayOfWeek: .constant(nil),
-            selectedIsland: .constant(island),
+            selectedIsland: .constant(island1),
             viewModel: viewModel
         )
         .environment(\.managedObjectContext, context)

@@ -52,7 +52,7 @@ struct ViewReviewSearch: View {
                         selectedIsland = island
                         showReview = true
                     }) {
-                        Text(island.islandName ?? "Unknown Island")
+                        Text(island.islandName ?? "Unknown Gym")
                     }
                     .background(
                         NavigationLink(destination: ViewReviewforIsland(
@@ -69,7 +69,7 @@ struct ViewReviewSearch: View {
                 .alert(isPresented: $showNoMatchAlert) {
                     Alert(
                         title: Text("No Match Found"),
-                        message: Text("No islands match your search criteria."),
+                        message: Text("No Gyms match your search criteria."),
                         dismissButton: .default(Text("OK"))
                     )
                 }
@@ -85,8 +85,9 @@ struct ViewReviewSearch: View {
 
         if !searchQuery.isEmpty {
             filteredIslands = islands.filter { island in
-                let predicate = NSPredicate(format: "islandName CONTAINS[c] %@ OR islandLocation CONTAINS[c] %@", argumentArray: [lowercasedQuery, lowercasedQuery])
-                return predicate.evaluate(with: island)
+                let nameMatch = island.islandName?.lowercased().contains(lowercasedQuery) ?? false
+                let locationMatch = island.islandLocation?.lowercased().contains(lowercasedQuery) ?? false
+                return nameMatch || locationMatch
             }
             print("Filtered islands: \(filteredIslands.map { $0.islandName ?? "Unknown" })")
         } else {

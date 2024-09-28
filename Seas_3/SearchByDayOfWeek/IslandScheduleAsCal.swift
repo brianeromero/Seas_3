@@ -141,7 +141,7 @@ struct MatTimeRow: View {
                     .font(.body)
             }
             if matTime.kids {
-                Text("Kids")
+                Text("Kids Class")
                     .font(.body)
             }
         }

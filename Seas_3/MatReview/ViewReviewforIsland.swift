@@ -33,20 +33,11 @@ enum SortType: String, CaseIterable {
     }
 }
 
-
-import SwiftUI
-import CoreData
-
 struct ViewReviewforIsland: View {
+    @State private var showReview = false
     @Binding var selectedIsland: PirateIsland?
     @State private var selectedSortType: SortType = .latest
-    @StateObject var enterZipCodeViewModel: EnterZipCodeViewModel
-
-    // FetchRequest for Reviews
-    @FetchRequest(
-        entity: Review.entity(),
-        sortDescriptors: [NSSortDescriptor(keyPath: \Review.createdTimestamp, ascending: false)]
-    ) private var reviews: FetchedResults<Review>
+    @ObservedObject var enterZipCodeViewModel: EnterZipCodeViewModel
 
     // FetchRequest for Pirate Islands
     @FetchRequest(
@@ -54,43 +45,161 @@ struct ViewReviewforIsland: View {
         sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.islandName, ascending: true)]
     ) private var islands: FetchedResults<PirateIsland>
 
+    // FetchRequest for Reviews related to the selected island
+    @FetchRequest private var reviews: FetchedResults<Review>
+
     init(selectedIsland: Binding<PirateIsland?>, enterZipCodeViewModel: EnterZipCodeViewModel) {
-        _selectedIsland = selectedIsland
-        self._enterZipCodeViewModel = StateObject(wrappedValue: enterZipCodeViewModel)
+        self._selectedIsland = selectedIsland
+        self.enterZipCodeViewModel = enterZipCodeViewModel
+
+        // Define the fetch request for reviews here
+        let sortDescriptor = NSSortDescriptor(key: "createdTimestamp", ascending: false)
+        let predicate: NSPredicate = selectedIsland.wrappedValue == nil ?
+            NSPredicate(value: false) :
+            NSPredicate(format: "island == %@", selectedIsland.wrappedValue!.objectID)
+
+        self._reviews = FetchRequest(
+            entity: Review.entity(),
+            sortDescriptors: [sortDescriptor],
+            predicate: predicate
+        )
     }
 
     var body: some View {
         NavigationView {
-            Form {
-                IslandSection(islands: Array(islands), selectedIsland: $selectedIsland)
-
-                if let selectedIsland = selectedIsland {
-                    Text("Selected: \(selectedIsland.islandName ?? "None")")
-                        .font(.headline)
+            ScrollView {
+                VStack(alignment: .leading) {
+                    IslandSection(islands: Array(islands), selectedIsland: $selectedIsland, showReview: $showReview)
                         .padding(.horizontal, 16)
 
-                    SortSection(selectedSortType: $selectedSortType)
-                        .padding(.horizontal, 16)
+                    if selectedIsland != nil {
+                        SortSection(selectedSortType: $selectedSortType)
+                            .padding(.horizontal, 16)
 
-                    ReviewList(
-                        selectedIsland: .constant(selectedIsland),
-                        selectedSortType: $selectedSortType,
-                        enterZipCodeViewModel: enterZipCodeViewModel
-                    )
-                    .padding(.horizontal, 16)
-                } else {
-                    Text("No Island Selected")
-                        .foregroundColor(.gray)
-                        .font(.headline)
-                        .padding()
+                        Text("Reviews \(reviews.count)")
+
+                        if !filteredReviews.isEmpty {
+                            ReviewList(filteredReviews: filteredReviews, selectedSortType: $selectedSortType)
+                                .padding(.horizontal, 16)
+                                .frame(minHeight: 300) // Ensure sufficient height
+
+                            // Calculate average rating
+                            let averageRatingString = ReviewUtils.averageStarRating(for: filteredReviews)
+                            
+                            if averageRatingString != "No reviews" {
+                                if let doubleAverageRating = Double(averageRatingString) {
+                                    let intAverageRating = Int(round(doubleAverageRating))
+
+                                    HStack {
+                                        Text("Average Rating: \(averageRatingString) ")
+                                        ForEach(0..<5, id: \.self) { index in
+                                            if index < intAverageRating {
+                                                Image(systemName: "star.fill")
+                                                    .foregroundColor(.yellow)
+                                            } else {
+                                                Image(systemName: "star")
+                                                    .foregroundColor(.gray)
+                                            }
+                                        }
+                                        Text("(\(intAverageRating))") // Display the integer average rating
+                                    }
+                                    .font(.headline)
+                                    .padding(.horizontal, 16)
+                                } else {
+                                    Text("No average rating available.")
+                                        .font(.headline)
+                                        .padding()
+                                }
+                            } else {
+                                Text("No reviews available. Be the first to write a review!")
+                                    .font(.headline)
+                                    .padding()
+                            }
+
+                        } else {
+                            Text("No reviews available. Be the first to write a review!")
+                                .font(.headline)
+                                .padding()
+                        }
+                    } else {
+                        Text("No Gyms Selected")
+                            .foregroundColor(.gray)
+                            .font(.headline)
+                            .padding()
+                    }
                 }
             }
-            .navigationTitle("View Reviews for Island")
+        }
+        .navigationTitle("View Reviews for Gym")
+        .onAppear {
+            print("Fetched Reviews Count: \(reviews.count)")
+        }
+        .onChange(of: selectedSortType) { _ in
+            print("Selected Sort Type: \(selectedSortType.rawValue)")
+        }
+    }
+
+    var filteredReviews: [Review] {
+        let filtered = ReviewUtils.getReviews(from: NSOrderedSet(array: Array(reviews)))
+        return filtered.sorted { review1, review2 in
+            switch selectedSortType {
+            case .latest:
+                return review1.createdTimestamp > review2.createdTimestamp
+            case .oldest:
+                return review1.createdTimestamp < review2.createdTimestamp
+            case .stars:
+                return review1.stars > review2.stars
+            }
         }
     }
 }
 
 
+extension ViewReviewforIsland {
+    static func getReviews(for island: PirateIsland?, allReviews: FetchedResults<Review>) -> [Review] {
+        guard let island = island else { return [] }
+        return allReviews.filter { $0.island == island }
+    }
+}
+
+struct ReviewList: View {
+    var filteredReviews: [Review]
+    @Binding var selectedSortType: SortType
+
+    var body: some View {
+        VStack {
+            if !filteredReviews.isEmpty {
+                List {
+                    ForEach(filteredReviews, id: \.objectID) { review in
+                        NavigationLink(destination: FullReviewView(review: review)) {
+                            VStack(alignment: .leading) {
+                                // Displaying review text with a character limit
+                                Text(review.review.prefix(100) + (review.review.count > 100 ? "..." : ""))
+                                    .font(.body)
+                                    .lineLimit(2)
+                                    .padding(.vertical, 4)
+
+                                HStack {
+                                    ForEach(0..<Int(review.stars), id: \.self) { _ in
+                                        Image(systemName: "star.fill")
+                                            .foregroundColor(.yellow)
+                                    }
+                                    Spacer()
+                                    Text(review.createdTimestamp, style: .date)
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
+                    }
+                }
+                .listStyle(InsetGroupedListStyle())
+            } else {
+                Text("No reviews available. Be the first to write a review!")
+            }
+        }
+    }
+}
 
 struct SortSection: View {
     @Binding var selectedSortType: SortType
@@ -111,102 +220,6 @@ struct SortSection: View {
             .pickerStyle(SegmentedPickerStyle())
         }
         .padding(.bottom, 16)
-    }
-}
-
-struct ReviewList: View {
-    @Binding var selectedIsland: PirateIsland?
-    @Binding var selectedSortType: SortType
-    @Environment(\.managedObjectContext) private var viewContext
-
-    @FetchRequest var reviews: FetchedResults<Review>
-
-    var enterZipCodeViewModel: EnterZipCodeViewModel
-
-    init(selectedIsland: Binding<PirateIsland?>, selectedSortType: Binding<SortType>, enterZipCodeViewModel: EnterZipCodeViewModel) {
-        self._selectedIsland = selectedIsland
-        self._selectedSortType = selectedSortType
-        self.enterZipCodeViewModel = enterZipCodeViewModel
-
-        let fetchRequest: NSFetchRequest<Review> = Review.fetchRequest()
-        fetchRequest.sortDescriptors = [NSSortDescriptor(key: selectedSortType.wrappedValue.sortKey, ascending: selectedSortType.wrappedValue.ascending)]
-
-        // Set initial predicate only if selectedIsland is not nil
-        if let selectedIsland = selectedIsland.wrappedValue {
-            fetchRequest.predicate = NSPredicate(format: "island == %@", selectedIsland)
-        }
-
-        self._reviews = FetchRequest<Review>(fetchRequest: fetchRequest, animation: .default)
-    }
-
-
-    var body: some View {
-        VStack {
-            if reviews.isEmpty {
-                Text("No reviews available. Be the first to write a review!")
-                    .font(.headline)
-                    .foregroundColor(.gray)
-                    .padding()
-
-                NavigationLink(destination: GymMatReviewView(
-                    localSelectedIsland: $selectedIsland,
-                    isPresented: .constant(true),
-                    enterZipCodeViewModel: enterZipCodeViewModel,
-                    onIslandChange: { newIsland in
-                        // Handle island change
-                        self.selectedIsland = newIsland
-                    }
-                )) {
-                    Text("Write a Review")
-                }
-                .buttonStyle(PlainButtonStyle())
-            } else {
-                List {
-                    ForEach(reviews, id: \.self) { review in
-                        VStack(alignment: .leading) {
-                            if review.review.count > 70 {
-                                Text(review.review.prefix(70) + "...")
-                                    .font(.body)
-
-                                NavigationLink(destination: FullReviewView(review: review)) {
-                                    Text("Read more")
-                                        .font(.subheadline)
-                                        .foregroundColor(.blue)
-                                }
-                            } else {
-                                Text(review.review)
-                                    .font(.body)
-                            }
-
-                            HStack {
-                                ForEach(0..<Int(review.stars), id: \.self) { _ in
-                                    Image(systemName: "star.fill")
-                                        .foregroundColor(.yellow)
-                                }
-                                Spacer()
-                                Text(review.createdTimestamp, style: .date)
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                    }
-                }
-                .listStyle(InsetGroupedListStyle())
-            }
-        }
-        .onChange(of: selectedIsland) { newIsland in
-            // Update the fetch request predicate when selectedIsland changes
-            if let newIsland = newIsland {
-                reviews.nsPredicate = NSPredicate(format: "island == %@", newIsland)
-            } else {
-                reviews.nsPredicate = nil
-            }
-        }
-        .onChange(of: selectedSortType) { newSortType in
-            // Update sort descriptor when sort type changes
-            let newSortDescriptor = NSSortDescriptor(key: newSortType.sortKey, ascending: newSortType.ascending)
-            reviews.nsSortDescriptors = [newSortDescriptor]
-        }
     }
 }
 
@@ -245,21 +258,39 @@ struct ViewReviewforIsland_Previews: PreviewProvider {
 }
 
 struct IslandReviewPreview: View {
-    @State private var selectedIsland: PirateIsland? = {
-        let context = PersistenceController.preview.container.viewContext
-        let mockIsland = PirateIsland(context: context)
-        mockIsland.islandName = "Mock Island"
-        return mockIsland
-    }()
+    @State private var selectedIsland: PirateIsland?
 
     var body: some View {
         let context = PersistenceController.preview.container.viewContext
+
+        // Create and save a mock island
+        let mockIsland = PirateIsland(context: context)
+        mockIsland.islandName = "Mock Island"
+        mockIsland.islandLocation = "Mock Location"
+
+        // Create a variety of mock reviews for the island
+        for i in 1...5 {
+            let mockReview = Review(context: context)
+            mockReview.review = "Review \(i): This is a sample review for the mock island."
+            mockReview.stars = Int16(i) // Use sequential stars for clear testing (1 to 5)
+            mockReview.createdTimestamp = Date().addingTimeInterval(TimeInterval(-i * 86400)) // Offset each review by a day
+            mockReview.island = mockIsland // Correctly set the relationship
+        }
+        
+        // Save the context
+        try? context.save()
+
+        // Set the selected island
+        selectedIsland = mockIsland
+
         let mockViewModel = EnterZipCodeViewModel(
             repository: AppDayOfWeekRepository.shared,
             context: context
         )
 
-        return ViewReviewforIsland(selectedIsland: $selectedIsland, enterZipCodeViewModel: mockViewModel)
-            .environment(\.managedObjectContext, context)
+        return ScrollView {
+            ViewReviewforIsland(selectedIsland: $selectedIsland, enterZipCodeViewModel: mockViewModel)
+                .environment(\.managedObjectContext, context)
+        }
     }
 }

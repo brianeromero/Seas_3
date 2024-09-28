@@ -10,10 +10,10 @@ import SwiftUI
 import CoreData
 
 // Enum for star ratings
-enum StarRating: Int, CaseIterable {
+public enum StarRating: Int, CaseIterable {
     case zero = 0, one, two, three, four, five
 
-    var description: String {
+    public var description: String {
         switch self {
         case .zero: return "Trial Class Guy"
         case .one: return "5 Stripe White Belt"
@@ -24,7 +24,7 @@ enum StarRating: Int, CaseIterable {
         }
     }
 
-    var stars: [String] {
+    public var stars: [String] {
         let filledStars = Array(repeating: "star.fill", count: rawValue)
         let emptyStars = Array(repeating: "star", count: 5 - rawValue)
         return filledStars + emptyStars
@@ -33,6 +33,7 @@ enum StarRating: Int, CaseIterable {
 
 // Main view for Gym Mat Review
 struct GymMatReviewView: View {
+    @State private var showReview = false
     @State private var activeIsland: PirateIsland?
     @State private var reviewText: String = ""
     @State private var selectedRating: StarRating = .zero
@@ -91,9 +92,9 @@ struct GymMatReviewView: View {
     }
 
     var body: some View {
-        VStack { // Use VStack instead of ZStack
+        VStack {
             Form {
-                IslandSection(islands: Array(islands), selectedIsland: $activeIsland)
+                IslandSection(islands: Array(islands), selectedIsland: $activeIsland, showReview: $showReview)
                     .onChange(of: activeIsland) { newIsland in
                         // Assuming "Select an island" corresponds to a nil or specific island property
                         if let island = newIsland {
@@ -146,7 +147,7 @@ struct GymMatReviewView: View {
 
     private func submitReview() {
         guard let island = localSelectedIsland else {
-            alertMessage = "Please select a gym/island"
+            alertMessage = "Please Select a Gym"
             showAlert = true
             return
         }

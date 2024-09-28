@@ -48,7 +48,7 @@ struct AddClassScheduleView: View {
                     }
                     
                     Toggle("Good for Beginners", isOn: $goodForBeginners)
-                    Toggle("Kids", isOn: $kids)
+                    Toggle("Kids Class", isOn: $kids)
                 }
                 
                 Button(action: {

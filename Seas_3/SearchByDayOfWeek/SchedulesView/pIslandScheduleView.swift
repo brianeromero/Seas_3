@@ -15,7 +15,7 @@ struct pIslandScheduleView: View {
     var body: some View {
         VStack {
             if let selectedIsland = selectedIsland {
-                Text("Schedules for \(selectedIsland.islandName ?? "Unknown Island")")
+                Text("Schedules for \(selectedIsland.islandName ?? "Unknown Gym")")
                     .font(.title)
                     .padding()
 
@@ -63,7 +63,7 @@ struct pIslandScheduleView: View {
                                             .foregroundColor(.blue)
                                     }
                                     if matTime.kids {
-                                        Text("Kids")
+                                        Text("Kids Class")
                                             .font(.caption)
                                             .foregroundColor(.blue)
                                     }
@@ -89,7 +89,7 @@ struct pIslandScheduleView: View {
                         self.selectedIsland = island
                         viewModel.loadSchedules(for: island)
                     }) {
-                        Text(island.islandName ?? "Unknown Island")
+                        Text(island.islandName ?? "Unknown Gym")
                     }
                 }
                 .padding()

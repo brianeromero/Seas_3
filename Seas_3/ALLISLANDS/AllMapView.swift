@@ -38,7 +38,7 @@ struct AllMapView: View {
     var body: some View {
         Map(coordinateRegion: $region, annotationItems: islands.compactMap { island -> CustomMapMarker? in
             // Use optional coalescing to provide default values for optional properties
-            let title = island.islandName ?? "Unnamed Island"
+            let title = island.islandName ?? "Unnamed Gym"
             let latitude = island.latitude
             let longitude = island.longitude
             
@@ -58,7 +58,7 @@ struct AllMapView: View {
         }) { marker in
             MapAnnotation(coordinate: marker.coordinate) {
                 VStack {
-                    Text(marker.title ?? "Unnamed Island")
+                    Text(marker.title ?? "Unnamed Gym")
                         .font(.caption)
                         .padding(5)
                         .background(Color.white)

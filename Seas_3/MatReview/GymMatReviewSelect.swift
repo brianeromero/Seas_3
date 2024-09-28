@@ -60,11 +60,11 @@ struct GymMatReviewSelect: View {
                             self.selectedIsland = newIsland
                         }
                     )) {
-                        Text(island.islandName ?? "Unknown Island")
+                        Text(island.islandName ?? "Unknown Gym")
                     }
                 }
                 .listStyle(PlainListStyle())
-                .navigationTitle("Select Gym for Review")
+                .navigationTitle("Select Gym to Review")
                 .alert(isPresented: $showNoMatchAlert) {
                     Alert(
                         title: Text("No Match Found"),

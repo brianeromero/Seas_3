@@ -7,17 +7,15 @@ import CoreData
 import CoreLocation
 import MapKit
 
-
-
 // Equatable wrapper for MKCoordinateRegion
 struct EquatableMKCoordinateRegion: Equatable {
     var region: MKCoordinateRegion
 
     static func == (lhs: EquatableMKCoordinateRegion, rhs: EquatableMKCoordinateRegion) -> Bool {
-        return lhs.region.center.latitude == rhs.region.center.latitude &&
-               lhs.region.center.longitude == rhs.region.center.longitude &&
-               lhs.region.span.latitudeDelta == rhs.region.span.latitudeDelta &&
-               lhs.region.span.longitudeDelta == rhs.region.span.longitudeDelta
+        lhs.region.center.latitude == rhs.region.center.latitude &&
+        lhs.region.center.longitude == rhs.region.center.longitude &&
+        lhs.region.span.latitudeDelta == rhs.region.span.latitudeDelta &&
+        lhs.region.span.longitudeDelta == rhs.region.span.longitudeDelta
     }
 }
 
@@ -34,7 +32,7 @@ struct IslandModalContentView: View {
             let reviewsArray = ReviewUtils.getReviews(from: selectedIsland.reviews)
             let averageRating = ReviewUtils.averageStarRating(for: reviewsArray)
 
-            let dayOfWeekData: [DayOfWeek] = (selectedIsland.appDayOfWeeks?.allObjects as? [AppDayOfWeek])?
+            let dayOfWeekData = (selectedIsland.appDayOfWeeks?.allObjects as? [AppDayOfWeek])?
                 .compactMap { $0.dayOfWeek } ?? []
 
             // Use the custom DateFormat utilities
@@ -42,22 +40,21 @@ struct IslandModalContentView: View {
             let formattedTimestamp = DateFormat.mediumDateTime.string(from: selectedIsland.lastModifiedTimestamp ?? Date())
 
             VStack {
-                Text("Island Name: \(selectedIsland.islandName ?? "Unknown")")
+                Text("Gym Name: \(selectedIsland.islandName ?? "Unknown")")
                 IslandModalView(
                     customMapMarker: CustomMapMarker(
                         id: selectedIsland.islandID ?? UUID(),
                         coordinate: CLLocationCoordinate2D(latitude: selectedIsland.latitude, longitude: selectedIsland.longitude),
-                        title: selectedIsland.islandName ?? "Unknown Island",
+                        title: selectedIsland.islandName ?? "Unknown Gym",
                         pirateIsland: selectedIsland
                     ),
-                    islandName: selectedIsland.islandName ?? "Unknown Island",
+                    islandName: selectedIsland.islandName ?? "Unknown Gym",
                     islandLocation: selectedIsland.islandLocation ?? "Unknown Location",
                     formattedCoordinates: "\(selectedIsland.latitude), \(selectedIsland.longitude)",
                     createdTimestamp: createdTimestamp,
                     formattedTimestamp: formattedTimestamp,
                     gymWebsite: selectedIsland.gymWebsite,
-                    reviews: reviewsArray,
-                    averageStarRating: averageRating,
+                    reviews: ReviewUtils.getReviews(from: selectedIsland.reviews),
                     dayOfWeekData: dayOfWeekData,
                     selectedAppDayOfWeek: $selectedAppDayOfWeek,
                     selectedIsland: $selectedIsland,
@@ -68,11 +65,13 @@ struct IslandModalContentView: View {
                         repository: AppDayOfWeekRepository.shared,
                         context: PersistenceController.preview.container.viewContext
                     )
-                )            }
+                )
+            }
             .frame(width: 300, height: 400)
             .background(Color.white)
             .cornerRadius(10)
             .padding()
+
         } else {
             EmptyView()
         }
@@ -90,7 +89,7 @@ struct ConsolidatedIslandMapView: View {
     @StateObject private var viewModel: AppDayOfWeekViewModel
     @StateObject private var locationManager: UserLocationMapViewModel
     @State private var selectedRadius: Double = 5.0
-    @State private var equatableRegion: EquatableMKCoordinateRegion = EquatableMKCoordinateRegion(
+    @State private var equatableRegion = EquatableMKCoordinateRegion(
         region: MKCoordinateRegion(
             center: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
             span: MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1)
@@ -101,15 +100,13 @@ struct ConsolidatedIslandMapView: View {
     @State private var selectedIsland: PirateIsland?
     @State private var selectedAppDayOfWeek: AppDayOfWeek?
     @State private var selectedDay: DayOfWeek? = .monday
-    @State private var fetchedLocation: CLLocation?  // Add this line
-
+    @State private var fetchedLocation: CLLocation?
 
     init(viewModel: AppDayOfWeekViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
         _locationManager = StateObject(wrappedValue: UserLocationMapViewModel())
-        _selectedDay = State(initialValue: .monday)  // Ensure selectedDay is initialized
+        _selectedDay = State(initialValue: .monday)
     }
-
 
     var body: some View {
         NavigationView {
@@ -123,9 +120,7 @@ struct ConsolidatedIslandMapView: View {
                 }
             }
             .navigationTitle("Gyms Near Me")
-            .overlay(
-                overlayContentView()
-            )
+            .overlay(overlayContentView())
             .onAppear(perform: onAppear)
             .onChange(of: locationManager.userLocation, perform: onChangeUserLocation)
             .onChange(of: equatableRegion, perform: onChangeEquatableRegion)
@@ -147,11 +142,11 @@ struct ConsolidatedIslandMapView: View {
     }
 
 
-
     private func makeRadiusPicker() -> some View {
         RadiusPicker(selectedRadius: $selectedRadius)
             .padding()
     }
+
 
     private func overlayContentView() -> some View {
         ZStack {
@@ -167,17 +162,16 @@ struct ConsolidatedIslandMapView: View {
                         customMapMarker: CustomMapMarker(
                             id: selectedIsland.islandID ?? UUID(),
                             coordinate: CLLocationCoordinate2D(latitude: selectedIsland.latitude, longitude: selectedIsland.longitude),
-                            title: selectedIsland.islandName ?? "Unknown Island",
+                            title: selectedIsland.islandName ?? "Unknown Gym",
                             pirateIsland: selectedIsland
                         ),
-                        islandName: selectedIsland.islandName ?? "Unknown Island",
+                        islandName: selectedIsland.islandName ?? "Unknown Gym",
                         islandLocation: selectedIsland.islandLocation ?? "Unknown Location",
                         formattedCoordinates: "\(selectedIsland.latitude), \(selectedIsland.longitude)",
                         createdTimestamp: DateFormat.mediumDateTime.string(from: selectedIsland.createdTimestamp),
                         formattedTimestamp: DateFormat.mediumDateTime.string(from: selectedIsland.lastModifiedTimestamp ?? Date()),
                         gymWebsite: selectedIsland.gymWebsite,
                         reviews: ReviewUtils.getReviews(from: selectedIsland.reviews),
-                        averageStarRating: ReviewUtils.averageStarRating(for: ReviewUtils.getReviews(from: selectedIsland.reviews)),
                         dayOfWeekData: (selectedIsland.appDayOfWeeks?.allObjects as? [AppDayOfWeek])?.compactMap { $0.dayOfWeek } ?? [],
                         selectedAppDayOfWeek: $selectedAppDayOfWeek,
                         selectedIsland: $selectedIsland,
@@ -189,22 +183,20 @@ struct ConsolidatedIslandMapView: View {
                             context: PersistenceController.preview.container.viewContext
                         )
                     )
-
                     .frame(width: UIScreen.main.bounds.width * 0.8, height: UIScreen.main.bounds.height * 0.6)
                     .background(Color.white)
                     .cornerRadius(10)
                     .shadow(radius: 10)
                     .padding()
-                    .transition(.opacity) // Use transition for animation
+                    .transition(.opacity)
                 } else {
-                    Text("No Island Selected")
+                    Text("No Gym Selected")
                         .padding()
                 }
             }
         }
-        .animation(.easeInOut, value: showModal) // Apply animation to parent view based on showModal
+        .animation(.easeInOut, value: showModal)
     }
-
 
     private func mapAnnotationView(for marker: CustomMapMarker) -> some View {
         VStack {
@@ -214,7 +206,7 @@ struct ConsolidatedIslandMapView: View {
                 .background(Color.white)
                 .cornerRadius(5)
                 .shadow(radius: 3)
-            CustomMarkerView() // Use your custom marker view here
+            CustomMarkerView()
                 .onTapGesture {
                     if let pirateIsland = marker.pirateIsland {
                         selectedIsland = pirateIsland
@@ -223,10 +215,9 @@ struct ConsolidatedIslandMapView: View {
                 }
         }
         .onAppear {
-            print("Annotation view for marker: \(marker)")  // Debug print
+            print("Annotation view for marker: \(marker)")
         }
     }
-
 
     private func onAppear() {
         locationManager.startLocationServices()
@@ -237,10 +228,9 @@ struct ConsolidatedIslandMapView: View {
 
     private func onChangeUserLocation(_ newUserLocation: CLLocation?) {
         guard let newUserLocation = newUserLocation else { return }
-
         updateRegion(newUserLocation, radius: selectedRadius)
 
-        let address = "Your Address Here"  // Replace with actual address or use newUserLocation
+        let address = "Your Address Here"
         let retryCount = 3
 
         MapUtils.fetchLocation(for: address, selectedRadius: selectedRadius, retryCount: retryCount) { location, error in
@@ -249,15 +239,11 @@ struct ConsolidatedIslandMapView: View {
                 return
             }
 
-            if let location = location {
-                self.fetchedLocation = CLLocation(latitude: location.latitude, longitude: location.longitude)
-                if let fetchedLocation = self.fetchedLocation {
-                    self.updateRegion(fetchedLocation, radius: self.selectedRadius)
-                }
+            if location != nil {
+                // Handle the fetched location
             }
         }
     }
-
 
 
     private func onChangeEquatableRegion(_ newRegion: EquatableMKCoordinateRegion) {
@@ -311,7 +297,7 @@ struct MockData {
         let context = PersistenceController.preview.container.viewContext
         let island = PirateIsland(context: context)
         island.islandID = UUID()
-        island.islandName = "Sample Island"
+        island.islandName = "Sample Gym"
         island.islandLocation = "Sample Location"
         island.latitude = 37.7749
         island.longitude = -122.4194

@@ -103,7 +103,7 @@ class EnterZipCodeViewModel: ObservableObject {
                     CustomMapMarker(
                         id: island.islandID ?? UUID(),
                         coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude),
-                        title: island.islandName ?? "Unknown Island",
+                        title: island.islandName ?? "Unknown Gym",
                         pirateIsland: island
                     )
                 }

@@ -81,7 +81,7 @@ struct AllpIslandScheduleView: View {
     private func islandSection(island: PirateIsland, matTimes: [MatTime]) -> some View {
         Group {
             if let islandName = island.islandName, !islandName.isEmpty {
-                Section(header: Text(island.islandName ?? "Unknown Island")) {
+                Section(header: Text(island.islandName ?? "Unknown Gym")) {
                     ForEach(filteredAndSortedMatTimes(matTimes), id: \.self) { matTime in
                         ScheduleRow(matTime: matTime)
                             .onTapGesture {

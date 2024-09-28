@@ -92,7 +92,7 @@ struct ContentView: View {
     
     private func islandRowView(island: PirateIsland) -> some View {
         VStack(alignment: .leading) {
-            Text("Gym: \(island.islandName ?? "Unknown Island")")
+            Text("Gym: \(island.islandName ?? "Unknown Gym")")
             Text("Added: \(island.formattedTimestamp)")
                 .font(.caption)
                 .foregroundColor(.gray)

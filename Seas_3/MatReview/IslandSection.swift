@@ -13,21 +13,22 @@ import CoreData
 struct IslandSection: View {
     var islands: [PirateIsland]
     @Binding var selectedIsland: PirateIsland?
+    @Binding var showReview: Bool
 
     var body: some View {
-        Section(header: Text("Select Island")) {
-            Picker("Select an Island", selection: $selectedIsland) {
-                Text("Select an Island").tag(nil as PirateIsland?) // Default option
+        Section(header: Text("Select Gym")) {
+            Picker("Select a Gym", selection: $selectedIsland) {
+                Text("Select a Gym").tag(nil as PirateIsland?) // Default option
 
                 ForEach(islands, id: \.self) { island in
-                    Text(island.islandName ?? "Unknown Island")
+                    Text(island.islandName ?? "Unknown Gym")
                         .tag(island as PirateIsland?)
                 }
             }
             .onChange(of: selectedIsland) { newIsland in
-                print("Selected Island: \(newIsland?.islandName ?? "Unknown Island")")
+                print("Selected Gym: \(newIsland?.islandName ?? "Unknown Gym")")
+                showReview = true
             }
-
         }
     }
 }
@@ -35,13 +36,14 @@ struct IslandSection: View {
 struct IslandSection_Previews: PreviewProvider {
     static var previews: some View {
         @State var selectedIsland: PirateIsland? = nil
+        @State var showReview: Bool = false
         let islands = PersistenceController.preview.fetchAllPirateIslands()
 
         return Group {
-            IslandSection(islands: islands, selectedIsland: $selectedIsland)
+            IslandSection(islands: islands, selectedIsland: $selectedIsland, showReview: $showReview)
                 .previewLayout(.sizeThatFits)
                 .padding()
-                .previewDisplayName("Island Section Preview")
+                .previewDisplayName("Gym Section Preview")
         }
     }
 }

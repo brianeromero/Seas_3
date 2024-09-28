@@ -27,12 +27,12 @@ struct IslandModalView: View {
     let formattedTimestamp: String
     let gymWebsite: URL?
     let reviews: [Review]
-    let averageStarRating: String
     let dayOfWeekData: [DayOfWeek]
     @Binding var selectedIsland: PirateIsland?
     @ObservedObject var viewModel: AppDayOfWeekViewModel
     @Binding var selectedAppDayOfWeek: AppDayOfWeek?
 
+    // Remove averageStarRating from initializer
     init(
         customMapMarker: CustomMapMarker?,
         islandName: String,
@@ -42,7 +42,6 @@ struct IslandModalView: View {
         formattedTimestamp: String,
         gymWebsite: URL?,
         reviews: [Review],
-        averageStarRating: String,
         dayOfWeekData: [DayOfWeek],
         selectedAppDayOfWeek: Binding<AppDayOfWeek?>,
         selectedIsland: Binding<PirateIsland?>,
@@ -59,7 +58,6 @@ struct IslandModalView: View {
         self.formattedTimestamp = formattedTimestamp
         self.gymWebsite = gymWebsite
         self.reviews = reviews
-        self.averageStarRating = averageStarRating
         self.dayOfWeekData = dayOfWeekData
         self._selectedAppDayOfWeek = selectedAppDayOfWeek
         self._selectedIsland = selectedIsland
@@ -67,6 +65,11 @@ struct IslandModalView: View {
         self._selectedDay = selectedDay
         self._showModal = showModal
         self.enterZipCodeViewModel = enterZipCodeViewModel
+    }
+
+    // Calculate average star rating here
+    private var averageStarRating: String {
+        ReviewUtils.averageStarRating(for: reviews)
     }
 
     var body: some View {
@@ -90,7 +93,6 @@ struct IslandModalView: View {
                             .font(.system(size: 12))
                             .foregroundColor(.secondary)
 
-                        // Check if gymWebsite is available and display accordingly
                         if let gymWebsite = gymWebsite {
                             HStack {
                                 Text("Website:")
@@ -122,13 +124,12 @@ struct IslandModalView: View {
                                 .foregroundColor(.secondary)
                         }
 
-                        // Display reviews or option to leave a review
                         VStack(alignment: .leading, spacing: 8) {
                             if !reviews.isEmpty {
                                 HStack {
                                     Text("Average Rating:")
                                     Spacer()
-                                    Text(averageStarRating)
+                                    Text(averageStarRating) // Use calculated average star rating
                                 }
 
                                 NavigationLink(destination: ViewReviewforIsland(
@@ -150,17 +151,15 @@ struct IslandModalView: View {
                                         // Handle island change
                                     }
                                 )) {
-                                    Text(selectedIsland.islandName ?? "Unknown Island")
+                                    Text(selectedIsland.islandName ?? "Unknown Gym")
                                 }
                             }
                         }
-
                         .padding(.top, 20)
 
                         Spacer()
 
                         Button(action: {
-                            print("Close button tapped")
                             showModal = false
                         }) {
                             Text("Close")
@@ -192,21 +191,17 @@ struct IslandModalView: View {
         .onAppear {
             isLoadingData = true
             guard let island = selectedIsland, let day = selectedDay else {
-                print("Error: selectedIsland or selectedDay is nil.")
                 isLoadingData = false
                 return
             }
-            print("Fetching schedules for island: \(island.islandName ?? "Unknown") on day: \(day.displayName)")
             Task {
                 let fetchedSchedules = PersistenceController.shared.fetchAppDayOfWeekForIslandAndDay(for: island, day: day)
                 islandSchedules = [(island, fetchedSchedules.flatMap { $0.matTimes?.allObjects as? [MatTime] ?? [] })]
                 scheduleExists = !fetchedSchedules.isEmpty
                 isLoadingData = false
-                print("Schedules loaded: \(islandSchedules.count) schedules")
             }
         }
     }
-
 }
 
 struct IslandModalView_Previews: PreviewProvider {
@@ -215,7 +210,7 @@ struct IslandModalView_Previews: PreviewProvider {
             context: PersistenceController.preview.container.viewContext
         )
         mockIsland.islandName = "Big Bad Island"
-        mockIsland.islandLocation = "Island Address"
+        mockIsland.islandLocation = "Gym Address"
         mockIsland.latitude = 37.7749
         mockIsland.longitude = -122.4194
         mockIsland.createdTimestamp = Date()
@@ -238,7 +233,16 @@ struct IslandModalView_Previews: PreviewProvider {
             pirateIsland: mockIsland
         )
 
-        let mockReviews = [Review(), Review()]
+        // Create mock reviews
+        let mockReview1 = Review(context: PersistenceController.preview.container.viewContext)
+        mockReview1.stars = 5
+        mockReview1.createdTimestamp = Date()
+
+        let mockReview2 = Review(context: PersistenceController.preview.container.viewContext)
+        mockReview2.stars = 4
+        mockReview2.createdTimestamp = Date()
+
+        let mockReviews = [mockReview1, mockReview2]
 
         let islandModalView = IslandModalView(
             customMapMarker: mockCustomMapMarker,
@@ -249,7 +253,6 @@ struct IslandModalView_Previews: PreviewProvider {
             formattedTimestamp: "2022-01-01 12:00:00",
             gymWebsite: URL(string: "https://www.example.com"),
             reviews: mockReviews,
-            averageStarRating: "4.5",
             dayOfWeekData: [.monday, .tuesday, .wednesday],
             selectedAppDayOfWeek: .constant(nil),
             selectedIsland: .constant(mockIsland),

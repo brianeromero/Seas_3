@@ -138,7 +138,7 @@ class PersistenceController: ObservableObject {
         for _ in 0..<10 {
             let newIsland = PirateIsland(context: viewContext)
             newIsland.islandID = UUID() // Set the islandID
-            newIsland.islandName = "Preview Island"
+            newIsland.islandName = "Preview Gym"
             newIsland.latitude = 37.7749
             newIsland.longitude = -122.4194
             newIsland.createdTimestamp = Date()
