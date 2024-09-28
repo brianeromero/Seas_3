@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0C00086E2CA895D600CA5181 /* SearchBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C00086D2CA895D600CA5181 /* SearchBar.swift */; };
 		0C07B0712C2CFD0300D0BFB2 /* IslandMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0702C2CFD0300D0BFB2 /* IslandMenu.swift */; };
 		0C07B0732C2CFD2800D0BFB2 /* AddNewIsland.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0722C2CFD2800D0BFB2 /* AddNewIsland.swift */; };
 		0C07B0752C2CFD4900D0BFB2 /* EditExistingIslandList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0742C2CFD4900D0BFB2 /* EditExistingIslandList.swift */; };
@@ -130,6 +131,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		0C00086D2CA895D600CA5181 /* SearchBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchBar.swift; sourceTree = "<group>"; };
 		0C07B0702C2CFD0300D0BFB2 /* IslandMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandMenu.swift; sourceTree = "<group>"; };
 		0C07B0722C2CFD2800D0BFB2 /* AddNewIsland.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddNewIsland.swift; sourceTree = "<group>"; };
 		0C07B0742C2CFD4900D0BFB2 /* EditExistingIslandList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditExistingIslandList.swift; sourceTree = "<group>"; };
@@ -366,6 +368,7 @@
 			children = (
 				0C4B34352C61A32700FD6893 /* PirateIslandDataManager.swift */,
 				0C955BEA2C75AE6700D03CAB /* Utilities.swift */,
+				0C00086D2CA895D600CA5181 /* SearchBar.swift */,
 			);
 			path = DataManager;
 			sourceTree = "<group>";
@@ -697,6 +700,7 @@
 				0C1893D12C7D18F0007BFADB /* ReviewUtils.swift in Sources */,
 				0CA142242C3EF19900C366CF /* MainLoginViewController.swift in Sources */,
 				0C07B0772C2CFD6700D0BFB2 /* EditExistingIsland.swift in Sources */,
+				0C00086E2CA895D600CA5181 /* SearchBar.swift in Sources */,
 				0CF13E7A2C2A36B500D714C0 /* AppDayOfWeek+CoreDataProperties.swift in Sources */,
 				0C1635522C35D6E2008FC297 /* AddOpenMatFormView.swift in Sources */,
 				0C4F3C412C3C4645008D04B9 /* IslandScheduleView.swift in Sources */,

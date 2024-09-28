@@ -9,21 +9,25 @@ import Foundation
 import SwiftUI
 import CoreData
 
-/// A SwiftUI View representing a Picker for selecting a `PirateIsland`.
 struct IslandSection: View {
     var islands: [PirateIsland]
     @Binding var selectedIsland: PirateIsland?
     @Binding var showReview: Bool
 
     var body: some View {
-        Section(header: Text("Select Gym")) {
-            Picker("Select a Gym", selection: $selectedIsland) {
-                Text("Select a Gym").tag(nil as PirateIsland?) // Default option
+        Section(header: Text("Select A Gym")) {
+            Picker("Select b Gym", selection: $selectedIsland) {
+                Text("Select c Gym").tag(nil as PirateIsland?)
 
                 ForEach(islands, id: \.self) { island in
                     Text(island.islandName ?? "Unknown Gym")
-                        .tag(island as PirateIsland?)
+                        .tag(island)
                 }
+            }
+            .id(selectedIsland) // Add this line
+            .onAppear {
+                print("Initial selected island: \(selectedIsland?.islandName ?? "Unknown Gym")")
+                showReview = true
             }
             .onChange(of: selectedIsland) { newIsland in
                 print("Selected Gym: \(newIsland?.islandName ?? "Unknown Gym")")

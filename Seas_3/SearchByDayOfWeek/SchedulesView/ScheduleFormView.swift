@@ -38,19 +38,33 @@ struct ScheduleFormView: View {
     @State private var daySelected = false
     @State private var selectedDay: DayOfWeek? = .monday // Optional
     @State private var showReview = false
+    @State private var showClassScheduleModal = false
+    @ObservedObject var daysOfWeekViewModel: DaysOfWeekFormViewModel
+
+    
+    
+    func setupInitialIsland() {
+        if let island = selectedIsland {
+            let day = selectedDay ?? .monday
+            viewModel.fetchCurrentDayOfWeek(for: island, day: day)
+        }
+    }
 
     var body: some View {
         Form {
             IslandSection(
                 islands: islands,
-                selectedIsland: Binding(
-                    get: { selectedIsland ?? islands.first },
-                    set: { selectedIsland = $0 }
-                ),
+                selectedIsland: $selectedIsland,
                 showReview: $showReview
             )
+            .id(selectedIsland)
+            .onAppear {
+                print("ScheduleFormView: selectedIsland = \(selectedIsland?.islandName ?? "None")")
+                setupInitialIsland()
+            }
             .onChange(of: selectedIsland) { newIsland in
-                if let island = newIsland, let day = selectedDay {
+                if let island = newIsland {
+                    let day = selectedDay ?? .monday
                     viewModel.fetchCurrentDayOfWeek(for: island, day: day)
                 }
             }
@@ -79,32 +93,7 @@ struct ScheduleFormView: View {
             Alert(title: Text(alertTitle), message: Text(alertMessage), dismissButton: .default(Text("OK")))
         }
     }
-
-    /*
-    private var islandSelectionSection: some View {
-        Section(header: Text("Select Gym")) {
-            Picker("Select Gym", selection: $selectedIsland) {
-                ForEach(islands, id: \.self) { island in
-                    Text(island.islandName ?? "Unknown Gym").tag(island)
-                }
-            }
-            .onChange(of: selectedIsland) { newIsland in
-                if let island = newIsland {
-                    print("Selected Gym: \(island.islandName ?? "Unknown Gym")")
-                    if let day = selectedDay {
-                        viewModel.fetchCurrentDayOfWeek(for: island, day: day)
-                    }
-                    
-                    if let appDayOfWeek = selectedAppDayOfWeek {
-                        viewModel.viewContext.delete(appDayOfWeek)
-                        viewModel.saveData()
-                        selectedAppDayOfWeek = nil
-                    }
-                }
-            }
-        }
-    }
-*/
+    
 
     private var daySelectionSection: some View {
         Section(header: Text("Select Day")) {
@@ -223,11 +212,15 @@ struct ScheduleFormView_Previews: PreviewProvider {
             enterZipCodeViewModel: mockEnterZipCodeViewModel
         )
         
+        // Initialize DaysOfWeekFormViewModel
+        let daysOfWeekViewModel = DaysOfWeekFormViewModel()
+        
         return ScheduleFormView(
             islands: [island1, island2],
             selectedAppDayOfWeek: .constant(nil),
             selectedIsland: .constant(island1),
-            viewModel: viewModel
+            viewModel: viewModel,
+            daysOfWeekViewModel: daysOfWeekViewModel
         )
         .environment(\.managedObjectContext, context)
         .previewDisplayName("Schedule Entry Preview")

@@ -32,21 +32,13 @@ struct GymMatReviewSelect: View {
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Search by Gym Name, Location, etc.")) {
-                    HStack {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundColor(.gray)
-
-                        TextField("Search...", text: $searchQuery)
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 12)
-                            .background(Color(.systemGray6))
-                            .cornerRadius(8.0)
-                            .textFieldStyle(PlainTextFieldStyle())
-                            .onChange(of: searchQuery) { _ in
-                                updateFilteredIslands()
-                            }
-                    }
+                Section(header: Text("Search by: gym name, zip code, or address/location")
+                            .font(.headline)
+                            .foregroundColor(.gray)) {
+                    SearchBar(text: $searchQuery)
+                        .onChange(of: searchQuery) { newValue in
+                            updateFilteredIslands()
+                        }
                 }
 
                 // Use NavigationLink to display the review view consistently

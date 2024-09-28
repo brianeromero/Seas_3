@@ -31,20 +31,13 @@ struct ViewReviewSearch: View {
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Search by Island Name, Location, etc.")) {
-                    HStack {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundColor(.gray)
-
-                        TextField("Search...", text: $searchQuery)
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 12)
-                            .background(Color(.systemGray6))
-                            .cornerRadius(8.0)
-                            .onChange(of: searchQuery) { _ in
-                                updateFilteredIslands()
-                            }
-                    }
+                Section(header: Text("Search by: gym name, zip code, or address/location")
+                            .font(.headline)
+                            .foregroundColor(.gray)) {
+                    SearchBar(text: $searchQuery)
+                        .onChange(of: searchQuery) { newValue in
+                            updateFilteredIslands()
+                        }
                 }
 
                 List(filteredIslands) { island in
