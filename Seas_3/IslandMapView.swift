@@ -52,7 +52,6 @@ struct IslandMapView: View {
                     formattedTimestamp: island.formattedTimestamp,
                     gymWebsite: island.gymWebsite,
                     reviews: ReviewUtils.getReviews(from: island.reviews),
-                    averageStarRating: ReviewUtils.averageStarRating(for: ReviewUtils.getReviews(from: island.reviews)),
                     dayOfWeekData: island.daysOfWeekArray.compactMap { DayOfWeek(rawValue: $0.day ?? "") },
                     selectedAppDayOfWeek: $selectedAppDayOfWeek,
                     selectedIsland: $selectedIsland,
@@ -62,7 +61,7 @@ struct IslandMapView: View {
                     enterZipCodeViewModel: self.enterZipCodeViewModel
                 )
             } else {
-                Text("No Island Selected")
+                Text("No Gym Selected")
                     .padding()
             }
         }
@@ -88,7 +87,7 @@ struct IslandMapContent: View {
     var body: some View {
         VStack(alignment: .leading) {
             if islands.isEmpty {
-                Text("No islands available.")
+                Text("No Gyms available.")
                     .padding()
             } else {
                 ForEach(islands, id: \.islandID) { island in
@@ -232,7 +231,7 @@ struct IslandMapView_Previews: PreviewProvider {
                 )),
                 searchResults: .constant([island1, island2])
             )
-            .previewDisplayName("Island Map View")
+            .previewDisplayName("Gym Map View")
             
             IslandMapViewMap(
                 coordinate: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
@@ -241,7 +240,7 @@ struct IslandMapView_Previews: PreviewProvider {
                 onTap: { _ in },
                 island: island1
             )
-            .previewDisplayName("Island Map View Map")
+            .previewDisplayName("Gym Map View Map")
             
             CustomMarkerView()
                 .previewLayout(.sizeThatFits)

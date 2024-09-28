@@ -41,7 +41,7 @@ struct pIslandScheduleListView: View {
                                 .foregroundColor(.blue)
                         }
                         if matTime.kids {
-                            Text("Kids")
+                            Text("Kids Class")
                                 .font(.caption)
                                 .foregroundColor(.blue)
                         }

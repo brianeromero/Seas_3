@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftUI
+import CoreData
 
 struct ScheduledMatTimesSection: View {
     let island: PirateIsland
@@ -15,115 +16,100 @@ struct ScheduledMatTimesSection: View {
     @Binding var matTimesForDay: [DayOfWeek: [MatTime]]
     @Binding var selectedDay: DayOfWeek?
 
-
     var body: some View {
         Section(header: Text("Scheduled Mat Times")) {
-            if let appDayOfWeek = island.daysOfWeekArray.first(where: { $0.day == day.rawValue }),
-               let day = appDayOfWeek.day,
-               !viewModel.fetchMatTimes(for: self.day).isEmpty {
-                MatTimesList(day: day, matTimes: viewModel.fetchMatTimes(for: self.day))
-            } else {
-                Text("No mat times available for \(self.day.rawValue.capitalized) at \(island.islandName ??  "this island").")
-                    .foregroundColor(.gray)
-            }
-        }
-        .onAppear {
-            debugPrintMatTimesForDay()
-        }
-    }
+            let matTimes = viewModel.fetchMatTimes(for: self.day)
 
-    struct MatTimesList: View {
-        let day: String
-        let matTimes: [MatTime]
-
-        var body: some View {
-            List {
-                ForEach(matTimes) { matTime in
-                    VStack(alignment: .leading) {
-                        Text("Time: \(formatTime(matTime.time ?? "Unknown"))")
-                            .font(.headline)
-                        HStack {
-                            Label("Gi", systemImage: matTime.gi ? "checkmark.circle.fill" : "xmark.circle")
-                                .foregroundColor(matTime.gi ? .green : .red)
-                            Label("NoGi", systemImage: matTime.noGi ? "checkmark.circle.fill" : "xmark.circle")
-                                .foregroundColor(matTime.noGi ? .green : .red)
-                            Label("Open Mat", systemImage: matTime.openMat ? "checkmark.circle.fill" : "xmark.circle")
-                                .foregroundColor(matTime.openMat ? .green : .red)
-                        }
-                        if matTime.restrictions {
-                            Text("Restrictions: \(matTime.restrictionDescription ?? "Yes")")
-                                .font(.caption)
-                                .foregroundColor(.red)
-                        }
-                        if matTime.goodForBeginners {
-                            Text("Good for Beginners")
-                                .font(.caption)
-                                .foregroundColor(.blue)
-                        }
-                        if matTime.kids {
-                            Text("Kids")
-                                .font(.caption)
-                                .foregroundColor(.blue)
-                        }
-                    }
-                    .padding()
+            Group {
+                if !matTimes.isEmpty {
+                    MatTimesList(day: day.rawValue.capitalized, matTimes: matTimes)
+                } else {
+                    Text("No mat times available for \(self.day.rawValue.capitalized) at \(island.islandName ?? "this gym").")
+                        .foregroundColor(.gray)
                 }
             }
         }
-        
-        // Helper function for formatting time
-        private func formatTime(_ time: String) -> String {
-            if let date = DateFormat.time.date(from: time) {
-                return DateFormat.shortTime.string(from: date)
-            } else {
-                return time
-            }
+        .onAppear {
+            debugPrintMatTimes(matTimes: viewModel.fetchMatTimes(for: self.day))
         }
-    }
-
-    // Debug function
-    func debugPrintMatTimesForDay() {
-        debugPrint("matTimesForDay in ScheduledMatTimesSection:", matTimesForDay)
     }
 }
 
-struct ScheduledMatTimesSection_Previews: PreviewProvider {
-    static var previews: some View {
-        let context = (UIApplication.shared.delegate as! AppDelegate).persistenceController.container.viewContext
-        // Create a mock PirateIsland
-        let pirateIsland = PirateIsland(context: context)
-        pirateIsland.islandName = "Mock Island"
-        pirateIsland.latitude = 37.7749
-        pirateIsland.longitude = -122.4194
+// Ensure this returns a valid View
+struct MatTimesList: View {
+    let day: String
+    let matTimes: [MatTime]
 
-        // Create a mock AppDayOfWeekRepository
-        let repository = AppDayOfWeekRepository.shared
+    var body: some View {
+        List {
+            ForEach(matTimes, id: \.self) { matTime in
+                VStack(alignment: .leading) {
+                    if let timeString = matTime.time {
+                        Text("Time: \(timeString)")
+                            .font(.headline)
+                    } else {
+                        Text("Time: Unknown")
+                            .font(.headline)
+                    }
+                    HStack {
+                        if matTime.gi {
+                            HStack {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(.green)
+                                Text("Gi")
+                            }
+                        }
+                        if matTime.noGi {
+                            HStack {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(.green)
+                                Text("NoGi")
+                            }
+                        }
+                        if matTime.openMat {
+                            HStack {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(.green)
+                                Text("Open Mat")
+                            }
+                        }
+                    }
+                    
+                    if matTime.restrictions {
+                        Text("Restrictions: \(matTime.restrictionDescription ?? "Yes")")
+                            .font(.caption)
+                            .foregroundColor(.red)
+                    }
+                    
+                    HStack {
+                        if matTime.goodForBeginners {
+                            HStack {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(.blue)
+                                Text("Good for Beginners")
+                            }
+                        }
+                        if matTime.kids {
+                            HStack {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(.blue)
+                                Text("Kids Class")
+                            }
+                        }
+                    }
+                }
+                .padding()
+            }
+        }
+        .onAppear {
+            debugPrintMatTimes(matTimes: matTimes)
+        }
+    }
+}
 
-        // Create a mock EnterZipCodeViewModel
-        let mockEnterZipCodeViewModel = EnterZipCodeViewModel(repository: repository, context: context)
-
-        // Create a mock AppDayOfWeekViewModel
-        let viewModel = AppDayOfWeekViewModel(
-            selectedIsland: pirateIsland,
-            repository: repository,
-            enterZipCodeViewModel: mockEnterZipCodeViewModel
-        )
-
-        // Create a mock DayOfWeek
-        let day: DayOfWeek = .monday
-
-        // Create a dictionary for matTimesForDay
-        let matTimesForDay: [DayOfWeek: [MatTime]] = [.monday: []]
-
-        return ScheduledMatTimesSection(
-            island: pirateIsland,
-            day: day,
-            viewModel: viewModel,
-            matTimesForDay: .constant(matTimesForDay),
-            selectedDay: .constant(day)
-        )
-        .environment(\.managedObjectContext, context)
-        .previewLayout(.sizeThatFits)
-        .padding()
+func debugPrintMatTimes(matTimes: [MatTime]) {
+    for matTime in matTimes {
+        debugPrint("MatTime: \(matTime.time ?? "Unknown")")
+        debugPrint("GI: \(matTime.gi)")
     }
 }

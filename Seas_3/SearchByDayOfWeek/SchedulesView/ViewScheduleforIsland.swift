@@ -15,7 +15,7 @@ struct ViewScheduleForIsland: View {
 
     var body: some View {
         VStack {
-            Text("Schedules for \(island.islandName ?? "Unknown Island")")
+            Text("Schedules for \(island.islandName ?? "Unknown Gym")")
                 .font(.title)
                 .padding()
 

@@ -71,7 +71,7 @@ struct IslandDetailContent: View {
 
     var body: some View {
         VStack(alignment: .leading) {
-            Text(island.islandName ?? "Unnamed Island")
+            Text(island.islandName ?? "Unnamed Gym")
                 .font(.headline)
                 .bold()
                 .frame(maxWidth: .infinity, alignment: .leading)

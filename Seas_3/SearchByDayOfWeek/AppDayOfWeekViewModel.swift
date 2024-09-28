@@ -381,13 +381,13 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
                     do {
                         let islandSchedulesForDay = try await self.repository.fetchAllIslands(forDay: day.rawValue)
                             .map { island, matTimes in
-                                print("Island: \(island.name ?? ""), MatTimes: \(matTimes)")
+                                print("Gym: \(island.name ?? ""), MatTimes: \(matTimes)")
                                 return (island, matTimes)
                             }
-                        print("Island schedules for day: \(islandSchedulesForDay)")
+                        print("Gym schedules for day: \(islandSchedulesForDay)")
                         return (day, islandSchedulesForDay)
                     } catch {
-                        print("Error fetching islands for day \(day.rawValue): \(error.localizedDescription)")
+                        print("Error fetching Gym schedule for day \(day.rawValue): \(error.localizedDescription)")
                         return (day, []) // Return an empty array on error
                     }
                 }
@@ -398,7 +398,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
                 result[day] = islandSchedulesForDay
             }
             
-            print("Loaded all island schedules: \(result)")
+            print("Loaded All Gym Schedules: \(result)")
             return result
         }
         
@@ -479,7 +479,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
         
         appDayOfWeek.day = day.rawValue
         appDayOfWeek.pIsland = island
-        appDayOfWeek.name = "\(island.islandName ?? "Unknown Island") \(day.displayName)"
+        appDayOfWeek.name = "\(island.islandName ?? "Unknown Gym") \(day.displayName)"
         appDayOfWeek.createdTimestamp = Date()
         
         if let unwrappedMatTime = newMatTime {

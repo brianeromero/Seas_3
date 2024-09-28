@@ -17,7 +17,6 @@ struct IslandModalContainer: View {
     @Binding var selectedAppDayOfWeek: AppDayOfWeek?
     @State private var isLoading = true
 
-
     var body: some View {
         if let selectedIsland = selectedIsland {
             IslandModalView(
@@ -29,7 +28,6 @@ struct IslandModalContainer: View {
                 formattedTimestamp: selectedIsland.formattedTimestamp,
                 gymWebsite: selectedIsland.gymWebsite,
                 reviews: selectedIsland.reviews?.array as? [Review] ?? [],
-                averageStarRating: "",
                 dayOfWeekData: [],
                 selectedAppDayOfWeek: $selectedAppDayOfWeek,
                 selectedIsland: $selectedIsland,

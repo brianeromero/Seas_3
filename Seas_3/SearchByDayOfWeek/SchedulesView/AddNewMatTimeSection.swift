@@ -42,7 +42,7 @@ struct AddNewMatTimeSection: View {
                 ToggleView(title: "No Gi", isOn: $noGi)
                 ToggleView(title: "Open Mat", isOn: $openMat)
                 ToggleView(title: "Good for Beginners", isOn: $goodForBeginners)
-                ToggleView(title: "Kids", isOn: $kids)
+                ToggleView(title: "Kids Class", isOn: $kids)
                 ToggleView(title: "Restrictions", isOn: $restrictions)
 
                 if restrictions {

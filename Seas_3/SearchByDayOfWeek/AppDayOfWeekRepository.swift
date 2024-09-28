@@ -75,11 +75,11 @@ class AppDayOfWeekRepository {
     }
 
     func generateName(for island: PirateIsland, day: DayOfWeek) -> String {
-        return "\(island.islandName ?? "Unknown Island") \(day.displayName)"
+        return "\(island.islandName ?? "Unknown Gym") \(day.displayName)"
     }
     
     func generateAppDayOfWeekID(for island: PirateIsland, day: DayOfWeek) -> String {
-        return "\(island.islandName ?? "UnknownIsland")-\(day.rawValue)"
+        return "\(island.islandName ?? "Unknown Gym")-\(day.rawValue)"
     }
 
     func getAppDayOfWeek(for day: String, pirateIsland: PirateIsland, context: NSManagedObjectContext) -> AppDayOfWeek? {
@@ -195,7 +195,7 @@ class AppDayOfWeekRepository {
     }
 
     func fetchSchedules(for island: PirateIsland) -> [AppDayOfWeek] {
-        print("AppDayOfWeekRepository - Fetching schedules for island: \(island.islandName ?? "Unknown Island")")
+        print("AppDayOfWeekRepository - Fetching schedules for island: \(island.islandName ?? "Unknown Gym")")
         let predicate = NSPredicate(format: "pIsland == %@", island)
         return persistenceController.fetchSchedules(for: predicate)
     }
@@ -325,7 +325,7 @@ class AppDayOfWeekRepository {
             print("Transformed islands count: \(islandsWithMatTimes.count)")
 
             if islandsWithMatTimes.isEmpty {
-                throw NSError(domain: "IslandFetchError", code: 1, userInfo: [NSLocalizedDescriptionKey: "No islands found"])
+                throw NSError(domain: "IslandFetchError", code: 1, userInfo: [NSLocalizedDescriptionKey: "No Gyms found"])
             }
 
             return islandsWithMatTimes

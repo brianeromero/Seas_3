@@ -60,7 +60,7 @@ extension PirateIsland {
     }
 
     public var safeName: String {
-        name ?? "Unnamed Island"
+        name ?? "Unnamed Gym"
     }
 
     // Convert the NSSet of appDayOfWeeks to an array of AppDayOfWeek

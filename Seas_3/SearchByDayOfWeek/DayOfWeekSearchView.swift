@@ -153,7 +153,7 @@ struct DayOfWeekSearchView: View {
                         CustomMapMarker(
                             id: $0.0.islandID ?? UUID(),
                             coordinate: CLLocationCoordinate2D(latitude: $0.0.latitude, longitude: $0.0.longitude),
-                            title: $0.0.islandName ?? "Unnamed Island",
+                            title: $0.0.islandName ?? "Unnamed Gym",
                             pirateIsland: $0.0
                         )
                     },
@@ -195,7 +195,7 @@ struct IslandAnnotationView: View {
     var body: some View {
         Button(action: handleIslandTap) {
             VStack {
-                Text(island.islandName ?? "Unnamed Island")
+                Text(island.islandName ?? "Unnamed Gym")
                     .font(.caption)
                     .padding(5)
                     .background(Color.white)

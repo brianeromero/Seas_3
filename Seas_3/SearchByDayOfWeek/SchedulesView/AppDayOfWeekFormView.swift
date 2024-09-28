@@ -31,7 +31,7 @@ struct AppDayOfWeekFormView: View {
                 
                 Picker("Select Gym", selection: $selectedIsland) {
                     ForEach(islands, id: \.self) { island in
-                        Text(island.islandName ?? "Unknown Island").tag(island as PirateIsland?)
+                        Text(island.islandName ?? "Unknown Gym").tag(island as PirateIsland?)
                     }
                 }
             }
