@@ -52,7 +52,12 @@ struct GymMatReviewSelect: View {
                             self.selectedIsland = newIsland
                         }
                     )) {
-                        Text(island.islandName ?? "Unknown Gym")
+                        VStack(alignment: .leading) {
+                            Text(island.islandName ?? "Unknown Gym")
+                                .font(.headline)
+                            Text(island.islandLocation ?? "")
+                                .foregroundColor(.secondary)
+                        }
                     }
                 }
                 .listStyle(PlainListStyle())
