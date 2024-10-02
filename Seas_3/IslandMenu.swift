@@ -2,10 +2,10 @@
 // Seas_3
 // Created by Brian Romero on 6/26/24.
 
+
 import SwiftUI
 import CoreData
 import MapKit
-
 
 
 struct MenuItem: Identifiable {
@@ -13,6 +13,7 @@ struct MenuItem: Identifiable {
     let title: String
     let subMenuItems: [String]?
 }
+
 struct IslandMenu: View {
     @State private var showAlert = false
     @State private var alertMessage = ""
@@ -20,11 +21,11 @@ struct IslandMenu: View {
     @StateObject private var locationManager = UserLocationMapViewModel()
     @Environment(\.managedObjectContext) private var viewContext
     
-    @State private var selectedAppDayOfWeek: AppDayOfWeek? = nil // Add this
-    @State private var region: MKCoordinateRegion = MKCoordinateRegion() // Add this
-    @State private var searchResults: [PirateIsland] = [] // Add this
+    @State private var selectedAppDayOfWeek: AppDayOfWeek? = nil
+    @State private var region: MKCoordinateRegion = MKCoordinateRegion()
+    @State private var searchResults: [PirateIsland] = []
 
-    // Initialize the repository and data manager
+
     private var appDayOfWeekRepository: AppDayOfWeekRepository {
         return AppDayOfWeekRepository(persistenceController: PersistenceController.shared)
     }
@@ -34,6 +35,7 @@ struct IslandMenu: View {
     }
 
     @State private var appDayOfWeekViewModel: AppDayOfWeekViewModel?
+
 
     let menuItems: [MenuItem] = [
         .init(title: "Search Gym Entries By", subMenuItems: ["All Locations", "Current Location", "ZipCode", "Day of the Week"]),
@@ -183,7 +185,8 @@ struct IslandMenu: View {
                 DaysOfWeekFormView(
                     viewModel: viewModel,
                     selectedIsland: $selectedIsland,
-                    selectedMatTime: .constant(nil)
+                    selectedMatTime: .constant(nil),
+                    showReview: .constant(false)
                 )
             } else {
                 Text("Loading...")
@@ -199,7 +202,7 @@ struct IslandMenu: View {
             if let viewModel = appDayOfWeekViewModel {
                 ViewReviewSearch(selectedIsland: $selectedIsland, enterZipCodeViewModel: viewModel.enterZipCodeViewModel)
             } else {
-                Text("Loading...") // Placeholder while the view model is not yet ready
+                Text("Loading...")
             }
         case "Submit a Review":
             GymMatReviewSelect(

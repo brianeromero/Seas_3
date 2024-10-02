@@ -7,6 +7,7 @@
 
 import SwiftUI
 import CoreData
+
 struct IslandScheduleView: View {
     @ObservedObject var viewModel: AppDayOfWeekViewModel
     var pIsland: PirateIsland?
@@ -23,6 +24,7 @@ struct IslandScheduleView: View {
             context: viewModel.viewContext
         ))
     }
+
     var body: some View {
         NavigationView {
             ScrollView {
@@ -76,11 +78,19 @@ struct IslandScheduleView: View {
         .onAppear {
             if let pIsland = pIsland {
                 // Use a default or previously selected day here
-                let dayToFetch: DayOfWeek = selectedDay ?? .monday // Default to .monday if selectedDay is nil
-                viewModel.fetchCurrentDayOfWeek(for: pIsland, day: dayToFetch)
+                let dayToFetch: DayOfWeek = selectedDay ?? .monday
+                
+                _ = viewModel.fetchCurrentDayOfWeek(
+                    for: pIsland,
+                    day: dayToFetch,
+                    selectedDayBinding: Binding(
+                        get: { viewModel.selectedDay },
+                        set: { viewModel.selectedDay = $0 }
+                    )
+                )
             }
         }
-    }
+    } // Closing bracket for body
 
     private func scheduleView(for schedule: AppDayOfWeek) -> some View {
         VStack(alignment: .leading, spacing: 8) {

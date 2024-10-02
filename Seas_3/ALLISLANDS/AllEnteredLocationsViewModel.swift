@@ -40,17 +40,16 @@ class AllEnteredLocationsViewModel: NSObject, ObservableObject, NSFetchedResults
                 DispatchQueue.main.async {
                     self.allIslands = pirateIslands
                     self.updatePirateMarkers(with: pirateIslands)
-                    self.isDataLoaded = true // Set to true after data is loaded
+                    self.isDataLoaded = true
                 }
             case .failure(let error):
-                DispatchQueue.main.async {
-                    self.errorMessage = "Failed to fetch pirate islands: \(error.localizedDescription)"
-                    self.isDataLoaded = true // Set to true even if data loading failed
+                DispatchQueue.main.async { [weak self] in
+                    handleError(error) // Call the standalone handleError function
+                    self?.isDataLoaded = true
                 }
             }
         }
     }
-    
     private func updatePirateMarkers(with islands: [PirateIsland]) {
         guard !islands.isEmpty else {
             print("Error: No pirate islands available to create markers.")
@@ -105,11 +104,6 @@ class AllEnteredLocationsViewModel: NSObject, ObservableObject, NSFetchedResults
             return nil
         }
     }
-
-    
-    func handleError(_ message: String) {
-        self.errorMessage = message
-    }
-    
     
 }
+

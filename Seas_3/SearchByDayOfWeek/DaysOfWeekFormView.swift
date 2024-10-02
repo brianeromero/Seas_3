@@ -21,28 +21,24 @@ struct DaysOfWeekFormView: View {
     @ObservedObject var viewModel: AppDayOfWeekViewModel
     @Binding var selectedIsland: PirateIsland?
     @Binding var selectedMatTime: MatTime?
+    @Binding var showReview: Bool
     @State private var isLoading = false
     @State private var isError = false
     @State private var errorDescription = ""
 
     @State private var showClassScheduleModal = false
-    @State private var showOpenMatModal = false
     @State private var selectedAppDayOfWeek: AppDayOfWeek?
-    @State private var showError = false
-    @State private var errorMessage = ""
+    @State private var showNoMatchAlert = false
     @State private var searchQuery = ""
     @State private var filteredIslands: [PirateIsland] = []
-    @State private var showNoMatchAlert = false
-    @State private var showReview = false
-    @StateObject var daysOfWeekViewModel = DaysOfWeekFormViewModel()
-
 
     @Environment(\.managedObjectContext) private var viewContext
 
-    init(viewModel: AppDayOfWeekViewModel, selectedIsland: Binding<PirateIsland?>, selectedMatTime: Binding<MatTime?>) {
+    init(viewModel: AppDayOfWeekViewModel, selectedIsland: Binding<PirateIsland?>, selectedMatTime: Binding<MatTime?>, showReview: Binding<Bool>) {
         self.viewModel = viewModel
         self._selectedIsland = selectedIsland
         self._selectedMatTime = selectedMatTime
+        self._showReview = showReview
     }
 
     @FetchRequest(
@@ -57,42 +53,34 @@ struct DaysOfWeekFormView: View {
                             .font(.headline)
                             .foregroundColor(.gray)) {
                     SearchBar(text: $searchQuery)
-                        .onChange(of: searchQuery) { newValue in
+                        .onChange(of: searchQuery) { _ in
                             updateFilteredIslands()
                         }
                 }
-                List(filteredIslands, id: \.self) { island in
-                    NavigationLink(destination: ScheduleFormView(
-                        islands: filteredIslands,
-                        selectedAppDayOfWeek: $selectedAppDayOfWeek,
-                        selectedIsland: .constant(island),
-                        viewModel: viewModel,
-                        daysOfWeekViewModel: daysOfWeekViewModel
-                    )) {
-                        VStack(alignment: .leading) {
-                            Text(island.islandName ?? "Unknown Gym")
-                                .font(.headline)
-                            Text(island.islandLocation ?? "")
-                                .foregroundColor(.secondary)
+
+                IslandSection(
+                    islands: filteredIslands,
+                    selectedIsland: $selectedIsland,
+                    showReview: $showReview
+                )
+
+                if selectedIsland != nil {
+                    NavigationLink(
+                        destination: ScheduleFormView(
+                            islands: filteredIslands,
+                            selectedAppDayOfWeek: $selectedAppDayOfWeek,
+                            selectedIsland: $selectedIsland,
+                            viewModel: viewModel,
+                            matTimes: .constant([]) // Add this line
+                        )
+                    ) {
+                        Text("View Schedule")
+                    }
+                    .onChange(of: selectedIsland) { newIsland in
+                        if let island = newIsland {
+                            print("Navigating to ScheduleFormView for island: \(island.islandName ?? "Unknown Gym")")
                         }
                     }
-                }
-                .navigationBarTitle("Select Gym to View/Add Schedule")
-                .alert(isPresented: $showNoMatchAlert) {
-                    Alert(
-                        title: Text("No Match Found"),
-                        message: Text("No gyms match your search criteria."),
-                        dismissButton: .default(Text("OK"))
-                    )
-                }
-                .fullScreenCover(isPresented: $showClassScheduleModal) {
-                    ScheduleFormView(
-                        islands: filteredIslands,
-                        selectedAppDayOfWeek: $selectedAppDayOfWeek,
-                        selectedIsland: $selectedIsland,
-                        viewModel: viewModel,
-                        daysOfWeekViewModel: daysOfWeekViewModel
-                    )
                 }
 
                 if let matTime = selectedMatTime {
@@ -125,9 +113,16 @@ struct DaysOfWeekFormView: View {
                     .zIndex(1)
                 }
             }
+            .alert(isPresented: $showNoMatchAlert) {
+                Alert(
+                    title: Text("No Match Found"),
+                    message: Text("No gyms match your search criteria."),
+                    dismissButton: .default(Text("OK"))
+                )
+            }
+            .navigationBarTitle("Select Gym to View/Add Schedule")
             .onAppear {
-                print("DaysOfWeekFormView: selectedIsland = \(selectedIsland?.islandName ?? "None")")
-
+                print("DaysOfWeekFormView: selectedIsland = \(String(describing: selectedIsland))")
                 Task {
                     isLoading = true
                     viewModel.fetchPirateIslands()
@@ -135,19 +130,7 @@ struct DaysOfWeekFormView: View {
                     updateFilteredIslands()
                 }
             }
-            /*.onDisappear {
-                do {
-                    try PersistenceController.shared.saveContext()
-                } catch {
-                    // Handle error
-                }
-                resetSelectedIsland()
-            } */
         }
-    }
-
-    private func resetSelectedIsland() {
-        selectedIsland = nil
     }
 
     private func updateFilteredIslands() {
@@ -168,10 +151,6 @@ struct DaysOfWeekFormView: View {
     }
 }
 
-
-class DaysOfWeekFormViewModel: ObservableObject {
-    @Published var selectedIsland: PirateIsland?
-}
 
 struct ErrorView: View {
     let description: String
@@ -240,8 +219,12 @@ struct DaysOfWeekFormView_Previews: PreviewProvider {
             get: { nil },
             set: { _ in }
         )
+        let showReview = Binding<Bool>(
+            get: { false },
+            set: { _ in }
+        )
 
-        return DaysOfWeekFormView(viewModel: viewModel, selectedIsland: selectedIsland, selectedMatTime: selectedMatTime)
+        return DaysOfWeekFormView(viewModel: viewModel, selectedIsland: selectedIsland, selectedMatTime: selectedMatTime, showReview: showReview)
             .environment(\.managedObjectContext, context)
             .previewDisplayName("DaysOfWeekFormView")
     }

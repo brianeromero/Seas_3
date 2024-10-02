@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		0C00086E2CA895D600CA5181 /* SearchBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C00086D2CA895D600CA5181 /* SearchBar.swift */; };
+		0C00087A2CAB092B00CA5181 /* ErrorHandling.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0008792CAB092B00CA5181 /* ErrorHandling.swift */; };
+		0C0008862CAB420100CA5181 /* Errors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0008852CAB420100CA5181 /* Errors.swift */; };
 		0C07B0712C2CFD0300D0BFB2 /* IslandMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0702C2CFD0300D0BFB2 /* IslandMenu.swift */; };
 		0C07B0732C2CFD2800D0BFB2 /* AddNewIsland.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0722C2CFD2800D0BFB2 /* AddNewIsland.swift */; };
 		0C07B0752C2CFD4900D0BFB2 /* EditExistingIslandList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0742C2CFD4900D0BFB2 /* EditExistingIslandList.swift */; };
@@ -132,6 +134,8 @@
 
 /* Begin PBXFileReference section */
 		0C00086D2CA895D600CA5181 /* SearchBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchBar.swift; sourceTree = "<group>"; };
+		0C0008792CAB092B00CA5181 /* ErrorHandling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorHandling.swift; sourceTree = "<group>"; };
+		0C0008852CAB420100CA5181 /* Errors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Errors.swift; sourceTree = "<group>"; };
 		0C07B0702C2CFD0300D0BFB2 /* IslandMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandMenu.swift; sourceTree = "<group>"; };
 		0C07B0722C2CFD2800D0BFB2 /* AddNewIsland.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddNewIsland.swift; sourceTree = "<group>"; };
 		0C07B0742C2CFD4900D0BFB2 /* EditExistingIslandList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditExistingIslandList.swift; sourceTree = "<group>"; };
@@ -247,6 +251,7 @@
 			membershipExceptions = (
 				IslandModalContainer.swift,
 				IslandModalView.swift,
+				Tooltip.swift,
 			);
 			target = 0CF13E402C2A326700D714C0 /* Seas_3 */;
 		};
@@ -369,6 +374,8 @@
 				0C4B34352C61A32700FD6893 /* PirateIslandDataManager.swift */,
 				0C955BEA2C75AE6700D03CAB /* Utilities.swift */,
 				0C00086D2CA895D600CA5181 /* SearchBar.swift */,
+				0C0008792CAB092B00CA5181 /* ErrorHandling.swift */,
+				0C0008852CAB420100CA5181 /* Errors.swift */,
 			);
 			path = DataManager;
 			sourceTree = "<group>";
@@ -653,6 +660,7 @@
 				0C8AEC252C59301F00D38635 /* ScheduleFormView.swift in Sources */,
 				0C8AEC272C59679300D38635 /* AppDayOfWeekFormView.swift in Sources */,
 				0CEC326D2C3EFF3100F0747F /* StoryboardViewController.swift in Sources */,
+				0C00087A2CAB092B00CA5181 /* ErrorHandling.swift in Sources */,
 				0C1635562C361CBB008FC297 /* OpenMats (by Day of Week).swift in Sources */,
 				0CF13E4E2C2A326A00D714C0 /* Persistence.swift in Sources */,
 				0CD4E2BF2C7CDA0C005082AC /* ScheduledMatTimesSection.swift in Sources */,
@@ -691,6 +699,7 @@
 				0C07B0BD2C2D01AB00D0BFB2 /* FAQ.swift in Sources */,
 				0C524E912C2F85B8008D6623 /* CustomUnarchiveTransformer.swift in Sources */,
 				0CF13E452C2A326700D714C0 /* Seas_3App.swift in Sources */,
+				0C0008862CAB420100CA5181 /* Errors.swift in Sources */,
 				0CF13E792C2A36B500D714C0 /* AppDayOfWeek+CoreDataClass.swift in Sources */,
 				0C07B0942C2CFF3B00D0BFB2 /* AddClassScheduleView.swift in Sources */,
 				0C07B0712C2CFD0300D0BFB2 /* IslandMenu.swift in Sources */,

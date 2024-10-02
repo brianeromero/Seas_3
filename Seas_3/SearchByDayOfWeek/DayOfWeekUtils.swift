@@ -36,6 +36,25 @@ enum DayOfWeek: String, CaseIterable, Hashable, Identifiable, Comparable {
     static func from(displayName: String) -> DayOfWeek? {
         DayOfWeek.allCases.first { $0.displayName == displayName }
     }
+    
+    static let twelveHourFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "h:mm a"
+        return formatter
+    }()
+
+    static let twentyFourHourFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        return formatter
+    }()
+
+    static func formatTime(from twentyFourHourTime: String) -> String {
+        guard let date = twentyFourHourFormatter.date(from: twentyFourHourTime) else {
+            return twentyFourHourTime
+        }
+        return twelveHourFormatter.string(from: date)
+    }
 }
 
 
@@ -75,7 +94,7 @@ struct DayOfWeekSettings: View {
         .onAppear {
             if let island = viewModel.selectedIsland {
                 let defaultDay: DayOfWeek = .monday
-                viewModel.fetchCurrentDayOfWeek(for: island, day: defaultDay)
+                _ = viewModel.fetchCurrentDayOfWeek(for: island, day: defaultDay, selectedDayBinding: Binding(get: { viewModel.selectedDay }, set: { viewModel.selectedDay = $0 }))
             } else {
                 print("No gym selected")
             }
