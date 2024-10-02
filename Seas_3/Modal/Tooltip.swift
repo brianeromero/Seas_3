@@ -22,7 +22,7 @@ struct InfoTooltip: View {
             ZStack {
                 if showTooltip {
                     Tooltip(text: tooltipMessage)
-                        .offset(x: 50, y: 30)
+                        .offset(x: 50, y: 60)
                         .frame(width: 200, height: 100)
                         .background(Color.clear)    
                 }
