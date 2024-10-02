@@ -22,30 +22,35 @@ struct AddOpenMatFormView: View {
         self.selectedIsland = selectedIsland
     }
     
-    
     var body: some View {
         Form {
             daySelectionSection
+            
             if let selectedDay = viewModel.selectedDay {
                 matTimeSection(for: selectedDay)
                 matTimesListSection(for: selectedDay)
                 settingsSection(for: selectedDay)
             }
+            
             saveButton
         }
         .onAppear {
             viewModel.fetchPirateIslands()
             if let selectedIsland = selectedIsland, let selectedDay = viewModel.selectedDay {
-                viewModel.fetchCurrentDayOfWeek(for: selectedIsland, day: selectedDay)
+                _ = viewModel.fetchCurrentDayOfWeek(
+                    for: selectedIsland,
+                    day: selectedDay,
+                    selectedDayBinding: Binding(
+                        get: { viewModel.selectedDay },
+                        set: { viewModel.selectedDay = $0 }
+                    )
+                )
             } else {
                 print("No gym or day selected")
             }
         }
-        .alert(isPresented: $showAlert) {
-            Alert(title: Text("Error"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
-        }
     }
-    
+
     var daySelectionSection: some View {
         Section(header: Text("Select Day")) {
             Picker("Day", selection: $viewModel.selectedDay) {
@@ -87,7 +92,7 @@ struct AddOpenMatFormView: View {
     }
     
     func matTimesListSection(for day: DayOfWeek) -> some View {
-        Section(header: Text("Scheduled Mat Times1111")) {
+        Section(header: Text("Scheduled Mat Times")) {
             if let matTimes = viewModel.matTimesForDay[day] {
                 ForEach(matTimes, id: \.self) { matTime in
                     HStack {

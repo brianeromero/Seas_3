@@ -16,12 +16,13 @@ struct AllpIslandScheduleView: View {
     @State private var selectedMatTime: MatTime?
 
     let persistenceController: PersistenceController
-    let enterZipCodeViewModel: EnterZipCodeViewModel // Add this line
+    let enterZipCodeViewModel: EnterZipCodeViewModel
+
 
     init(viewModel: AppDayOfWeekViewModel, persistenceController: PersistenceController, enterZipCodeViewModel: EnterZipCodeViewModel) {
         self.viewModel = viewModel
         self.persistenceController = persistenceController
-        self.enterZipCodeViewModel = enterZipCodeViewModel // Initialize this
+        self.enterZipCodeViewModel = enterZipCodeViewModel
     }
     
     var body: some View {
@@ -54,7 +55,8 @@ struct AllpIslandScheduleView: View {
             DaysOfWeekFormView(
                 viewModel: viewModel,
                 selectedIsland: $viewModel.selectedIsland,
-                selectedMatTime: $selectedMatTime // Corrected binding here
+                selectedMatTime: $selectedMatTime,
+                showReview: .constant(false) // Added missing argument
             )
         }
         .onAppear {

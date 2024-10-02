@@ -156,7 +156,32 @@ class AppDayOfWeekRepository {
             fatalError("Failed to fetch or create AppDayOfWeek: \(error)")
         }
     }
-
+    
+    
+    // MARK: - fetchOrCreateAppDayOfWeek AS COMBO OF selectIslandAndDay and fetchCurrentDayOfWeek
+    func fetchOrCreateAppDayOfWeek(for day: DayOfWeek, pirateIsland: PirateIsland, context: NSManagedObjectContext) -> AppDayOfWeek? {
+        let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "pIsland == %@ AND day == %@", pirateIsland, day.displayName)
+        
+        do {
+            let results = try context.fetch(fetchRequest)
+            if let existingAppDayOfWeek = results.first {
+                return existingAppDayOfWeek
+            } else {
+                let newAppDayOfWeek = AppDayOfWeek(context: context)
+                newAppDayOfWeek.pIsland = pirateIsland
+                newAppDayOfWeek.day = day.displayName
+                
+                try context.save()
+                return newAppDayOfWeek
+            }
+        } catch {
+            print("Error fetching or creating AppDayOfWeek: \(error)")
+            return nil
+        }
+    }
+    
+    // MARK:
     func addNewAppDayOfWeek(for day: DayOfWeek) {
         guard let selectedIsland = selectedIsland else {
             print("Error: selected gym is nil")

@@ -28,55 +28,60 @@ struct IslandModalContentView: View {
     @Binding var selectedAppDayOfWeek: AppDayOfWeek?
 
     var body: some View {
-        if let selectedIsland = selectedIsland {
-            let reviewsArray = ReviewUtils.getReviews(from: selectedIsland.reviews)
-            let averageRating = ReviewUtils.averageStarRating(for: reviewsArray)
+        VStack {
+            if let selectedIsland = selectedIsland {
+                let reviewsArray = ReviewUtils.getReviews(from: selectedIsland.reviews)
+                let _ = ReviewUtils.averageStarRating(for: reviewsArray)
 
-            let dayOfWeekData = (selectedIsland.appDayOfWeeks?.allObjects as? [AppDayOfWeek])?
-                .compactMap { $0.dayOfWeek } ?? []
+                let dayOfWeekData = (selectedIsland.appDayOfWeeks?.allObjects as? [AppDayOfWeek])?
+                    .compactMap { $0.dayOfWeek } ?? []
 
-            // Use the custom DateFormat utilities
-            let createdTimestamp = DateFormat.mediumDateTime.string(from: selectedIsland.createdTimestamp)
-            let formattedTimestamp = DateFormat.mediumDateTime.string(from: selectedIsland.lastModifiedTimestamp ?? Date())
+                // Use the custom DateFormat utilities
+                let createdTimestamp = DateFormat.mediumDateTime.string(from: selectedIsland.createdTimestamp)
+                let formattedTimestamp = DateFormat.mediumDateTime.string(from: selectedIsland.lastModifiedTimestamp ?? Date())
 
-            VStack {
-                Text("Gym Name: \(selectedIsland.islandName ?? "Unknown")")
-                IslandModalView(
-                    customMapMarker: CustomMapMarker(
-                        id: selectedIsland.islandID ?? UUID(),
-                        coordinate: CLLocationCoordinate2D(latitude: selectedIsland.latitude, longitude: selectedIsland.longitude),
-                        title: selectedIsland.islandName ?? "Unknown Gym",
-                        pirateIsland: selectedIsland
-                    ),
-                    islandName: selectedIsland.islandName ?? "Unknown Gym",
-                    islandLocation: selectedIsland.islandLocation ?? "Unknown Location",
-                    formattedCoordinates: "\(selectedIsland.latitude), \(selectedIsland.longitude)",
-                    createdTimestamp: createdTimestamp,
-                    formattedTimestamp: formattedTimestamp,
-                    gymWebsite: selectedIsland.gymWebsite,
-                    reviews: ReviewUtils.getReviews(from: selectedIsland.reviews),
-                    dayOfWeekData: dayOfWeekData,
-                    selectedAppDayOfWeek: $selectedAppDayOfWeek,
-                    selectedIsland: $selectedIsland,
-                    viewModel: viewModel,
-                    selectedDay: $selectedDay,
-                    showModal: $showModal,
-                    enterZipCodeViewModel: EnterZipCodeViewModel(
-                        repository: AppDayOfWeekRepository.shared,
-                        context: PersistenceController.preview.container.viewContext
+                VStack {
+                    Text("Gym Name: \(selectedIsland.islandName ?? "Unknown")")
+                    IslandModalView(
+                        customMapMarker: CustomMapMarker(
+                            id: selectedIsland.islandID ?? UUID(),
+                            coordinate: CLLocationCoordinate2D(latitude: selectedIsland.latitude, longitude: selectedIsland.longitude),
+                            title: selectedIsland.islandName ?? "Unknown Gym",
+                            pirateIsland: selectedIsland
+                        ),
+                        islandName: selectedIsland.islandName ?? "Unknown Gym",
+                        islandLocation: selectedIsland.islandLocation ?? "Unknown Location",
+                        formattedCoordinates: "\(selectedIsland.latitude), \(selectedIsland.longitude)",
+                        createdTimestamp: createdTimestamp,
+                        formattedTimestamp: formattedTimestamp,
+                        gymWebsite: selectedIsland.gymWebsite,
+                        reviews: ReviewUtils.getReviews(from: selectedIsland.reviews),
+                        dayOfWeekData: dayOfWeekData,
+                        selectedAppDayOfWeek: $selectedAppDayOfWeek,
+                        selectedIsland: $selectedIsland,
+                        viewModel: viewModel,
+                        selectedDay: $selectedDay,
+                        showModal: $showModal,
+                        enterZipCodeViewModel: EnterZipCodeViewModel(
+                            repository: AppDayOfWeekRepository.shared,
+                            context: PersistenceController.preview.container.viewContext
+                        )
                     )
-                )
+                }
+                .frame(width: 300, height: 400)
+                .background(Color.white)
+                .cornerRadius(10)
+                .padding()
+            } else {
+                // Instead of EmptyView, return a Text view as a placeholder
+                Text("No Island Selected")
+                    .foregroundColor(.gray)
+                    .padding()
             }
-            .frame(width: 300, height: 400)
-            .background(Color.white)
-            .cornerRadius(10)
-            .padding()
-
-        } else {
-            EmptyView()
         }
     }
 }
+
 
 struct ConsolidatedIslandMapView: View {
     @Environment(\.managedObjectContext) private var viewContext

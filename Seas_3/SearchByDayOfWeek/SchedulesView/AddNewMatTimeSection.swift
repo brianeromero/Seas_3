@@ -7,10 +7,10 @@
 
 import SwiftUI
 import CoreData
-
 struct AddNewMatTimeSection: View {
+    @Binding var selectedIsland: PirateIsland?
     @Binding var selectedAppDayOfWeek: AppDayOfWeek?
-    @Binding var selectedDay: DayOfWeek // Change this to non-optional if that fits the use case
+    @Binding var selectedDay: DayOfWeek
     @Binding var daySelected: Bool
     @State var matTime: MatTime?
     @State private var isMatTimeSet: Bool = false
@@ -29,6 +29,8 @@ struct AddNewMatTimeSection: View {
     @State private var kids: Bool = false
     @State private var restrictions: Bool = false
     @ObservedObject var viewModel: AppDayOfWeekViewModel
+    @State private var showRestrictionsTooltip = false
+
 
     var body: some View {
         Section(header: Text("Add New Mat Time")) {
@@ -36,6 +38,7 @@ struct AddNewMatTimeSection: View {
                 DatePicker("Select Time", selection: $selectedTime, displayedComponents: .hourAndMinute)
                     .onChange(of: selectedTime) { newValue in
                         isMatTimeSet = true
+                        print("Selected time: \(formatDateToString(newValue))")
                     }
 
                 ToggleView(title: "Gi", isOn: $gi)
@@ -43,7 +46,11 @@ struct AddNewMatTimeSection: View {
                 ToggleView(title: "Open Mat", isOn: $openMat)
                 ToggleView(title: "Good for Beginners", isOn: $goodForBeginners)
                 ToggleView(title: "Kids Class", isOn: $kids)
-                ToggleView(title: "Restrictions", isOn: $restrictions)
+                HStack {
+                    Text("Restrictions")
+                    InfoTooltip(text: "*", tooltipMessage: "e.g., white gis only, competition class, mat fees")
+                    ToggleView(title: "", isOn: $restrictions)
+                }
 
                 if restrictions {
                     TextField("Restriction Description", text: $restrictionDescriptionInput)
@@ -55,39 +62,8 @@ struct AddNewMatTimeSection: View {
                 }
 
                 Button(action: {
-                    if daySelected && isMatTimeSet && selectedAppDayOfWeek != nil && (gi || noGi || openMat) {
-                        // Create a new MatTime object here
-                        self.matTime = MatTime(context: self.viewModel.viewContext)
-                        self.matTime?.createdTimestamp = Date()
-                        self.matTime?.time = self.formatDateToString(selectedTime)
-                        self.matTime?.restrictionDescription = restrictionDescriptionInput
-                        self.matTime?.gi = gi
-                        self.matTime?.noGi = noGi
-                        self.matTime?.openMat = openMat
-                        self.matTime?.goodForBeginners = goodForBeginners
-                        self.matTime?.kids = kids
-                        self.matTime?.restrictions = restrictions
-
-                        // Add to AppDayOfWeek
-                        if let appDayOfWeek = selectedAppDayOfWeek {
-                            appDayOfWeek.addToMatTimes(matTime!)
-                            viewModel.saveData()
-                        }
-                        
-                        // Reset state variables after saving
-                        self.selectedTime = Date()
-                        self.gi = false
-                        self.noGi = false
-                        self.openMat = false
-                        self.goodForBeginners = false
-                        self.kids = false
-                        self.restrictions = false
-                        self.restrictionDescriptionInput = ""
-                        self.isMatTimeSet = false
-                    } else {
-                        alertTitle = "Error"
-                        alertMessage = "Please select a day, time, and at least one type."
-                        showAlert = true
+                    if validateInput() {
+                        saveMatTime()
                     }
                 }) {
                     Text("Add New Mat Time")
@@ -95,21 +71,126 @@ struct AddNewMatTimeSection: View {
                 .disabled(!(daySelected && isMatTimeSet && selectedAppDayOfWeek != nil && (gi || noGi || openMat)))
             }
         }
+        .onChange(of: selectedDay) { _ in
+            daySelected = true
+            print("Selected day: \(selectedDay.displayName)")
+            if let selectedIsland = selectedIsland {
+                selectIslandAndDay(island: selectedIsland, day: selectedDay)
+            }
+        }
+        .alert(isPresented: $showAlert) {
+            Alert(title: Text(alertTitle), message: Text(alertMessage))
+        }
     }
 
-    func binding(_ keyPath: WritableKeyPath<MatTime, Bool>) -> Binding<Bool> {
-        return Binding(
-            get: { matTime?[keyPath: keyPath] ?? false },
-            set: { if var matTime = self.matTime { matTime[keyPath: keyPath] = $0; self.matTime = matTime } }
-        )
+    func validateInput() -> Bool {
+        if !daySelected {
+            alertTitle = "Error"
+            alertMessage = "Please select a day."
+            showAlert = true
+            return false
+        }
+        
+        if !isMatTimeSet {
+            alertTitle = "Error"
+            alertMessage = "Please select a time."
+            showAlert = true
+            return false
+        }
+        
+        if selectedAppDayOfWeek == nil {
+            alertTitle = "Error"
+            alertMessage = "Please select an app day of week."
+            showAlert = true
+            return false
+        }
+        
+        if !(gi || noGi || openMat) {
+            alertTitle = "Error"
+            alertMessage = "Please select at least one mat time type."
+            showAlert = true
+            return false
+        }
+        
+        return true
     }
 
+    func saveMatTime() {
+        guard let appDayOfWeek = selectedAppDayOfWeek else { return }
+        
+        let time = formatDateToString(selectedTime)
+        let matTimeType = determineMatTimeType() // Implement determineMatTimeType function
+        let restrictionDescription = restrictions ? restrictionDescriptionInput : ""
+        
+        do {
+            try viewModel.updateOrCreateMatTime(nil,
+                                                time: time,
+                                                type: matTimeType,
+                                                gi: gi,
+                                                noGi: noGi,
+                                                openMat: openMat,
+                                                restrictions: restrictions,
+                                                restrictionDescription: restrictionDescription,
+                                                goodForBeginners: goodForBeginners,
+                                                kids: kids,
+                                                for: appDayOfWeek)
+            
+            // Reset state variables after saving
+            resetStateVariables()
+        } catch {
+            print("Error saving mat time: \(error)")
+            alertTitle = "Error"
+            alertMessage = "Failed to save mat time."
+            showAlert = true
+        }
+    }
+
+    func resetStateVariables() {
+        selectedTime = Date()
+        gi = false
+        noGi = false
+        openMat = false
+        goodForBeginners = false
+        kids = false
+        restrictions = false
+        restrictionDescriptionInput = ""
+        isMatTimeSet = false
+    }
+    
+    
+    func determineMatTimeType() -> String {
+        var matTimeType: [String] = []
+        
+        if gi {
+            matTimeType.append("Gi")
+        }
+        
+        if noGi {
+            matTimeType.append("No Gi")
+        }
+        
+        if openMat {
+            matTimeType.append("Open Mat")
+        }
+        
+        return matTimeType.joined(separator: ", ")
+    }
+
+    func selectIslandAndDay(island: PirateIsland, day: DayOfWeek) {
+        if let appDayOfWeek = viewModel.repository.fetchOrCreateAppDayOfWeek(for: day, pirateIsland: island, context: viewModel.viewContext) {
+            selectedAppDayOfWeek = appDayOfWeek
+            print("Selected AppDayOfWeek with day: \(selectedAppDayOfWeek?.day ?? "Unknown")")
+        } else {
+            print("Failed to fetch or create AppDayOfWeek for day: \(day) and island: \(island.islandName ?? "")")
+            alertTitle = "Error"
+            alertMessage = "Failed to fetch or create AppDayOfWeek."
+            showAlert = true
+        }
+    }
+    
+    
     func formatDateToString(_ date: Date) -> String {
         return DateFormat.time.string(from: date)
-    }
-
-    func stringToDate(_ string: String) -> Date? {
-        return DateFormat.time.date(from: string)
     }
 
     struct ToggleView: View {
@@ -120,6 +201,49 @@ struct AddNewMatTimeSection: View {
             Toggle(isOn: $isOn) {
                 Text(title)
             }
+            .onChange(of: isOn) { newValue in
+                print("\(title): \(newValue ? "Enabled" : "Disabled")")
+            }
+        }
+    }
+}
+
+
+
+struct AddNewMatTimeSection_Previews: PreviewProvider {
+    @State private static var selectedDay: DayOfWeek = .monday
+
+    static var previews: some View {
+        let pirateIsland = PirateIsland()
+        let appDayOfWeek = AppDayOfWeek()
+        let matTime: MatTime? = nil
+        let persistenceController = PersistenceController.preview
+        let repository = AppDayOfWeekRepository(persistenceController: persistenceController)
+        let enterZipCodeViewModel = EnterZipCodeViewModel(repository: repository, context: persistenceController.container.viewContext)
+        let viewModel = AppDayOfWeekViewModel(repository: repository, enterZipCodeViewModel: enterZipCodeViewModel)
+
+        return Group {
+            AddNewMatTimeSection(
+                selectedIsland: .constant(pirateIsland),
+                selectedAppDayOfWeek: .constant(appDayOfWeek),
+                selectedDay: $selectedDay,
+                daySelected: .constant(true),
+                matTime: matTime,
+                viewModel: viewModel
+            )
+            .previewLayout(.sizeThatFits)
+            .previewDisplayName("Default")
+
+            AddNewMatTimeSection(
+                selectedIsland: .constant(pirateIsland),
+                selectedAppDayOfWeek: .constant(appDayOfWeek),
+                selectedDay: $selectedDay,
+                daySelected: .constant(false),
+                matTime: matTime,
+                viewModel: viewModel
+            )
+            .previewLayout(.sizeThatFits)
+            .previewDisplayName("Day Not Selected")
         }
     }
 }
