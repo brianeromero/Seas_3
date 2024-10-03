@@ -222,36 +222,67 @@ extension View {
         self.modifier(CornerRadiusStyle(radius: radius, corners: corners))
     }
 }
-
 struct ScheduleFormView_Previews: PreviewProvider {
     static var previews: some View {
         let persistenceController = PersistenceController.preview
         let context = persistenceController.container.viewContext
+        
+        // Create a sample PirateIsland entity
+        let sampleIsland = PirateIsland(context: context)
+        sampleIsland.islandID = UUID()
+        sampleIsland.islandName = "Black Pearl Academy"
+        sampleIsland.islandLocation = "Tortuga"
+        
+        // Create an AppDayOfWeek entity linked to the PirateIsland for Monday
+        let mondaySchedule = AppDayOfWeek(context: context)
+        mondaySchedule.day = "Monday"
+        mondaySchedule.pIsland = sampleIsland
 
-        let island1 = PirateIsland(context: context)
-        island1.islandID = UUID()
-        island1.islandName = "Gym Name 1"
+        // Create two MatTime entities linked to the AppDayOfWeek for Monday
+        let morningMatTime = MatTime(context: context)
+        morningMatTime.time = "10:00 AM"
+        morningMatTime.gi = true
+        morningMatTime.noGi = false
+        morningMatTime.openMat = false
+        morningMatTime.restrictions = false
+        morningMatTime.goodForBeginners = true
+        morningMatTime.kids = false
+        morningMatTime.appDayOfWeek = mondaySchedule
 
-        let island2 = PirateIsland(context: context)
-        island2.islandID = UUID()
-        island2.islandName = "Gym Name 2"
+        let noonMatTime = MatTime(context: context)
+        noonMatTime.time = "12:00 PM"
+        noonMatTime.gi = false
+        noonMatTime.noGi = true
+        noonMatTime.openMat = true
+        noonMatTime.restrictions = false
+        noonMatTime.goodForBeginners = false
+        noonMatTime.kids = true
+        noonMatTime.appDayOfWeek = mondaySchedule
 
+        // Create a ViewModel instance with the mock repository and zip code view model
         let mockRepository = AppDayOfWeekRepository(persistenceController: persistenceController)
         let mockEnterZipCodeViewModel = EnterZipCodeViewModel(repository: mockRepository, context: context)
         let viewModel = AppDayOfWeekViewModel(
-            selectedIsland: island1,
+            selectedIsland: sampleIsland,
             repository: mockRepository,
             enterZipCodeViewModel: mockEnterZipCodeViewModel
         )
+        
+        // Initialize viewModel's properties for preview
+        viewModel.selectedDay = .monday
+        viewModel.matTimesForDay = [
+            .monday: [morningMatTime, noonMatTime]
+        ]
 
+        // Create ScheduleFormView with mock data and bindings
         return ScheduleFormView(
-            islands: [island1, island2],
-            selectedAppDayOfWeek: .constant(nil),
-            selectedIsland: .constant(island1),
+            islands: [sampleIsland],
+            selectedAppDayOfWeek: .constant(mondaySchedule),
+            selectedIsland: .constant(sampleIsland),
             viewModel: viewModel,
-            matTimes: .constant([]) // Initialize with an empty array
+            matTimes: .constant([morningMatTime, noonMatTime])
         )
         .environment(\.managedObjectContext, context)
-        .previewDisplayName("Schedule Entry Preview")
+        .previewDisplayName("Schedule Form View with Sample Data")
     }
 }
