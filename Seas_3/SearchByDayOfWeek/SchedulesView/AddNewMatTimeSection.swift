@@ -18,7 +18,7 @@ struct AddNewMatTimeSection: View {
     @State private var alertTitle: String = ""
     @State private var alertMessage: String = ""
 
-    @State private var selectedTime: Date = Date()
+    @State private var selectedTime: Date = Date().roundToNearestHour()
     @State private var restrictionDescriptionInput: String = ""
 
     // Define state properties for toggles
@@ -48,7 +48,7 @@ struct AddNewMatTimeSection: View {
                 ToggleView(title: "Kids Class", isOn: $kids)
                 HStack {
                     Text("Restrictions")
-                    InfoTooltip(text: "*", tooltipMessage: "e.g., white gis only, competition class, mat fees")
+                    InfoTooltip(text: "*", tooltipMessage: "e.g., White Gis Only, Competition Class, Mat Fees Required, etc.")
                     ToggleView(title: "", isOn: $restrictions)
                 }
 
@@ -208,6 +208,22 @@ struct AddNewMatTimeSection: View {
     }
 }
 
+
+extension Date {
+    /// Rounds the date to the nearest hour, either up or down.
+    func roundToNearestHour() -> Date {
+        let calendar = Calendar.current
+        let minuteComponent = calendar.component(.minute, from: self)
+
+        if minuteComponent >= 30 {
+            // Round up to the next hour
+            return calendar.date(byAdding: .minute, value: 60 - minuteComponent, to: self)!
+        } else {
+            // Round down to the current hour
+            return calendar.date(byAdding: .minute, value: -minuteComponent, to: self)!
+        }
+    }
+}
 
 
 struct AddNewMatTimeSection_Previews: PreviewProvider {

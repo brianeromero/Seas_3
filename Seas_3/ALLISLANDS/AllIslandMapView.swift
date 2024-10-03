@@ -18,78 +18,14 @@ struct EquatableMKCoordinateRegion: Equatable {
         lhs.region.span.longitudeDelta == rhs.region.span.longitudeDelta
     }
 }
-
-// Extracted content view for the modal
-struct IslandModalContentView: View {
-    @Binding var selectedIsland: PirateIsland?
-    @Binding var showModal: Bool
-    @ObservedObject var viewModel: AppDayOfWeekViewModel
-    @Binding var selectedDay: DayOfWeek?
-    @Binding var selectedAppDayOfWeek: AppDayOfWeek?
-
-    var body: some View {
-        VStack {
-            if let selectedIsland = selectedIsland {
-                let reviewsArray = ReviewUtils.getReviews(from: selectedIsland.reviews)
-                let _ = ReviewUtils.averageStarRating(for: reviewsArray)
-
-                let dayOfWeekData = (selectedIsland.appDayOfWeeks?.allObjects as? [AppDayOfWeek])?
-                    .compactMap { $0.dayOfWeek } ?? []
-
-                // Use the custom DateFormat utilities
-                let createdTimestamp = DateFormat.mediumDateTime.string(from: selectedIsland.createdTimestamp)
-                let formattedTimestamp = DateFormat.mediumDateTime.string(from: selectedIsland.lastModifiedTimestamp ?? Date())
-
-                VStack {
-                    Text("Gym Name: \(selectedIsland.islandName ?? "Unknown")")
-                    IslandModalView(
-                        customMapMarker: CustomMapMarker(
-                            id: selectedIsland.islandID ?? UUID(),
-                            coordinate: CLLocationCoordinate2D(latitude: selectedIsland.latitude, longitude: selectedIsland.longitude),
-                            title: selectedIsland.islandName ?? "Unknown Gym",
-                            pirateIsland: selectedIsland
-                        ),
-                        islandName: selectedIsland.islandName ?? "Unknown Gym",
-                        islandLocation: selectedIsland.islandLocation ?? "Unknown Location",
-                        formattedCoordinates: "\(selectedIsland.latitude), \(selectedIsland.longitude)",
-                        createdTimestamp: createdTimestamp,
-                        formattedTimestamp: formattedTimestamp,
-                        gymWebsite: selectedIsland.gymWebsite,
-                        reviews: ReviewUtils.getReviews(from: selectedIsland.reviews),
-                        dayOfWeekData: dayOfWeekData,
-                        selectedAppDayOfWeek: $selectedAppDayOfWeek,
-                        selectedIsland: $selectedIsland,
-                        viewModel: viewModel,
-                        selectedDay: $selectedDay,
-                        showModal: $showModal,
-                        enterZipCodeViewModel: EnterZipCodeViewModel(
-                            repository: AppDayOfWeekRepository.shared,
-                            context: PersistenceController.preview.container.viewContext
-                        )
-                    )
-                }
-                .frame(width: 300, height: 400)
-                .background(Color.white)
-                .cornerRadius(10)
-                .padding()
-            } else {
-                // Instead of EmptyView, return a Text view as a placeholder
-                Text("No Island Selected")
-                    .foregroundColor(.gray)
-                    .padding()
-            }
-        }
-    }
-}
-
-
+    
 struct ConsolidatedIslandMapView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @FetchRequest(
         entity: PirateIsland.entity(),
-        sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.createdTimestamp, ascending: true)]
-    )
-    private var islands: FetchedResults<PirateIsland>
+        sortDescriptors: []
+    ) private var islands: FetchedResults<PirateIsland>
+    @State private var enterZipCodeViewModel: EnterZipCodeViewModel
 
     @StateObject private var viewModel: AppDayOfWeekViewModel
     @StateObject private var locationManager: UserLocationMapViewModel
@@ -107,8 +43,12 @@ struct ConsolidatedIslandMapView: View {
     @State private var selectedDay: DayOfWeek? = .monday
     @State private var fetchedLocation: CLLocation?
 
-    init(viewModel: AppDayOfWeekViewModel) {
+    init(
+        viewModel: AppDayOfWeekViewModel,
+        enterZipCodeViewModel: EnterZipCodeViewModel
+    ) {
         _viewModel = StateObject(wrappedValue: viewModel)
+        _enterZipCodeViewModel = State(wrappedValue: enterZipCodeViewModel)
         _locationManager = StateObject(wrappedValue: UserLocationMapViewModel())
         _selectedDay = State(initialValue: .monday)
     }
@@ -162,31 +102,14 @@ struct ConsolidatedIslandMapView: View {
                         showModal = false
                     }
                 
-                if let selectedIsland = selectedIsland {
-                    IslandModalView(
-                        customMapMarker: CustomMapMarker(
-                            id: selectedIsland.islandID ?? UUID(),
-                            coordinate: CLLocationCoordinate2D(latitude: selectedIsland.latitude, longitude: selectedIsland.longitude),
-                            title: selectedIsland.islandName ?? "Unknown Gym",
-                            pirateIsland: selectedIsland
-                        ),
-                        islandName: selectedIsland.islandName ?? "Unknown Gym",
-                        islandLocation: selectedIsland.islandLocation ?? "Unknown Location",
-                        formattedCoordinates: "\(selectedIsland.latitude), \(selectedIsland.longitude)",
-                        createdTimestamp: DateFormat.mediumDateTime.string(from: selectedIsland.createdTimestamp),
-                        formattedTimestamp: DateFormat.mediumDateTime.string(from: selectedIsland.lastModifiedTimestamp ?? Date()),
-                        gymWebsite: selectedIsland.gymWebsite,
-                        reviews: ReviewUtils.getReviews(from: selectedIsland.reviews),
-                        dayOfWeekData: (selectedIsland.appDayOfWeeks?.allObjects as? [AppDayOfWeek])?.compactMap { $0.dayOfWeek } ?? [],
-                        selectedAppDayOfWeek: $selectedAppDayOfWeek,
+                if selectedIsland != nil {
+                    IslandModalContainer(
                         selectedIsland: $selectedIsland,
                         viewModel: viewModel,
                         selectedDay: $selectedDay,
                         showModal: $showModal,
-                        enterZipCodeViewModel: EnterZipCodeViewModel(
-                            repository: AppDayOfWeekRepository.shared,
-                            context: PersistenceController.preview.container.viewContext
-                        )
+                        enterZipCodeViewModel: enterZipCodeViewModel,
+                        selectedAppDayOfWeek: $selectedAppDayOfWeek
                     )
                     .frame(width: UIScreen.main.bounds.width * 0.8, height: UIScreen.main.bounds.height * 0.6)
                     .background(Color.white)
@@ -298,39 +221,33 @@ import MapKit
 
 // Create a mock PirateIsland for the preview
 struct MockData {
-    static let sampleIsland: PirateIsland = {
-        let context = PersistenceController.preview.container.viewContext
-        let island = PirateIsland(context: context)
-        island.islandID = UUID()
-        island.islandName = "Sample Gym"
-        island.islandLocation = "Sample Location"
-        island.latitude = 37.7749
-        island.longitude = -122.4194
-        island.createdTimestamp = Date()
-        island.lastModifiedTimestamp = Date()
-        island.gymWebsite = URL(string: "https://www.sampleisland.com")
-        return island
-    }()
-
-    static let sampleViewModel: AppDayOfWeekViewModel = {
-        let repository = AppDayOfWeekRepository.shared
-        let enterZipCodeViewModel = EnterZipCodeViewModel(
+    static let sampleEnterZipCodeViewModel: EnterZipCodeViewModel = {
+        EnterZipCodeViewModel(
             repository: AppDayOfWeekRepository.shared,
             context: PersistenceController.preview.container.viewContext
         )
-        return AppDayOfWeekViewModel(
-            repository: repository,
-            enterZipCodeViewModel: enterZipCodeViewModel
+    }()
+
+    static let sampleViewModel: AppDayOfWeekViewModel = {
+        AppDayOfWeekViewModel(
+            repository: AppDayOfWeekRepository.shared,
+            enterZipCodeViewModel: sampleEnterZipCodeViewModel
         )
     }()
 }
+
+
+
 struct ConsolidatedIslandMapView_Previews: PreviewProvider {
     static var previews: some View {
         let mockLocation = CLLocation(latitude: 37.7749, longitude: -122.4194)
         let locationManager = UserLocationMapViewModel()
         locationManager.userLocation = mockLocation
 
-        return ConsolidatedIslandMapView(viewModel: MockData.sampleViewModel)
+        return ConsolidatedIslandMapView(
+            viewModel: MockData.sampleViewModel,
+            enterZipCodeViewModel: MockData.sampleEnterZipCodeViewModel
+        )
             .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
             .environmentObject(locationManager)
             .previewLayout(.sizeThatFits)
@@ -338,3 +255,6 @@ struct ConsolidatedIslandMapView_Previews: PreviewProvider {
             .previewDevice("iPhone 14 Pro")
     }
 }
+
+
+

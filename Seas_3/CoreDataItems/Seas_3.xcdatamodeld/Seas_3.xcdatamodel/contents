@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23222.3" systemVersion="24A5309e" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23222.3" systemVersion="24A335" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
     <entity name="AppDayOfWeek" representedClassName="AppDayOfWeek" syncable="YES">
         <attribute name="appDayOfWeekID" optional="YES" attributeType="String"/>
         <attribute name="createdTimestamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
@@ -26,7 +26,7 @@
     <entity name="PirateIsland" representedClassName="PirateIsland" syncable="YES">
         <attribute name="coordinate" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="createdByUserId" optional="YES" attributeType="String"/>
-        <attribute name="createdTimestamp" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="createdTimestamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="gymWebsite" optional="YES" attributeType="URI"/>
         <attribute name="islandID" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="islandLocation" attributeType="String"/>

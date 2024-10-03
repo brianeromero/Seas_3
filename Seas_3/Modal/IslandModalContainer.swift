@@ -24,7 +24,7 @@ struct IslandModalContainer: View {
                 islandName: selectedIsland.islandName ?? "",
                 islandLocation: selectedIsland.islandLocation ?? "",
                 formattedCoordinates: selectedIsland.formattedCoordinates,
-                createdTimestamp: selectedIsland.createdTimestamp.description,
+                createdTimestamp: selectedIsland.createdTimestamp?.description ?? "No timestamp available", // Safely unwrapping
                 formattedTimestamp: selectedIsland.formattedTimestamp,
                 gymWebsite: selectedIsland.gymWebsite,
                 reviews: selectedIsland.reviews?.array as? [Review] ?? [],

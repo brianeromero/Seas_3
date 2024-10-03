@@ -162,6 +162,10 @@ struct IslandMenu: View {
                         repository: appDayOfWeekRepository,
                         context: viewContext
                     )
+                ),
+                enterZipCodeViewModel: EnterZipCodeViewModel(
+                    repository: appDayOfWeekRepository,
+                    context: viewContext
                 )
             )
         case "ZipCode":
