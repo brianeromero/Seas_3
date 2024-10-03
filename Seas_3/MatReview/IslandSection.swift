@@ -16,8 +16,8 @@ struct IslandSection: View {
 
     var body: some View {
         Section(header: Text("Select A Gym")) {
-            Picker("Select b Gym", selection: $selectedIsland) {
-                Text("Select c Gym").tag(nil as PirateIsland?)
+            Picker("Select Gym", selection: $selectedIsland) {
+                Text("Select Gym").tag(nil as PirateIsland?)
 
                 ForEach(islands, id: \.self) { island in
                     Text(island.islandName ?? "Unknown Gym")

@@ -80,6 +80,10 @@
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
+            argument = "-com.apple.CoreData.ThreadingDebug 1"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "-com.apple.CoreData.SQLDebug 3"
             isEnabled = "YES">
          </CommandLineArgument>

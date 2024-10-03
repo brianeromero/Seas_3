@@ -20,7 +20,7 @@ extension PirateIsland {
 
     @NSManaged public var coordinate: Double
     @NSManaged public var createdByUserId: String?
-    @NSManaged public var createdTimestamp: Date
+    @NSManaged public var createdTimestamp: Date?
     @NSManaged public var gymWebsite: URL?
     @NSManaged public var islandID: UUID?
     @NSManaged public var islandLocation: String?

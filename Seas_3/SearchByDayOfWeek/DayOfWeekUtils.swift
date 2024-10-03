@@ -1,4 +1,3 @@
-//
 //  DayOfWeekUtils.swift
 //  Seas_3
 //
@@ -8,13 +7,16 @@
 import Foundation
 import SwiftUI
 
+
+
+
 enum DayOfWeek: String, CaseIterable, Hashable, Identifiable, Comparable {
     case sunday, monday, tuesday, wednesday, thursday, friday, saturday
 
-    var id: String { rawValue } // Conforms to Identifiable
+    var id: String { rawValue }
 
     var displayName: String {
-        rawValue.capitalized // Dynamically capitalize the raw value
+        rawValue.capitalized
     }
 
     var number: Int {
@@ -34,20 +36,14 @@ enum DayOfWeek: String, CaseIterable, Hashable, Identifiable, Comparable {
     }
 
     static func from(displayName: String) -> DayOfWeek? {
-        DayOfWeek.allCases.first { $0.displayName == displayName }
+        print("Attempting to create DayOfWeek from displayName: \(displayName)")
+        guard let day = DayOfWeek.allCases.first(where: { $0.displayName == displayName }) else {
+            print("Error: Invalid displayName: \(displayName)")
+            return nil
+        }
+        print("Created DayOfWeek: \(day)")
+        return day
     }
-    
-    static let twelveHourFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "h:mm a"
-        return formatter
-    }()
-
-    static let twentyFourHourFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        return formatter
-    }()
 
     static func formatTime(from twentyFourHourTime: String) -> String {
         guard let date = twentyFourHourFormatter.date(from: twentyFourHourTime) else {
@@ -55,8 +51,23 @@ enum DayOfWeek: String, CaseIterable, Hashable, Identifiable, Comparable {
         }
         return twelveHourFormatter.string(from: date)
     }
+
+    private static let twelveHourFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "h:mm a"
+        return formatter
+    }()
+
+    private static let twentyFourHourFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        return formatter
+    }()
 }
 
+enum DayOfWeekError: Error {
+    case invalidDayValue
+}
 
 // DayOfWeekView.swift
 
@@ -92,11 +103,14 @@ struct DayOfWeekSettings: View {
             }
         }
         .onAppear {
+            print("DayOfWeekSettings appeared")
             if let island = viewModel.selectedIsland {
+                print("Selected island: \(island.islandName ?? "")")
                 let defaultDay: DayOfWeek = .monday
+                print("Fetching current day of week for island: \(island.islandName ?? "") and day: \(defaultDay.displayName)")
                 _ = viewModel.fetchCurrentDayOfWeek(for: island, day: defaultDay, selectedDayBinding: Binding(get: { viewModel.selectedDay }, set: { viewModel.selectedDay = $0 }))
             } else {
-                print("No gym selected")
+                print("No island selected")
             }
         }
     }
@@ -122,6 +136,8 @@ struct DayOfWeekView_Previews: PreviewProvider {
     }
 }
 
+// DaysOfWeekView.swift
+
 import SwiftUI
 
 struct DaysOfWeekView: View {
@@ -130,21 +146,19 @@ struct DaysOfWeekView: View {
     var body: some View {
         NavigationView {
             VStack(alignment: .leading) {
-                Text("Select a day to find Open Mats held on a specific day of the week")
+                Text("Select a day...")
                     .font(.subheadline)
                     .foregroundColor(.gray)
                     .padding(.bottom, 20)
 
-                List {
-                    ForEach(DayOfWeek.allCases) { day in
-                        NavigationLink(
-                            destination: DayDetailView(day: day),
-                            tag: day,
-                            selection: $selectedDay
-                        ) {
-                            Text(day.displayName)
-                                .padding(.leading, 10)
-                        }
+                List(DayOfWeek.allCases, id: \.self) { day in
+                    NavigationLink(
+                        destination: DayDetailView(day: day),
+                        tag: day,
+                        selection: $selectedDay
+                    ) {
+                        Text(day.displayName)
+                            .padding(.leading, 10)
                     }
                 }
                 .listStyle(InsetGroupedListStyle())
@@ -162,7 +176,6 @@ struct DaysOfWeekView: View {
         }
     }
 }
-
 
 struct DayDetailView: View {
     let day: DayOfWeek
@@ -184,13 +197,14 @@ struct DaysOfWeekView_Previews: PreviewProvider {
 }
 
 // DayPickerView.swift
+
 import SwiftUI
 
 struct DayPickerView: View {
     @Binding var selectedDay: DayOfWeek?
 
     var body: some View {
-        VStack(alignment: .leading) {  // Use VStack to arrange elements vertically
+        VStack(alignment: .leading) {
             Text("Day of the Week")
                 .font(.headline)
                 .padding(.leading, 16)
@@ -218,9 +232,8 @@ struct DayPickerView: View {
                 .padding(.trailing, 16)
             }
         }
-        .padding() // Add padding to the entire VStack if needed
+        .padding()
     }
-
 }
 
 struct DayPickerView_Previews: PreviewProvider {

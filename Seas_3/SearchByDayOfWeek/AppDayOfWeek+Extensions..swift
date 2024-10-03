@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftUI
 
 extension AppDayOfWeek {
     func isSelected(for day: DayOfWeek) -> Bool {
@@ -22,13 +23,39 @@ extension AppDayOfWeek {
         guard let dayString = day else { return nil }
         return DayOfWeek(rawValue: dayString.lowercased())
     }
-}
-
-extension AppDayOfWeek {
-    override public var description: String {
+    
+    private static let timestampFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-        let createdTimestampString = formatter.string(from: createdTimestamp)
-        return "AppDayOfWeek: day: \(day ?? ""), pIsland: \(pIsland?.islandName ?? ""), name: \(name ?? ""), appDayOfWeekID: \(appDayOfWeekID ?? ""), matTimes: \(matTimes?.count ?? 0), createdTimestamp: \(createdTimestampString)"
+        return formatter
+    }()
+
+    // Safely format the timestamp for optional Date
+    private func formattedCreatedTimestamp() -> String {
+        // Safely unwrap the optional date
+        guard let createdTimestamp = createdTimestamp else {
+            return "No timestamp set" // Return a default string if nil
+        }
+        return Self.timestampFormatter.string(from: createdTimestamp)
+    }
+
+    // Safely unwrap properties in the description
+    override public var description: String {
+        let dayString = day ?? "No day set"
+        let islandName = pIsland?.islandName ?? "No island set"
+        let nameString = name ?? "No name set"
+        let appDayOfWeekIDString = appDayOfWeekID ?? "No ID set"
+        let matTimesCount = matTimes?.count ?? 0
+        let createdTimestampString = formattedCreatedTimestamp() // Handle optional timestamps
+
+        return """
+        AppDayOfWeek:
+        day: \(dayString),
+        pIsland: \(islandName),
+        name: \(nameString),
+        appDayOfWeekID: \(appDayOfWeekIDString),
+        matTimes: \(matTimesCount),
+        createdTimestamp: \(createdTimestampString)
+        """
     }
 }

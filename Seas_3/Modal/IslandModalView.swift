@@ -190,14 +190,13 @@ struct IslandModalView: View {
         .interactiveDismissDisabled(false)
         .onAppear {
             isLoadingData = true
-            guard let island = selectedIsland, let day = selectedDay else {
+            guard let island = selectedIsland else {
                 isLoadingData = false
                 return
             }
             Task {
-                let fetchedSchedules = PersistenceController.shared.fetchAppDayOfWeekForIslandAndDay(for: island, day: day)
-                islandSchedules = [(island, fetchedSchedules.flatMap { $0.matTimes?.allObjects as? [MatTime] ?? [] })]
-                scheduleExists = !fetchedSchedules.isEmpty
+                viewModel.loadSchedules(for: island)
+                scheduleExists = !viewModel.schedules.isEmpty
                 isLoadingData = false
             }
         }

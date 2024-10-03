@@ -87,7 +87,13 @@ struct IslandDetailContent: View {
                     .padding(.bottom, 10)
             }
             .sheet(isPresented: $showMapView) {
-                ConsolidatedIslandMapView(viewModel: mapViewModel)
+                ConsolidatedIslandMapView(
+                    viewModel: mapViewModel,
+                    enterZipCodeViewModel: EnterZipCodeViewModel(
+                        repository: AppDayOfWeekRepository.shared,
+                        context: viewContext
+                    )
+                )
             }
             Text("Entered By: \(island.createdByUserId ?? "Unknown")")
                 .frame(maxWidth: .infinity, alignment: .leading)

@@ -339,28 +339,27 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
     
     // MARK: - Load Schedules
     func loadSchedules(for island: PirateIsland) {
+        _ = NSPredicate(format: "pIsland == %@", island)
         let appDayOfWeeks = repository.fetchSchedules(for: island)
         var schedulesDict: [DayOfWeek: [AppDayOfWeek]] = [:]
         
         for appDayOfWeek in appDayOfWeeks {
-            // Replace `day` with the actual property name in AppDayOfWeek
-            if let dayValue = appDayOfWeek.day { // Adjust 'day' to match the actual property name
-                if let day = DayOfWeek(rawValue: dayValue) {
-                    // Initialize the array if it doesn't exist for the given day
-                    if schedulesDict[day] == nil {
-                        schedulesDict[day] = []
+            if let dayValue = appDayOfWeek.day {
+                do {
+                    guard let day = DayOfWeek(rawValue: dayValue.lowercased()) else {
+                        throw DayOfWeekError.invalidDayValue
                     }
-                    // Append the current `appDayOfWeek` to the array for that day
-                    schedulesDict[day]?.append(appDayOfWeek)
-                } else {
-                    print("Warning: Invalid day value '\(dayValue)'")
+                    schedulesDict[day, default: []].append(appDayOfWeek)
+                } catch DayOfWeekError.invalidDayValue {
+                    print("Error loading schedules: Invalid day value '\(dayValue)'")
+                } catch {
+                    print("Unexpected error loading schedules: \(error)")
                 }
             } else {
                 print("Warning: AppDayOfWeek has no day set.")
             }
         }
         
-        // Update the schedules property
         schedules = schedulesDict
         print("Loaded schedules: \(schedules)")
     }
