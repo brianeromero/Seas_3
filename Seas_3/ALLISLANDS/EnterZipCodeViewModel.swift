@@ -30,19 +30,6 @@ class EnterZipCodeViewModel: ObservableObject {
         self.repository = repository
         self.context = context
         self.region = MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194), span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)) // Default to San Francisco
-
-        $address
-            .debounce(for: .seconds(0.5), scheduler: RunLoop.main)
-            .sink { [weak self] address in
-                self?.fetchLocation(for: address, selectedRadius: self?.currentRadius ?? 5.0)
-            }
-            .store(in: &cancellables)
-        
-        $currentRadius
-            .sink { [weak self] radius in
-                self?.fetchLocation(for: self?.address ?? "", selectedRadius: radius)
-            }
-            .store(in: &cancellables)
         
         locationManager.$userLocation
             .sink { [weak self] userLocation in
@@ -55,22 +42,23 @@ class EnterZipCodeViewModel: ObservableObject {
         locationManager.startLocationServices()
     }
 
-    func fetchLocation(for address: String, selectedRadius: Double) {
-        geocoder.geocodeAddressString(address) { [weak self] placemarks, error in
+    func fetchLocation(for address: String) {
+        MapUtils.fetchLocation(for: address) { [weak self] coordinate, error in
             if let error = error {
                 print("Geocoding error: \(error.localizedDescription)")
                 return
             }
-            guard let location = placemarks?.first?.location else {
+            
+            guard let coordinate = coordinate else {
                 print("No location found for address: \(address)")
                 return
             }
-
-            let coordinate = location.coordinate
+            
+            // Handle successful geocoding
             DispatchQueue.main.async {
-                self?.region = MKCoordinateRegion(center: coordinate, span: MKCoordinateSpan(latitudeDelta: selectedRadius / 69.0, longitudeDelta: selectedRadius / 69.0))
+                self?.region = MKCoordinateRegion(center: coordinate, span: MKCoordinateSpan(latitudeDelta: self?.currentRadius ?? 0 / 69.0, longitudeDelta: self?.currentRadius ?? 0 / 69.0))
                 self?.enteredLocation = CustomMapMarker(id: UUID(), coordinate: coordinate, title: address, pirateIsland: nil)
-                self?.fetchPirateIslandsNear(location, within: selectedRadius * 1609.34)
+                self?.fetchPirateIslandsNear(CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude), within: (self?.currentRadius ?? 0) * 1609.34)
             }
         }
     }

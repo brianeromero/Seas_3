@@ -161,7 +161,7 @@ struct ConsolidatedIslandMapView: View {
         let address = "Your Address Here"
         let retryCount = 3
 
-        MapUtils.fetchLocation(for: address, selectedRadius: selectedRadius, retryCount: retryCount) { location, error in
+        MapUtils.fetchLocation(for: address) { location, error in
             if let error = error {
                 print("Error fetching location: \(error)")
                 return

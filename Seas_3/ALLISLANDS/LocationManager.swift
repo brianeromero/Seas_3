@@ -30,17 +30,30 @@ class UserLocationMapViewModel: NSObject, ObservableObject, CLLocationManagerDel
         startLocationServices()
     }
 
+
     func startLocationServices() {
         DispatchQueue.global(qos: .utility).async {
             if CLLocationManager.locationServicesEnabled() {
-                self.locationManager.requestWhenInUseAuthorization()
+                switch self.locationManager.authorizationStatus {
+                case .notDetermined:
+                    DispatchQueue.main.async {
+                        self.locationManager.requestWhenInUseAuthorization()
+                    }
+                case .authorizedWhenInUse, .authorizedAlways:
+                    self.locationManager.requestLocation()
+                case .restricted, .denied:
+                    print("Location services are restricted or denied.")
+                @unknown default:
+                    print("Unknown authorization status.")
+                }
             } else {
                 print("Alert: Your location services are off and must be turned on.")
             }
         }
     }
+    
+    
     func requestLocation() {
-        // Ensure the authorization status is handled correctly
         if locationManager.authorizationStatus == .authorizedWhenInUse || locationManager.authorizationStatus == .authorizedAlways {
             locationManager.requestLocation()
         } else {
@@ -54,28 +67,44 @@ class UserLocationMapViewModel: NSObject, ObservableObject, CLLocationManagerDel
         updateRegion()
     }
 
+
     func locationManager(_: CLLocationManager, didFailWithError error: Error) {
-        print("Failed to get user location: \(error.localizedDescription)")
-        // Display a user alert or retry the location request
+        let errorCode = (error as? CLError)?.code ?? .locationUnknown
+        switch errorCode {
+        case .denied:
+            print("Location services are denied.")
+        case .locationUnknown:
+            print("Location unknown.")
+        case .network:
+            print("Network error.")
+        case .geocodeFoundNoResult, .geocodeFoundPartialResult, .geocodeCanceled:
+            print("Geocode error.")
+        default:
+            print("Failed to get user location: \(error.localizedDescription)")
+        }
+        
+        // Retry location request after a short delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
+            self?.locationManager.requestLocation()
+        }
     }
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         switch manager.authorizationStatus {
-        case .notDetermined:
-            break
-        case .restricted:
-            print("Location restricted. Check Parent Controls.")
-        case .denied:
-            print("Enable location permissions in Settings.")
-        case .authorizedAlways, .authorizedWhenInUse:
-            guard !isAuthorized else { return }
-            isAuthorized = true
-            locationManager.startUpdatingLocation()
+        case .authorizedWhenInUse, .authorizedAlways:
+            manager.requestLocation()
+        case .restricted, .denied:
+            print("Location services are restricted or denied.")
         default:
             print("Unknown authorization status.")
         }
     }
 
+    
+    deinit {
+        locationManager.delegate = nil
+    }
+    
     private func updateRegion() {
         if let location = userLocation {
             region = MKCoordinateRegion(

@@ -72,7 +72,7 @@ struct EnterZipCodeView: View {
         
 
     private func search() {
-        MapUtils.fetchLocation(for: locationInput, selectedRadius: selectedRadius) { coordinate, error in
+        MapUtils.fetchLocation(for: locationInput) { coordinate, error in
             if let error = error {
                 print("Geocoding error: \(error.localizedDescription)")
                 return
