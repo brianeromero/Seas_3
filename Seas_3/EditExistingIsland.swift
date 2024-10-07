@@ -95,7 +95,7 @@ struct EditExistingIsland: View {
             return
         }
         
-        MapUtils.fetchLocation(for: islandLocation, selectedRadius: 0.0) { coordinate, error in
+        MapUtils.fetchLocation(for: islandLocation) { coordinate, error in
             context.performAndWait {
                 island.islandName = islandName
                 island.islandLocation = islandLocation

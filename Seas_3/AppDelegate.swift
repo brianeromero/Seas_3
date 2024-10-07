@@ -1,12 +1,6 @@
-//
-//  AppDelegate.swift
-//  Seas_3
-//
-//  Created by Brian Romero on 6/26/24.
-//
-
 import UIKit
 import CoreData
+import GoogleSignIn
 
 class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
@@ -19,18 +13,24 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         return true
     }
 
-    // You can call saveContext at appropriate lifecycle events
+    // Handle URL for Google Sign-In
+    func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
+        return GIDSignIn.sharedInstance.handle(url)
+    }
+
+    // Save context when the app enters the background
     func applicationDidEnterBackground(_ application: UIApplication) {
         do {
-            try persistenceController.saveContext() // Save changes when the app goes to the background
+            try persistenceController.saveContext()
         } catch {
             print("Failed to save context when entering background: \(error.localizedDescription)")
         }
     }
 
+    // Save context when the app is about to terminate
     func applicationWillTerminate(_ application: UIApplication) {
         do {
-            try persistenceController.saveContext() // Save changes when the app is about to terminate
+            try persistenceController.saveContext()
         } catch {
             print("Failed to save context when terminating: \(error.localizedDescription)")
         }

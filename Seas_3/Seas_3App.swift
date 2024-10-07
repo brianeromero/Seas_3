@@ -6,11 +6,15 @@ import SwiftUI
 import CoreData
 import Combine
 
+
+
 @main
 struct Seas3App: App {
+    
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject var appState = AppState()
     @StateObject var viewModel: AppDayOfWeekViewModel
+    @StateObject var authenticationState = AuthenticationState() // New authentication state
 
     init() {
         let persistenceController = PersistenceController.shared
@@ -35,6 +39,9 @@ struct Seas3App: App {
                                 }
                             }
                         }
+                } else if !authenticationState.isAuthenticated {
+                    LoginView()
+                        .environmentObject(authenticationState) // Pass authentication state
                 } else {
                     IslandMenu()
                         .environment(\.managedObjectContext, PersistenceController.shared.viewContext)
@@ -52,7 +59,7 @@ struct Seas3App: App {
             }
         }
     }
-    
+
     private func setupGlobalErrorHandler() {
         NSSetUncaughtExceptionHandler { exception in
             if let reason = exception.reason,

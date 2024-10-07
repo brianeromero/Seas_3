@@ -100,6 +100,10 @@
 		0CEC327E2C41A45300F0747F /* pIslandScheduleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CEC327D2C41A45300F0747F /* pIslandScheduleView.swift */; };
 		0CEC32802C41A46700F0747F /* pIslandScheduleListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CEC327F2C41A46700F0747F /* pIslandScheduleListView.swift */; };
 		0CEC32822C41CA3C00F0747F /* AllpIslandScheduleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CEC32812C41CA3C00F0747F /* AllpIslandScheduleView.swift */; };
+		0CEF0CF02CAFB93100F6ACCC /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 0CEF0CEF2CAFB93100F6ACCC /* GoogleSignIn */; };
+		0CEF0CF22CAFB93100F6ACCC /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 0CEF0CF12CAFB93100F6ACCC /* GoogleSignInSwift */; };
+		0CEF0CF52CAFB95900F6ACCC /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 0CEF0CF42CAFB95900F6ACCC /* GoogleSignIn */; };
+		0CEF0CF72CAFB95900F6ACCC /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 0CEF0CF62CAFB95900F6ACCC /* GoogleSignInSwift */; };
 		0CF13E452C2A326700D714C0 /* Seas_3App.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E442C2A326700D714C0 /* Seas_3App.swift */; };
 		0CF13E472C2A326700D714C0 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E462C2A326700D714C0 /* ContentView.swift */; };
 		0CF13E4E2C2A326A00D714C0 /* Persistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E4D2C2A326A00D714C0 /* Persistence.swift */; };
@@ -264,11 +268,21 @@
 			);
 			target = 0CF13E402C2A326700D714C0 /* Seas_3 */;
 		};
+		0CF7993C2CAFAED000F2F018 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				AuthenticationState.swift,
+				GoogleSignInButton.swift,
+				LogInView.swift,
+			);
+			target = 0CF13E402C2A326700D714C0 /* Seas_3 */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		0C2EE2AA2C9DCA700029432F /* Modal */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (0C2EE2AB2C9DCA7E0029432F /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = Modal; sourceTree = "<group>"; };
 		0C66E60F2C88DB8C00BCD2DE /* MapUtilities */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (0C66E6102C88DB9700BCD2DE /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = MapUtilities; sourceTree = "<group>"; };
+		0CEF69CF2CAF995600C2614C /* SSO */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (0CF7993C2CAFAED000F2F018 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = SSO; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -276,6 +290,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0CEF0CF02CAFB93100F6ACCC /* GoogleSignIn in Frameworks */,
+				0CEF0CF22CAFB93100F6ACCC /* GoogleSignInSwift in Frameworks */,
+				0CEF0CF52CAFB95900F6ACCC /* GoogleSignIn in Frameworks */,
+				0CEF0CF72CAFB95900F6ACCC /* GoogleSignInSwift in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -433,10 +451,12 @@
 		0CF13E432C2A326700D714C0 /* Seas_3 */ = {
 			isa = PBXGroup;
 			children = (
+				0CF13E442C2A326700D714C0 /* Seas_3App.swift */,
+				0CEF69CF2CAF995600C2614C /* SSO */,
 				0C2EE2AA2C9DCA700029432F /* Modal */,
 				0C4B34342C61A31600FD6893 /* DataManager */,
 				0CEC326B2C3EFEFF00F0747F /* Storyboarding */,
-				0CF13E442C2A326700D714C0 /* Seas_3App.swift */,
+				0C07B0782C2CFDBB00D0BFB2 /* PirateIslandView.swift */,
 				0C07B0702C2CFD0300D0BFB2 /* IslandMenu.swift */,
 				0C07B0722C2CFD2800D0BFB2 /* AddNewIsland.swift */,
 				0C07B0742C2CFD4900D0BFB2 /* EditExistingIslandList.swift */,
@@ -445,7 +465,6 @@
 				0CF13E462C2A326700D714C0 /* ContentView.swift */,
 				0CF13E482C2A326A00D714C0 /* Assets.xcassets */,
 				0CF13E4D2C2A326A00D714C0 /* Persistence.swift */,
-				0C07B0782C2CFDBB00D0BFB2 /* PirateIslandView.swift */,
 				0C07B07A2C2CFDDE00D0BFB2 /* AddIslandFormView.swift */,
 				0C07B07C2C2CFDFE00D0BFB2 /* IslandMapView.swift */,
 				0C07B07E2C2CFE1C00D0BFB2 /* IslandDetailView.swift */,
@@ -606,6 +625,9 @@
 				Base,
 			);
 			mainGroup = 0CF13E382C2A326700D714C0;
+			packageReferences = (
+				0CEF0CF32CAFB95900F6ACCC /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+			);
 			productRefGroup = 0CF13E422C2A326700D714C0 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -916,10 +938,11 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Info3.plist;
-				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "We need your location to show nearby locations.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We need your location to show nearby locations.";
+				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "We need your location to show nearby gyms even in the background.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We need your location to show nearby gyms.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UIMainStoryboardFile = MainStoryboard;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -947,10 +970,11 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Info3.plist;
-				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "We need your location to show nearby locations.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We need your location to show nearby locations.";
+				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "We need your location to show nearby gyms even in the background.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We need your location to show nearby gyms.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UIMainStoryboardFile = MainStoryboard;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1078,6 +1102,38 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		0CEF0CF32CAFB95900F6ACCC /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 8.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		0CEF0CEF2CAFB93100F6ACCC /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = GoogleSignIn;
+		};
+		0CEF0CF12CAFB93100F6ACCC /* GoogleSignInSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = GoogleSignInSwift;
+		};
+		0CEF0CF42CAFB95900F6ACCC /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0CEF0CF32CAFB95900F6ACCC /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
+		};
+		0CEF0CF62CAFB95900F6ACCC /* GoogleSignInSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0CEF0CF32CAFB95900F6ACCC /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignInSwift;
+		};
+/* End XCSwiftPackageProductDependency section */
 
 /* Begin XCVersionGroup section */
 		0CF13E4F2C2A326A00D714C0 /* Seas_3.xcdatamodeld */ = {

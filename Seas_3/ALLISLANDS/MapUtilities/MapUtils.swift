@@ -18,7 +18,7 @@ struct MapUtils {
         return fromLocation.distance(from: toLocation) * metersToMilesConversionFactor
     }
     
-    static func fetchLocation(for address: String, selectedRadius: Double, retryCount: Int = 0, completion: @escaping (CLLocationCoordinate2D?, Error?) -> Void) {
+    static func fetchLocation(for address: String, retryCount: Int = 0, completion: @escaping (CLLocationCoordinate2D?, Error?) -> Void) {
         let geocoder = CLGeocoder()
         geocoder.geocodeAddressString(address) { placemarks, error in
             if let error = error {
@@ -26,7 +26,7 @@ struct MapUtils {
                 
                 if retryCount < 3 {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.0 + Double(retryCount) * 0.5) {
-                        fetchLocation(for: address, selectedRadius: selectedRadius, retryCount: retryCount + 1, completion: completion)
+                        fetchLocation(for: address, retryCount: retryCount + 1, completion: completion)
                     }
                 } else {
                     completion(nil, error)

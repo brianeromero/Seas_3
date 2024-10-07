@@ -2,24 +2,31 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>UIMainStoryboardFile</key>
-	<string>MainStoryboard</string>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>com.googleusercontent.apps.1086614683073-50uvddc1oor49m4ri7s8mesi6thl1gcl</string>
+            </array>
+        </dict>
+    </array>
+    <key>GIDClientID</key>
+    <string>1086614683073-50uvddc1oor49m4ri7s8mesi6thl1gcl.apps.googleusercontent.com</string>
     <key>GoogleMapsAPIKey</key>
     <string>AIzaSyBSGUnuzggEBdGQXuk-6G06OyD7kXxu1VM</string>
+    <key>ReverseClientID</key>
+    <string>com.googleusercontent.apps.1086614683073-50uvddc1oor49m4ri7s8mesi6thl1gcl</string>
     <key>UIApplicationDelegateClassName</key>
     <string>AppDelegate</string>
-    <key>CFBundleIdentifier</key>
-    <string>MF-inder.Seas2</string>
-    <key>NSLocationWhenInUseUsageDescription</key>
-    <string>We need your location to show nearby gyms.</string>
-    <key>NSLocationAlwaysUsageDescription</key>
-    <string>We need your location to show nearby gyms even in the background.</string>
-	<key>UILaunchScreen</key>
-	<dict>
-		<key>UIColorName</key>
-		<string>launch-screen-background</string>
-		<key>UIImageName</key>
-		<string>MF_inder Image</string>
-	</dict>
+    <key>UILaunchScreen</key>
+    <dict>
+        <key>UIColorName</key>
+        <string>launch-screen-background</string>
+        <key>UIImageName</key>
+        <string>MF_inder Image</string>
+    </dict>
 </dict>
 </plist>
