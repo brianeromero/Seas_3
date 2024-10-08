@@ -9,21 +9,20 @@
 import Foundation
 import CoreData
 
-
 extension UserInfo {
 
     @nonobjc public class func fetchRequest() -> NSFetchRequest<UserInfo> {
         return NSFetchRequest<UserInfo>(entityName: "UserInfo")
     }
 
-    @NSManaged public var userName: String?
-    @NSManaged public var name: String?
-    @NSManaged public var email: String?
-    @NSManaged public var belt: String?
-    @NSManaged public var userID: UUID?
+    // Make these fields non-optional
+    @NSManaged public var userName: String // Required
+    @NSManaged public var name: String // Required
+    @NSManaged public var email: String // Required
+    @NSManaged public var belt: String? // Optional (if applicable)
+    @NSManaged public var userID: UUID? // Optional (if applicable)
+    @NSManaged public var passwordHash: Data // Required
 
 }
 
-extension UserInfo : Identifiable {
-
-}
+extension UserInfo: Identifiable {}

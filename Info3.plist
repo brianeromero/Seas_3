@@ -2,31 +2,94 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>CFBundleURLTypes</key>
-    <array>
-        <dict>
-            <key>CFBundleTypeRole</key>
-            <string>Editor</string>
-            <key>CFBundleURLSchemes</key>
-            <array>
-                <string>com.googleusercontent.apps.1086614683073-50uvddc1oor49m4ri7s8mesi6thl1gcl</string>
-            </array>
-        </dict>
-    </array>
-    <key>GIDClientID</key>
-    <string>1086614683073-50uvddc1oor49m4ri7s8mesi6thl1gcl.apps.googleusercontent.com</string>
-    <key>GoogleMapsAPIKey</key>
-    <string>AIzaSyBSGUnuzggEBdGQXuk-6G06OyD7kXxu1VM</string>
-    <key>ReverseClientID</key>
-    <string>com.googleusercontent.apps.1086614683073-50uvddc1oor49m4ri7s8mesi6thl1gcl</string>
-    <key>UIApplicationDelegateClassName</key>
-    <string>AppDelegate</string>
-    <key>UILaunchScreen</key>
+
+<!-- Application Delegate Configuration -->
+<key>UIApplicationDelegateClassName</key>
+<string>AppDelegate</string>
+
+<!-- Launch Screen Configuration -->
+<key>UILaunchScreen</key>
+<dict>
+    <key>UIColorName</key>
+    <string>launch-screen-background</string>
+    <key>UIImageName</key>
+    <string>MF_inder Image</string>
+</dict>
+
+<!-- URL schemes for handling Google and Facebook sign-ins -->
+<key>CFBundleURLTypes</key>
+<array>
+    <!-- Google URL scheme -->
     <dict>
-        <key>UIColorName</key>
-        <string>launch-screen-background</string>
-        <key>UIImageName</key>
-        <string>MF_inder Image</string>
+        <key>CFBundleTypeRole</key>
+        <string>Editor</string>
+        <key>CFBundleURLSchemes</key>
+        <array>
+            <string>com.googleusercontent.apps.1086614683073-50uvddc1oor49m4ri7s8mesi6thl1gcl</string>
+        </array>
     </dict>
+    <!-- Facebook URL scheme -->
+    <dict>
+        <key>CFBundleTypeRole</key>
+        <string>Editor</string>
+        <key>CFBundleURLSchemes</key>
+        <array>
+            <string>fb1057815062545175</string>
+        </array>
+    </dict>
+</array>
+
+<!-- Google Sign-In Configuration -->
+<key>GIDClientID</key>
+<string>1086614683073-50uvddc1oor49m4ri7s8mesi6thl1gcl.apps.googleusercontent.com</string>
+<key>ReverseClientID</key>
+<string>com.googleusercontent.apps.1086614683073-50uvddc1oor49m4ri7s8mesi6thl1gcl</string>
+
+<!-- Google Maps Configuration -->
+<key>GoogleMapsAPIKey</key>
+<string>AIzaSyBSGUnuzggEBdGQXuk-6G06OyD7kXxu1VM</string>
+
+<!-- Facebook Configuration -->
+<key>FacebookAppID</key>
+<string>1057815062545175</string>
+<key>FacebookClientToken</key>
+<string>Ceb4652456025349addd03cf06d87c18b</string>
+<key>FacebookDisplayName</key>
+<string>Mat_Finder</string>
+
+<!-- Required for Facebook Authentication -->
+<key>LSApplicationQueriesSchemes</key>
+<array>
+    <string>fbapi</string>
+    <string>fb-messenger-share-api</string>
+    <string>fbauth2</string>
+    <string>fbshareextension</string>
+</array>
+
+<!-- Location Sharing Keys -->
+<key>NSLocationWhenInUseUsageDescription</key>
+<string>This app requires access to your location to provide better services.</string>
+<key>NSLocationAlwaysUsageDescription</key>
+<string>This app requires access to your location even when the app is in the background.</string>
+
+<!-- Supported Interface Orientations -->
+<key>UISupportedInterfaceOrientations</key>
+<array>
+    <string>UIInterfaceOrientationPortrait</string>
+    <string>UIInterfaceOrientationLandscapeLeft</string>
+    <string>UIInterfaceOrientationLandscapeRight</string>
+</array>
+
+<key>UISupportedInterfaceOrientations~ipad</key>
+<array>
+    <string>UIInterfaceOrientationPortrait</string>
+    <string>UIInterfaceOrientationPortraitUpsideDown</string>
+    <string>UIInterfaceOrientationLandscapeLeft</string>
+    <string>UIInterfaceOrientationLandscapeRight</string>
+</array>
+
+<key>RequiresFullScreen</key>
+<true/>
+
 </dict>
 </plist>

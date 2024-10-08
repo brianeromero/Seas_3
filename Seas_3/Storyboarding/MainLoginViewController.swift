@@ -1,4 +1,5 @@
-//
+/*
+ //
 //  MainLoginViewController.swift
 //  Seas_3
 //
@@ -6,7 +7,7 @@
 //
 
 import UIKit
-/*
+
 class MainLoginViewController: UIViewController {
 
     override func viewDidLoad() {

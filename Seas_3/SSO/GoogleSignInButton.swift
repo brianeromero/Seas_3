@@ -23,6 +23,5 @@ struct GoogleSignInButton_Previews: PreviewProvider {
         GoogleSignInButton()
             .previewLayout(.sizeThatFits)
             .padding()
-            .frame(height: 50) // Set a fixed height to match the button size
     }
 }
