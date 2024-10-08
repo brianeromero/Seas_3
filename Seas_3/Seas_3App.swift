@@ -5,7 +5,8 @@
 import SwiftUI
 import CoreData
 import Combine
-
+import FBSDKCoreKit // Import Facebook SDK
+import GoogleSignIn // Import Google Sign-In SDK
 
 
 @main
@@ -56,6 +57,14 @@ struct Seas3App: App {
             .environmentObject(PersistenceController.shared) // Inject PersistenceController globally
             .onAppear {
                 setupGlobalErrorHandler()
+            }
+            .onOpenURL { url in
+                // Handle URL for Google Sign-In and Facebook Login
+                if ApplicationDelegate.shared.application(UIApplication.shared, open: url) {
+                    print("Facebook URL handled: \(url)")
+                } else if GIDSignIn.sharedInstance.handle(url) {
+                    print("Google URL handled: \(url)")
+                }
             }
         }
     }
