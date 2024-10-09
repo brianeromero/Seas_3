@@ -15,7 +15,7 @@ struct FacebookSignInButtonWrapper: UIViewRepresentable {
     @EnvironmentObject var authenticationState: AuthenticationState
     var handleError: (String) -> Void
 
-    // Add a sign-out button
+    // Create and configure the UIView
     func makeUIView(context: Context) -> UIView {
         let view = UIView()
         view.backgroundColor = .white
@@ -54,7 +54,6 @@ struct FacebookSignInButtonWrapper: UIViewRepresentable {
             context.coordinator.signOutButton.heightAnchor.constraint(equalToConstant: 60)  // Added height constraint
         ])
 
-
         // Check for Facebook App ID
         if let appId = Settings.shared.appID {
             print("Facebook App ID: \(appId)")
@@ -82,7 +81,17 @@ struct FacebookSignInButtonWrapper: UIViewRepresentable {
             super.init()
             locationManager.delegate = self
         }
-
+        
+        func handleFacebookSDKError(_ error: Error) {
+            let errorCode = (error as NSError).code
+            switch errorCode {
+            case 190:
+                print("Invalid OAuth access token signature. Please try again.")
+            default:
+                print("Unknown Facebook SDK error: \(error.localizedDescription)")
+            }
+        }
+        
         @objc func signIn() {
             print("Facebook Sign-In initiated")
 
@@ -94,37 +103,45 @@ struct FacebookSignInButtonWrapper: UIViewRepresentable {
 
                 loginManager.logIn(permissions: ["public_profile", "email"], from: window.rootViewController) { [weak self] result, error in
                     if let error = error {
+                        self?.handleFacebookSDKError(error)
                         self?.parent.handleError(error.localizedDescription)
                         return
                     }
 
-                    if result?.isCancelled ?? true {
-                        self?.parent.handleError("User cancelled Facebook login")
-                        return
-                    }
-
-                    GraphRequest(graphPath: "me", parameters: ["fields": "id, name, email"]).start { [weak self] connection, result, error in
+                    AccessToken.refreshCurrentAccessToken { connection, result, error in
                         if let error = error {
+                            self?.handleFacebookSDKError(error)
                             self?.parent.handleError(error.localizedDescription)
                             return
                         }
-
-                        guard let resultDict = result as? [String: Any] else {
-                            self?.parent.handleError("Invalid Graph API response")
-                            return
+                        
+                        if AccessToken.current?.isExpired == true {
+                            AccessToken.refreshCurrentAccessToken { connection, result, error in
+                                // Handle refreshed token or error
+                            }
                         }
+                        
+                        GraphRequest(graphPath: "me", parameters: ["fields": "id, name, email"]).start { [weak self] connection, result, error in
+                            if let error = error {
+                                self?.handleFacebookSDKError(error)
+                                self?.parent.handleError(error.localizedDescription)
+                                return
+                            }
 
-                        // Extract user data
-                        let userId = resultDict["id"] as? String
-                        let userName = resultDict["name"] as? String
-                        let userEmail = resultDict["email"] as? String
+                            guard let resultDict = result as? [String: Any] else {
+                                self?.parent.handleError("Invalid Graph API response")
+                                return
+                            }
 
-                        // Update authentication state or perform other actions
-                        self?.parent.authenticationState.updateFacebookUser(userId, userName, userEmail)
+                            let userId = resultDict["id"] as? String
+                            let userName = resultDict["name"] as? String
+                            let userEmail = resultDict["email"] as? String
 
-                        // Show sign-out button after signing in
-                        self?.signOutButton.isHidden = false
-                        self?.signInButton.isHidden = true
+                            self?.parent.authenticationState.updateFacebookUser(userId, userName, userEmail)
+
+                            self?.signOutButton.isHidden = false
+                            self?.signInButton.isHidden = true
+                        }
                     }
                 }
             }
@@ -134,10 +151,8 @@ struct FacebookSignInButtonWrapper: UIViewRepresentable {
             let loginManager = LoginManager()
             loginManager.logOut()
 
-            // Update authentication state
             parent.authenticationState.resetFacebookUser()
 
-            // Hide sign-out button after signing out
             signOutButton.isHidden = true
             signInButton.isHidden = false
         }
@@ -154,15 +169,13 @@ extension UIColor {
     static let facebookBlue = UIColor(red: 23/255, green: 118/255, blue: 255/255, alpha: 1)
 }
 
-
-
 struct FacebookSignInButtonWrapper_Previews: PreviewProvider {
     static var previews: some View {
         FacebookSignInButtonWrapper { errorMessage in
             print("Error: \(errorMessage)")
         }
-        .environmentObject(AuthenticationState()) // Add the required environment object
-        .frame(width: 400, height: 300) // Adjust frame size for the preview
+        .environmentObject(AuthenticationState())
+        .frame(width: 400, height: 300)
         .previewDisplayName("Facebook Sign-In Button Preview")
     }
 }

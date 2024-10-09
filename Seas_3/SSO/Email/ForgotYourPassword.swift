@@ -7,11 +7,14 @@
 
 import Foundation
 import SwiftUI
+import SwiftUI
+import CoreData
 
 struct ForgotYourPasswordView: View {
+    @Environment(\.managedObjectContext) private var viewContext // Inject Core Data context
     @State private var email: String = ""
     @State private var message: String = ""
-    
+
     var body: some View {
         VStack(spacing: 20) {
             Text("Reset Your Password")
@@ -28,7 +31,6 @@ struct ForgotYourPasswordView: View {
                 .autocapitalization(.none)
             
             Button(action: {
-                // Handle password reset logic here
                 resetPassword(for: email)
             }) {
                 Text("Send Reset Link")
@@ -54,19 +56,26 @@ struct ForgotYourPasswordView: View {
     }
     
     private func resetPassword(for email: String) {
-        // Implement your password reset logic here (e.g., Firebase Auth, your backend API)
-        // Here is a placeholder implementation
-        if email.isEmpty {
+        guard !email.isEmpty else {
             message = "Please enter your email address."
+            return
+        }
+
+        // Use the shared utility function to fetch user by email
+        if let userInfo = fetchUserInfo(byEmail: email, context: viewContext) {
+            message = "A reset link has been sent to \(userInfo.email)."
+            // Implement actual email sending logic here
         } else {
-            message = "A reset link has been sent to \(email)."
-            // Add actual logic to send a reset email
+            message = "Email does not exist in our system. Please create an account."
         }
     }
 }
 
 struct ForgotYourPasswordView_Previews: PreviewProvider {
     static var previews: some View {
-        ForgotYourPasswordView()
+        // Include an in-memory Core Data stack for preview purposes
+        let context = PersistenceController.preview.container.viewContext
+        return ForgotYourPasswordView().environment(\.managedObjectContext, context)
     }
 }
+

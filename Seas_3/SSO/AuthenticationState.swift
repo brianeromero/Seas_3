@@ -15,7 +15,10 @@ public class AuthenticationState: ObservableObject {
     @Published var googleUser: GoogleUser?
 
     @Published var user: UserInfo?
-
+    private let infoPlist = Bundle.main.infoDictionary
+    private var facebookAccessToken: String? {
+        return infoPlist?["FacebookAccessToken"] as? String
+    }
     
     public struct FacebookUser {
         let id: String?

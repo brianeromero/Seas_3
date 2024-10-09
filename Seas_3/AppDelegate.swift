@@ -3,7 +3,6 @@ import CoreData
 import GoogleSignIn
 import FBSDKCoreKit
 
-
 class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
@@ -13,7 +12,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Facebook SDK initialization
         ApplicationDelegate.shared.application(application, didFinishLaunchingWithOptions: launchOptions)
-        
+
         // Custom initialization if needed
         return true
     }
@@ -34,7 +33,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         
         return false
     }
-
 
     // Save context when the app enters the background
     func applicationDidEnterBackground(_ application: UIApplication) {

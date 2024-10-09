@@ -19,7 +19,8 @@ class UserLocationMapViewModel: NSObject, ObservableObject, CLLocationManagerDel
     @Published var userLocation: CLLocation?
     private let locationManager = CLLocationManager()
     private var isAuthorized = false
-
+    private var retryCount = 0
+    private let maxRetries = 3
     
 
     override init() {
@@ -40,7 +41,9 @@ class UserLocationMapViewModel: NSObject, ObservableObject, CLLocationManagerDel
                         self.locationManager.requestWhenInUseAuthorization()
                     }
                 case .authorizedWhenInUse, .authorizedAlways:
-                    self.locationManager.requestLocation()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                        self.locationManager.requestLocation()
+                    }
                 case .restricted, .denied:
                     print("Location services are restricted or denied.")
                 @unknown default:
@@ -51,10 +54,11 @@ class UserLocationMapViewModel: NSObject, ObservableObject, CLLocationManagerDel
             }
         }
     }
-    
+
     
     func requestLocation() {
         if locationManager.authorizationStatus == .authorizedWhenInUse || locationManager.authorizationStatus == .authorizedAlways {
+            print("Requesting user location...")
             locationManager.requestLocation()
         } else {
             print("Location services are not authorized.")
@@ -62,10 +66,15 @@ class UserLocationMapViewModel: NSObject, ObservableObject, CLLocationManagerDel
     }
 
     func locationManager(_: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        guard let location = locations.last else { return }
+        guard let location = locations.last else {
+            print("No locations available.")
+            return
+        }
+        print("Updated location: \(location.coordinate.latitude), \(location.coordinate.longitude)")
         userLocation = location
         updateRegion()
     }
+
 
 
     func locationManager(_: CLLocationManager, didFailWithError error: Error) {
@@ -74,29 +83,48 @@ class UserLocationMapViewModel: NSObject, ObservableObject, CLLocationManagerDel
         case .denied:
             print("Location services are denied.")
         case .locationUnknown:
-            print("Location unknown.")
+            print("Location unknown")
         case .network:
-            print("Network error.")
+            print("Network error")
         case .geocodeFoundNoResult, .geocodeFoundPartialResult, .geocodeCanceled:
-            print("Geocode error.")
+            print("Geocode error")
         default:
             print("Failed to get user location: \(error.localizedDescription)")
         }
         
-        // Retry location request after a short delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
-            self?.locationManager.requestLocation()
+        // Retry location request if retry limit has not been reached
+        if retryCount < maxRetries {
+            retryCount += 1
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
+                self?.locationManager.requestLocation()
+            }
+        } else {
+            print("Max retry attempts reached for location request.")
+            // Reset retry count if needed
+            retryCount = 0
         }
     }
 
+
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        switch manager.authorizationStatus {
-        case .authorizedWhenInUse, .authorizedAlways:
+        isAuthorized = (manager.authorizationStatus == .authorizedWhenInUse || manager.authorizationStatus == .authorizedAlways)
+        
+        if isAuthorized {
+            // Request user location if authorized
             manager.requestLocation()
-        case .restricted, .denied:
-            print("Location services are restricted or denied.")
-        default:
-            print("Unknown authorization status.")
+            print("Location services authorized. Requesting user location...")
+        } else {
+            // Handle cases where authorization is restricted or denied
+            switch manager.authorizationStatus {
+            case .restricted:
+                print("Location services are restricted.")
+            case .denied:
+                print("Location services are denied.")
+            case .notDetermined:
+                print("Authorization status not determined.")
+            default:
+                print("Unknown authorization status.")
+            }
         }
     }
 

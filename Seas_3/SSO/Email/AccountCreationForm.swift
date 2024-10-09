@@ -8,6 +8,7 @@
 import Foundation
 import SwiftUI
 import CoreData
+import CryptoKit
 
 struct AccountCreationFormView: View {
     @EnvironmentObject var authenticationState: AuthenticationState
@@ -17,8 +18,9 @@ struct AccountCreationFormView: View {
     @State private var confirmPassword: String = ""
     @State private var userName: String = "" // Add userName state
     @State private var name: String = "" // Add name state
-    @State private var belt: String = "" // Add belt state
+    @State private var belt: String = ""
     @State private var errorMessage: String = ""
+    let beltOptions = ["White", "Kids", "Blue", "Purple", "Brown", "Black","Red", "Coral"]
 
     var body: some View {
         VStack(spacing: 20) {
@@ -67,6 +69,13 @@ struct AccountCreationFormView: View {
                     .textFieldStyle(RoundedBorderTextFieldStyle())
             }
 
+            // Belt Field
+            Picker("Belt", selection: $belt) {
+                ForEach(beltOptions, id: \.self) {
+                    Text($0)
+                }
+            }
+            
             // Create Account Button
             Button(action: {
                 self.createAccount()
@@ -108,34 +117,55 @@ struct AccountCreationFormView: View {
             return
         }
 
+        if !isValidPassword(password) {
+            errorMessage = "Password must be at least 8 characters, contain uppercase, lowercase, and digits."
+            return
+        }
+
         // Check if email already exists
         if fetchUserByEmail(email) != nil {
             errorMessage = "Email already exists."
             return
         }
 
-        // Hash password
-        guard let hashedPassword = hashPassword(password) else {
-            errorMessage = "Failed to hash password."
-            return
+        // Hash password using a do-catch block to handle errors
+        do {
+            let hashedPassword = try hashPassword(password)
+            let passwordHashData = try JSONEncoder().encode(hashedPassword)
+
+            let sanitizedEmail = sanitizeInput(email)
+            let sanitizedUserName = sanitizeInput(userName)
+            let sanitizedName = sanitizeInput(name)
+
+            // Create new user with required fields
+            let newUser = UserInfo(context: managedObjectContext)
+            newUser.userID = UUID() // Generate unique user ID
+            newUser.email = sanitizedEmail // Required field
+            newUser.passwordHash = passwordHashData // Required field
+            newUser.userName = sanitizedUserName // Required field
+            newUser.name = sanitizedName // Required field
+            newUser.belt = belt // Optional field
+
+            // Store new user securely
+            storeUser(newUser)
+
+            // Login new user
+            authenticationState.login(newUser)
+        } catch {
+            errorMessage = "Failed to hash password: \(error)"
         }
-
-        // Create new user with required fields
-        let newUser = UserInfo(context: managedObjectContext)
-        newUser.userID = UUID() // Generate unique user ID
-        newUser.email = email // Required field
-        newUser.passwordHash = hashedPassword // Required field
-        newUser.userName = userName // Required field
-        newUser.name = name // Required field
-        newUser.belt = belt // Optional field
-
-        // Store new user securely
-        storeUser(newUser)
-
-        // Login new user
-        authenticationState.login(newUser)
     }
 
+    private func sanitizeInput(_ input: String) -> String {
+        return input.trimmingCharacters(in: CharacterSet.whitespaces.union(.punctuationCharacters))
+    }
+
+    private func isValidPassword(_ password: String) -> Bool {
+        // Check for password length, special characters, and digits
+        let passwordRegEx = "^(?=.*[A-Z])(?=.*[0-9])(?=.*[a-z]).{8,}$"
+        let passwordTest = NSPredicate(format: "SELF MATCHES %@", passwordRegEx)
+        return passwordTest.evaluate(with: password)
+    }
 
     private func isCreateAccountEnabled() -> Bool {
         // Check if all fields are filled and if email is valid
