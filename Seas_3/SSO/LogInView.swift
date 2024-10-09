@@ -12,13 +12,15 @@ import FBSDKLoginKit
 
 struct LoginView: View {
     @EnvironmentObject var authenticationState: AuthenticationState
+    @Environment(\.managedObjectContext) private var viewContext // Inject the Core Data context
     @State private var showMainContent: Bool = false
     @State private var errorMessage: String = ""
-    @State private var email: String = ""
+    @State private var usernameOrEmail: String = "" // Changed from email to usernameOrEmail
     @State private var password: String = ""
     @State private var isPasswordVisible: Bool = false
     @State private var showDisclaimer = false
-
+    @State private var showAlert = false
+    @State private var alertMessage = ""
 
     var body: some View {
         NavigationView {
@@ -51,9 +53,9 @@ struct LoginView: View {
                             .font(.title3)
 
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("Email address")
+                            Text("Username or Email")
                                 .font(.subheadline)
-                            TextField("Email address", text: $email)
+                            TextField("Username or Email", text: $usernameOrEmail)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
 
                             Text("Password")
@@ -86,22 +88,25 @@ struct LoginView: View {
                                 .padding(.top, 5)
                         }
 
+                        // Sign In Button
                         Button(action: {
-                            // Handle login
+                            signIn()
                         }) {
                             Text("Sign In")
                                 .font(.headline)
                                 .padding()
                                 .frame(minWidth: 335)
-                                .background(Color.black)
+                                .background(isSignInEnabled ? Color.blue : Color.gray)
                                 .foregroundColor(.white)
                                 .cornerRadius(40)
                         }
+                        .disabled(!isSignInEnabled)
 
                         Text("OR")
                             .font(.footnote)
                             .foregroundColor(.secondary)
 
+                        // Show other sign-in options
                         VStack(spacing: 5) {
                             GoogleSignInButtonWrapper(handleError: { message in
                                 self.errorMessage = message })
@@ -135,16 +140,56 @@ struct LoginView: View {
             }
             .padding()
             .navigationTitle("Sign In")
-        }
-        .onChange(of: authenticationState.isAuthenticated) { newValue in
-            print("Authentication state changed: \(newValue)")
-            if newValue {
-                print("Showing main content")
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                    self.showMainContent = true
-                }
+            .alert(isPresented: $showAlert) {
+                Alert(title: Text("Authentication Error"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
             }
         }
+    }
+
+    // MARK: - Computed Properties
+    private var isSignInEnabled: Bool {
+        return !usernameOrEmail.isEmpty && !password.isEmpty // Enable if both fields are filled
+    }
+
+    // MARK: - Sign In Logic
+    private func signIn() {
+        guard let user = fetchUser(usernameOrEmail) else {
+            alertMessage = "That username/email address doesn't exist in our records."
+            showAlert = true
+            return
+        }
+
+        // Pass the entire PasswordHash object to the verifyPassword function.
+        if let passwordHash = user.passwordHash {
+            // Debug print to log the details of the PasswordHash object
+            print("Password hash details: \(passwordHash)")
+            
+            // Directly pass PasswordHash to verifyPassword
+            if ((try? verifyPassword(password, againstHash: passwordHash)) != nil) {
+                alertMessage = "You exist. Welcome."
+                showMainContent = true
+            } else {
+                alertMessage = "That username/email address and password don't match."
+            }
+        } else {
+            alertMessage = "User password hash is missing."
+        }
+
+        showAlert = true
+    }
+
+
+    // Fetch user based on email
+    private func fetchUser(_ identifier: String) -> User? {
+        // Replace this with actual data fetching logic (from a database or API)
+        let mockUsers: [User] = [
+            User(email: "user@example.com", username: "user123", passwordHash: try? hashPassword("correctPassword")),
+            User(email: "admin@example.com", username: "adminUser", passwordHash: try? hashPassword("adminPass")),
+            User(email: "username123@example.com", username: "username123", passwordHash: try? hashPassword("password123"))
+        ]
+        
+        // Check for user by email or username
+        return mockUsers.first { $0.email == identifier || $0.username == identifier }
     }
 }
 
