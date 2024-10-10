@@ -9,6 +9,7 @@ import Foundation
 import Security
 import CryptoSwift
 
+
 // Error types for password hashing
 enum HashError: Error {
     case invalidInput

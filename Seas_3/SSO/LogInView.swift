@@ -49,8 +49,15 @@ struct LoginView: View {
                     IslandMenu()
                 } else {
                     VStack(spacing: 20) {
-                        Text("Log in or create an account")
-                            .font(.title3)
+                        HStack(alignment: .center, spacing: 10) {
+                            Text("Log In or")
+                            NavigationLink(destination: AccountCreationFormView()) {
+                                Text("Create an Account")
+                                    .font(.body)
+                                    .foregroundColor(.blue)
+                                    .underline()
+                            }
+                        }
 
                         VStack(alignment: .leading, spacing: 10) {
                             Text("Username or Email")

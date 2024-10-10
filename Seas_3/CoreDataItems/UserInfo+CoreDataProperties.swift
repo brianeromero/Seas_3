@@ -22,6 +22,8 @@ extension UserInfo {
     @NSManaged public var belt: String? // Optional (if applicable)
     @NSManaged public var userID: UUID? // Optional (if applicable)
     @NSManaged public var passwordHash: Data // Required
+    @NSManaged public var isVerified: Bool // Required
+    @NSManaged public var verificationToken: String? // Optional (if applicable)
 
 }
 

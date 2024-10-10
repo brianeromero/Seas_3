@@ -57,6 +57,7 @@ class PersistenceController: ObservableObject {
                 try viewContext.save()
                 NotificationCenter.default.post(name: .contextSaved, object: nil)
             } catch {
+                print("Error saving context: \(error.localizedDescription)")
                 throw PersistenceError.saveError(error)
             }
         }

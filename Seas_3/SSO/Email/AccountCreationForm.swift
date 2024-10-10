@@ -9,6 +9,8 @@ import Foundation
 import SwiftUI
 import CoreData
 import CryptoKit
+import FirebaseAuth
+
 
 struct AccountCreationFormView: View {
     @EnvironmentObject var authenticationState: AuthenticationState
@@ -20,7 +22,7 @@ struct AccountCreationFormView: View {
     @State private var name: String = "" // Add name state
     @State private var belt: String = ""
     @State private var errorMessage: String = ""
-    let beltOptions = ["White", "Kids", "Blue", "Purple", "Brown", "Black","Red", "Coral"]
+    let beltOptions = ["White", "Kids", "Blue", "Purple", "Brown", "Black", "Red", "Coral"]
 
     var body: some View {
         VStack(spacing: 20) {
@@ -69,7 +71,7 @@ struct AccountCreationFormView: View {
                     .textFieldStyle(RoundedBorderTextFieldStyle())
             }
 
-            // Belt Field
+            // Belt Picker
             Picker("Belt", selection: $belt) {
                 ForEach(beltOptions, id: \.self) {
                     Text($0)
@@ -123,7 +125,7 @@ struct AccountCreationFormView: View {
         }
 
         // Check if email already exists
-        if fetchUserByEmail(email) != nil {
+        if EmailUtility.fetchUserInfo(byEmail: email) != nil {
             errorMessage = "Email already exists."
             return
         }
@@ -138,19 +140,58 @@ struct AccountCreationFormView: View {
             let sanitizedName = sanitizeInput(name)
 
             // Create new user with required fields
-            let newUser = UserInfo(context: managedObjectContext)
-            newUser.userID = UUID() // Generate unique user ID
-            newUser.email = sanitizedEmail // Required field
-            newUser.passwordHash = passwordHashData // Required field
-            newUser.userName = sanitizedUserName // Required field
-            newUser.name = sanitizedName // Required field
-            newUser.belt = belt // Optional field
+            Auth.auth().createUser(withEmail: sanitizedEmail, password: password) { result, error in
+                if let error = error {
+                    print("Error creating user: \(error.localizedDescription)")
+                    self.errorMessage = "Failed to create user: \(error.localizedDescription)"
+                    return
+                }
 
-            // Store new user securely
-            storeUser(newUser)
+                // Create new user in Core Data
+                let newUser = UserInfo(context: self.managedObjectContext)
+                newUser.userID = UUID() // Generate unique user ID
+                newUser.email = sanitizedEmail // Required field
+                newUser.passwordHash = passwordHashData // Required field
+                newUser.userName = sanitizedUserName // Required field
+                newUser.name = sanitizedName // Required field
+                newUser.belt = self.belt // Optional field
 
-            // Login new user
-            authenticationState.login(newUser)
+                // Store new user securely
+                self.storeUser(newUser)
+
+                // Send account creation confirmation email
+                let emailService = EmailService()
+                emailService.sendAccountCreationConfirmationEmail(to: sanitizedEmail, userName: sanitizedUserName) { success in
+                    if success {
+                        print("Account creation confirmation email sent successfully")
+                    } else {
+                        print("Failed to send account creation confirmation email")
+                    }
+                }
+
+                // Send welcome email
+                let emailManager = UnifiedEmailManager(managedObjectContext: self.managedObjectContext)
+                emailManager.sendWelcomeEmail(to: sanitizedEmail, userName: sanitizedUserName) { success in
+                    if success {
+                        print("Welcome email sent successfully")
+                    } else {
+                        print("Failed to send welcome email")
+                    }
+                }
+
+                // Login new user
+                self.authenticationState.login(newUser)
+
+                // Send email verification
+                result?.user.sendEmailVerification(completion: { error in
+                    if let error = error {
+                        print("Error sending email verification: \(error.localizedDescription)")
+                        return
+                    }
+
+                    print("Email verification sent successfully")
+                })
+            }
         } catch {
             errorMessage = "Failed to hash password: \(error)"
         }
@@ -179,21 +220,19 @@ struct AccountCreationFormView: View {
         return emailTest.evaluate(with: email)
     }
 
-    private func fetchUserByEmail(_ email: String) -> UserInfo? {
+    private func storeUser(_ user: UserInfo) {
+        user.isVerified = false
+
+        // Fetch user from Core Data
         let request = UserInfo.fetchRequest() as NSFetchRequest<UserInfo>
-        request.predicate = NSPredicate(format: "email == %@", email)
+        request.predicate = NSPredicate(format: "email == %@", user.email)
 
         do {
             let users = try managedObjectContext.fetch(request)
-            return users.first
-        } catch {
-            print("Error fetching user: \(error.localizedDescription)")
-            return nil
-        }
-    }
+            if let existingUser = users.first {
+                existingUser.isVerified = false
+            }
 
-    private func storeUser(_ user: UserInfo) {
-        do {
             try managedObjectContext.save() // Save changes to the context
         } catch {
             print("Error creating user: \(error.localizedDescription)")
