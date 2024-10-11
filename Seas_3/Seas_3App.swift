@@ -7,6 +7,10 @@ import CoreData
 import Combine
 import FBSDKCoreKit // Import Facebook SDK
 import GoogleSignIn // Import Google Sign-In SDK
+<<<<<<< HEAD
+=======
+
+>>>>>>> 7273ce11e395d25e3e7a55c769b08b51bad6cfb9
 
 @main
 struct Seas3App: App {
@@ -40,12 +44,16 @@ struct Seas3App: App {
                             }
                         }
                 } else if !authenticationState.isAuthenticated {
+<<<<<<< HEAD
                     // Create instances of the required view model and context
                     let context = PersistenceController.shared.viewContext
                     let islandViewModel = PirateIslandViewModel(context: context)
 
                     // Pass them to the LoginView
                     LoginView(islandViewModel: islandViewModel, context: context)
+=======
+                    LoginView()
+>>>>>>> 7273ce11e395d25e3e7a55c769b08b51bad6cfb9
                         .environmentObject(authenticationState) // Pass authentication state
                 } else {
                     IslandMenu()

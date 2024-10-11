@@ -6,6 +6,7 @@
 //
 
 import Foundation
+<<<<<<< HEAD
 import Firebase
 import FirebaseAuth
 import CoreData
@@ -83,3 +84,5 @@ class EmailService {
     }
     
 }
+=======
+>>>>>>> 7273ce11e395d25e3e7a55c769b08b51bad6cfb9

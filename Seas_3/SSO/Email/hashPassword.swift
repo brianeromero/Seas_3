@@ -9,7 +9,10 @@ import Foundation
 import Security
 import CryptoSwift
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 7273ce11e395d25e3e7a55c769b08b51bad6cfb9
 // Error types for password hashing
 enum HashError: Error {
     case invalidInput
