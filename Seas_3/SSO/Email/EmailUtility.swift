@@ -11,17 +11,25 @@ import CoreData
 struct EmailUtility {
     static let persistenceController = PersistenceController.shared
     
-    static func fetchUserInfo(byEmail email: String) -> UserInfo? {
+    private static func fetchUserInfo(with predicate: NSPredicate) -> UserInfo? {
         let fetchRequest: NSFetchRequest<UserInfo> = UserInfo.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "email == %@", email)
+        fetchRequest.predicate = predicate
         fetchRequest.fetchLimit = 1
         
         do {
             let results = try persistenceController.container.viewContext.fetch(fetchRequest)
             return results.first
         } catch {
-            print("Error fetching UserInfo by email: \(error)")
+            print("Error fetching UserInfo: \(error)")
             return nil
         }
+    }
+
+    static func fetchUserInfo(byEmail email: String) -> UserInfo? {
+        fetchUserInfo(with: NSPredicate(format: "email == %@", email))
+    }
+
+    static func fetchUserInfo(byUsername username: String) -> UserInfo? {
+        fetchUserInfo(with: NSPredicate(format: "userName == %@", username))
     }
 }

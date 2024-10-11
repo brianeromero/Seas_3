@@ -37,17 +37,42 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         }
         
         // Handle Email Verification
+        let context = persistenceController.container.viewContext
+        let request = UserInfo.fetchRequest() as NSFetchRequest<UserInfo>
         let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
-        if let token = components?.queryItems?.first(where: { $0.name == "token" })?.value,
-           let email = components?.queryItems?.first(where: { $0.name == "email" })?.value {
-            let emailManager = UnifiedEmailManager(managedObjectContext: persistenceController.container.viewContext)
-            emailManager.verifyEmail(token: token, email: email) { success in
-                if success {
-                    print("Email verification successful")
-                } else {
-                    print("Email verification failed")
+        
+        do {
+            let userInfo = try context.fetch(request)
+            if let user = userInfo.first {
+                let userName = user.userName
+                
+                if let token = components?.queryItems?.first(where: { $0.name == "token" })?.value,
+                   let email = components?.queryItems?.first(where: { $0.name == "email" })?.value {
+                    let emailManager = UnifiedEmailManager(managedObjectContext: context)
+                    emailManager.verifyEmail(token: token, email: email, userName: userName) { success in
+                        if success {
+                            // Verification successful, redirect to success.html
+                            let url = URL(string: "http://mfinderbjj.rf.gd/success.html")!
+                            UIApplication.shared.open(url, options: [:], completionHandler: nil)
+                            print("Email verification successful")
+                        } else {
+                            // Verification failed, redirect to failed.html
+                            let url = URL(string: "http://mfinderbjj.rf.gd/failed.html")!
+                            UIApplication.shared.open(url, options: [:], completionHandler: nil)
+                            print("Email verification failed")
+                        }
+                    }
+                    return true
                 }
             }
+        } catch {
+            print("Error fetching UserInfo: \(error.localizedDescription)")
+        }
+        
+        // Handle custom URL scheme
+        if url.scheme == "matfinder" && url.host == "verify-success" {
+            // Show dashboard or update UI
+            window?.rootViewController = UIStoryboard(name: "Main", bundle: nil).instantiateViewController(withIdentifier: "DashboardViewController")
             return true
         }
         

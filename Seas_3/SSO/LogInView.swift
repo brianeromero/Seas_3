@@ -1,18 +1,12 @@
-//
-//  LogInView.swift
-//  Seas_3
-//
-//  Created by Brian Romero on 10/7/24.
-//
-
 import Foundation
+import CoreData
 import SwiftUI
 import GoogleSignIn
 import FBSDKLoginKit
 
 struct LoginView: View {
     @EnvironmentObject var authenticationState: AuthenticationState
-    @Environment(\.managedObjectContext) private var viewContext // Inject the Core Data context
+    @Environment(\.managedObjectContext) private var viewContext
     @State private var showMainContent: Bool = false
     @State private var errorMessage: String = ""
     @State private var usernameOrEmail: String = "" // Changed from email to usernameOrEmail
@@ -21,6 +15,15 @@ struct LoginView: View {
     @State private var showDisclaimer = false
     @State private var showAlert = false
     @State private var alertMessage = ""
+    @StateObject var islandViewModel: PirateIslandViewModel
+
+    // Add a property for PirateIslandViewModel
+    let context: NSManagedObjectContext
+
+    init(islandViewModel: PirateIslandViewModel, context: NSManagedObjectContext) {
+        _islandViewModel = StateObject(wrappedValue: islandViewModel)
+        self.context = context
+    }
 
     var body: some View {
         NavigationView {
@@ -51,7 +54,7 @@ struct LoginView: View {
                     VStack(spacing: 20) {
                         HStack(alignment: .center, spacing: 10) {
                             Text("Log In or")
-                            NavigationLink(destination: AccountCreationFormView()) {
+                            NavigationLink(destination: AccountCreationFormView(islandViewModel: PirateIslandViewModel(context: context), context: context)) {
                                 Text("Create an Account")
                                     .font(.body)
                                     .foregroundColor(.blue)
@@ -116,14 +119,16 @@ struct LoginView: View {
                         // Show other sign-in options
                         VStack(spacing: 5) {
                             GoogleSignInButtonWrapper(handleError: { message in
-                                self.errorMessage = message })
-                                .frame(height: 50)
-                                .clipped()
+                                self.errorMessage = message
+                            })
+                            .frame(height: 50)
+                            .clipped()
 
                             FacebookSignInButtonWrapper(handleError: { message in
-                                self.errorMessage = message })
-                                .frame(height: 50)
-                                .clipped()
+                                self.errorMessage = message
+                            })
+                            .frame(height: 50)
+                            .clipped()
                         }
 
                         if !errorMessage.isEmpty {
@@ -185,7 +190,6 @@ struct LoginView: View {
         showAlert = true
     }
 
-
     // Fetch user based on email
     private func fetchUser(_ identifier: String) -> User? {
         // Replace this with actual data fetching logic (from a database or API)
@@ -202,7 +206,8 @@ struct LoginView: View {
 
 struct LoginView_Previews: PreviewProvider {
     static var previews: some View {
-        LoginView()
+        let context = PersistenceController.shared.viewContext
+        LoginView(islandViewModel: PirateIslandViewModel(context: context), context: context)
             .environmentObject(AuthenticationState())
             .previewDisplayName("Login View")
     }

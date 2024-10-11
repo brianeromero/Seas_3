@@ -89,16 +89,12 @@ struct AddNewIsland: View {
     
     private var websiteSection: some View {
         Section(header: Text("Website")) {
-            Picker("Protocol", selection: $selectedProtocol) {
-                Text("http://").tag("http://")
-                Text("https://").tag("https://")
-            }
-            .pickerStyle(SegmentedPickerStyle())
-            
             TextField("Website URL", text: $gymWebsite, onEditingChanged: { _ in
                 if !gymWebsite.isEmpty {
-                    let strippedURL = stripProtocol(from: gymWebsite)
-                    let fullURLString = selectedProtocol + strippedURL
+                    var fullURLString = gymWebsite
+                    if !fullURLString.lowercased().hasPrefix("http://") && !fullURLString.lowercased().hasPrefix("https://") {
+                        fullURLString = "https://\(gymWebsite)"
+                    }
                     
                     if validateURL(fullURLString) {
                         gymWebsiteURL = URL(string: fullURLString)
@@ -114,7 +110,6 @@ struct AddNewIsland: View {
                 validateFields()
             })
             .keyboardType(.URL)
-
         }
     }
     
@@ -205,5 +200,12 @@ struct AddNewIsland: View {
         // Simplified URL validation using a regex pattern
         let urlRegex = "^(https?:\\/\\/)?([\\da-z\\.-]+)\\.([a-z\\.]{2,6})([\\/\\w \\.-]*)*\\/?$"
         return NSPredicate(format: "SELF MATCHES %@", urlRegex).evaluate(with: urlString)
+    }
+}
+
+struct AddNewIsland_Previews: PreviewProvider {
+    static var previews: some View {
+        let context = PersistenceController.shared.viewContext
+        return AddNewIsland(viewModel: PirateIslandViewModel(context: context))
     }
 }

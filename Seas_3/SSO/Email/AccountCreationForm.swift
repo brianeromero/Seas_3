@@ -11,7 +11,6 @@ import CoreData
 import CryptoKit
 import FirebaseAuth
 
-
 struct AccountCreationFormView: View {
     @EnvironmentObject var authenticationState: AuthenticationState
     @Environment(\.managedObjectContext) private var managedObjectContext
@@ -21,85 +20,142 @@ struct AccountCreationFormView: View {
     @State private var userName: String = "" // Add userName state
     @State private var name: String = "" // Add name state
     @State private var belt: String = ""
+    @State private var showVerificationAlert = false
     @State private var errorMessage: String = ""
-    let beltOptions = ["White", "Kids", "Blue", "Purple", "Brown", "Black", "Red", "Coral"]
+    let beltOptions = ["White", "Blue", "Purple", "Brown", "Black", "Red&Black", "Red&White", "Red"]
+
+    // Use @ObservedObject instead of @StateObject
+    @ObservedObject var islandViewModel: PirateIslandViewModel
+
+    @State private var islandName = ""
+    @State private var street = ""
+    @State private var city = ""
+    @State private var state = ""
+    @State private var zip = ""
+    @State private var gymWebsite = ""
+    @State private var gymWebsiteURL: URL?
+    @State private var selectedProtocol = "http://"
+
+    @State private var showAlert = false
+    @State private var alertMessage = ""
+
+    init(islandViewModel: PirateIslandViewModel, context: NSManagedObjectContext) {
+        _islandViewModel = ObservedObject(wrappedValue: islandViewModel)
+        // Initialize with context
+    }
 
     var body: some View {
-        VStack(spacing: 20) {
-            Text("Create Account")
-                .font(.largeTitle)
+        ScrollView {
+            VStack(spacing: 20) {
+                Text("Create Account")
+                    .font(.largeTitle)
 
-            Text("Enter the following information to create an account:")
-                .font(.subheadline)
-                .foregroundColor(.gray)
-                .padding(.bottom)
+                Text("Enter the following information to create an account:")
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+                    .padding(.bottom)
 
-            // User Name Field
-            VStack(alignment: .leading) {
-                Text("Username") // Header for the Username field
-                TextField("Enter your username", text: $userName)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-            }
+                // User Name Field
+                VStack(alignment: .leading) {
+                    Text("Username") // Header for the Username field
+                    TextField("Enter your username", text: $userName)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                }
 
-            // Name Field
-            VStack(alignment: .leading) {
-                Text("Name") // Header for the Name field
-                TextField("Enter your name", text: $name)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-            }
+                // Name Field
+                VStack(alignment: .leading) {
+                    Text("Name") // Header for the Name field
+                    TextField("Enter your name", text: $name)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                }
 
-            // Email Field
-            VStack(alignment: .leading) {
-                Text("Email Address") // Header for the Email field
-                TextField("Email address", text: $email)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .keyboardType(.emailAddress)
-                    .autocapitalization(.none)
-            }
+                // Email Field
+                VStack(alignment: .leading) {
+                    Text("Email Address") // Header for the Email field
+                    TextField("Email address", text: $email)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .keyboardType(.emailAddress)
+                        .autocapitalization(.none)
+                }
 
-            // Password Field
-            VStack(alignment: .leading) {
-                Text("Password") // Header for the Password field
-                SecureField("Password", text: $password)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-            }
+                // Password Field
+                VStack(alignment: .leading) {
+                    Text("Password") // Header for the Password field
+                    SecureField("Password", text: $password)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                }
 
-            // Confirm Password Field
-            VStack(alignment: .leading) {
-                Text("Confirm Password") // Header for the Confirm Password field
-                SecureField("Confirm Password", text: $confirmPassword)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-            }
+                // Confirm Password Field
+                VStack(alignment: .leading) {
+                    Text("Confirm Password") // Header for the Confirm Password field
+                    SecureField("Confirm Password", text: $confirmPassword)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                }
 
-            // Belt Picker
-            Picker("Belt", selection: $belt) {
-                ForEach(beltOptions, id: \.self) {
-                    Text($0)
+                VStack(alignment: .leading) {
+                    HStack {
+                        Text("Belt")
+                        Text("(Optional)")
+                            .foregroundColor(.gray)
+                            .opacity(0.7)
+                    }
+                    Menu {
+                        ForEach(beltOptions, id: \.self) { belt in
+                            Button(action: {
+                                self.belt = belt // Set the selected belt
+                            }) {
+                                Text(belt)
+                            }
+                        }
+                    } label: {
+                        HStack {
+                            Text(belt.isEmpty ? "Select your belt" : belt) // Show selected belt or placeholder
+                                .foregroundColor(belt.isEmpty ? .gray : .primary)
+                            Spacer()
+                            Image(systemName: "chevron.down") // Add dropdown arrow
+                                .foregroundColor(.gray)
+                        }
+                        .padding()
+                        .background(RoundedRectangle(cornerRadius: 8).stroke(Color.gray, lineWidth: 0))
+                    }
+                }
+
+                // Optional "Where I Train" section for gym details
+                islandDetailsSection
+                websiteSection
+
+                // Create Account Button
+                Button(action: {
+                    self.createAccount()
+                }) {
+                    Text("Create Account")
+                        .font(.headline)
+                        .padding()
+                        .frame(minWidth: 200)
+                        .background(isCreateAccountEnabled() ? Color.blue : Color.gray) // Disable button if validation fails
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                }
+                .disabled(!isCreateAccountEnabled()) // Disable button based on validation
+
+                // Error Message
+                if !errorMessage.isEmpty {
+                    Text(errorMessage)
+                        .foregroundColor(.red)
                 }
             }
-            
-            // Create Account Button
-            Button(action: {
-                self.createAccount()
-            }) {
-                Text("Create Account")
-                    .font(.headline)
-                    .padding()
-                    .frame(minWidth: 200)
-                    .background(isCreateAccountEnabled() ? Color.blue : Color.gray) // Disable button if validation fails
-                    .foregroundColor(.white)
-                    .cornerRadius(10)
-            }
-            .disabled(!isCreateAccountEnabled()) // Disable button based on validation
-
-            // Error Message
-            if !errorMessage.isEmpty {
-                Text(errorMessage)
-                    .foregroundColor(.red)
+            .padding()
+            .navigationTitle("Create Account")
+            .alert(isPresented: $showVerificationAlert) {
+                Alert(
+                    title: Text("Account Created"),
+                    message: Text("Please check your email for verification link. Check spam folder if not found."),
+                    dismissButton: .default(Text("OK")) {
+                        self.authenticationState.logout()
+                    }
+                )
             }
         }
-        .padding()
-        .navigationTitle("Create Account")
     }
 
     private func createAccount() {
@@ -127,6 +183,12 @@ struct AccountCreationFormView: View {
         // Check if email already exists
         if EmailUtility.fetchUserInfo(byEmail: email) != nil {
             errorMessage = "Email already exists."
+            return
+        }
+
+        // Check if username already exists
+        if EmailUtility.fetchUserInfo(byUsername: userName) != nil {
+            errorMessage = "Username already exists. Please choose another username."
             return
         }
 
@@ -159,41 +221,36 @@ struct AccountCreationFormView: View {
                 // Store new user securely
                 self.storeUser(newUser)
 
-                // Send account creation confirmation email
-                let emailService = EmailService()
-                emailService.sendAccountCreationConfirmationEmail(to: sanitizedEmail, userName: sanitizedUserName) { success in
-                    if success {
-                        print("Account creation confirmation email sent successfully")
-                    } else {
-                        print("Failed to send account creation confirmation email")
-                    }
-                }
-
-                // Send welcome email
+                // Send verification email (which now includes welcome message)
                 let emailManager = UnifiedEmailManager(managedObjectContext: self.managedObjectContext)
-                emailManager.sendWelcomeEmail(to: sanitizedEmail, userName: sanitizedUserName) { success in
-                    if success {
-                        print("Welcome email sent successfully")
-                    } else {
-                        print("Failed to send welcome email")
+                let verificationToken = UUID().uuidString
+
+                // Update user verification token
+                let request = UserInfo.fetchRequest() as NSFetchRequest<UserInfo>
+                request.predicate = NSPredicate(format: "email == %@", sanitizedEmail)
+
+                do {
+                    let users = try managedObjectContext.fetch(request)
+                    if let existingUser = users.first {
+                        existingUser.verificationToken = verificationToken
+                        try managedObjectContext.save()
                     }
+                } catch {
+                    print("Error updating user verification token: \(error.localizedDescription)")
                 }
 
-                // Login new user
-                self.authenticationState.login(newUser)
-
-                // Send email verification
-                result?.user.sendEmailVerification(completion: { error in
-                    if let error = error {
-                        print("Error sending email verification: \(error.localizedDescription)")
-                        return
+                emailManager.verifyEmail(token: verificationToken, email: sanitizedEmail, userName: sanitizedUserName) { success in
+                    if success {
+                        print("Verification and welcome email sent successfully")
+                        self.showVerificationAlert = true
+                    } else {
+                        print("Failed to send verification and welcome email")
                     }
-
-                    print("Email verification sent successfully")
-                })
+                }
             }
         } catch {
-            errorMessage = "Failed to hash password: \(error)"
+            print("Error hashing password: \(error.localizedDescription)")
+            errorMessage = "Failed to hash password."
         }
     }
 
@@ -210,42 +267,79 @@ struct AccountCreationFormView: View {
 
     private func isCreateAccountEnabled() -> Bool {
         // Check if all fields are filled and if email is valid
-        return !email.isEmpty && !password.isEmpty && !userName.isEmpty && !name.isEmpty && password == confirmPassword && isValidEmail(email)
+        return !email.isEmpty && !password.isEmpty && password == confirmPassword && !userName.isEmpty && !name.isEmpty && isValidEmail(email)
     }
 
     private func isValidEmail(_ email: String) -> Bool {
-        // Regular expression for validating email format
+        // Validate email format using regex
         let emailRegEx = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Z|a-z]{2,}"
         let emailTest = NSPredicate(format: "SELF MATCHES %@", emailRegEx)
         return emailTest.evaluate(with: email)
     }
 
-    private func storeUser(_ user: UserInfo) {
-        user.isVerified = false
+    private func hashPassword(_ password: String) throws -> String {
+        let data = password.data(using: .utf8)!
+        let hashed = SHA256.hash(data: data)
+        return hashed.compactMap { String(format: "%02x", $0) }.joined()
+    }
 
-        // Fetch user from Core Data
-        let request = UserInfo.fetchRequest() as NSFetchRequest<UserInfo>
-        request.predicate = NSPredicate(format: "email == %@", user.email)
+    private var islandDetailsSection: some View {
+        VStack(alignment: .leading) {
+            Text("Where I Train (Optional)")
 
-        do {
-            let users = try managedObjectContext.fetch(request)
-            if let existingUser = users.first {
-                existingUser.isVerified = false
+            TextField("Gym Name", text: $islandName)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+
+            TextField("Street", text: $street)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+
+            TextField("City", text: $city)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+
+            TextField("State", text: $state)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+
+            TextField("Zip", text: $zip)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+        }
+        .padding(.bottom)
+    }
+
+    private var websiteSection: some View {
+        VStack(alignment: .leading) {
+            Text("Gym Website (Optional)").font(.headline)
+
+            HStack {
+                TextField("Website URL", text: $gymWebsite)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .onChange(of: gymWebsite) { newValue in
+                        if let url = URL(string: selectedProtocol + newValue) {
+                            gymWebsiteURL = url
+                        } else {
+                            gymWebsiteURL = nil
+                        }
+                    }
             }
+        }
+        .padding(.bottom)
+    }
 
-            try managedObjectContext.save() // Save changes to the context
+    private func storeUser(_ user: UserInfo) {
+        do {
+            try managedObjectContext.save()
         } catch {
-            print("Error creating user: \(error.localizedDescription)")
+            print("Error saving user to Core Data: \(error.localizedDescription)")
         }
     }
 }
 
+
 struct AccountCreationFormView_Previews: PreviewProvider {
     static var previews: some View {
-        NavigationView {
-            AccountCreationFormView()
-                .environmentObject(AuthenticationState())
-        }
-        .previewDisplayName("AccountCreationFormView")
+        let context = PersistenceController.preview.container.viewContext
+        AccountCreationFormView(islandViewModel: PirateIslandViewModel(context: context), context: context)
+            .environmentObject(AuthenticationState())
+            .previewLayout(.sizeThatFits)
+            .previewDisplayName("Account Creation Form")
     }
 }
