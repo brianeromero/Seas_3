@@ -11,7 +11,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     // Access the shared PersistenceController
     let persistenceController = PersistenceController.shared
 
+    // Variables to store config values
+    var facebookAppID: String?
+    var facebookClientToken: String?
+    var sendgridApiKey: String?
+
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        // Load Config.plist values
+        loadConfigValues()
+
         // Firebase initialization
         FirebaseApp.configure()
         
@@ -20,6 +28,22 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
         // Custom initialization if needed
         return true
+    }
+
+    // Load the sensitive config values from Config.plist
+    func loadConfigValues() {
+        if let path = Bundle.main.path(forResource: "Config", ofType: "plist"),
+           let config = NSDictionary(contentsOfFile: path) as? [String: Any] {
+            facebookAppID = config["FacebookAppID"] as? String
+            facebookClientToken = config["FacebookClientToken"] as? String
+            sendgridApiKey = config["SENDGRID_API_KEY"] as? String
+
+            // Print or use these values as needed
+            print("Loaded FacebookAppID: \(facebookAppID ?? "")")
+            print("Loaded SendGrid API Key: \(sendgridApiKey ?? "")")
+        } else {
+            print("Failed to load Config.plist")
+        }
     }
 
     // Handle URL for Google Sign-In, Facebook Login, and Email Verification
