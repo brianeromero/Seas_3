@@ -6,7 +6,6 @@
 //
 
 import Foundation
-<<<<<<< HEAD
 import CoreData
 
 class UnifiedEmailManager {
@@ -18,7 +17,6 @@ class UnifiedEmailManager {
         self.managedObjectContext = managedObjectContext
     }
 
-    
     // Sends a Firebase password reset email
     func sendPasswordReset(to email: String, completion: @escaping (Bool) -> Void) {
         firebaseEmailService.sendPasswordResetEmail(to: email, completion: completion)
@@ -38,13 +36,13 @@ class UnifiedEmailManager {
     func sendVerificationToken(to email: String, userName: String, completion: @escaping (Bool) -> Void) {
         let subject = "Verify Your Account"
         let verificationToken = UUID().uuidString
-        
+
         // Fetch or create UserInfo entity
         let userInfo = EmailUtility.fetchUserInfo(byEmail: email) ?? UserInfo(context: managedObjectContext)
         userInfo.email = email
         userInfo.userName = userName
         userInfo.verificationToken = verificationToken
-        
+
         do {
             try managedObjectContext.save()
         } catch {
@@ -52,10 +50,10 @@ class UnifiedEmailManager {
             completion(false)
             return
         }
-        
+
         // Generate verification link
         let verificationLink = "http://mfinderbjj.rf.gd/verify.php?token=\(verificationToken)&email=\(email)"
-        
+
         let content = """
         Dear \(userName),
         
@@ -87,7 +85,7 @@ class UnifiedEmailManager {
                 completion(true)
                 return
             }
-            
+
             // Activate account
             user.isVerified = true
             do {
@@ -97,7 +95,7 @@ class UnifiedEmailManager {
                 completion(false)
                 return
             }
-            
+
             // Send combined verification and welcome email
             let subject = "Account Verified - Welcome to Mat Finder!"
             let content = """
@@ -130,5 +128,3 @@ class UnifiedEmailManager {
         }
     }
 }
-=======
->>>>>>> 7273ce11e395d25e3e7a55c769b08b51bad6cfb9

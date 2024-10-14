@@ -1,15 +1,9 @@
-<<<<<<< HEAD
 import SwiftUI
-=======
->>>>>>> 7273ce11e395d25e3e7a55c769b08b51bad6cfb9
 import UIKit
 import CoreData
 import GoogleSignIn
 import FBSDKCoreKit
-<<<<<<< HEAD
 import FirebaseCore
-=======
->>>>>>> 7273ce11e395d25e3e7a55c769b08b51bad6cfb9
 
 class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
@@ -18,12 +12,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     let persistenceController = PersistenceController.shared
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-<<<<<<< HEAD
         // Firebase initialization
         FirebaseApp.configure()
         
-=======
->>>>>>> 7273ce11e395d25e3e7a55c769b08b51bad6cfb9
         // Facebook SDK initialization
         ApplicationDelegate.shared.application(application, didFinishLaunchingWithOptions: launchOptions)
 
@@ -31,29 +22,20 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         return true
     }
 
-<<<<<<< HEAD
     // Handle URL for Google Sign-In, Facebook Login, and Email Verification
-=======
-    // Handle URL for Google Sign-In and Facebook Login
->>>>>>> 7273ce11e395d25e3e7a55c769b08b51bad6cfb9
     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
         // Handle Facebook Login
         if ApplicationDelegate.shared.application(app, open: url, options: options) {
             print("Facebook URL handled: \(url)")
             return true
         }
-<<<<<<< HEAD
-        
-=======
 
->>>>>>> 7273ce11e395d25e3e7a55c769b08b51bad6cfb9
         // Handle Google Sign-In
         if GIDSignIn.sharedInstance.handle(url) {
             print("Google URL handled: \(url)")
             return true
         }
         
-<<<<<<< HEAD
         // Handle Email Verification
         let context = persistenceController.container.viewContext
         let request = UserInfo.fetchRequest() as NSFetchRequest<UserInfo>
@@ -96,12 +78,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         
         return false
     }
-    
-=======
-        return false
-    }
 
->>>>>>> 7273ce11e395d25e3e7a55c769b08b51bad6cfb9
     // Save context when the app enters the background
     func applicationDidEnterBackground(_ application: UIApplication) {
         do {

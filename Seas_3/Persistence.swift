@@ -57,10 +57,7 @@ class PersistenceController: ObservableObject {
                 try viewContext.save()
                 NotificationCenter.default.post(name: .contextSaved, object: nil)
             } catch {
-<<<<<<< HEAD
                 print("Error saving context: \(error.localizedDescription)")
-=======
->>>>>>> 7273ce11e395d25e3e7a55c769b08b51bad6cfb9
                 throw PersistenceError.saveError(error)
             }
         }
@@ -92,7 +89,7 @@ class PersistenceController: ObservableObject {
             return []
         }
     }
-    
+
     // Custom error enum
     enum PersistenceError: Error {
         case fetchError(Error)

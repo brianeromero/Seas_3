@@ -1,6 +1,5 @@
 {
-<<<<<<< HEAD
-  "originHash" : "6f76d1491bb6e27e37b63c6b6da35fb49f2775d63e6b3ce1f313a064a069bf15",
+  "originHash" : "8651f3a707b413ab9e3096877557b40b5dbf3606cff0367c98e6d54c721ccc87",
   "pins" : [
     {
       "identity" : "abseil-cpp-binary",
@@ -12,22 +11,12 @@
       }
     },
     {
-=======
-  "originHash" : "83f1428c1c5a6bba7d95110041145bba695fb72459182e45812b79d0b0f610c2",
-  "pins" : [
-    {
->>>>>>> 7273ce11e395d25e3e7a55c769b08b51bad6cfb9
       "identity" : "app-check",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/google/app-check.git",
       "state" : {
-<<<<<<< HEAD
         "revision" : "87dd288fc792bf9751e522e171a47df5b783b0b8",
         "version" : "11.1.0"
-=======
-        "revision" : "21fe1af9be463a359aaf8d96789ef73fc3760d09",
-        "version" : "11.0.1"
->>>>>>> 7273ce11e395d25e3e7a55c769b08b51bad6cfb9
       }
     },
     {
@@ -58,7 +47,6 @@
       }
     },
     {
-<<<<<<< HEAD
       "identity" : "firebase-ios-sdk",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/firebase/firebase-ios-sdk",
@@ -89,11 +77,6 @@
       "identity" : "googlesignin-ios",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/google/GoogleSignIn-iOS",
-=======
-      "identity" : "googlesignin-ios",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/google/GoogleSignIn-iOS.git",
->>>>>>> 7273ce11e395d25e3e7a55c769b08b51bad6cfb9
       "state" : {
         "revision" : "65fb3f1aa6ffbfdc79c4e22178a55cd91561f5e9",
         "version" : "8.0.0"
@@ -109,7 +92,6 @@
       }
     },
     {
-<<<<<<< HEAD
       "identity" : "grpc-binary",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/google/grpc-binary.git",
@@ -119,8 +101,6 @@
       }
     },
     {
-=======
->>>>>>> 7273ce11e395d25e3e7a55c769b08b51bad6cfb9
       "identity" : "gtm-session-fetcher",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/google/gtm-session-fetcher.git",
@@ -139,7 +119,6 @@
       }
     },
     {
-<<<<<<< HEAD
       "identity" : "interop-ios-for-google-sdks",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/google/interop-ios-for-google-sdks.git",
@@ -167,8 +146,6 @@
       }
     },
     {
-=======
->>>>>>> 7273ce11e395d25e3e7a55c769b08b51bad6cfb9
       "identity" : "promises",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/google/promises.git",
@@ -176,7 +153,6 @@
         "revision" : "540318ecedd63d883069ae7f1ed811a2df00b6ac",
         "version" : "2.4.0"
       }
-<<<<<<< HEAD
     },
     {
       "identity" : "swift-protobuf",
@@ -186,8 +162,6 @@
         "revision" : "ebc7251dd5b37f627c93698e4374084d98409633",
         "version" : "1.28.2"
       }
-=======
->>>>>>> 7273ce11e395d25e3e7a55c769b08b51bad6cfb9
     }
   ],
   "version" : 3

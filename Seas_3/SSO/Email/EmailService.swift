@@ -6,11 +6,9 @@
 //
 
 import Foundation
-<<<<<<< HEAD
 import Firebase
 import FirebaseAuth
 import CoreData
-
 
 class EmailService {
     let managedObjectContext: NSManagedObjectContext
@@ -32,7 +30,7 @@ class EmailService {
         }
     }
 
-    // Send a Firebase email verification method here
+    // Sends a Firebase email verification
     func sendEmailVerification(to email: String, completion: @escaping (Bool) -> Void) {
         Auth.auth().currentUser?.sendEmailVerification { error in
             if let error = error {
@@ -46,8 +44,8 @@ class EmailService {
         }
     }
     
+    // Updates the verification status in Core Data
     private func updateVerificationStatus(for email: String) {
-        // Fetch user from Core Data
         let request = UserInfo.fetchRequest() as NSFetchRequest<UserInfo>
         request.predicate = NSPredicate(format: "email == %@", email)
         
@@ -62,7 +60,7 @@ class EmailService {
         }
     }
     
-    // Send account creation confirmation email using custom email service
+    // Sends account creation confirmation email using a custom email service
     func sendAccountCreationConfirmationEmail(to email: String, userName: String, completion: @escaping (Bool) -> Void) {
         _ = "Welcome to Mat Finder!"
         _ = """
@@ -82,7 +80,4 @@ class EmailService {
         // ...
         completion(true) // Replace with actual success/failure logic
     }
-    
 }
-=======
->>>>>>> 7273ce11e395d25e3e7a55c769b08b51bad6cfb9

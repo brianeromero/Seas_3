@@ -159,7 +159,7 @@ struct ConsolidatedIslandMapView: View {
         updateRegion(newUserLocation, radius: selectedRadius)
 
         let address = "Your Address Here"
-        let retryCount = 3
+        _ = 3
 
         MapUtils.fetchLocation(for: address) { location, error in
             if let error = error {

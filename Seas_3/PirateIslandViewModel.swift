@@ -54,7 +54,6 @@ class PirateIslandViewModel: ObservableObject {
             case .failure(let error):
                 print("Geocoding error: \(error.localizedDescription)")
                 completion(.failure(error))
-                // Handle geocoding failure appropriately, e.g., show an error message
             }
         }
     }
@@ -83,5 +82,21 @@ class PirateIslandViewModel: ObservableObject {
         }
     }
 
+    func validateIsland(name: String, location: String) -> Bool {
+        // Check if name and location are not empty
+        if name.isEmpty || location.isEmpty {
+            return false
+        }
+        
+        // Check if an island with the same name already exists
+        if pirateIslandExists(name: name) {
+            return false
+        }
+        
+        return true
+    }
 
+    
+    
+    
 }

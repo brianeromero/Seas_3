@@ -6,7 +6,6 @@
 //
 
 import Foundation
-<<<<<<< HEAD
 
 class SendGridEmailService {
     // Securely read the API key from the Info.plist
@@ -72,5 +71,3 @@ class SendGridEmailService {
         task.resume()
     }
 }
-=======
->>>>>>> 7273ce11e395d25e3e7a55c769b08b51bad6cfb9

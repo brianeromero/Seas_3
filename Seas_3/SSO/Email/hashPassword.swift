@@ -1,18 +1,14 @@
-// hashPassword.swift
-// Seas_3
 //
-// Created by Brian Romero on 10/8/24.
+//  hashPassword.swift
+//  Seas_3
 //
-
+//  Created by Brian Romero on 10/8/24.
+//
 
 import Foundation
 import Security
 import CryptoSwift
 
-<<<<<<< HEAD
-
-=======
->>>>>>> 7273ce11e395d25e3e7a55c769b08b51bad6cfb9
 // Error types for password hashing
 enum HashError: Error {
     case invalidInput
@@ -25,7 +21,7 @@ struct PasswordHash: Codable {
     let hash: Data
 }
 
-// Generates random data for salt.
+// Generates random data for salt
 func generateSalt(length: Int = 32) -> Data {
     var bytes = [UInt8](repeating: 0, count: length)
     let status = SecRandomCopyBytes(kSecRandomDefault, length, &bytes)
@@ -38,7 +34,7 @@ func generateSalt(length: Int = 32) -> Data {
     return Data(bytes)
 }
 
-// Hashes a password using PBKDF2 with HMAC SHA-512.
+// Hashes a password using PBKDF2 with HMAC SHA-512
 func hashPassword(_ password: String) throws -> PasswordHash {
     guard let passwordData = password.data(using: .utf8) else {
         throw HashError.invalidInput
@@ -54,7 +50,7 @@ func hashPassword(_ password: String) throws -> PasswordHash {
     return PasswordHash(salt: salt, iterations: iterations, hash: Data(derivedKey))
 }
 
-// Verifies a password against a stored hash.
+// Verifies a password against a stored hash
 func verifyPassword(_ password: String, againstHash passwordHash: PasswordHash) throws -> Bool {
     guard let passwordData = password.data(using: .utf8) else {
         throw HashError.invalidInput
@@ -66,7 +62,6 @@ func verifyPassword(_ password: String, againstHash passwordHash: PasswordHash) 
     
     return Data(derivedKey) == passwordHash.hash
 }
-
 
 // User class to store the email and hashed password
 class User {
@@ -80,7 +75,6 @@ class User {
         self.passwordHash = passwordHash
     }
 }
-
 
 // Example usage of the hashing and verification functions
 class EmailSignOn {
