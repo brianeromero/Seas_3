@@ -5,6 +5,7 @@
 	<key>keychain-access-groups</key>
 	<array>
 		<string>$(AppIdentifierPrefix)MF-inder.Seas-3</string>
+		<string>$(AppIdentifierPrefix)com.google.iid</string>
 	</array>
 </dict>
 </plist>

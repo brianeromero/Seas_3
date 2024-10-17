@@ -162,7 +162,7 @@ struct AddNewIsland: View {
 
 struct AddNewIsland_Previews: PreviewProvider {
     static var previews: some View {
-        let context = PersistenceController.shared.viewContext
-        return AddNewIsland(viewModel: PirateIslandViewModel(context: context))
+        let persistenceController = PersistenceController.shared
+        return AddNewIsland(viewModel: PirateIslandViewModel(persistenceController: persistenceController))
     }
 }

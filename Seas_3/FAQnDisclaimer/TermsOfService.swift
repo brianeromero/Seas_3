@@ -1,0 +1,117 @@
+//
+//  TermsOfService.swift
+//  Seas_3
+//
+//  Created by Brian Romero on 10/16/24.
+//
+
+import Foundation
+import SwiftUI
+
+struct ApplicationOfServiceView: View {
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                Text("MF_inder Application of Service")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                    .padding(.bottom, 10)
+
+                Text("Effective Date: 10/14/2024")
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+
+                Text("1. Acceptance of Terms")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+
+                Text("""
+                    By using MF_inder, you agree to these terms. If you do not agree, please do not use the app.
+                    """)
+
+                Text("2. Use of the App")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+
+                Text("""
+                    MF_inder is designed to help Brazilian Jiu-Jitsu practitioners find gyms and open mats. You may use the app for personal, non-commercial purposes only.
+                    """)
+
+                Text("3. User Responsibilities")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+
+                Text("""
+                    - Users must provide accurate information when adding or editing gyms and open mats.
+                    - Users are responsible for ensuring that their submitted data does not violate any laws or the rights of others.
+                    """)
+
+                Text("4. Content Submission")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+
+                Text("""
+                    When you submit gym or open mat information to MF_inder, you grant us a non-exclusive license to use, edit, and display this content within the app. You retain ownership of your content.
+                    """)
+
+                Text("5. Location and Personal Data")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+
+                Text("""
+                    MF_inder may use your location to provide nearby results. Location data is not stored permanently. Your personal information is encrypted and stored securely.
+                    """)
+
+                Text("6. Passwords and Security")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+
+                Text("""
+                    Passwords are hashed using secure industry-standard methods and are not stored in plain text. No developer or staff member at MF_inder has access to your passwords.
+                    """)
+
+                Text("7. Limitation of Liability")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+
+                Text("""
+                    MF_inder is provided "as is," and we make no warranties or representations about its accuracy or functionality. We are not liable for any losses or damages related to the use of the app.
+                    """)
+
+                Text("8. Termination")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+
+                Text("""
+                    We reserve the right to terminate your access to MF_inder at any time if you violate these terms or for other reasons.
+                    """)
+
+                Text("9. Changes to Terms")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+
+                Text("""
+                    We may update these terms at any time. You will be notified of any significant changes via the app.
+                    """)
+
+                Text("10. Contact Us")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+
+                Text("""
+                    If you have any questions about these terms, contact us at mfinder.bjj@gmail.com.
+                    """)
+
+                Spacer()
+            }
+            .padding()
+        }
+        .navigationTitle("Application of Service")
+    }
+}
+
+struct ApplicationOfServiceView_Previews: PreviewProvider {
+    static var previews: some View {
+        ApplicationOfServiceView()
+    }
+}

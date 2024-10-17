@@ -14,7 +14,6 @@ struct ContentView: View {
 
     @State private var showAddIslandForm = false
     @State private var islandName = ""
-    @State private var islandLocation = ""
     @State private var createdByUserId = ""
     @State private var gymWebsite = ""
     @State private var gymWebsiteURL: URL?
@@ -35,9 +34,9 @@ struct ContentView: View {
         sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.createdTimestamp, ascending: true)]
     ) private var pirateIslands: FetchedResults<PirateIsland>
 
-    init() {
-        // Initialize the view model with the correct context
-        _viewModel = StateObject(wrappedValue: PirateIslandViewModel(context: PersistenceController.shared.container.viewContext))
+    // Updated init method
+    init(persistenceController: PersistenceController) {
+        self._viewModel = StateObject(wrappedValue: PirateIslandViewModel(persistenceController: persistenceController))
     }
     
     var body: some View {
@@ -118,8 +117,7 @@ struct ContentView: View {
 #if DEBUG
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        ContentView()
-            .environmentObject(PersistenceController.preview) // Inject preview instance for previews
+        ContentView(persistenceController: PersistenceController.preview) // Inject preview instance for previews
     }
 }
 #endif

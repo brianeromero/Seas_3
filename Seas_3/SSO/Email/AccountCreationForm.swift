@@ -36,6 +36,7 @@ struct AccountCreationFormView: View {
     @State private var userName: String = ""
     @State private var name: String = ""
     @State private var belt: String = ""
+    @State private var bypassValidation = false
 
     @State private var showVerificationAlert = false
     @State private var errorMessage: String = ""
@@ -90,7 +91,7 @@ struct AccountCreationFormView: View {
                     }
 
                     Section(header: Text("Password").fontWeight(.bold)) {
-                        PasswordField(password: $password, isValid: $isPasswordValid, validatePassword: isValidPassword)
+                        PasswordField(password: $password, isValid: $isPasswordValid, bypassValidation: $bypassValidation, validatePassword: isValidPassword)
                         ConfirmPasswordField(confirmPassword: $confirmPassword, isValid: $isConfirmPasswordValid, password: $password)
                     }
 
@@ -262,6 +263,7 @@ struct AccountCreationFormView: View {
     struct PasswordField: View {
         @Binding var password: String
         @Binding var isValid: Bool
+        @Binding var bypassValidation: Bool
         var validatePassword: (String) -> Bool
 
         var body: some View {
@@ -273,11 +275,22 @@ struct AccountCreationFormView: View {
                 SecureField("Enter your password", text: $password)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .onChange(of: password) { newValue in
-                        isValid = validatePassword(newValue)
+                        if !bypassValidation {
+                            isValid = validatePassword(newValue)
+                        } else {
+                            isValid = true
+                        }
                     }
-                if !isValid {
+                if !isValid && !bypassValidation {
                     Text("Password must be at least 8 characters, contain uppercase, lowercase, and digits.")
                         .foregroundColor(.red)
+                        .font(.caption)
+                }
+                HStack {
+                    Toggle("Bypass password validation", isOn: $bypassValidation)
+                        .toggleStyle(SwitchToggleStyle())
+                    Text("Use at your own risk")
+                        .foregroundColor(.gray)
                         .font(.caption)
                 }
             }
@@ -377,7 +390,8 @@ struct AccountCreationFormView: View {
     }
 
     private func validateEmail(_ email: String) -> String? {
-        let emailPredicate = NSPredicate(format: "SELF MATCHES %@", "^[A-Z0-9a-z._%+-]+@[A-Z0-9a-z.-]+\\.[A-Z]{2,}$")
+        let emailPredicate = NSPredicate(format: "SELF MATCHES[c] %@",
+                                         "^[A-Z0-9a-z._%+-]+@[A-Z0-9a-z.-]+\\.[A-Za-z]{2,}$")
         if !emailPredicate.evaluate(with: email) {
             return "Invalid email format. Please use 'example@example.com'."
         }
@@ -427,8 +441,8 @@ struct AccountCreationFormView: View {
 
 struct AccountCreationFormView_Previews: PreviewProvider {
     static var previews: some View {
-        let context = PersistenceController.preview.container.viewContext
-        AccountCreationFormView(islandViewModel: PirateIslandViewModel(context: context), context: context)
+        let persistenceController = PersistenceController.preview
+        AccountCreationFormView(islandViewModel: PirateIslandViewModel(persistenceController: persistenceController), context: persistenceController.container.viewContext)
             .environmentObject(AuthenticationState())
             .previewLayout(.sizeThatFits)
             .previewDisplayName("Account Creation Form")

@@ -4,12 +4,13 @@ import CoreData
 import Combine
 import CoreLocation
 
+
 class PirateIslandViewModel: ObservableObject {
     @Published var selectedDestination: IslandDestination?
-    private let context: NSManagedObjectContext
+    private let persistenceController: PersistenceController
 
-    init(context: NSManagedObjectContext) {
-        self.context = context
+    init(persistenceController: PersistenceController) {
+        self.persistenceController = persistenceController
     }
 
     func createPirateIsland(name: String, location: String, createdByUserId: String, gymWebsiteURL: URL?, completion: @escaping (Result<Void, Error>) -> Void) {
@@ -29,7 +30,8 @@ class PirateIslandViewModel: ObservableObject {
             return
         }
 
-        let newIsland = PirateIsland(context: context)
+        // Create a new PirateIsland instance using the PersistenceController's viewContext
+        let newIsland = PirateIsland(context: persistenceController.viewContext)
         newIsland.islandName = name
         newIsland.islandLocation = location
         newIsland.createdTimestamp = Date()
@@ -48,9 +50,16 @@ class PirateIslandViewModel: ObservableObject {
             case .success(let coordinates):
                 newIsland.latitude = coordinates.latitude
                 newIsland.longitude = coordinates.longitude
-                self.saveContext()
-                print("Gym geocoded successfully")
-                completion(.success(()))
+                
+                // Use the PersistenceController's saveContext method
+                do {
+                    try self.persistenceController.saveContext()
+                    print("Gym geocoded and saved successfully")
+                    completion(.success(()))
+                } catch {
+                    print("Failed to save context: \(error)")
+                    completion(.failure(error))
+                }
             case .failure(let error):
                 print("Geocoding error: \(error.localizedDescription)")
                 completion(.failure(error))
@@ -63,22 +72,11 @@ class PirateIslandViewModel: ObservableObject {
         fetchRequest.predicate = NSPredicate(format: "islandName == %@", name)
 
         do {
-            let count = try context.count(for: fetchRequest)
+            let count = try persistenceController.viewContext.count(for: fetchRequest)
             return count > 0
         } catch {
             print("Error checking if gym exists: \(error.localizedDescription)")
             return false
-        }
-    }
-
-    private func saveContext() {
-        if context.hasChanges {
-            do {
-                try context.save()
-                print("Context saved successfully.")
-            } catch {
-                print("Failed to save context: \(error)")
-            }
         }
     }
 
@@ -95,8 +93,4 @@ class PirateIslandViewModel: ObservableObject {
         
         return true
     }
-
-    
-    
-    
 }

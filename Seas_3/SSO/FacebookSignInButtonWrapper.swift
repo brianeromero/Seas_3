@@ -100,7 +100,7 @@ struct FacebookSignInButtonWrapper: UIViewRepresentable {
                 guard let window = scene.windows.first else {
                     return
                 }
-
+                
                 loginManager.logIn(permissions: ["public_profile", "email"], from: window.rootViewController) { [weak self] result, error in
                     if let error = error {
                         self?.handleFacebookSDKError(error)
@@ -108,40 +108,11 @@ struct FacebookSignInButtonWrapper: UIViewRepresentable {
                         return
                     }
 
-                    AccessToken.refreshCurrentAccessToken { connection, result, error in
-                        if let error = error {
-                            self?.handleFacebookSDKError(error)
-                            self?.parent.handleError(error.localizedDescription)
-                            return
-                        }
-                        
-                        if AccessToken.current?.isExpired == true {
-                            AccessToken.refreshCurrentAccessToken { connection, result, error in
-                                // Handle refreshed token or error
-                            }
-                        }
-                        
-                        GraphRequest(graphPath: "me", parameters: ["fields": "id, name, email"]).start { [weak self] connection, result, error in
-                            if let error = error {
-                                self?.handleFacebookSDKError(error)
-                                self?.parent.handleError(error.localizedDescription)
-                                return
-                            }
-
-                            guard let resultDict = result as? [String: Any] else {
-                                self?.parent.handleError("Invalid Graph API response")
-                                return
-                            }
-
-                            let userId = resultDict["id"] as? String
-                            let userName = resultDict["name"] as? String
-                            let userEmail = resultDict["email"] as? String
-
-                            self?.parent.authenticationState.updateFacebookUser(userId, userName, userEmail)
-
-                            self?.signOutButton.isHidden = false
-                            self?.signInButton.isHidden = true
-                        }
+                    if result?.isCancelled ?? false {
+                        print("User cancelled Facebook login")
+                    } else {
+                        // Handle successful login
+                        self?.fetchFacebookUserProfile()
                     }
                 }
             }
@@ -155,6 +126,36 @@ struct FacebookSignInButtonWrapper: UIViewRepresentable {
 
             signOutButton.isHidden = true
             signInButton.isHidden = false
+        }
+
+        func fetchFacebookUserProfile() {
+            if AccessToken.current?.isExpired == true {
+                AccessToken.refreshCurrentAccessToken { connection, result, error in
+                    // Handle refreshed token or error
+                }
+            }
+
+            GraphRequest(graphPath: "me", parameters: ["fields": "id, name, email"]).start { [weak self] connection, result, error in
+                if let error = error {
+                    self?.handleFacebookSDKError(error)
+                    self?.parent.handleError(error.localizedDescription)
+                    return
+                }
+
+                guard let resultDict = result as? [String: Any] else {
+                    self?.parent.handleError("Invalid Graph API response")
+                    return
+                }
+
+                let userId = resultDict["id"] as? String
+                let userName = resultDict["name"] as? String
+                let userEmail = resultDict["email"] as? String
+
+                self?.parent.authenticationState.updateFacebookUser(userId, userName, userEmail)
+
+                self?.signOutButton.isHidden = false
+                self?.signInButton.isHidden = true
+            }
         }
     }
 }

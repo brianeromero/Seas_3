@@ -1,0 +1,13 @@
+//
+//  FirebaseSettings.xcconfig
+//  Seas_3
+//
+//  Created by Brian Romero on 10/16/24.
+//
+
+// Configuration settings file format documentation can be found at:
+// https://help.apple.com/xcode/#/dev745c5c974
+
+QUOTE_LINKER_ARGUMENTS = $(inherited) -ObjC
+
+

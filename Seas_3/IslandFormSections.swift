@@ -130,7 +130,7 @@ import SwiftUI
 struct IslandFormSections_Previews: PreviewProvider {
     static var previews: some View {
         IslandFormSections(
-            viewModel: PirateIslandViewModel(context: PersistenceController.preview.container.viewContext),
+            viewModel: PirateIslandViewModel(persistenceController: PersistenceController.preview),
             islandName: .constant(""),
             street: .constant(""),
             city: .constant(""),
@@ -155,7 +155,7 @@ struct IslandFormSectionsWITHDATA_Previews: PreviewProvider {
     static var previews: some View {
         Group {
             IslandFormSections(
-                viewModel: PirateIslandViewModel(context: PersistenceController.preview.container.viewContext),
+                viewModel: PirateIslandViewModel(persistenceController: PersistenceController.preview),
                 islandName: .constant("My Gym"),
                 street: .constant("123 Main St"),
                 city: .constant("Anytown"),
@@ -171,7 +171,7 @@ struct IslandFormSectionsWITHDATA_Previews: PreviewProvider {
             .previewDisplayName("Filled Form")
             
             IslandFormSections(
-                viewModel: PirateIslandViewModel(context: PersistenceController.preview.container.viewContext),
+                viewModel: PirateIslandViewModel(persistenceController: PersistenceController.preview),
                 islandName: .constant(""),
                 street: .constant(""),
                 city: .constant(""),

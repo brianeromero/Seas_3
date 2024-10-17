@@ -9,20 +9,18 @@ struct LoginView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @State private var showMainContent: Bool = false
     @State private var errorMessage: String = ""
-    @State private var usernameOrEmail: String = "" // Changed from email to usernameOrEmail
+    @State private var usernameOrEmail: String = ""
     @State private var password: String = ""
     @State private var isPasswordVisible: Bool = false
     @State private var showDisclaimer = false
     @State private var showAlert = false
     @State private var alertMessage = ""
     @StateObject var islandViewModel: PirateIslandViewModel
+    let persistenceController: PersistenceController
 
-    // Add a property for PirateIslandViewModel
-    let context: NSManagedObjectContext
-
-    init(islandViewModel: PirateIslandViewModel, context: NSManagedObjectContext) {
+    init(islandViewModel: PirateIslandViewModel, persistenceController: PersistenceController) {
         _islandViewModel = StateObject(wrappedValue: islandViewModel)
-        self.context = context
+        self.persistenceController = persistenceController
     }
 
     var body: some View {
@@ -49,12 +47,12 @@ struct LoginView: View {
                         }
                     }
                 } else if showMainContent {
-                    IslandMenu()
+                    IslandMenu(persistenceController: self.persistenceController)
                 } else {
                     VStack(spacing: 20) {
                         HStack(alignment: .center, spacing: 10) {
                             Text("Log In or")
-                            NavigationLink(destination: AccountCreationFormView(islandViewModel: PirateIslandViewModel(context: context), context: context)) {
+                            NavigationLink(destination: AccountCreationFormView(islandViewModel: PirateIslandViewModel(persistenceController: self.persistenceController), context: self.persistenceController.container.viewContext)) {
                                 Text("Create an Account")
                                     .font(.body)
                                     .foregroundColor(.blue)
@@ -175,7 +173,7 @@ struct LoginView: View {
         if let passwordHash = user.passwordHash {
             // Debug print to log the details of the PasswordHash object
             print("Password hash details: \(passwordHash)")
-            
+
             // Directly pass PasswordHash to verifyPassword
             if ((try? verifyPassword(password, againstHash: passwordHash)) != nil) {
                 alertMessage = "You exist. Welcome."
@@ -198,7 +196,7 @@ struct LoginView: View {
             User(email: "admin@example.com", username: "adminUser", passwordHash: try? hashPassword("adminPass")),
             User(email: "username123@example.com", username: "username123", passwordHash: try? hashPassword("password123"))
         ]
-        
+
         // Check for user by email or username
         return mockUsers.first { $0.email == identifier || $0.username == identifier }
     }
@@ -206,8 +204,8 @@ struct LoginView: View {
 
 struct LoginView_Previews: PreviewProvider {
     static var previews: some View {
-        let context = PersistenceController.shared.viewContext
-        LoginView(islandViewModel: PirateIslandViewModel(context: context), context: context)
+        let persistenceController = PersistenceController.shared
+        LoginView(islandViewModel: PirateIslandViewModel(persistenceController: persistenceController), persistenceController: persistenceController)
             .environmentObject(AuthenticationState())
             .previewDisplayName("Login View")
     }

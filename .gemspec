@@ -1,0 +1,1 @@
+gem 'xcodeproj', '= 1.21.0'
