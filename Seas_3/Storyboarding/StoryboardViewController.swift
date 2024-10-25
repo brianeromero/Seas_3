@@ -7,12 +7,23 @@
 
 import Foundation
 import UIKit
+import FirebaseAnalytics // Import FirebaseAnalytics
 
 class StoryboardViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
         setupGlobalErrorHandler()
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        
+        // Log screen view event
+        Analytics.logEvent(AnalyticsEventScreenView, parameters: [
+            AnalyticsParameterScreenName: "StoryboardViewController",
+            AnalyticsParameterScreenClass: String(describing: StoryboardViewController.self)
+        ])
     }
     
     private func setupGlobalErrorHandler() {
@@ -26,4 +37,3 @@ class StoryboardViewController: UIViewController {
     
     // Other methods and functionality of your StoryboardViewController
 }
-

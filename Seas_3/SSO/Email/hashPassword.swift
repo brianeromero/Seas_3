@@ -9,96 +9,94 @@ import Foundation
 import Security
 import CryptoSwift
 
-// Error types for password hashing
+// Hashing.swift
 enum HashError: Error {
     case invalidInput
+    case missingConfigValue
 }
 
-// Structure for storing the password hash and associated data
-struct PasswordHash: Codable {
+// Firebase PBKDF2 configuration
+let firebaseHashConfig: [String: Any] = [
+    "algorithm": "PBKDF2",
+    "base64SignerKey": "Kt5JkNrRAeub1x2rDuCq1BYKmVIOfTTeRyPQAItJzO4gfCfg9JRzWTkC1wKGIoEUZ9N2CZY6DtXwK9s81ZpdvA==",
+    "base64SaltSeparator": "Bw==",
+    "rounds": 8,
+    "memCost": 14
+]
+
+// HashConfig.swift
+struct HashConfig {
+    let separator: Data
+    let rounds: Int
+    let saltLength: Int
+    let keyLength: Int
+    
+    init() {
+        guard let base64SaltSeparator = firebaseHashConfig["base64SaltSeparator"] as? String else {
+            fatalError("Missing 'base64SaltSeparator' value in firebaseHashConfig")
+        }
+        separator = Data(base64Encoded: base64SaltSeparator, options: .ignoreUnknownCharacters)!
+        
+        guard let roundsValue = firebaseHashConfig["rounds"] as? Int else {
+            fatalError("Missing 'rounds' value in firebaseHashConfig")
+        }
+        rounds = roundsValue
+        
+        // Initialize saltLength and keyLength
+        saltLength = 16
+        keyLength = 32
+    }
+}
+
+let hashConfig = HashConfig()
+let saltLength = 16
+let keyLength = 32 // Default key length for PBKDF2
+
+
+
+// HashedPassword.swift
+struct HashedPassword {
     let salt: Data
     let iterations: Int
     let hash: Data
 }
 
-// Generates random data for salt
-func generateSalt(length: Int = 32) -> Data {
+// Hash password using PBKDF2
+func hashPasswordPbkdf(_ password: String) throws -> HashedPassword {
+    guard let passwordData = password.data(using: .utf8) else {
+        throw HashError.invalidInput
+    }
+    
+    let salt = try generateSalt(length: saltLength)
+    
+    // PBKDF2 implementation using CryptoSwift
+    let pbkdf = try PKCS5.PBKDF2(password: passwordData.bytes, salt: salt.bytes, iterations: hashConfig.rounds, keyLength: keyLength, variant: .sha2(.sha256))
+    let derivedKey = try pbkdf.calculate()
+    
+    // Combine salt and derived key
+    let combined = hashConfig.separator + Data(derivedKey) + salt
+    
+    return HashedPassword(salt: salt, iterations: hashConfig.rounds, hash: combined)
+}
+
+// Generate random salt
+func generateSalt(length: Int = HashConfig().saltLength) throws -> Data {
     var bytes = [UInt8](repeating: 0, count: length)
     let status = SecRandomCopyBytes(kSecRandomDefault, length, &bytes)
     
     if status != errSecSuccess {
-        print("Error generating salt: \(status)")
-        // Consider throwing an error or returning a default value
+        throw HashError.invalidInput
     }
     
     return Data(bytes)
 }
 
-// Hashes a password using PBKDF2 with HMAC SHA-512
-func hashPassword(_ password: String) throws -> PasswordHash {
-    guard let passwordData = password.data(using: .utf8) else {
-        throw HashError.invalidInput
-    }
+// Verify password using PBKDF2
+func verifyPasswordPbkdf(_ password: String, againstHash passwordHash: HashedPassword) throws -> Bool {
+    // Hash input password using PBKDF2
+    let pbkdf = try PKCS5.PBKDF2(password: password.data(using: .utf8)!.bytes, salt: passwordHash.salt.bytes, iterations: passwordHash.iterations, keyLength: keyLength, variant: .sha2(.sha256))
+    let derivedKey = try pbkdf.calculate()
     
-    let salt = generateSalt(length: 16)
-    let iterations = 10000
-    
-    // Using PBKDF2 directly from CryptoSwift
-    let pbkdf2 = try PKCS5.PBKDF2(password: passwordData.bytes, salt: salt.bytes, iterations: iterations, keyLength: 32, variant: .sha2(.sha512))
-    let derivedKey = try pbkdf2.calculate()
-    
-    return PasswordHash(salt: salt, iterations: iterations, hash: Data(derivedKey))
-}
-
-// Verifies a password against a stored hash
-func verifyPassword(_ password: String, againstHash passwordHash: PasswordHash) throws -> Bool {
-    guard let passwordData = password.data(using: .utf8) else {
-        throw HashError.invalidInput
-    }
-    
-    // Using PBKDF2 directly from CryptoSwift
-    let pbkdf2 = try PKCS5.PBKDF2(password: passwordData.bytes, salt: passwordHash.salt.bytes, iterations: passwordHash.iterations, keyLength: 32, variant: .sha2(.sha512))
-    let derivedKey = try pbkdf2.calculate()
-    
+    // Compare with stored hash
     return Data(derivedKey) == passwordHash.hash
-}
-
-// User class to store the email and hashed password
-class User {
-    var email: String
-    var username: String // Make username a required property
-    var passwordHash: PasswordHash?
-    
-    init(email: String, username: String, passwordHash: PasswordHash?) {
-        self.email = email
-        self.username = username
-        self.passwordHash = passwordHash
-    }
-}
-
-// Example usage of the hashing and verification functions
-class EmailSignOn {
-    func exampleUsage() {
-        // Storing hashed password
-        let userPassword = "mysecretpassword"
-        do {
-            let hashedPassword = try hashPassword(userPassword)
-            // Provide a username when initializing the User object
-            let user = User(email: "user@example.com", username: "user123", passwordHash: hashedPassword)
-            
-            // Retrieving hashed password
-            let inputPassword = "mysecretpassword"
-            if let userPasswordHash = user.passwordHash {
-                if try verifyPassword(inputPassword, againstHash: userPasswordHash) {
-                    print("Password is valid")
-                } else {
-                    print("Password is invalid")
-                }
-            } else {
-                print("User password hash is missing")
-            }
-        } catch {
-            print("Error: \(error)")
-        }
-    }
 }

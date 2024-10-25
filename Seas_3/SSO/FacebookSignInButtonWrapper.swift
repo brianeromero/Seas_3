@@ -14,8 +14,10 @@ import CoreLocation
 struct FacebookSignInButtonWrapper: UIViewRepresentable {
     @EnvironmentObject var authenticationState: AuthenticationState
     var handleError: (String) -> Void
+    var fetchFacebookUserProfile: ((@escaping ([String: Any]?) -> Void) -> Void)?
+    let facebookAppID: String?
 
-    // Create and configure the UIView
+    
     func makeUIView(context: Context) -> UIView {
         let view = UIView()
         view.backgroundColor = .white
@@ -33,32 +35,30 @@ struct FacebookSignInButtonWrapper: UIViewRepresentable {
         context.coordinator.signOutButton.backgroundColor = .facebookBlue
         context.coordinator.signOutButton.layer.cornerRadius = 5
         context.coordinator.signOutButton.addTarget(context.coordinator, action: #selector(context.coordinator.signOut), for: .touchUpInside)
-        context.coordinator.signOutButton.isHidden = true // Hide sign-out button initially
+        context.coordinator.signOutButton.isHidden = true
 
         view.addSubview(context.coordinator.signInButton)
         view.addSubview(context.coordinator.signOutButton)
 
-        // Configure button constraints...
         context.coordinator.signInButton.translatesAutoresizingMaskIntoConstraints = false
         context.coordinator.signOutButton.translatesAutoresizingMaskIntoConstraints = false
 
         NSLayoutConstraint.activate([
             context.coordinator.signInButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             context.coordinator.signInButton.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-            context.coordinator.signInButton.widthAnchor.constraint(equalToConstant: 335), // Increased width
-            context.coordinator.signInButton.heightAnchor.constraint(equalToConstant: 45), // Added height constraint
+            context.coordinator.signInButton.widthAnchor.constraint(equalToConstant: 335),
+            context.coordinator.signInButton.heightAnchor.constraint(equalToConstant: 45),
 
             context.coordinator.signOutButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             context.coordinator.signOutButton.topAnchor.constraint(equalTo: context.coordinator.signInButton.bottomAnchor, constant: 20),
-            context.coordinator.signOutButton.widthAnchor.constraint(equalToConstant: 250), // Increased width
-            context.coordinator.signOutButton.heightAnchor.constraint(equalToConstant: 60)  // Added height constraint
+            context.coordinator.signOutButton.widthAnchor.constraint(equalToConstant: 250),
+            context.coordinator.signOutButton.heightAnchor.constraint(equalToConstant: 60)
         ])
 
-        // Check for Facebook App ID
-        if let appId = Settings.shared.appID {
+        if let appId = facebookAppID {
             print("Facebook App ID: \(appId)")
         } else {
-            print("Facebook App ID not found")
+            print("Facebook App ID not found FBSIGNBUTWRAP")
         }
 
         return view
@@ -82,28 +82,19 @@ struct FacebookSignInButtonWrapper: UIViewRepresentable {
             locationManager.delegate = self
         }
         
-        func handleFacebookSDKError(_ error: Error) {
-            let errorCode = (error as NSError).code
-            switch errorCode {
-            case 190:
-                print("Invalid OAuth access token signature. Please try again.")
-            default:
-                print("Unknown Facebook SDK error: \(error.localizedDescription)")
-            }
-        }
+        let facebookPermissions = ["public_profile", "email"]
+
         
         @objc func signIn() {
             print("Facebook Sign-In initiated")
 
             let loginManager = LoginManager()
             if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
-                guard let window = scene.windows.first else {
-                    return
-                }
-                
-                loginManager.logIn(permissions: ["public_profile", "email"], from: window.rootViewController) { [weak self] result, error in
+                guard let window = scene.windows.first else { return }
+
+                loginManager.logIn(permissions: facebookPermissions, from: window.rootViewController) { [weak self] result, error in
                     if let error = error {
-                        self?.handleFacebookSDKError(error)
+                        FacebookHelper.handleFacebookSDKError(error)
                         self?.parent.handleError(error.localizedDescription)
                         return
                     }
@@ -111,51 +102,33 @@ struct FacebookSignInButtonWrapper: UIViewRepresentable {
                     if result?.isCancelled ?? false {
                         print("User cancelled Facebook login")
                     } else {
-                        // Handle successful login
-                        self?.fetchFacebookUserProfile()
+                        // Successfully logged in, fetch the profile
+                        FacebookHelper.fetchFacebookUserProfile { userInfo in
+                            guard let userInfo = userInfo,
+                                  let email = userInfo["email"] as? String,
+                                  let name = userInfo["name"] as? String,
+                                  let id = userInfo["id"] as? String else {
+                                print("User info is nil or doesn't contain required fields.")
+                                return
+                            }
+                            // Update state with the user info
+                            self?.parent.authenticationState.objectWillChange.send()
+                            try? self?.parent.authenticationState.updateSocialUser(.facebook, id, name, email)
+                        }
                     }
                 }
             }
         }
 
+
         @objc func signOut() {
             let loginManager = LoginManager()
             loginManager.logOut()
 
-            parent.authenticationState.resetFacebookUser()
+            parent.authenticationState.resetSocialUser()
 
             signOutButton.isHidden = true
             signInButton.isHidden = false
-        }
-
-        func fetchFacebookUserProfile() {
-            if AccessToken.current?.isExpired == true {
-                AccessToken.refreshCurrentAccessToken { connection, result, error in
-                    // Handle refreshed token or error
-                }
-            }
-
-            GraphRequest(graphPath: "me", parameters: ["fields": "id, name, email"]).start { [weak self] connection, result, error in
-                if let error = error {
-                    self?.handleFacebookSDKError(error)
-                    self?.parent.handleError(error.localizedDescription)
-                    return
-                }
-
-                guard let resultDict = result as? [String: Any] else {
-                    self?.parent.handleError("Invalid Graph API response")
-                    return
-                }
-
-                let userId = resultDict["id"] as? String
-                let userName = resultDict["name"] as? String
-                let userEmail = resultDict["email"] as? String
-
-                self?.parent.authenticationState.updateFacebookUser(userId, userName, userEmail)
-
-                self?.signOutButton.isHidden = false
-                self?.signInButton.isHidden = true
-            }
         }
     }
 }
@@ -172,10 +145,22 @@ extension UIColor {
 
 struct FacebookSignInButtonWrapper_Previews: PreviewProvider {
     static var previews: some View {
-        FacebookSignInButtonWrapper { errorMessage in
-            print("Error: \(errorMessage)")
-        }
-        .environmentObject(AuthenticationState())
+        PreviewView()
+    }
+}
+
+struct FacebookSignInButtonWrapper_Previews_PreviewView: View {
+    @StateObject var authenticationState = AuthenticationState()
+    
+    var body: some View {
+        FacebookSignInButtonWrapper(
+            handleError: { message in
+                print("Error: \(message)")
+            },
+            fetchFacebookUserProfile: nil,
+            facebookAppID: AppConfig.shared.facebookAppID
+        )
+        .environmentObject(authenticationState)
         .frame(width: 400, height: 300)
         .previewDisplayName("Facebook Sign-In Button Preview")
     }

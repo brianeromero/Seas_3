@@ -11,6 +11,7 @@ import GoogleSignIn
 struct GoogleSignInButtonWrapper: UIViewRepresentable {
     @EnvironmentObject var authenticationState: AuthenticationState
     var handleError: (String) -> Void
+    let googleClientID: String?
 
     func makeUIView(context: Context) -> GIDSignInButton {
         let button = GIDSignInButton()
@@ -25,13 +26,17 @@ struct GoogleSignInButtonWrapper: UIViewRepresentable {
     }
 
     class Coordinator: NSObject {
-        var parent: GoogleSignInButtonWrapper
+        var parent: GoogleSignInButtonWrapper?
+        let googleClientID: String
+        let googleScopes: [String] = []  // Add scopes if needed
 
         init(_ parent: GoogleSignInButtonWrapper) {
             self.parent = parent
+            self.googleClientID = parent.googleClientID ?? ""
             super.init()
         }
 
+        
         @objc func signIn() {
             print("Google Sign-In initiated")
 
@@ -42,29 +47,56 @@ struct GoogleSignInButtonWrapper: UIViewRepresentable {
                 return
             }
 
+            // Configure Google Sign-In
+            _ = GIDConfiguration(clientID: googleClientID)
+
             // Start Google Sign-In process with error handling
-            GIDSignIn.sharedInstance.signIn(withPresenting: rootViewController) { user, error in
+            GIDSignIn.sharedInstance.signIn(withPresenting: rootViewController, hint: nil, additionalScopes: googleScopes) { [weak self] result, error in
+                guard let self = self else { return }
                 if let error = error {
                     print("Google Sign-In error: \(error.localizedDescription)")
-                    self.parent.handleError(error.localizedDescription)
+                    if let parent = self.parent {
+                        parent.handleError(error.localizedDescription)
+                    } else {
+                        print("Parent is nil")
+                    }
                     return
                 }
                 
                 // Handle successful sign-in
                 print("Google Sign-In successful")
-                self.parent.authenticationState.updateGoogleUser()
+                if let user = result?.user {
+                    let userID = user.userID ?? ""
+                    let userName = user.profile?.name ?? ""
+                    let userEmail = user.profile?.email ?? ""
+                    
+                    do {
+                        try self.parent?.authenticationState.updateSocialUser(.google, userID, userName, userEmail)
+                    } catch {
+                        print("Error updating social user: \(error.localizedDescription)")
+                        if let parent = self.parent {
+                            parent.handleError(error.localizedDescription)
+                        } else {
+                            print("Parent is nil")
+                        }
+                    }
+                }
             }
         }
     }
 }
 
-
 struct GoogleSignInButtonWrapper_Previews: PreviewProvider {
+    @StateObject static var authenticationState = AuthenticationState()
+    
     static var previews: some View {
-        GoogleSignInButtonWrapper(handleError: { message in
-            print("Error: \(message)")
-        })
-        .environmentObject(AuthenticationState())
+        GoogleSignInButtonWrapper(
+            handleError: { message in
+                print("Error: \(message)")
+            },
+            googleClientID: AppConfig.shared.googleClientID
+        )
+        .environmentObject(authenticationState)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .edgesIgnoringSafeArea(.all)
         .previewLayout(.sizeThatFits)

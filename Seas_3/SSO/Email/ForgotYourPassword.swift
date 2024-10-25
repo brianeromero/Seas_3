@@ -54,7 +54,7 @@ struct ForgotYourPasswordView: View {
         }
         .padding()
         .onAppear {
-            emailManager = UnifiedEmailManager(managedObjectContext: viewContext)
+            emailManager = UnifiedEmailManager.shared
         }
     }
 
@@ -90,8 +90,6 @@ struct ForgotYourPasswordView_Previews: PreviewProvider {
 
 extension String {
     var isValidEmail: Bool {
-        let emailRegEx = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Z|a-z]{2,}"
-        let emailPred = NSPredicate(format: "SELF MATCHES %@", emailRegEx)
-        return emailPred.evaluate(with: self)
+        return ValidationUtility.validateField(self, type: .email) == nil
     }
 }

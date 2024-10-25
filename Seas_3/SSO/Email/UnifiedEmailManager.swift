@@ -9,11 +9,13 @@ import Foundation
 import CoreData
 
 class UnifiedEmailManager {
+    static let shared = UnifiedEmailManager(managedObjectContext: PersistenceController.shared.container.viewContext)
+    
+    private let managedObjectContext: NSManagedObjectContext
     private let firebaseEmailService = EmailService()
     private let sendGridEmailService = SendGridEmailService()
-    private let managedObjectContext: NSManagedObjectContext
     
-    init(managedObjectContext: NSManagedObjectContext) {
+    public init(managedObjectContext: NSManagedObjectContext) {
         self.managedObjectContext = managedObjectContext
     }
 

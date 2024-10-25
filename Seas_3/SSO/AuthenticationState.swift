@@ -9,69 +9,183 @@ import Foundation
 import SwiftUI
 import Combine
 
+/// Manages the authentication state of the application.
 public class AuthenticationState: ObservableObject {
+    /// Indicates whether the user is authenticated.
     @Published var isAuthenticated: Bool = false
-    @Published public private(set) var facebookUser: FacebookUser?
-    @Published var googleUser: GoogleUser?
-
+    
+    /// The social user, if authenticated through a social provider.
+    @Published public private(set) var socialUser: SocialUser?
+    
+    /// The currently logged-in user.
     @Published var user: UserInfo?
-    private let infoPlist = Bundle.main.infoDictionary
-    private var facebookAccessToken: String? {
-        return infoPlist?["FacebookAccessToken"] as? String
-    }
     
-    public struct FacebookUser {
-        let id: String?
-        let name: String?
-        let email: String?
-    }
+    /// Error message to display to the user.
+    @Published var errorMessage: String = ""
     
-    
-    public struct GoogleUser {
-        let id: String?
-        let name: String?
-        let email: String?
-    }
-    
-    public func updateFacebookUser(_ userId: String?, _ userName: String?, _ userEmail: String?) {
-        guard let userId = userId, let userName = userName, let userEmail = userEmail else {
-            print("Invalid Facebook user data")
-            return
+    /// Represents a social user.
+    public struct SocialUser {
+        /// Social provider (e.g., Facebook, Google).
+        public enum Provider: String, CaseIterable {
+            case facebook = "Facebook"
+            case google = "Google"
         }
         
-        facebookUser = FacebookUser(id: userId, name: userName, email: userEmail)
+        let provider: Provider
+        let id: String
+        let name: String
+        let email: String
+        let profilePictureUrl: URL?
+        
+        /// Initializes a social user.
+        ///
+        /// - Parameters:
+        ///   - provider: Social provider.
+        ///   - id: User's ID.
+        ///   - name: User's name.
+        ///   - email: User's email.
+        ///   - profilePictureUrl: User's profile picture URL (optional).
+        init(provider: Provider, id: String, name: String, email: String, profilePictureUrl: URL? = nil) {
+            self.provider = provider
+            self.id = id
+            self.name = name
+            self.email = email
+            self.profilePictureUrl = profilePictureUrl
+        }
+    }
+    
+    public init(errorMessage: String = "") {
+        self.errorMessage = errorMessage
+    }
+    
+    /// Authentication-related errors.
+    public enum AuthenticationError: Error, LocalizedError {
+        case invalidUserData
+        case authenticationFailed
+        case invalidEmail
+        case invalidPassword
+        case userNotFound
+        case serverError
+        
+        /// Human-readable error description.
+        public var errorDescription: String? {
+            switch self {
+            case .invalidUserData:
+                return "Invalid user data."
+            case .authenticationFailed:
+                return "Authentication failed."
+            case .invalidEmail:
+                return "Invalid email."
+            case .invalidPassword:
+                return "Invalid password."
+            case .userNotFound:
+                return "User not found."
+            case .serverError:
+                return "Server error."
+            }
+        }
+    }
+    
+    /// Checks if an email address is valid.
+    ///
+    /// - Parameter email: Email address to validate.
+    /// - Returns: True if the email is valid, false otherwise.
+    private func isValidEmail(_ email: String) -> Bool {
+        return ValidationUtility.validateField(email, type: .email) == nil
+    }
+    
+    /// Checks if a password is valid.
+    ///
+    /// - Parameter password: Password to validate.
+    /// - Returns: True if the password is valid, false otherwise, along with an optional error message.
+    private func isValidPassword(_ password: String) -> (Bool, String?) {
+        let (isValid, feedback) = ValidationUtility.isValidPassword(password)
+        return (isValid, feedback ?? "Invalid password")
+    }
+    
+    /// Updates the social user with the provided information.
+    ///
+    /// - Parameters:
+    ///   - provider: Social provider.
+    ///   - userId: User's ID.
+    ///   - userName: User's name.
+    ///   - userEmail: User's email.
+    ///
+    /// - Throws: AuthenticationError.invalidUserData if any parameters are empty.
+    public func updateSocialUser(_ provider: SocialUser.Provider, _ userId: String, _ userName: String, _ userEmail: String) throws {
+        guard !userId.isEmpty, !userName.isEmpty, !userEmail.isEmpty else {
+            throw AuthenticationError.invalidUserData
+        }
+        
+        socialUser = SocialUser(provider: provider, id: userId, name: userName, email: userEmail)
         isAuthenticated = true
     }
     
-    
-    public func updateGoogleUser(_ userId: String?, _ userName: String?, _ userEmail: String?) {
-        guard let userId = userId, let userName = userName, let userEmail = userEmail else {
-            print("Invalid Google user data")
-            return
-        }
-        
-        googleUser = GoogleUser(id: userId, name: userName, email: userEmail)
-        isAuthenticated = true
-    }
-    
-    public func resetFacebookUser() {
-        facebookUser = nil
+    /// Resets the social user.
+    public func resetSocialUser() {
+        socialUser = nil
         isAuthenticated = false
     }
     
-    public func updateGoogleUser() {
-        isAuthenticated = true
+    /// Resets the Facebook user.
+    public func resetFacebookUser() {
+        resetSocialUser()
     }
     
-    func login(_ user: UserInfo) {
+    /// Logs in a user with the provided credentials.
+    ///
+    /// - Parameters:
+    ///   - user: User to log in.
+    ///   - password: Password to authenticate with.
+    ///
+    /// - Throws: AuthenticationError.invalidEmail, AuthenticationError.invalidPassword, or AuthenticationError.serverError.
+    public func login(_ user: UserInfo, password: String) throws {
+        guard isValidEmail(user.email) else {
+            throw AuthenticationError.invalidEmail
+        }
+        
+        guard !user.passwordHash.isEmpty else {
+            throw AuthenticationError.invalidUserData
+        }
+        
+        do {
+            // Convert user.passwordHash (Data) to HashedPassword
+            let hashedPassword = try convertToHashedPassword(user.passwordHash)
+            
+            if try !verifyPasswordPbkdf(password, againstHash: hashedPassword) {
+                throw AuthenticationError.invalidPassword
+            }
+        } catch {
+            throw AuthenticationError.serverError
+        }
+        
+        // Call authentication API or perform authentication logic
+        // ...
+        
         isAuthenticated = true
         self.user = user
     }
-    
-    func logout() {
-        isAuthenticated = false
-        self.user = nil
+
+    // Helper function to convert Data to HashedPassword
+    private func convertToHashedPassword(_ passwordHash: Data) throws -> HashedPassword {
+        // Separate salt and hash
+        guard let separatorIndex = passwordHash.firstIndex(of: hashConfig.separator.first!) else {
+            throw HashError.invalidInput
+        }
+        
+        let salt = passwordHash.prefix(upTo: separatorIndex)
+        let hash = passwordHash.suffix(from: separatorIndex + hashConfig.separator.count)
+        
+        return HashedPassword(salt: salt, iterations: hashConfig.rounds, hash: hash)
     }
     
+    /// Logs out the current user.
+    ///
+    /// - Parameter completion: Optional completion handler.
+    public func logout(completion: () -> Void = {}) {
+        isAuthenticated = false
+        self.user = nil
+        resetSocialUser()
+        completion()
+    }
 }
-

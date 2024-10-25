@@ -1,5 +1,4 @@
 {
-  "originHash" : "8651f3a707b413ab9e3096877557b40b5dbf3606cff0367c98e6d54c721ccc87",
   "pins" : [
     {
       "identity" : "abseil-cpp-binary",
@@ -15,8 +14,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/google/app-check.git",
       "state" : {
-        "revision" : "87dd288fc792bf9751e522e171a47df5b783b0b8",
-        "version" : "11.1.0"
+        "revision" : "61b85103a1aeed8218f17c794687781505fbbef5",
+        "version" : "11.2.0"
       }
     },
     {
@@ -42,17 +41,16 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/facebook/facebook-ios-sdk",
       "state" : {
-        "revision" : "c19607d535864533523d1f437c84035e5fb101cf",
-        "version" : "14.1.0"
+        "revision" : "b02aef326d67cb332d20a0c3f62cc981f8fc3250",
+        "version" : "17.3.0"
       }
     },
     {
-      "identity" : "firebase-ios-sdk",
+      "identity" : "gcdwebserver",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/firebase/firebase-ios-sdk",
+      "location" : "https://github.com/SlaunchaMan/GCDWebServer.git",
       "state" : {
-        "revision" : "f909f901bfba9e27e4e9da83242a4915d6dd64bb",
-        "version" : "11.3.0"
+        "revision" : "935e2736044e71e5341663c3cc9a335ba6867a2b"
       }
     },
     {
@@ -60,8 +58,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/google/GoogleAppMeasurement.git",
       "state" : {
-        "revision" : "93406fd21b85e66e2d6dbf50b472161fd75c3f1f",
-        "version" : "11.3.0"
+        "revision" : "4f234bcbdae841d7015258fbbf8e7743a39b8200",
+        "version" : "11.4.0"
       }
     },
     {
@@ -146,12 +144,38 @@
       }
     },
     {
+      "identity" : "ocmock",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/erikdoe/ocmock.git",
+      "state" : {
+        "revision" : "2c0bfd373289f4a7716db5d6db471640f91a6507"
+      }
+    },
+    {
       "identity" : "promises",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/google/promises.git",
       "state" : {
         "revision" : "540318ecedd63d883069ae7f1ed811a2df00b6ac",
         "version" : "2.4.0"
+      }
+    },
+    {
+      "identity" : "swift-package-manager-google-mobile-ads",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/googleads/swift-package-manager-google-mobile-ads.git",
+      "state" : {
+        "revision" : "e2aef402dc1698c06928719b49bb35bacc879ea1",
+        "version" : "11.11.0"
+      }
+    },
+    {
+      "identity" : "swift-package-manager-google-user-messaging-platform",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/googleads/swift-package-manager-google-user-messaging-platform.git",
+      "state" : {
+        "revision" : "74f2ec169551c3b924947b473716142a0b983e10",
+        "version" : "2.6.0"
       }
     },
     {
@@ -164,5 +188,5 @@
       }
     }
   ],
-  "version" : 3
+  "version" : 2
 }

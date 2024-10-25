@@ -1,11 +1,12 @@
-import SwiftUI
 import UIKit
+import Firebase
+import FirebaseCore
+import FirebaseAppCheck
+import FirebaseDatabase
+import SwiftUI
 import CoreData
 import GoogleSignIn
 import FBSDKCoreKit
-import FirebaseCore
-import Firebase
-import FirebaseAppCheck
 import FacebookCore
 import DeviceCheck
 import FirebaseAnalytics
@@ -14,189 +15,259 @@ import AppTrackingTransparency
 import AdSupport
 import GoogleMobileAds
 import FBSDKLoginKit
+import UserNotifications
+import FirebaseFirestore
+import FirebaseAuth
 
+
+extension NSNotification.Name {
+    static let signInLinkReceived = NSNotification.Name("signInLinkReceived")
+}
 
 
 class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
     var window: UIWindow?
-
-    // Access the shared PersistenceController
     let persistenceController = PersistenceController.shared
-
-    // Variables to store config values
+    
+    // Configuration properties
     var facebookAppID: String?
     var facebookClientToken: String?
     var facebookSecret: String?
     var sendgridApiKey: String?
+    var googleClientID: String?
+    var googleApiKey: String?
+    var googleAppID: String?
 
-    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Load Config.plist values
+
+    func application(_ application: UIApplication,
+                     didFinishLaunchingWithOptions launchOptions: [UIApplication
+                       .LaunchOptionsKey: Any]?) -> Bool {
+        print("Configuring Firebase...")
+        configureFirebase()
+        print("Firebase configured")
+        
+        print("Configuring App Check...")
+        setupAppCheck()
+        print("App Check configured")
+        print("Setting App Check provider factory: \(SeasAppCheckProviderFactory.self)")
+        
+        print("Configuring Google Ads...")
+        configureGoogleAds()
+        print("Google Ads configured")
+        
+        print("Requesting IDFA permission...")
+        IDFAHelper.requestIDFAPermission()
+        print("IDFA permission requested")
+        
+        print("Loading config values...")
         loadConfigValues()
-
-        // Firebase initialization
-        FirebaseApp.configure()
-        Messaging.messaging().delegate = self
-        Analytics.setAnalyticsCollectionEnabled(true)
-        Messaging.messaging().isAutoInitEnabled = false
-
-        // Facebook SDK initialization
-        ApplicationDelegate.shared.application(application, didFinishLaunchingWithOptions: launchOptions)
-
-        // Request App Tracking Transparency permission
-        if #available(iOS 14, *) {
-            ATTrackingManager.requestTrackingAuthorization { status in
-                switch status {
-                case .authorized:
-                    let idfa = ASIdentifierManager.shared().advertisingIdentifier
-                    print("IDFA Access Granted: \(idfa)")
-                case .denied, .restricted, .notDetermined:
-                    print("IDFA Access Denied or Restricted")
-                @unknown default:
-                    print("Unknown status")
-                }
-            }
-        }
-
-        // Custom initialization if needed
-        let settings = Settings()
-        print("Facebook Advertiser ID Collection Enabled: \(settings.isAdvertiserIDCollectionEnabled)")
+        print("Config values loaded")
+        
+        print("Registering for push notifications...")
+        registerForPushNotifications()
+        print("Push notifications registered")
+        
+        // Additional logging
+        print("Device Information:")
+        print("  Model: \(UIDevice.current.model)")
+        print("  System: \(UIDevice.current.systemName) \(UIDevice.current.systemVersion)")
+        print("  UUID: \(UIDevice.current.identifierForVendor?.uuidString ?? "")")
+        
         return true
     }
+    
+    
+    private func registerForPushNotifications() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+            guard granted else {
+                print("User denied notification permission")
+                return
+            }
+            DispatchQueue.main.async {
+                UIApplication.shared.registerForRemoteNotifications()
+            }
+        }
+    }
+    
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        Messaging.messaging().apnsToken = deviceToken
+    }
 
-    // Handle Facebook SDK errors
-    func handleFacebookSDKError(_ error: Error) {
-        let errorCode = (error as NSError).code
-        switch errorCode {
-        case 190:
-            print("Invalid OAuth access token signature. Please try again.")
-        default:
-            print("Unknown Facebook SDK error: \(error.localizedDescription)")
+    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        print("Failed to register for remote notifications: \(error)")
+    }
+
+    func applicationDidBecomeActive(_ application: UIApplication) {
+        FacebookHelper.checkFacebookToken()
+    }
+
+    private func configureGoogleAds() {
+         GADMobileAds.sharedInstance().requestConfiguration.setPublisherFirstPartyIDEnabled(false)
+     }
+
+    private func configureFirebase() {
+        // Set app check provider factory *before* configuring Firebase.
+        let appCheckFactory = SeasAppCheckProviderFactory()
+        AppCheck.setAppCheckProviderFactory(appCheckFactory)
+
+        // Now configure Firebase.
+        FirebaseApp.configure()
+        FirebaseConfiguration.shared.setLoggerLevel(.debug)
+        
+        Messaging.messaging().delegate = self
+        Messaging.messaging().isAutoInitEnabled = true
+        Analytics.setAnalyticsCollectionEnabled(true)
+
+        // Additional logging
+        print("Firebase Configuration:")
+        if let googleAppID = getGoogleAppID() {
+            print("  Firebase App ID: \(googleAppID)")
+        } else {
+            print("  Firebase App ID not found")
         }
     }
 
-    // MessagingDelegate methods
+    func getGoogleAppID() -> String? {
+        if let infoPlist = Bundle.main.infoDictionary,
+           let googleAppID = infoPlist["GOOGLE_APP_ID"] as? String {
+            return googleAppID
+        } else if let url = Bundle.main.url(forResource: "GoogleService-Info", withExtension: "plist"),
+                  let dict = NSDictionary(contentsOf: url) as? [String: Any],
+                  let googleAppID = dict["GOOGLE_APP_ID"] as? String {
+            return googleAppID
+        } else {
+            return nil
+        }
+    }
+    
+    // Define AppCheckTokenError enum
+    enum AppCheckTokenError: Error {
+        case noTokenReceived
+        case invalidToken
+    }
+
+    private func setupAppCheck() {
+        print("Setting up App Check...")
+        
+        let factory = SeasAppCheckProviderFactory()
+        print("Creating App Check provider factory: \(factory)")
+        
+        AppCheck.setAppCheckProviderFactory(factory)
+        print("App Check provider factory set successfully")
+        
+        print("Using AppAttestProvider (iOS 14+)")
+        print("Fetching App Check token...")
+        
+        fetchAppCheckToken()
+    }
+
+    private func fetchAppCheckToken() {
+        print("Fetching App Check token...")
+        let appCheck = AppCheck.appCheck()
+        appCheck.token(forcingRefresh: true) { [weak self] (appCheckToken: AppCheckToken?, error: Error?) in
+            guard self != nil else { return }
+            
+            print("App Check token callback received")
+            
+            if let error = error {
+                print("Error fetching App Check token: \(error.localizedDescription)")
+                print("  Error: \(error)")
+                self?.handleAppCheckTokenError(error)
+            } else if let appCheckToken = appCheckToken {
+                print("App Check token received: \(appCheckToken.token)")
+                print("  Token: \(appCheckToken.token)")
+                self?.storeAppCheckToken(appCheckToken.token)
+            } else {
+                print("No App Check token received")
+                self?.handleAppCheckTokenError(AppCheckTokenError.noTokenReceived)
+            }
+        }
+    }
+
+    private func storeAppCheckToken(_ token: String) {
+        print("Storing App Check token: \(token)")
+        // Store the token securely
+    }
+
+    private func handleAppCheckTokenError(_ error: Error) {
+        print("Handling App Check token error: \(error)")
+    }
+    
+    private func loadConfigValues() {
+        guard let config = loadPlistConfig() else {
+            print("Could not load configuration values.")
+            return
+        }
+        
+        facebookAppID = config.FacebookAppID
+        facebookClientToken = config.FacebookClientToken
+        facebookSecret = config.FacebookSecret
+        sendgridApiKey = config.SENDGRID_API_KEY
+        googleClientID = config.GoogleClientID
+        googleApiKey = config.GoogleApiKey
+        googleAppID = config.GoogleAppID
+
+        // Load into AppConfig
+        AppConfig.shared.facebookAppID = facebookAppID
+        AppConfig.shared.googleClientID = googleClientID
+        AppConfig.shared.googleApiKey = googleApiKey
+        AppConfig.shared.googleAppID = googleAppID
+        AppConfig.shared.sendgridApiKey = sendgridApiKey
+    }
+
+    private func loadPlistConfig() -> Config? {
+        guard let path = Bundle.main.path(forResource: "Config", ofType: "plist"),
+              let data = try? Data(contentsOf: URL(fileURLWithPath: path)),
+              let config = try? PropertyListDecoder().decode(Config.self, from: data) else {
+            print("Failed to load Config.plist")
+            return nil
+        }
+        return config
+    }
+
     func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
         print("Firebase registration token: \(String(describing: fcmToken))")
-        // Handle FCM token
-    }
-
-    func messaging(_ messaging: Messaging, didReceive remoteMessage: Any) {
-        print("Received remote message: \(remoteMessage)")
-        // Handle remote message
-    }
-
-    // Load sensitive config values from Config.plist
-    func loadConfigValues() {
-        guard let path = Bundle.main.path(forResource: "Config", ofType: "plist") else {
-            print("Config.plist file not found")
-            return
-        }
-
-        guard let config = NSDictionary(contentsOfFile: path) as? [String: Any] else {
-            print("Failed to load Config.plist")
-            return
-        }
-
-        facebookAppID = config["FacebookAppID"] as? String
-        facebookClientToken = config["FacebookClientToken"] as? String
-        facebookSecret = config["FacebookSecret"] as? String
-        sendgridApiKey = config["SENDGRID_API_KEY"] as? String
-
-        print("Loaded FacebookAppID: \(facebookAppID ?? "")")
-        print("Loaded SendGrid API Key: \(sendgridApiKey ?? "")")
-    }
-
-    func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
-        // Handle Facebook Login
-        if ApplicationDelegate.shared.application(app, open: url, options: options) {
-            if AccessToken.current?.isExpired ?? false {
-                print("Facebook token expired")
-            } else {
-                handleFacebookLogin()
+        
+        let tokenDict = ["token": fcmToken ?? ""]
+        NotificationCenter.default.post(name: Notification.Name("FCMTokenReceived"), object: nil, userInfo: tokenDict)
+        
+        Messaging.messaging().token { token, error in
+            if let error = error {
+                print("Error fetching Firebase registration token: \(error)")
+            } else if let token = token {
+                print("Firebase registration token: \(token)")
             }
+        }
+    }
+    
+    func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
+        if ApplicationDelegate.shared.application(app, open: url, options: options) {
             return true
         }
 
-        // Handle Google Sign-In
         if GIDSignIn.sharedInstance.handle(url) {
-            print("Google URL handled: \(url)")
+            print("Google URL Handled: \(url)")
             return true
         }
 
-        // Handle Email Verification and custom URL schemes
-        handleEmailVerification(url: url)
+        if Auth.auth().isSignIn(withEmailLink: url.absoluteString) {
+            NotificationCenter.default.post(name: .signInLinkReceived, object: url.absoluteString)
+            return true
+        }
+
+        EmailVerificationHandler.handleEmailVerification(url: url)
 
         return false
     }
 
-    
-    // Define the fetchFacebookUserProfile method
-    func fetchFacebookUserProfile() {
-        GraphRequest(graphPath: "me", parameters: ["fields": "id, name, email"]).start { connection, result, error in
-            if let error = error {
-                print("Error fetching Facebook profile: \(error.localizedDescription)")
-                return
-            }
-            
-            guard let result = result as? [String: Any] else {
-                print("Invalid Facebook profile result")
-                return
-            }
-            
-            print("Facebook profile: \(result)")
-            // Handle Facebook profile data
-        }
-    }
-
-    // Call the fetchFacebookUserProfile method in handleFacebookLogin
-    func handleFacebookLogin() {
-        LoginManager().logIn(permissions: ["public_profile", "email"], from: nil) { [weak self] result, error in
-            if let error = error {
-                print("Error logging in: \(error.localizedDescription)")
-            } else if let _ = result {
-                print("Logged in successfully")
-                self?.fetchFacebookUserProfile()
-            } else if result?.isCancelled == true {
-                print("User cancelled login")
-            }
-        }
-    }
-    // Handle Email Verification
-    func handleEmailVerification(url: URL) {
-        let context = persistenceController.container.viewContext
-        let request = UserInfo.fetchRequest() as NSFetchRequest<UserInfo>
-        let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
-
-        do {
-            let userInfo = try context.fetch(request)
-            if let user = userInfo.first {
-                let userName = user.userName
-                if let token = components?.queryItems?.first(where: { $0.name == "token" })?.value,
-                   let email = components?.queryItems?.first(where: { $0.name == "email" })?.value {
-                    let emailManager = UnifiedEmailManager(managedObjectContext: context)
-                    emailManager.verifyEmail(token: token, email: email, userName: userName) { success in
-                        let redirectURL = success ? "http://mfinderbjj.rf.gd/success.html" : "http://mfinderbjj.rf.gd/failed.html"
-                        UIApplication.shared.open(URL(string: redirectURL)!, options: [:], completionHandler: nil)
-                        print(success ? "Email verification successful" : "Email verification failed")
-                    }
-                }
-            }
-        } catch {
-            print("Error fetching UserInfo: \(error.localizedDescription)")
-        }
-    }
-
-    // Save context when the app enters the background
     func applicationDidEnterBackground(_ application: UIApplication) {
         saveContext()
     }
 
-    // Save context when the app is about to terminate
     func applicationWillTerminate(_ application: UIApplication) {
         saveContext()
     }
 
-    // Helper to save context
     private func saveContext() {
         do {
             try persistenceController.saveContext()

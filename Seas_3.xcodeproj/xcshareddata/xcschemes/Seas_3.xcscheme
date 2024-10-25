@@ -80,6 +80,22 @@
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
+            argument = "FIRDebugEnabled"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-FIRLoggerLevel 5"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-FIRDebugEnabled"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-FIRAnalyticsDebugEnabled"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "-com.apple.CoreData.ThreadingDebug 1"
             isEnabled = "YES">
          </CommandLineArgument>
@@ -106,6 +122,16 @@
          <EnvironmentVariable
             key = "-com.apple.CoreData.MigrationDebug"
             value = "1"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "FIRAAppCheckDebugToken"
+            value = "826C9858-9C08-4410-AB8A-38180B55ADA1"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "MF_InderDEBUGTOKEN"
+            value = "826C9858-9C08-4410-AB8A-38180B55ADA1"
             isEnabled = "YES">
          </EnvironmentVariable>
       </EnvironmentVariables>

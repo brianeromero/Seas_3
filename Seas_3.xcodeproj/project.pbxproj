@@ -51,6 +51,8 @@
 		0C1893D12C7D18F0007BFADB /* ReviewUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1893D02C7D18F0007BFADB /* ReviewUtils.swift */; };
 		0C1893D32C7F95FB007BFADB /* ViewReviewforIsland.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1893D22C7F95FB007BFADB /* ViewReviewforIsland.swift */; };
 		0C1893D52C7F9621007BFADB /* ViewScheduleforIsland.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1893D42C7F9621007BFADB /* ViewScheduleforIsland.swift */; };
+		0C276CCC2CC9A8FD00A6B6D6 /* SeasAppCheckProviderFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C276CA72CC9A8FD00A6B6D6 /* SeasAppCheckProviderFactory.swift */; };
+		0C276CDF2CC9D2C700A6B6D6 /* FirebaseDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = 0C276CDE2CC9D2C700A6B6D6 /* FirebaseDatabase */; };
 		0C2CEC9D2CBA1F5400926D0D /* IslandFormSections.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C2CEC9C2CBA1F5400926D0D /* IslandFormSections.swift */; };
 		0C2EE2AF2C9DEF110029432F /* ViewReviewSearch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C2EE2AE2C9DEF110029432F /* ViewReviewSearch.swift */; };
 		0C33DBE12CC081C1002C4835 /* Config.plist in Resources */ = {isa = PBXBuildFile; fileRef = 0C33DBDF2CC081C1002C4835 /* Config.plist */; };
@@ -87,6 +89,7 @@
 		0CA142242C3EF19900C366CF /* MainLoginViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA142232C3EF19900C366CF /* MainLoginViewController.swift */; };
 		0CA142262C3EF7F200C366CF /* IslandScheduleAsCalViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA142252C3EF7F200C366CF /* IslandScheduleAsCalViewController.swift */; };
 		0CA73BF22CB739F3000A66E2 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 0CA73BF12CB739F2000A66E2 /* GoogleService-Info.plist */; };
+		0CB8BB572CC9A3E6002F57E8 /* firebase-ios-sdk in Resources */ = {isa = PBXBuildFile; fileRef = 0CB8BB562CC9A3E6002F57E8 /* firebase-ios-sdk */; };
 		0CBA13062CC19BC100A74C2A /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 0CBA13052CC19BC100A74C2A /* GoogleSignIn */; };
 		0CBA13082CC19BC100A74C2A /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 0CBA13072CC19BC100A74C2A /* GoogleSignInSwift */; };
 		0CBA130A2CC19BC700A74C2A /* CryptoSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 0CBA13092CC19BC700A74C2A /* CryptoSwift */; };
@@ -221,6 +224,7 @@
 		0C1893D02C7D18F0007BFADB /* ReviewUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewUtils.swift; sourceTree = "<group>"; };
 		0C1893D22C7F95FB007BFADB /* ViewReviewforIsland.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewReviewforIsland.swift; sourceTree = "<group>"; };
 		0C1893D42C7F9621007BFADB /* ViewScheduleforIsland.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewScheduleforIsland.swift; sourceTree = "<group>"; };
+		0C276CA72CC9A8FD00A6B6D6 /* SeasAppCheckProviderFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasAppCheckProviderFactory.swift; sourceTree = "<group>"; };
 		0C2CEC9C2CBA1F5400926D0D /* IslandFormSections.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandFormSections.swift; sourceTree = "<group>"; };
 		0C2EE2AE2C9DEF110029432F /* ViewReviewSearch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewReviewSearch.swift; sourceTree = "<group>"; };
 		0C33DBDF2CC081C1002C4835 /* Config.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Config.plist; sourceTree = "<group>"; };
@@ -251,6 +255,7 @@
 		0CA142232C3EF19900C366CF /* MainLoginViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainLoginViewController.swift; sourceTree = "<group>"; };
 		0CA142252C3EF7F200C366CF /* IslandScheduleAsCalViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandScheduleAsCalViewController.swift; sourceTree = "<group>"; };
 		0CA73BF12CB739F2000A66E2 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		0CB8BB562CC9A3E6002F57E8 /* firebase-ios-sdk */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = "firebase-ios-sdk"; sourceTree = "<group>"; };
 		0CBA13292CC19D0C00A74C2A /* MapKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MapKit.framework; path = System/Library/Frameworks/MapKit.framework; sourceTree = SDKROOT; };
 		0CBA132B2CC19D1600A74C2A /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = System/Library/Frameworks/CoreData.framework; sourceTree = SDKROOT; };
 		0CBA132D2CC19D4100A74C2A /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
@@ -317,20 +322,38 @@
 		0CF7993C2CAFAED000F2F018 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				AppConfig.swift,
 				AuthenticationState.swift,
-				Email/AccountCreationForm.swift,
+				DealingWErrors/AdMob/AdMobBannerAdd.swift,
+				DealingWErrors/AlertModifier.swift,
+				DealingWErrors/ConfigLoader.swift,
+				DealingWErrors/EmailVerificationHandler.swift,
+				DealingWErrors/FacebookHelper.swift,
+				DealingWErrors/GoogleAdsHelper.swift,
+				DealingWErrors/IDFAHelper.swift,
+				DealingWErrors/NetworkMonitor.swift,
+				Email/AccountCreation/AccountAuthView.swift,
+				Email/AccountCreation/CreateAccountView.swift,
+				Email/AccountCreation/File.txt,
+				Email/AccountCreation/FormFieldViews.swift,
+				Email/AccountCreation/FormState.swift,
+				Email/AccountCreation/UserInformationView.swift,
+				Email/AccountCreation/ValidationUtility.swift,
 				Email/EmailService.swift,
 				Email/EmailUtility.swift,
+				Email/Firebase/AuthViewModel.swift,
+				Email/Firebase/EmailSignOn.swift,
+				Email/Firebase/User.swift,
 				Email/ForgotYourPassword.swift,
 				Email/hashPassword.swift,
 				Email/SendGridEmailService.swift,
 				Email/UnifiedEmailManager.swift,
 				FacebookSignInButtonWrapper.swift,
-				fetchFacebookUserProfile.swift,
 				fetchGoogleUserProfile.swift,
 				GoogleSignInButton.swift,
 				GoogleSignInButtonWrapper.swift,
 				LogInView.swift,
+				UserProfileViewModel.swift,
 			);
 			target = 0CF13E402C2A326700D714C0 /* Seas_3 */;
 		};
@@ -371,6 +394,7 @@
 				0C4A7B4B2CC0D43A008CE1EA /* iAd.framework in Frameworks */,
 				0CBA131E2CC19C7A00A74C2A /* FirebaseCrashlytics in Frameworks */,
 				0CBA131A2CC19C6500A74C2A /* FirebaseAppCheck in Frameworks */,
+				0C276CDF2CC9D2C700A6B6D6 /* FirebaseDatabase in Frameworks */,
 				0CBA130A2CC19BC700A74C2A /* CryptoSwift in Frameworks */,
 				0CBA131C2CC19C7100A74C2A /* FirebaseAuth in Frameworks */,
 			);
@@ -536,7 +560,9 @@
 		0CF13E382C2A326700D714C0 = {
 			isa = PBXGroup;
 			children = (
+				0CB8BB562CC9A3E6002F57E8 /* firebase-ios-sdk */,
 				0C33DC122CC0979A002C4835 /* FirebaseSettings.xcconfig */,
+				0C276CA72CC9A8FD00A6B6D6 /* SeasAppCheckProviderFactory.swift */,
 				0C33DBE02CC081C1002C4835 /* Resources */,
 				0CA73BF12CB739F2000A66E2 /* GoogleService-Info.plist */,
 				0CD930C22C33DF3C0051E923 /* Info.plist */,
@@ -659,6 +685,7 @@
 				0CF13E3D2C2A326700D714C0 /* Sources */,
 				0CF13E3E2C2A326700D714C0 /* Frameworks */,
 				0CD930AA2C33D4100051E923 /* Resources */,
+				0C0D4FE22CC979C100A9E8FD /* ShellScript */,
 			);
 			buildRules = (
 			);
@@ -771,6 +798,7 @@
 				0CD930AC2C33D4DD0051E923 /* Preview Assets.xcassets in Resources */,
 				0CA73BF22CB739F3000A66E2 /* GoogleService-Info.plist in Resources */,
 				0C33DC132CC0979A002C4835 /* FirebaseSettings.xcconfig in Resources */,
+				0CB8BB572CC9A3E6002F57E8 /* firebase-ios-sdk in Resources */,
 				0CD930B32C33D5020051E923 /* YOu are HEre.png in Resources */,
 				0CD930AE2C33D4F30051E923 /* flashing.gif in Resources */,
 			);
@@ -791,6 +819,27 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		0C0D4FE22CC979C100A9E8FD /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 8;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+			shellPath = "/bin/sh\n";
+			shellScript = "${BUILD_DIR%Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/upload-symbols\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		0CF13E3D2C2A326700D714C0 /* Sources */ = {
@@ -850,6 +899,7 @@
 				0CC1120F2C45F7D80066CF80 /* MatTime+CoreDataClass.swift in Sources */,
 				0CC112102C45F7D80066CF80 /* MatTime+CoreDataProperties.swift in Sources */,
 				0C1893D12C7D18F0007BFADB /* ReviewUtils.swift in Sources */,
+				0C276CCC2CC9A8FD00A6B6D6 /* SeasAppCheckProviderFactory.swift in Sources */,
 				0CA142242C3EF19900C366CF /* MainLoginViewController.swift in Sources */,
 				0C07B0772C2CFD6700D0BFB2 /* EditExistingIsland.swift in Sources */,
 				0C00086E2CA895D600CA5181 /* SearchBar.swift in Sources */,
@@ -1069,12 +1119,16 @@
 				INFOPLIST_KEY_UIMainStoryboardFile = MainStoryboard;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				"IPHONEOS_DEPLOYMENT_TARGET[sdk=iphoneos*]" = 17.5;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
+				NEW_SETTING = "";
+				OTHER_LDFLAGS = "-ObjC";
+				"OTHER_LDFLAGS[arch=*]" = "-ObjC";
 				PRODUCT_BUNDLE_IDENTIFIER = "MF-inder.Seas-3";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -1103,12 +1157,15 @@
 				INFOPLIST_KEY_UIMainStoryboardFile = MainStoryboard;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
+				NEW_SETTING = "";
+				OTHER_LDFLAGS = "-ObjC";
+				"OTHER_LDFLAGS[arch=*]" = "-ObjC";
 				PRODUCT_BUNDLE_IDENTIFIER = "MF-inder.Seas-3";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -1260,7 +1317,7 @@
 			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 11.3.0;
+				minimumVersion = 11.5.0;
 			};
 		};
 		0CCA63962CC16A8C008D45F7 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */ = {
@@ -1274,6 +1331,10 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		0C276CDE2CC9D2C700A6B6D6 /* FirebaseDatabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = FirebaseDatabase;
+		};
 		0C33DC042CC095CF002C4835 /* FirebaseMLModelDownloader */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = FirebaseMLModelDownloader;

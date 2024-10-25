@@ -1,3 +1,15 @@
 # Ignore sensitive plist files
 info3.plist
 Config.plist
+.DS_Store
+Info.plist
+GoogleService-Info.plist
+.build/
+Pods/
+Sources/
+build/
+database.rules.json
+firebase.json
+firestore.indexes.json
+firestore.rules
+storage.rules

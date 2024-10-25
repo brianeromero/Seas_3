@@ -17,6 +17,7 @@ struct Seas3App: App {
     @StateObject var appState = AppState()
     @StateObject var viewModel: AppDayOfWeekViewModel
     @StateObject var authenticationState = AuthenticationState()
+    @State private var selectedTabIndex: LoginViewSelection = .login
 
 
     init() {
@@ -43,8 +44,11 @@ struct Seas3App: App {
                             }
                         }
                 } else if !authenticationState.isAuthenticated {
-                    LoginView(islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.shared),
-                              persistenceController: PersistenceController.shared)
+                    LoginView(
+                        islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.shared),
+                        persistenceController: PersistenceController.shared,
+                        isSelected: $selectedTabIndex
+                    )
                         .environment(\.managedObjectContext, PersistenceController.shared.container.viewContext)
                         .environmentObject(authenticationState)
                 } else {

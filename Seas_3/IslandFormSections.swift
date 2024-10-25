@@ -25,41 +25,37 @@ struct IslandFormSections: View {
     @Binding var alertMessage: String
 
     var body: some View {
-        VStack(spacing: 20) { // Use VStack instead of Form
+        VStack(spacing: 10) { // Reduce spacing
             islandDetailsSection
             websiteSection
         }
         .padding() // Optional padding around the VStack
     }
 
+
     var islandDetailsSection: some View {
-        Section(header: Text("").fontWeight(.bold)) {
-            // Add labels before each TextField
-            VStack(alignment: .leading) {
+        Section(header: Text("Gym Details").fontWeight(.bold)) {
+            VStack(alignment: .leading, spacing: 8) {
                 Text("Gym Name")
                 TextField("Enter Gym Name", text: $islandName)
                     .onChange(of: islandName) { _ in validateFields() }
                     .textFieldStyle(RoundedBorderTextFieldStyle())
-            }
-            VStack(alignment: .leading) {
+                
                 Text("Street")
                 TextField("Enter Street", text: $street)
                     .onChange(of: street) { _ in updateIslandLocation() }
                     .textFieldStyle(RoundedBorderTextFieldStyle())
-            }
-            VStack(alignment: .leading) {
+                
                 Text("City")
                 TextField("Enter City", text: $city)
                     .onChange(of: city) { _ in updateIslandLocation() }
                     .textFieldStyle(RoundedBorderTextFieldStyle())
-            }
-            VStack(alignment: .leading) {
+                
                 Text("State")
                 TextField("Enter State", text: $state)
                     .onChange(of: state) { _ in updateIslandLocation() }
                     .textFieldStyle(RoundedBorderTextFieldStyle())
-            }
-            VStack(alignment: .leading) {
+                
                 Text("Zip")
                 TextField("Enter Zip", text: $zip)
                     .onChange(of: zip) { _ in updateIslandLocation() }
@@ -70,8 +66,8 @@ struct IslandFormSections: View {
     }
 
     var websiteSection: some View {
-        Section(header: Text("")) {
-            VStack(alignment: .leading) {
+        Section(header: Text("Gym Website").fontWeight(.bold)) {
+            VStack(alignment: .leading, spacing: 8) {
                 Text("Gym Website")
                 TextField("Enter Website URL", text: $gymWebsite, onEditingChanged: { _ in
                     if !gymWebsite.isEmpty {
@@ -92,7 +88,7 @@ struct IslandFormSections: View {
                     validateFields()
                 })
                 .keyboardType(.URL)
-                .textFieldStyle(RoundedBorderTextFieldStyle()) // Add text field style
+                .textFieldStyle(RoundedBorderTextFieldStyle())
             }
             .padding() // Add padding to the section
         }

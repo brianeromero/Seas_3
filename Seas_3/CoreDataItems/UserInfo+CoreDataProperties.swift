@@ -19,12 +19,14 @@ extension UserInfo {
     @NSManaged public var name: String // Required
     @NSManaged public var email: String // Required
     @NSManaged public var passwordHash: Data // Required
+    @NSManaged public var salt: Data // Required
+    @NSManaged public var iterations: Int64 // Required
     @NSManaged public var isVerified: Bool // Required
+    @NSManaged public var userID: UUID! // Required, unique
     
     // Optional fields
-    @NSManaged public var belt: String? // Optional (if applicable)
-    @NSManaged public var userID: UUID? // Optional (if applicable)
-    @NSManaged public var verificationToken: String? // Optional (if applicable)
+    @NSManaged public var belt: String? // Optional
+    @NSManaged public var verificationToken: String? // Optional
 }
 
 extension UserInfo: Identifiable {}

@@ -12,4 +12,8 @@ import CoreData
 @objc(UserInfo)
 public class UserInfo: NSManagedObject {
 
+    convenience init(context: NSManagedObjectContext) {
+        self.init(entity: UserInfo.entity(), insertInto: context)
+        userID = UUID()
+    }
 }

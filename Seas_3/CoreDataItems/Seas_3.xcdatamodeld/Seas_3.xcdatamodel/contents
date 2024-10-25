@@ -50,9 +50,11 @@
         <attribute name="belt" optional="YES" attributeType="String"/>
         <attribute name="email" attributeType="String"/>
         <attribute name="isVerified" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="iterations" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="name" attributeType="String"/>
         <attribute name="passwordHash" attributeType="Binary"/>
-        <attribute name="userID" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="salt" optional="YES" attributeType="Binary"/>
+        <attribute name="userID" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="userName" attributeType="String"/>
         <attribute name="verificationToken" optional="YES" attributeType="String"/>
     </entity>
