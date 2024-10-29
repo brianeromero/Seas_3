@@ -21,7 +21,6 @@ extension String {
     }
 }
 
-
 struct CreateAccountView: View {
     @EnvironmentObject var authenticationState: AuthenticationState
     @Environment(\.managedObjectContext) private var managedObjectContext
@@ -30,14 +29,14 @@ struct CreateAccountView: View {
     @State private var belt: String = ""
     @State private var bypassValidation = false
     @StateObject var authViewModel = AuthViewModel()
-
+    
     @State private var showVerificationAlert = false
     @State private var errorMessage: String = ""
-
+    
     let beltOptions = ["White", "Blue", "Purple", "Brown", "Black", "Red&Black", "Red&White", "Red"]
-
+    
     @ObservedObject var islandViewModel: PirateIslandViewModel
-
+    
     @State private var islandName = ""
     @State private var street = ""
     @State private var city = ""
@@ -48,14 +47,15 @@ struct CreateAccountView: View {
     @State private var selectedProtocol = "http://"
     @State private var showAlert = false
     @State private var showErrorAlert = false
-
+    
     // For Inline Validation
     @State private var alertMessage = ""
-
+    
     let emailManager: UnifiedEmailManager
-
+    
     init(islandViewModel: PirateIslandViewModel,
          isUserProfileActive: Binding<Bool>,
+         persistenceController: PersistenceController,
          emailManager: UnifiedEmailManager = .shared) {
         self._islandViewModel = ObservedObject(wrappedValue: islandViewModel)
         self._isUserProfileActive = isUserProfileActive
@@ -77,40 +77,45 @@ struct CreateAccountView: View {
                 // Login Information
                 Section(header: Text("Login Information").fontWeight(.bold)) {
                     UserNameField(
-                        username: $formState.username,
-                        isValid: $formState.isUsernameValid,
-                        errorMessage: $formState.usernameErrorMessage,
-                        validateUsername: validateUsername
+                        userName: $formState.userName,
+                        isValid: $formState.isUserNameValid,
+                        errorMessage: $formState.userNameErrorMessage,
+                        validateUserName: { userName in ValidationUtility.validateField(userName, type: .userName) }
                     )
+                    .padding(.bottom, 10)
                     
                     NameField(
                         name: $formState.name,
                         isValid: $formState.isNameValid,
                         errorMessage: $formState.nameErrorMessage,
-                        validateName: validateName
+                        validateName: ValidationUtility.validateName
                     )
+                    .padding(.bottom, 10)
                     
                     EmailField(
                         email: $formState.email,
                         isValid: $formState.isEmailValid,
                         errorMessage: $formState.emailErrorMessage,
-                        validateEmail: validateEmail
+                        validateEmail: ValidationUtility.validateEmail
                     )
+                    .padding(.bottom, 10)
                     
                     PasswordField(
                         password: $formState.password,
                         isValid: $formState.isPasswordValid,
                         errorMessage: $formState.passwordErrorMessage,
                         bypassValidation: $bypassValidation,
-                        validatePassword: isValidPassword
+                        validatePassword: ValidationUtility.isValidPassword
                     )
+                    .padding(.bottom, 10)
                     
                     ConfirmPasswordField(
                         confirmPassword: $formState.confirmPassword,
                         isValid: $formState.isConfirmPasswordValid,
                         password: $formState.password
                     )
-                    .padding(.top, 20) // Add padding here
+                    .padding(.top, 20)
+                    .padding(.bottom, 10)
                     
                     if !formState.password.isEmpty && !formState.confirmPassword.isEmpty {
                         if formState.password == formState.confirmPassword {
@@ -205,13 +210,12 @@ struct CreateAccountView: View {
             .showErrorAlert(isPresented: $showErrorAlert, message: errorMessage)
         }
     }
-
-
+    
     // MARK: - Create Account Functionality
     private func createAccount() {
         print("Create Account button clicked")
         print("Checking password match")
-
+        
         // Check password match
         if formState.password != formState.confirmPassword {
             print("Password mismatch")
@@ -221,7 +225,7 @@ struct CreateAccountView: View {
         print("Passwords match")
         
         print("Checking password validity")
-
+        
         // Check password validity
         if !formState.isPasswordValid {
             print("Password invalid")
@@ -235,7 +239,7 @@ struct CreateAccountView: View {
         Task {
             let result = await authViewModel.createUser(withEmail: formState.email,
                                                         password: formState.password,
-                                                        username: formState.username,
+                                                        userName: formState.userName,
                                                         name: formState.name)
             
             switch result {
@@ -260,75 +264,19 @@ struct CreateAccountView: View {
                 }
             }
         }
-        
-    }
-    
-    // MARK: - Helper Functions
-    private func validateUsername(_ username: String) -> String? {
-        let error = ValidationUtility.validateField(username, type: .username)
-        return error
-    }
-
-    private func validateEmail(_ email: String) -> String? {
-        return ValidationUtility.validateField(email, type: .email)
-    }
-
-    private func validateName(_ name: String) -> String? {
-        let error = ValidationUtility.validateField(name, type: .name)
-        return error
-    }
-
-    private func isValidPassword(_ password: String) -> (Bool, String?) {
-        let (isValid, feedback) = ValidationUtility.isValidPassword(password)
-        return (isValid, feedback)
-    }
-
-    private func fetchUserByEmail(_ email: String) -> UserInfo? {
-        let fetchRequest: NSFetchRequest<UserInfo> = UserInfo.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "email == %@", email)
-        
-        do {
-            let results = try managedObjectContext.fetch(fetchRequest)
-            return results.first
-        } catch {
-            print("Failed to fetch user by email: \(error)")
-            return nil
-        }
     }
 }
 
-// Enhanced Preview Provider
+// Preview
 struct CreateAccountView_Previews: PreviewProvider {
     static var previews: some View {
         CreateAccountView(
             islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.preview),
             isUserProfileActive: .constant(false),
+            persistenceController: PersistenceController.preview,
             emailManager: UnifiedEmailManager.shared
         )
-        .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
-        .previewLayout(.sizeThatFits)
-        .previewDisplayName("Account Creation Form - Default")
-
-        // Additional Previews with different states
-        CreateAccountView(
-            islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.preview),
-            isUserProfileActive: .constant(true),
-            emailManager: UnifiedEmailManager.shared
-        )
-        .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
         .environmentObject(AuthenticationState())
-        .previewLayout(.sizeThatFits)
-        .previewDisplayName("Account Creation Form - UserProfile Active")
-
-        // Preview with error message (Set error message within the view)
-        CreateAccountView(
-            islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.preview),
-            isUserProfileActive: .constant(false),
-            emailManager: UnifiedEmailManager.shared
-        )
         .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
-        .environmentObject(AuthenticationState(errorMessage: "Example Error Message"))
-        .previewLayout(.sizeThatFits)
-        .previewDisplayName("Account Creation Form - Error")
     }
 }

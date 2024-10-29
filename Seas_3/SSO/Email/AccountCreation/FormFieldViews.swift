@@ -10,10 +10,10 @@ import SwiftUI
 
 // REUSABLE FIELD VIEWS
 struct UserNameField: View {
-    @Binding var username: String
+    @Binding var userName: String  // Updated here
     @Binding var isValid: Bool
     @Binding var errorMessage: String
-    var validateUsername: (String) -> String?
+    var validateUserName: (String) -> String?
 
     var body: some View {
         VStack(alignment: .leading) {
@@ -21,10 +21,10 @@ struct UserNameField: View {
                 Text("Username")
                 Text("*").foregroundColor(.red)
             }
-            TextField("Enter your username", text: $username)
+            TextField("Enter your username", text: $userName)  // Updated here
                 .textFieldStyle(RoundedBorderTextFieldStyle())
-                .onChange(of: username) { newValue in
-                    let validationMessage = validateUsername(newValue)
+                .onChange(of: userName) { newValue in  // Updated here
+                    let validationMessage = validateUserName(newValue)
                     isValid = validationMessage == nil
                     errorMessage = validationMessage ?? ""
                 }

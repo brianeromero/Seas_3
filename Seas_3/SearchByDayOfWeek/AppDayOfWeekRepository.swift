@@ -10,7 +10,7 @@ import CoreData
 import CoreLocation
 
 
-class AppDayOfWeekRepository {
+class AppDayOfWeekRepository: ObservableObject {
     @State private var errorMessage: String?
     let persistenceController: PersistenceController
     private var currentAppDayOfWeek: AppDayOfWeek?

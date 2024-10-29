@@ -10,6 +10,24 @@ import FBSDKLoginKit
 import FBSDKCoreKit
 import FirebaseAnalytics
 
+
+enum FacebookError: Error {
+    case expiredAccessToken
+    case invalidOAuthToken
+    case unknownError(Error)
+    
+    var localizedDescription: String {
+        switch self {
+        case .expiredAccessToken:
+            return "Access token is expired."
+        case .invalidOAuthToken:
+            return "Invalid OAuth access token signature."
+        case .unknownError(let error):
+            return error.localizedDescription
+        }
+    }
+}
+
 class FacebookHelper {
     
     static func checkFacebookToken() {
@@ -18,7 +36,6 @@ class FacebookHelper {
             print("Access token is expired or missing. Not fetching profile.")
             return
         } else {
-            // Token is valid, proceed to fetch profile
             FacebookHelper.fetchFacebookUserProfile { userInfo in
                 if userInfo != nil {
                     print("Facebook user profile fetched successfully: \(String(describing: userInfo))")
@@ -28,7 +45,7 @@ class FacebookHelper {
             }
         }
     }
-
+    
     static func handleFacebookLogin() {
         let loginManager = LoginManager()
         loginManager.logIn(permissions: ["public_profile", "email"], from: nil) { result, error in
@@ -40,7 +57,7 @@ class FacebookHelper {
                 print("Facebook Login Success")
                 Analytics.logEvent("facebook_login_success", parameters: nil)
                 
-                fetchFacebookUserProfile { userInfo in
+                FacebookHelper.fetchFacebookUserProfile { userInfo in
                     guard let userInfo = userInfo else { return }
                     print("Fetched Facebook user profile: \(userInfo)")
                     
@@ -49,7 +66,7 @@ class FacebookHelper {
                     let graphRequest = GraphRequest(graphPath: "1057815062545175", parameters: params)
                     graphRequest.start { _, result, error in
                         if let error = error {
-                            handleFacebookSDKError(error)
+                            FacebookHelper.handleFacebookSDKError(error)
                             return
                         }
                         print("Fetched ios_skadnetwork_conversion_config: \(String(describing: result))")
@@ -58,11 +75,12 @@ class FacebookHelper {
             }
         }
     }
-
+    
     static func fetchFacebookUserProfile(completion: @escaping ([String: Any]?) -> Void) {
         if AccessToken.current?.isExpired ?? false {
             AccessToken.refreshCurrentAccessToken { _, _, error in
                 if let error = error {
+                    print("Access token refresh error: \(error.localizedDescription)")
                     handleFacebookSDKError(error)
                     completion(nil)
                     return
@@ -74,6 +92,7 @@ class FacebookHelper {
             let graphRequest = GraphRequest(graphPath: "me", parameters: params)
             graphRequest.start { _, result, error in
                 if let error = error {
+                    print("Error fetching Facebook user profile: \(error.localizedDescription)")
                     handleFacebookSDKError(error)
                     completion(nil)
                     return
@@ -82,13 +101,13 @@ class FacebookHelper {
             }
         }
     }
+
     
     static func handleFacebookSDKError(_ error: Error) {
-        print("Facebook SDK Error: \(error.localizedDescription)")
         let errorCode = (error as NSError).code
         switch errorCode {
         case 190:
-            print("Invalid OAuth access token signature. Please try again.")
+            print("Invalid OAuth access token signature.")
         default:
             print("Unknown Facebook SDK error: \(error.localizedDescription)")
         }

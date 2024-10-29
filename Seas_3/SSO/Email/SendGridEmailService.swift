@@ -8,13 +8,17 @@
 import Foundation
 
 class SendGridEmailService {
-    // Securely read the API key from the Info.plist
+    // Securely read the API key from the Config.plist
     private var apiKey: String {
-        guard let key = Bundle.main.infoDictionary?["SENDGRID_API_KEY"] as? String else {
-            fatalError("SendGrid API Key is missing from Info.plist")
+        guard let config = ConfigLoader.loadConfigValues() else {
+            fatalError("Failed to load Config.plist")
+        }
+        guard let key = config.SENDGRID_API_KEY else {
+            fatalError("SendGrid API Key is missing from Config.plist")
         }
         return key
     }
+
 
     // Sends a custom email using the SendGrid API
     func sendEmail(to recipientEmail: String, subject: String, content: String, completion: @escaping (Bool) -> Void) {

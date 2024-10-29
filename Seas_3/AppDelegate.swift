@@ -19,32 +19,32 @@ import UserNotifications
 import FirebaseFirestore
 import FirebaseAuth
 
-
 extension NSNotification.Name {
     static let signInLinkReceived = NSNotification.Name("signInLinkReceived")
 }
-
 
 class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
     var window: UIWindow?
     let persistenceController = PersistenceController.shared
     
     // Configuration properties
-    var facebookAppID: String?
-    var facebookClientToken: String?
     var facebookSecret: String?
     var sendgridApiKey: String?
     var googleClientID: String?
     var googleApiKey: String?
     var googleAppID: String?
+    var deviceCheckKeyID: String? // Add this
+    var deviceCheckTeamID: String? // Add this
 
-
-    func application(_ application: UIApplication,
-                     didFinishLaunchingWithOptions launchOptions: [UIApplication
-                       .LaunchOptionsKey: Any]?) -> Bool {
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        configureApplicationAppearance()
+        
+        ApplicationDelegate.shared.application(application, didFinishLaunchingWithOptions: launchOptions)
+        
         print("Configuring Firebase...")
         configureFirebase()
         print("Firebase configured")
+        
         
         print("Configuring App Check...")
         setupAppCheck()
@@ -67,15 +67,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
         registerForPushNotifications()
         print("Push notifications registered")
         
-        // Additional logging
-        print("Device Information:")
-        print("  Model: \(UIDevice.current.model)")
-        print("  System: \(UIDevice.current.systemName) \(UIDevice.current.systemVersion)")
-        print("  UUID: \(UIDevice.current.identifierForVendor?.uuidString ?? "")")
-        
+        // Sign in as brianeromero@gmail.com to reverify the email
+        reverifyEmail(for: "brianeromero@gmail.com", password: "your_password")
+
         return true
     }
-    
     
     private func registerForPushNotifications() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
@@ -102,22 +98,29 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
     }
 
     private func configureGoogleAds() {
-         GADMobileAds.sharedInstance().requestConfiguration.setPublisherFirstPartyIDEnabled(false)
-     }
+        GADMobileAds.sharedInstance().requestConfiguration.setPublisherFirstPartyIDEnabled(false)
+    }
 
     private func configureFirebase() {
         // Set app check provider factory *before* configuring Firebase.
         let appCheckFactory = SeasAppCheckProviderFactory()
         AppCheck.setAppCheckProviderFactory(appCheckFactory)
 
-        // Now configure Firebase.
+        // Get FacebookAppID from Info.plist
+        let infoPlist = Bundle.main.infoDictionary
+        let facebookAppID = infoPlist?["FacebookAppID"] as? String
+
+        // Set FacebookAppID
+        Settings.shared.appID = facebookAppID
+        
+        // Configure Firebase.
         FirebaseApp.configure()
         FirebaseConfiguration.shared.setLoggerLevel(.debug)
         
         Messaging.messaging().delegate = self
         Messaging.messaging().isAutoInitEnabled = true
         Analytics.setAnalyticsCollectionEnabled(true)
-
+        
         // Additional logging
         print("Firebase Configuration:")
         if let googleAppID = getGoogleAppID() {
@@ -193,36 +196,43 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
         print("Handling App Check token error: \(error)")
     }
     
+    // Helper function to retrieve SendGrid API Key from Config.plist
+    private func getSendGridApiKey() -> String? {
+        guard let config = ConfigLoader.loadConfigValues() else {
+            print("Failed to load Config.plist")
+            return nil
+        }
+        return config.SENDGRID_API_KEY
+    }
+
+    // Loading configuration values
     private func loadConfigValues() {
-        guard let config = loadPlistConfig() else {
+        guard let config = ConfigLoader.loadConfigValues() else {
             print("Could not load configuration values.")
             return
         }
-        
-        facebookAppID = config.FacebookAppID
-        facebookClientToken = config.FacebookClientToken
-        facebookSecret = config.FacebookSecret
         sendgridApiKey = config.SENDGRID_API_KEY
         googleClientID = config.GoogleClientID
         googleApiKey = config.GoogleApiKey
         googleAppID = config.GoogleAppID
+        deviceCheckKeyID = config.DeviceCheckKeyID
+        deviceCheckTeamID = config.DeviceCheckTeamID
 
-        // Load into AppConfig
-        AppConfig.shared.facebookAppID = facebookAppID
+        // Ensure SendGrid API key is set, else print error
+        guard let sendgridApiKey = sendgridApiKey else {
+            print("Error: SendGrid API Key is missing from Config.plist")
+            // Provide a default value or disable SendGrid functionality
+            AppConfig.shared.sendgridApiKey = "DEFAULT_SENDGRID_API_KEY"
+            return
+        }
+
+        // Load into AppConfig (if needed)
         AppConfig.shared.googleClientID = googleClientID
         AppConfig.shared.googleApiKey = googleApiKey
         AppConfig.shared.googleAppID = googleAppID
         AppConfig.shared.sendgridApiKey = sendgridApiKey
-    }
-
-    private func loadPlistConfig() -> Config? {
-        guard let path = Bundle.main.path(forResource: "Config", ofType: "plist"),
-              let data = try? Data(contentsOf: URL(fileURLWithPath: path)),
-              let config = try? PropertyListDecoder().decode(Config.self, from: data) else {
-            print("Failed to load Config.plist")
-            return nil
-        }
-        return config
+        AppConfig.shared.deviceCheckKeyID = deviceCheckKeyID
+        AppConfig.shared.deviceCheckTeamID = deviceCheckTeamID
     }
 
     func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
@@ -243,20 +253,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
         if ApplicationDelegate.shared.application(app, open: url, options: options) {
             return true
-        }
-
-        if GIDSignIn.sharedInstance.handle(url) {
+        } else if GIDSignIn.sharedInstance.handle(url) {
             print("Google URL Handled: \(url)")
             return true
-        }
-
-        if Auth.auth().isSignIn(withEmailLink: url.absoluteString) {
+        } else if Auth.auth().isSignIn(withEmailLink: url.absoluteString) {
             NotificationCenter.default.post(name: .signInLinkReceived, object: url.absoluteString)
             return true
         }
 
         EmailVerificationHandler.handleEmailVerification(url: url)
-
         return false
     }
 
@@ -274,5 +279,29 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
         } catch {
             print("Failed to save context: \(error.localizedDescription)")
         }
+    }
+    
+    private func reverifyEmail(for email: String, password: String) {
+        let auth = Auth.auth()
+        auth.signIn(withEmail: email, password: password) { result, error in
+            if let error = error {
+                print("Error signing in for reverification: \(error.localizedDescription)")
+            } else if let user = auth.currentUser, !user.isEmailVerified {
+                user.sendEmailVerification { error in
+                    if let error = error {
+                        print("Error sending verification email: \(error.localizedDescription)")
+                    } else {
+                        print("Verification email sent to \(email).")
+                    }
+                }
+            } else {
+                print("User \(email) is already verified.")
+            }
+        }
+    }
+    
+    private func configureApplicationAppearance() {
+        UINavigationBar.appearance().tintColor = .systemOrange
+        UITabBar.appearance().tintColor = .systemOrange
     }
 }

@@ -9,7 +9,7 @@ import Foundation
 
 
 enum ValidationType {
-    case username, email, name, password
+    case userName, email, name, password
 }
 
 
@@ -29,10 +29,10 @@ class ValidationUtility {
     }
     
     // Username validation
-    static func validateUsername(_ username: String) -> String? {
-        if username.count < 7 || !username.isAlphanumeric {
+    static func validateUserName(_ userName: String) -> String? {
+        if userName.count < 7 || !userName.isAlphanumeric {
             return "Username should be at least 7 characters long and contain only alphanumeric characters."
-        } else if usernameIsTaken(username) {
+        } else if userNameIsTaken(userName) {
             return "Username already exists."
         }
         return nil
@@ -70,7 +70,7 @@ class ValidationUtility {
     }
     
     // Check if username is taken (replace with actual implementation)
-    static func usernameIsTaken(_ username: String) -> Bool {
+    static func userNameIsTaken(_ userName: String) -> Bool {
         // Logic to check if username is taken in your database or storage system
         // Replace with actual implementation
         // For example:
@@ -83,8 +83,8 @@ class ValidationUtility {
     // Generic field validation
     static func validateField(_ field: String, type: ValidationType) -> String? {
         switch type {
-        case .username:
-            return validateUsername(field)
+        case .userName:
+            return validateUserName(field)
         case .email:
             return validateEmail(field)
         case .name:

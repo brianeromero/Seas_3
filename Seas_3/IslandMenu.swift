@@ -6,12 +6,6 @@ import SwiftUI
 import CoreData
 import MapKit
 
-struct MenuItem: Identifiable {
-    let id = UUID()
-    let title: String
-    let subMenuItems: [String]?
-}
-
 struct IslandMenu: View {
     @State private var showAlert = false
     @State private var alertMessage = ""
@@ -86,35 +80,6 @@ struct IslandMenu: View {
                             }
                         }
                         .padding(.bottom, 20)
-                    }
-
-                    NavigationLink(destination: ContentView(persistenceController: persistenceController)) {
-                        Text("All Gyms")
-                            .font(.footnote)
-                            .foregroundColor(.blue)
-                            .padding(.leading, 0)
-                            .padding(.top, 10)
-                    }
-
-                    NavigationLink(destination: pIslandScheduleView(viewModel: appDayOfWeekViewModel)) {
-                        Text("ALL Gym Schedules")
-                            .font(.footnote)
-                            .foregroundColor(.blue)
-                            .padding(.top, 10)
-                    }
-
-                    NavigationLink(destination: AllpIslandScheduleView(
-                        viewModel: appDayOfWeekViewModel,
-                        persistenceController: persistenceController,
-                        enterZipCodeViewModel: EnterZipCodeViewModel(
-                            repository: appDayOfWeekRepository,
-                            context: viewContext
-                        )
-                    )) {
-                        Text("ALL Mat Schedules")
-                            .font(.footnote)
-                            .foregroundColor(.blue)
-                            .padding(.top, 10)
                     }
                 }
                 .padding(.horizontal, 20)

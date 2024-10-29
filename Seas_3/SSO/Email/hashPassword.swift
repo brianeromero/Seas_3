@@ -12,7 +12,8 @@ import CryptoSwift
 // Hashing.swift
 enum HashError: Error {
     case invalidInput
-    case missingConfigValue
+    case coreDataError(Error)
+    case passwordVerificationError
 }
 
 // Firebase PBKDF2 configuration
@@ -92,11 +93,19 @@ func generateSalt(length: Int = HashConfig().saltLength) throws -> Data {
 }
 
 // Verify password using PBKDF2
-func verifyPasswordPbkdf(_ password: String, againstHash passwordHash: HashedPassword) throws -> Bool {
-    // Hash input password using PBKDF2
-    let pbkdf = try PKCS5.PBKDF2(password: password.data(using: .utf8)!.bytes, salt: passwordHash.salt.bytes, iterations: passwordHash.iterations, keyLength: keyLength, variant: .sha2(.sha256))
+func verifyPasswordPbkdf(_ inputPassword: String, againstHash storedHash: HashedPassword) throws -> Bool {
+    let saltData = storedHash.salt
+    let hashData = storedHash.hash
+    
+    let pbkdf = try PKCS5.PBKDF2(
+        password: Array(inputPassword.utf8),
+        salt: saltData.bytes,
+        iterations: storedHash.iterations,
+        keyLength: hashData.count,
+        variant: .sha2(.sha256)
+    )
     let derivedKey = try pbkdf.calculate()
     
-    // Compare with stored hash
-    return Data(derivedKey) == passwordHash.hash
+    return Data(derivedKey) == hashData
 }
+    

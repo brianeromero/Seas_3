@@ -9,9 +9,9 @@ import Foundation
 
 
 struct FormState {
-    var username: String = ""
-    var isUsernameValid: Bool = false
-    var usernameErrorMessage: String = ""
+    var userName: String = ""
+    var isUserNameValid: Bool = false
+    var userNameErrorMessage: String = ""
 
     var name: String = ""
     var isNameValid: Bool = false
@@ -30,6 +30,6 @@ struct FormState {
     var confirmPasswordErrorMessage: String = ""
 
     var isValid: Bool {
-        return isUsernameValid && isNameValid && isEmailValid && isPasswordValid && isConfirmPasswordValid
+        return isUserNameValid && isNameValid && isEmailValid && isPasswordValid && isConfirmPasswordValid
     }
 }

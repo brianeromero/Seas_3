@@ -29,7 +29,7 @@ struct EmailUtility {
         return fetchUserInfo(with: NSPredicate(format: "email == %@", email))
     }
 
-    static func fetchUserInfo(byUsername username: String) -> UserInfo? {
-        return fetchUserInfo(with: NSPredicate(format: "userName == %@", username))
+    static func fetchUserInfo(byUserName userName: String) -> UserInfo? {
+        return fetchUserInfo(with: NSPredicate(format: "userName == %@", userName))
     }
 }

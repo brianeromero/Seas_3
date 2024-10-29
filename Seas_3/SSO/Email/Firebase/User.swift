@@ -11,7 +11,7 @@ import FirebaseFirestore
 
 class User: Codable, Identifiable {
     var email: String
-    var username: String
+    var userName: String  // Updated here
     var name: String
     var passwordHash: Data
     var salt: Data
@@ -23,7 +23,7 @@ class User: Codable, Identifiable {
 
 
     init(email: String,
-          username: String,
+          userName: String,  // Updated here
           name: String,
           passwordHash: Data,
           salt: Data,
@@ -33,7 +33,7 @@ class User: Codable, Identifiable {
           verificationToken: String? = nil,
           userID: UUID = UUID()) {
         self.email = email
-        self.username = username
+        self.userName = userName  // Updated here
         self.name = name
         self.passwordHash = passwordHash
         self.salt = salt

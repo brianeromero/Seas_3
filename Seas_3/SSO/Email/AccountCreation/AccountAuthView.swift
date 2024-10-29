@@ -56,12 +56,16 @@ struct AccountAuthView: View {
     @State private var showAlert = false
     @State private var alertMessage = ""
     
-    
+    // New property for navigateToAdminMenu
+    @Binding var navigateToAdminMenu: Bool // Add this line
+
     init(islandViewModel: PirateIslandViewModel,
          isUserProfileActive: Binding<Bool>,
+         navigateToAdminMenu: Binding<Bool> = .constant(false), // Add this parameter
          emailManager: UnifiedEmailManager = .shared) {
         self._islandViewModel = ObservedObject(wrappedValue: islandViewModel)
         self._isUserProfileActive = isUserProfileActive
+        self._navigateToAdminMenu = navigateToAdminMenu // Initialize the binding
         self.emailManager = emailManager
     }
     
@@ -71,13 +75,16 @@ struct AccountAuthView: View {
                 if isSelected == .login {
                     LoginView(
                         islandViewModel: islandViewModel,
-                        persistenceController: PersistenceController.shared,
-                        isSelected: $isSelected
+                        persistenceController: PersistenceController.preview,
+                        isSelected: $isSelected,
+                        navigateToAdminMenu: $navigateToAdminMenu
                     )
                 } else if isSelected == .createAccount {
                     CreateAccountView(
                         islandViewModel: islandViewModel,
-                        isUserProfileActive: $isUserProfileActive
+                        isUserProfileActive: $isUserProfileActive,
+                        persistenceController: PersistenceController.preview,
+                        emailManager: UnifiedEmailManager.shared
                     )
                 }
             }
@@ -93,12 +100,14 @@ struct AccountAuthView: View {
     }
 }
 
+
 // Enhanced Preview Provider
 struct AccountAuthView_Previews: PreviewProvider {
     static var previews: some View {
         AccountAuthView(
             islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.preview),
             isUserProfileActive: .constant(false),
+            navigateToAdminMenu: .constant(false), // Add this line
             emailManager: UnifiedEmailManager.shared
         )
         .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
@@ -109,6 +118,7 @@ struct AccountAuthView_Previews: PreviewProvider {
         AccountAuthView(
             islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.preview),
             isUserProfileActive: .constant(true),
+            navigateToAdminMenu: .constant(false), // Add this line
             emailManager: UnifiedEmailManager.shared
         )
         .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
@@ -120,6 +130,7 @@ struct AccountAuthView_Previews: PreviewProvider {
         AccountAuthView(
             islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.preview),
             isUserProfileActive: .constant(false),
+            navigateToAdminMenu: .constant(false), // Add this line
             emailManager: UnifiedEmailManager.shared
         )
         .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)

@@ -8,8 +8,6 @@
 import Foundation
 
 struct Config: Decodable {
-    let FacebookAppID: String?
-    let FacebookClientToken: String?
     let FacebookSecret: String?
     let FacebookDisplayName: String?
     let SENDGRID_API_KEY: String?

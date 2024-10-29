@@ -1,6 +1,7 @@
-// Persistence.swift
-// Seas_3
-// Created by Brian Romero on 6/24/24.
+//
+//  Persistence.swift
+//  Seas_3
+//  Created by Brian Romero on 6/24/24.
 
 import Combine
 import Foundation
@@ -56,9 +57,10 @@ class PersistenceController: ObservableObject {
             do {
                 try viewContext.save()
                 NotificationCenter.default.post(name: .contextSaved, object: nil)
-            } catch {
-                print("Error saving context: \(error.localizedDescription)")
-                throw PersistenceError.saveError(error)
+                print("Context saved successfully.")
+            } catch let saveError as NSError {
+                print("Error saving context (PersistenceController): \(saveError.localizedDescription), \(saveError.userInfo)")
+                throw PersistenceError.saveError(saveError)
             }
         }
     }
@@ -149,9 +151,9 @@ class PersistenceController: ObservableObject {
 
         do {
             try viewContext.save()
-        } catch {
-            let nsError = error as NSError
-            fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
+        } catch let saveError as NSError {
+            print("Error saving preview context: \(saveError.localizedDescription), \(saveError.userInfo)")
+            fatalError("Unresolved error \(saveError), \(saveError.userInfo)")
         }
 
         return result

@@ -38,8 +38,31 @@ enum AuthenticationError: String, LocalizedError {
     case invalidPassword = "Invalid password."
     case accountLocked = "Account locked due to excessive password attempts."
     case invalidPasswordHash = "Invalid password hash: "
+    case invalidCredentials
+    case networkError
+    case serverError
+    case coreDataError
     
-    var errorDescription: String? { rawValue }
+    var errorDescription: String? {
+        switch self {
+        case .invalidEmail:
+            return "Email not found. Please create an account."
+        case .invalidPassword:
+            return "Invalid password."
+        case .accountLocked:
+            return "Account locked due to excessive password attempts."
+        case .invalidPasswordHash:
+            return "Invalid password hash: "
+        case .invalidCredentials:
+            return "Invalid credentials."
+        case .networkError:
+            return "Network error."
+        case .serverError:
+            return "Server error."
+        case .coreDataError:
+            return "Core Data error."
+        }
+    }
 }
 
 // Signin-related errors

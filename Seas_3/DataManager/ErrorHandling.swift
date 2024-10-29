@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftUI
+import FirebaseFirestore
 
 enum ErrorPresentation {
     case debug
@@ -14,17 +15,27 @@ enum ErrorPresentation {
     case none
 }
 
-func handleError(_ error: Error, context: String = "", presentation: ErrorPresentation = .debug) {
+func handleError(_ error: Error, context: String = "", presentation: ErrorPresentation = .debug, errorMessage: Binding<String?>? = nil) {
+    let errorDescription = error.localizedDescription
+    let errorCode = (error as NSError).code
+
     switch presentation {
     case .debug:
-        print("Error occurred: \(error.localizedDescription)")
+        print("Error occurred: \(errorDescription)")
         if !context.isEmpty {
-            print("Error \(context): \(error.localizedDescription)")
+            print("Context: \(context)")
         }
     case .user:
-        // Display custom error message to the user
-        // You can use SwiftUI's @State or @Binding to update an error message variable
-        print("User-facing error: \(error.localizedDescription)")
+        // Check if the error is a Firestore error
+        if errorCode == FirestoreErrorCode.permissionDenied.rawValue {
+            errorMessage?.wrappedValue = "Missing or insufficient permissions."
+        } else if errorCode == FirestoreErrorCode.unauthenticated.rawValue {
+            errorMessage?.wrappedValue = "Authentication error."
+        } else if errorCode == FirestoreErrorCode.invalidArgument.rawValue {
+            errorMessage?.wrappedValue = "Invalid argument provided."
+        } else {
+            errorMessage?.wrappedValue = errorDescription
+        }
     case .none:
         break
     }

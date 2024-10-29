@@ -15,7 +15,7 @@ class EmailSignOn {
             let hashedPassword = try hashPasswordPbkdf(userPassword)
             // Use hashedPassword properties for the User object
             _ = User(email: "user@example.com",
-                            username: "username",
+                            userName: "username",  // Updated here
                             name: "John Doe",
                             passwordHash: hashedPassword.hash,
                             salt: hashedPassword.salt,

@@ -1,14 +1,15 @@
-// Seas_3App.swift
-// Seas_3
-// Created by Brian Romero on 6/24/24.
-
+//
+//  Seas_3App.swift
+//  Seas_3
+//
+//  Created by Brian Romero on 6/24/24.
+//
 
 import SwiftUI
 import CoreData
 import Combine
 import FBSDKCoreKit
 import GoogleSignIn
-
 
 @main
 struct Seas3App: App {
@@ -18,7 +19,6 @@ struct Seas3App: App {
     @StateObject var viewModel: AppDayOfWeekViewModel
     @StateObject var authenticationState = AuthenticationState()
     @State private var selectedTabIndex: LoginViewSelection = .login
-
 
     init() {
         let persistenceController = PersistenceController.shared
@@ -33,6 +33,7 @@ struct Seas3App: App {
 
     var body: some Scene {
         WindowGroup {
+
             Group {
                 if appState.showWelcomeScreen {
                     PirateIslandView()
@@ -43,15 +44,12 @@ struct Seas3App: App {
                                 }
                             }
                         }
-                } else if !authenticationState.isAuthenticated {
-                    LoginView(
-                        islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.shared),
-                        persistenceController: PersistenceController.shared,
-                        isSelected: $selectedTabIndex
-                    )
+                } else if authenticationState.isAuthenticated && authenticationState.navigateToAdminMenu {
+                    AdminMenu()
                         .environment(\.managedObjectContext, PersistenceController.shared.container.viewContext)
-                        .environmentObject(authenticationState)
-                } else {
+                        .environmentObject(appState)
+                        .environmentObject(viewModel)
+                } else if authenticationState.isAuthenticated {
                     IslandMenu(persistenceController: PersistenceController.shared)
                         .environment(\.managedObjectContext, PersistenceController.shared.container.viewContext)
                         .environmentObject(appState)
@@ -60,6 +58,15 @@ struct Seas3App: App {
                             let sceneLoader = SceneLoader()
                             sceneLoader.loadScene()
                         }
+                } else {
+                    LoginView(
+                        islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.shared),
+                        persistenceController: PersistenceController.shared,
+                        isSelected: $selectedTabIndex,
+                        navigateToAdminMenu: $authenticationState.navigateToAdminMenu // Pass the binding
+                    )
+                    .environment(\.managedObjectContext, PersistenceController.shared.container.viewContext)
+                    .environmentObject(authenticationState)
                 }
             }
             .environmentObject(PersistenceController.shared)
@@ -67,7 +74,7 @@ struct Seas3App: App {
                 setupGlobalErrorHandler()
             }
             .onOpenURL { url in
-                if ApplicationDelegate.shared.application(UIApplication.shared, open: url, options: [:]) {
+                if url.absoluteString.contains("fb") {
                     print("Facebook URL handled: \(url)")
                 } else if GIDSignIn.sharedInstance.handle(url) {
                     print("Google URL handled: \(url)")
@@ -78,16 +85,11 @@ struct Seas3App: App {
 
     private func setupGlobalErrorHandler() {
         NSSetUncaughtExceptionHandler { exception in
-            // Log the exception
             NSLog("Uncaught Exception: %@", exception)
-            
-            // Handle specific exceptions
             if let reason = exception.reason,
                reason.contains("has passed an invalid numeric value (NaN, or not-a-number) to CoreGraphics API") {
                 NSLog("Caught NaN error: %@", reason)
             }
-            
-            // Optional: Terminate the app or display an error message
         }
     }
 }

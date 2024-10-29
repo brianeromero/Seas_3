@@ -13,14 +13,14 @@ struct UserInformationView: View {
     var body: some View {
         Section(header: Text("User Information").fontWeight(.bold)) {
             UserNameField(
-                username: $formState.username,
-                isValid: $formState.isUsernameValid,
-                errorMessage: $formState.usernameErrorMessage,
-                validateUsername: ValidationUtility.validateUsername
+                userName: $formState.userName,
+                isValid: $formState.isUserNameValid,
+                errorMessage: $formState.userNameErrorMessage,
+                validateUserName: ValidationUtility.validateUserName
             )
-            .onChange(of: formState.username) { newValue in
-                formState.isUsernameValid = ValidationUtility.validateUsername(newValue) == nil
-                formState.usernameErrorMessage = ValidationUtility.validateUsername(newValue) ?? ""
+            .onChange(of: formState.userName) { newValue in  // Updated here
+                formState.isUserNameValid = ValidationUtility.validateUserName(newValue) == nil
+                formState.userNameErrorMessage = ValidationUtility.validateUserName(newValue) ?? ""
             }
 
             NameField(

@@ -31,32 +31,21 @@ class EmailService {
     }
 
     // Sends a Firebase email verification
-    func sendEmailVerification(to email: String, completion: @escaping (Bool) -> Void) {
-        Auth.auth().currentUser?.sendEmailVerification { error in
+    func sendEmailVerification(completion: @escaping (Bool) -> Void) {
+        guard let currentUser = Auth.auth().currentUser else {
+            print("No current user")
+            completion(false)
+            return
+        }
+        
+        currentUser.sendEmailVerification { error in
             if let error = error {
                 print("Firebase verification email error: \(error.localizedDescription)")
                 completion(false)
             } else {
-                print("Email verification sent successfully using Firebase.")
-                self.updateVerificationStatus(for: email) // Update verification status
+                print("Email verification sent successfully using Firebase.");
                 completion(true)
             }
-        }
-    }
-    
-    // Updates the verification status in Core Data
-    private func updateVerificationStatus(for email: String) {
-        let request = UserInfo.fetchRequest() as NSFetchRequest<UserInfo>
-        request.predicate = NSPredicate(format: "email == %@", email)
-        
-        do {
-            let users = try managedObjectContext.fetch(request)
-            if let user = users.first {
-                user.isVerified = true
-                try managedObjectContext.save()
-            }
-        } catch {
-            print("Error updating user verification status: \(error.localizedDescription)")
         }
     }
     
@@ -77,7 +66,11 @@ class EmailService {
         """
         
         // Implement custom email service logic here
-        // ...
+        // For example, you can use SendGrid or another email service provider to send the email.
+        // Placeholder for actual email sending logic.
+        
+        print("Sending confirmation email to \(email)...")
+        // If sending is successful, call completion(true), else completion(false)
         completion(true) // Replace with actual success/failure logic
     }
 }

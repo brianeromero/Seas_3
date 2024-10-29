@@ -11,17 +11,16 @@ import Combine
 
 /// Manages the authentication state of the application.
 public class AuthenticationState: ObservableObject {
-    /// Indicates whether the user is authenticated.
     @Published var isAuthenticated: Bool = false
     
-    /// The social user, if authenticated through a social provider.
+    @Published var isAdmin: Bool = false // Existing admin access indicator
+    
+    @Published var navigateToAdminMenu: Bool = false // Add this line
+
     @Published public private(set) var socialUser: SocialUser?
-    
-    /// The currently logged-in user.
     @Published var user: UserInfo?
-    
-    /// Error message to display to the user.
     @Published var errorMessage: String = ""
+    
     
     /// Represents a social user.
     public struct SocialUser {
@@ -36,6 +35,7 @@ public class AuthenticationState: ObservableObject {
         let name: String
         let email: String
         let profilePictureUrl: URL?
+        
         
         /// Initializes a social user.
         ///
@@ -57,34 +57,7 @@ public class AuthenticationState: ObservableObject {
     public init(errorMessage: String = "") {
         self.errorMessage = errorMessage
     }
-    
-    /// Authentication-related errors.
-    public enum AuthenticationError: Error, LocalizedError {
-        case invalidUserData
-        case authenticationFailed
-        case invalidEmail
-        case invalidPassword
-        case userNotFound
-        case serverError
-        
-        /// Human-readable error description.
-        public var errorDescription: String? {
-            switch self {
-            case .invalidUserData:
-                return "Invalid user data."
-            case .authenticationFailed:
-                return "Authentication failed."
-            case .invalidEmail:
-                return "Invalid email."
-            case .invalidPassword:
-                return "Invalid password."
-            case .userNotFound:
-                return "User not found."
-            case .serverError:
-                return "Server error."
-            }
-        }
-    }
+
     
     /// Checks if an email address is valid.
     ///
@@ -114,7 +87,7 @@ public class AuthenticationState: ObservableObject {
     /// - Throws: AuthenticationError.invalidUserData if any parameters are empty.
     public func updateSocialUser(_ provider: SocialUser.Provider, _ userId: String, _ userName: String, _ userEmail: String) throws {
         guard !userId.isEmpty, !userName.isEmpty, !userEmail.isEmpty else {
-            throw AuthenticationError.invalidUserData
+            throw AuthenticationError.invalidCredentials
         }
         
         socialUser = SocialUser(provider: provider, id: userId, name: userName, email: userEmail)
@@ -143,9 +116,8 @@ public class AuthenticationState: ObservableObject {
         guard isValidEmail(user.email) else {
             throw AuthenticationError.invalidEmail
         }
-        
         guard !user.passwordHash.isEmpty else {
-            throw AuthenticationError.invalidUserData
+            throw AuthenticationError.invalidCredentials
         }
         
         do {
@@ -187,5 +159,11 @@ public class AuthenticationState: ObservableObject {
         self.user = nil
         resetSocialUser()
         completion()
+    }
+    
+    
+    /// Resets the admin state when logging out.
+    public func resetAdminState() {
+        isAdmin = false
     }
 }
