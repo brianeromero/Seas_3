@@ -34,8 +34,10 @@ struct CreateAccountView: View {
     @State private var bypassValidation = false
     @StateObject var authViewModel = AuthViewModel()
     @State private var errorMessage: String? = nil
+    @State private var successMessage: String? = nil
     @State private var showErrorAlert = false
     @State private var shouldNavigateToLogin = false
+    
     
     let beltOptions = ["White", "Blue", "Purple", "Brown", "Black", "Red&Black", "Red&White", "Red"]
     
@@ -62,13 +64,15 @@ struct CreateAccountView: View {
         self._isUserProfileActive = isUserProfileActive
         self.emailManager = emailManager
     }
+
     
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 24) {
                 // Title and error message
                 Text("Create Account")
                     .font(.largeTitle)
+                    .fontWeight(.bold)
                 
                 if let error = errorMessage {
                     Text(error)
@@ -84,7 +88,6 @@ struct CreateAccountView: View {
                         errorMessage: $formState.userNameErrorMessage,
                         validateUserName: { userName in ValidationUtility.validateField(userName, type: .userName) }
                     )
-                    .padding(.bottom, 10)
                     
                     NameField(
                         name: $formState.name,
@@ -92,7 +95,6 @@ struct CreateAccountView: View {
                         errorMessage: $formState.nameErrorMessage,
                         validateName: ValidationUtility.validateName
                     )
-                    .padding(.bottom, 10)
                     
                     EmailField(
                         email: $formState.email,
@@ -100,7 +102,6 @@ struct CreateAccountView: View {
                         errorMessage: $formState.emailErrorMessage,
                         validateEmail: ValidationUtility.validateEmail
                     )
-                    .padding(.bottom, 10)
                     
                     PasswordField(
                         password: $formState.password,
@@ -109,22 +110,13 @@ struct CreateAccountView: View {
                         bypassValidation: $bypassValidation,
                         validatePassword: ValidationUtility.isValidPassword
                     )
-                    .padding(.bottom, 10)
-                    
+
                     ConfirmPasswordField(
                         confirmPassword: $formState.confirmPassword,
                         isValid: $formState.isConfirmPasswordValid,
                         password: $formState.password
                     )
-                    .padding(.top, 20)
-                    .padding(.bottom, 10)
                     
-                    if !formState.password.isEmpty && !formState.confirmPassword.isEmpty {
-                        Image(systemName: formState.password == formState.confirmPassword ? "checkmark.circle.fill" : "xmark.circle.fill")
-                            .imageScale(.large)
-                            .fontWeight(.bold)
-                            .foregroundColor(formState.password == formState.confirmPassword ? Color(.systemGreen) : Color(.systemRed))
-                    }
                 }
                 
                 // Belt (optional)
@@ -171,8 +163,8 @@ struct CreateAccountView: View {
                         gymWebsite: $gymWebsite,
                         gymWebsiteURL: $gymWebsiteURL,
                         selectedProtocol: $selectedProtocol,
-                        showAlert: .constant(false), // Modify as needed
-                        alertMessage: .constant("") // Modify as needed
+                        showAlert: .constant(false),
+                        alertMessage: .constant("")
                     )
                 }
                 
@@ -189,17 +181,21 @@ struct CreateAccountView: View {
                 .disabled(!formState.isValid)
                 .padding(.bottom)
             }
-            .padding()
+            .padding(.horizontal, 24)
         }
         .alert(isPresented: $showErrorAlert) {
             Alert(
-                title: Text("Error"),
-                message: Text(errorMessage ?? "Unknown error"),
+                title: Text(successMessage != nil ? "Success" : "Error"),
+                message: Text(successMessage ?? errorMessage ?? "Unknown error"),
                 dismissButton: .default(Text("OK")) {
-                    self.shouldNavigateToLogin = true
+                    // Reset messages and states after alert dismissal
+                    self.shouldNavigateToLogin = successMessage != nil
                     isUserProfileActive = false
                     authenticationState.isLoggedIn = false
                     authenticationState.isAuthenticated = false
+                    // Clear messages
+                    successMessage = nil
+                    errorMessage = nil
                 }
             )
         }
@@ -295,7 +291,7 @@ struct CreateAccountView: View {
             }
         }
         
-        errorMessage = "Account created successfully. Check your email for login instructions."
+        successMessage = "Account created successfully. Check your email for login instructions."
         showErrorAlert = true
         
         // Reset authentication state

@@ -162,23 +162,28 @@ struct ConfirmPasswordField: View {
                 .onChange(of: confirmPassword) { newValue in
                     isValid = newValue == password
                 }
+            ValidationMessage(isValid: isValid, password: password, confirmPassword: confirmPassword)
+        }
+    }
+}
+
+struct ValidationMessage: View {
+    let isValid: Bool
+    let password: String
+    let confirmPassword: String
+
+    var body: some View {
+        VStack {
             if !isValid {
                 Text("Passwords do not match.")
                     .foregroundColor(.red)
                     .font(.caption)
             }
             if !password.isEmpty && !confirmPassword.isEmpty {
-                if password == confirmPassword {
-                    Image(systemName: "checkmark.circle.fill")
-                        .imageScale(.large)
-                        .fontWeight(.bold)
-                        .foregroundColor(Color(.systemGreen))
-                } else {
-                    Image(systemName: "xmark.circle.fill")
-                        .imageScale(.large)
-                        .fontWeight(.bold)
-                        .foregroundColor(Color(.systemRed))
-                }
+                Image(systemName: password == confirmPassword ? "checkmark.circle.fill" : "xmark.circle.fill")
+                    .imageScale(.large)
+                    .fontWeight(.bold)
+                    .foregroundColor(password == confirmPassword ? Color(.systemGreen) : Color(.systemRed))
             }
         }
     }
