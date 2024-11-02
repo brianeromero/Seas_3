@@ -33,7 +33,6 @@ struct Seas3App: App {
 
     var body: some Scene {
         WindowGroup {
-
             Group {
                 if appState.showWelcomeScreen {
                     PirateIslandView()
@@ -49,8 +48,8 @@ struct Seas3App: App {
                         .environment(\.managedObjectContext, PersistenceController.shared.container.viewContext)
                         .environmentObject(appState)
                         .environmentObject(viewModel)
-                } else if authenticationState.isAuthenticated {
-                    IslandMenu(persistenceController: PersistenceController.shared)
+                } else if authenticationState.isAuthenticated && authenticationState.isLoggedIn {
+                    IslandMenu(persistenceController: PersistenceController.shared, isLoggedIn: $authenticationState.isLoggedIn)
                         .environment(\.managedObjectContext, PersistenceController.shared.container.viewContext)
                         .environmentObject(appState)
                         .environmentObject(viewModel)
@@ -63,13 +62,14 @@ struct Seas3App: App {
                         islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.shared),
                         persistenceController: PersistenceController.shared,
                         isSelected: $selectedTabIndex,
-                        navigateToAdminMenu: $authenticationState.navigateToAdminMenu // Pass the binding
+                        navigateToAdminMenu: $authenticationState.navigateToAdminMenu,
+                        isLoggedIn: $authenticationState.isLoggedIn
                     )
                     .environment(\.managedObjectContext, PersistenceController.shared.container.viewContext)
                     .environmentObject(authenticationState)
                 }
             }
-            .environmentObject(PersistenceController.shared)
+            .environmentObject(authenticationState)
             .onAppear {
                 setupGlobalErrorHandler()
             }
@@ -93,3 +93,4 @@ struct Seas3App: App {
         }
     }
 }
+

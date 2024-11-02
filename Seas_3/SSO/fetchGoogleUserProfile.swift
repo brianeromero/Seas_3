@@ -10,6 +10,8 @@ import SwiftUI
 import GoogleSignIn
 import CoreData
 
+
+
 func fetchGoogleUserProfile(managedObjectContext: NSManagedObjectContext) {
     // Check if current user is signed in
     if let currentUser = GIDSignIn.sharedInstance.currentUser,
@@ -22,7 +24,7 @@ func fetchGoogleUserProfile(managedObjectContext: NSManagedObjectContext) {
         print(userProfile)
         
         // Extract user info
-        let userId = currentUser.userID
+        let userId = currentUser.userID // This is already a String
         let userName = userProfile.name
         let userEmail = userProfile.email
         
@@ -48,7 +50,7 @@ func fetchGoogleUserProfile(managedObjectContext: NSManagedObjectContext) {
             userInfo.email = userEmail
             userInfo.name = userName
             userInfo.userName = userName
-            userInfo.userID = UUID(uuidString: userId ?? "")
+            userInfo.userID = userId ?? "" // Assign directly as String
             
             // Save changes to managed object context
             try managedObjectContext.save()

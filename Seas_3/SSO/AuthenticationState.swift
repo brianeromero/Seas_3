@@ -12,16 +12,21 @@ import Combine
 /// Manages the authentication state of the application.
 public class AuthenticationState: ObservableObject {
     @Published var isAuthenticated: Bool = false
-    
     @Published var isAdmin: Bool = false // Existing admin access indicator
-    
-    @Published var navigateToAdminMenu: Bool = false // Add this line
-
     @Published public private(set) var socialUser: SocialUser?
     @Published var user: UserInfo?
     @Published var errorMessage: String = ""
-    
-    
+    @Published var isLoggedIn: Bool = false
+    @Published var navigateToAdminMenu: Bool = false
+
+    var isValidAuthentication: Bool {
+        guard let user = user else { return false }
+        return user.isVerified &&
+               // Other conditions...
+               self.user != nil &&
+               self.errorMessage.isEmpty
+    }
+
     /// Represents a social user.
     public struct SocialUser {
         /// Social provider (e.g., Facebook, Google).
@@ -35,7 +40,6 @@ public class AuthenticationState: ObservableObject {
         let name: String
         let email: String
         let profilePictureUrl: URL?
-        
         
         /// Initializes a social user.
         ///
@@ -53,12 +57,11 @@ public class AuthenticationState: ObservableObject {
             self.profilePictureUrl = profilePictureUrl
         }
     }
-    
+
     public init(errorMessage: String = "") {
         self.errorMessage = errorMessage
     }
 
-    
     /// Checks if an email address is valid.
     ///
     /// - Parameter email: Email address to validate.
@@ -66,7 +69,7 @@ public class AuthenticationState: ObservableObject {
     private func isValidEmail(_ email: String) -> Bool {
         return ValidationUtility.validateField(email, type: .email) == nil
     }
-    
+
     /// Checks if a password is valid.
     ///
     /// - Parameter password: Password to validate.
@@ -75,7 +78,7 @@ public class AuthenticationState: ObservableObject {
         let (isValid, feedback) = ValidationUtility.isValidPassword(password)
         return (isValid, feedback ?? "Invalid password")
     }
-    
+
     /// Updates the social user with the provided information.
     ///
     /// - Parameters:
@@ -93,18 +96,18 @@ public class AuthenticationState: ObservableObject {
         socialUser = SocialUser(provider: provider, id: userId, name: userName, email: userEmail)
         isAuthenticated = true
     }
-    
+
     /// Resets the social user.
     public func resetSocialUser() {
         socialUser = nil
         isAuthenticated = false
     }
-    
+
     /// Resets the Facebook user.
     public func resetFacebookUser() {
         resetSocialUser()
     }
-    
+
     /// Logs in a user with the provided credentials.
     ///
     /// - Parameters:
@@ -131,12 +134,17 @@ public class AuthenticationState: ObservableObject {
             throw AuthenticationError.serverError
         }
         
-        // Call authentication API or perform authentication logic
-        // ...
+        // Check if email is verified
+        guard user.isVerified else {
+            throw AuthenticationError.unverifiedEmail
+        }
         
-        isAuthenticated = true
+        // Set user and update authentication state
         self.user = user
+        updateAuthenticationStatus()
+        isLoggedIn = true
     }
+
 
     // Helper function to convert Data to HashedPassword
     private func convertToHashedPassword(_ passwordHash: Data) throws -> HashedPassword {
@@ -150,18 +158,24 @@ public class AuthenticationState: ObservableObject {
         
         return HashedPassword(salt: salt, iterations: hashConfig.rounds, hash: hash)
     }
-    
+
     /// Logs out the current user.
     ///
     /// - Parameter completion: Optional completion handler.
     public func logout(completion: () -> Void = {}) {
-        isAuthenticated = false
         self.user = nil
-        resetSocialUser()
+        resetSocialUser()           // Clear any social user info
+        updateAuthenticationStatus() // Relies on `user` being nil to set `isAuthenticated` to false
+        resetAdminState()            // Reset admin-related properties
         completion()
     }
-    
-    
+
+
+    func updateAuthenticationStatus() {
+        isAuthenticated = (user != nil)
+    }
+
+
     /// Resets the admin state when logging out.
     public func resetAdminState() {
         isAdmin = false

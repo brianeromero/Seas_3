@@ -12,8 +12,9 @@ import CoreData
 @objc(UserInfo)
 public class UserInfo: NSManagedObject {
 
+    // Convenience initializer to create a UserInfo object
     convenience init(context: NSManagedObjectContext) {
         self.init(entity: UserInfo.entity(), insertInto: context)
-        userID = UUID()
+        userID = UUID().uuidString // Assign a unique String for userID
     }
 }

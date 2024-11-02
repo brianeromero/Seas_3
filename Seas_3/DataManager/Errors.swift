@@ -33,15 +33,16 @@ enum NetworkServerError: LocalizedError {
 }
 
 // Authentication-related errors
-enum AuthenticationError: String, LocalizedError {
-    case invalidEmail = "Email not found. Please create an account."
-    case invalidPassword = "Invalid password."
-    case accountLocked = "Account locked due to excessive password attempts."
-    case invalidPasswordHash = "Invalid password hash: "
+enum AuthenticationError: LocalizedError {
+    case invalidEmail
+    case invalidPassword
+    case accountLocked
+    case invalidPasswordHash
     case invalidCredentials
     case networkError
     case serverError
     case coreDataError
+    case unverifiedEmail
     
     var errorDescription: String? {
         switch self {
@@ -61,6 +62,8 @@ enum AuthenticationError: String, LocalizedError {
             return "Server error."
         case .coreDataError:
             return "Core Data error."
+        case .unverifiedEmail:
+            return "Email is not verified."
         }
     }
 }

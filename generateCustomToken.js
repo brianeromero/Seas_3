@@ -1,5 +1,7 @@
 const admin = require('firebase-admin');
-const serviceAccount = require('/Users/brianromero/Desktop/Desktop/MF_inder/Seas_3/smart-abacus-425519-r7-firebase-adminsdk-410m4-41d7d6ad89.json');
+
+// Update this path to point to your new service account key JSON file
+const serviceAccount = require('/Users/brianromero/Desktop/Desktop/MF_inder/Seas_3/smart-abacus-425519-r7-584a1ad42c13.json');
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),

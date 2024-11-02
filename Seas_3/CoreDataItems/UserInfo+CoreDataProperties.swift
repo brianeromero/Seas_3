@@ -22,8 +22,8 @@ extension UserInfo {
     @NSManaged public var salt: Data // Required
     @NSManaged public var iterations: Int64 // Required
     @NSManaged public var isVerified: Bool // Required
-    @NSManaged public var userID: UUID! // Required, unique
-    
+    @NSManaged public var userID: String! // Required, unique
+
     // Optional fields
     @NSManaged public var belt: String? // Optional
     @NSManaged public var verificationToken: String? // Optional

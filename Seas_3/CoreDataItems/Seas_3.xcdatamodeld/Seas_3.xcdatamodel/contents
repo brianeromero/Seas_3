@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23231" systemVersion="24A348" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23507" systemVersion="24A348" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
     <entity name="AppDayOfWeek" representedClassName="AppDayOfWeek" syncable="YES">
         <attribute name="appDayOfWeekID" optional="YES" attributeType="String"/>
         <attribute name="createdTimestamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
@@ -54,7 +54,7 @@
         <attribute name="name" attributeType="String"/>
         <attribute name="passwordHash" attributeType="Binary"/>
         <attribute name="salt" optional="YES" attributeType="Binary"/>
-        <attribute name="userID" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="userID" attributeType="String"/>
         <attribute name="userName" attributeType="String"/>
         <attribute name="verificationToken" optional="YES" attributeType="String"/>
     </entity>

@@ -40,13 +40,10 @@ class UnifiedEmailManager {
         }
     }
 
-    // Sends a custom email using SendGrid
-    func sendCustomEmail(to email: String, subject: String, content: String, completion: @escaping (Bool) -> Void) {
-        sendGridEmailService.sendEmail(to: email, subject: subject, content: content, completion: completion)
-    }
+
 
     // Sends verification token email
-    func sendVerificationToken(to email: String, userName: String, userPassword: String, completion: @escaping (Bool) -> Void) {
+    func sendVerificationToken(to email: String, userName: String, password: String) async -> Bool {
         print("Sending verification token email (from sendVerificationToken)...")
         let subject = "Verify Your Account"
         let verificationToken = UUID().uuidString
@@ -61,35 +58,23 @@ class UnifiedEmailManager {
         userInfo.isVerified = false // Set default value for isVerified
         userInfo.name = userName    // Use userName as the name
         
-        // Hash the password before saving
         do {
-            let hashedPassword = try hashPasswordPbkdf(userPassword) // Hash the actual password
-            userInfo.passwordHash = hashedPassword.hash // Save the hashed password
+            let hashedPassword = try hashPasswordPbkdf(password)
+            userInfo.passwordHash = hashedPassword.hash
         } catch {
             print("Error hashing password: \(error)")
-            completion(false) // Handle error and exit
-            return
+            return false
         }
-
-        // Log UserInfo state before saving
-        print("UserInfo to save: \(userInfo)")
-        print("UserInfo state - Email: \(userInfo.email), UserName: \(userInfo.userName), VerificationToken: \(userInfo.verificationToken ?? "")")
 
         do {
             try managedObjectContext.save()
             print("UserInfo saved successfully.")
-            completion(true) // Indicate success
         } catch let saveError as NSError {
             print("Error saving context (sendVerificationToken): \(saveError), \(saveError.userInfo)")
-            completion(false)
-            return
+            return false
         }
 
-        // Generate verification link
         let verificationLink = "http://mfinderbjj.rf.gd/verify.php?token=\(verificationToken)&email=\(email)"
-        print("Verification link: \(verificationLink)")
-
-
         let content = """
         Dear \(userName),
         
@@ -102,20 +87,26 @@ class UnifiedEmailManager {
         Best regards,
         The Mat Finder Team
         """
-        sendCustomEmail(to: email, subject: subject, content: content, completion: completion)
+        return await sendCustomEmail(to: email, subject: subject, content: content)
+    }
+    
+    // Sends a custom email using SendGrid
+    func sendCustomEmail(to email: String, subject: String, content: String) async -> Bool {
+        return await withCheckedContinuation { continuation in
+            sendGridEmailService.sendEmail(to: email, subject: subject, content: content) { result in
+                continuation.resume(returning: result)
+            }
+        }
     }
 
-
-
     // Verifies email token and sends combined verification and welcome email
-    func verifyEmail(token: String, email: String, userName: String, completion: @escaping (Bool) -> Void) {
-        print("Verifying (froMverifyEmail) email token...")
+    func verifyEmail(token: String, email: String, userName: String) async -> Bool {
+        print("Verifying (from verifyEmail) email token...")
         print("Token: \(token), Email: \(email), UserName: \(userName)")
         // Fetch user from database
         guard let user = EmailUtility.fetchUserInfo(byEmail: email) else {
             print("User not found")
-            completion(false)
-            return
+            return false
         }
 
         // Verify token
@@ -124,8 +115,7 @@ class UnifiedEmailManager {
 
             // Check if user is already verified
             if user.isVerified {
-                completion(true)
-                return
+                return true
             }
 
             // Activate account -         // Update user's isVerified status
@@ -137,8 +127,7 @@ class UnifiedEmailManager {
                 print("User verified and context saved successfully.")
             } catch let saveError as NSError {
                 print("Error saving context (verifyEmail): \(saveError), \(saveError.userInfo)")
-                completion(false)
-                return
+                return false
             }
 
             // Send combined verification and welcome email
@@ -163,13 +152,11 @@ class UnifiedEmailManager {
             Best regards,
             MF_inder Team
             """
-            sendCustomEmail(to: email, subject: subject, content: content) { success in
-                print("Verification and welcome email sent: \(success)")
-                completion(true)
-            }
+            let success = await sendCustomEmail(to: email, subject: subject, content: content)
+            return success
         } else {
             print("Invalid verification token")
-            completion(false)
+            return false
         }
     }
 }

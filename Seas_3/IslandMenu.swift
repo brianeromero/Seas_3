@@ -6,6 +6,7 @@ import SwiftUI
 import CoreData
 import MapKit
 
+
 struct IslandMenu: View {
     @State private var showAlert = false
     @State private var alertMessage = ""
@@ -17,8 +18,12 @@ struct IslandMenu: View {
     @State private var region: MKCoordinateRegion = MKCoordinateRegion()
     @State private var searchResults: [PirateIsland] = []
     @StateObject var appDayOfWeekViewModel: AppDayOfWeekViewModel
+    @Binding var isLoggedIn: Bool // Add this binding
 
+    
     let persistenceController: PersistenceController
+
+    // New state variable to track login status
 
     private var appDayOfWeekRepository: AppDayOfWeekRepository {
         return AppDayOfWeekRepository(persistenceController: persistenceController)
@@ -28,7 +33,15 @@ struct IslandMenu: View {
         return PirateIslandDataManager(viewContext: viewContext)
     }
 
-    init(persistenceController: PersistenceController) {
+    // Menu items
+    let menuItems: [MenuItem] = [
+        .init(title: "Search Gym Entries By", subMenuItems: ["All Locations", "Current Location", "ZipCode", "Day of the Week"]),
+        .init(title: "Manage Gyms Entries", subMenuItems: ["Add New Gym", "Update Existing Gyms", "Add or Edit Schedule/Open Mat"]),
+        .init(title: "Reviews", subMenuItems: ["Search Reviews", "Submit a Review"]),
+        .init(title: "FAQ", subMenuItems: ["FAQ & Disclaimer"])
+    ]
+
+    init(persistenceController: PersistenceController, isLoggedIn: Binding<Bool>) { // Update initializer
         _appDayOfWeekViewModel = StateObject(wrappedValue: AppDayOfWeekViewModel(
             selectedIsland: nil,
             repository: AppDayOfWeekRepository(persistenceController: persistenceController),
@@ -38,15 +51,9 @@ struct IslandMenu: View {
             )
         ))
         self.persistenceController = persistenceController
+        self._isLoggedIn = isLoggedIn // Initialize the binding
     }
     
-    let menuItems: [MenuItem] = [
-        .init(title: "Search Gym Entries By", subMenuItems: ["All Locations", "Current Location", "ZipCode", "Day of the Week"]),
-        .init(title: "Manage Gyms Entries", subMenuItems: ["Add New Gym", "Update Existing Gyms", "Add or Edit Schedule/Open Mat"]),
-        .init(title: "Reviews", subMenuItems: ["Search Reviews", "Submit a Review"]),
-        .init(title: "FAQ", subMenuItems: ["FAQ & Disclaimer"])
-    ]
-
     var body: some View {
         NavigationStack {
             ZStack {
@@ -54,37 +61,46 @@ struct IslandMenu: View {
                     .frame(width: 500, height: 450)
                     .offset(x: 100, y: -150)
 
-                VStack(alignment: .leading, spacing: 5) {
-                    Text("Main Menu")
-                        .font(.title)
-                        .bold()
-                        .padding(.top, 1)
+                // Conditionally present the menu or a login prompt
+                if isLoggedIn {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text("Main Menu")
+                            .font(.title)
+                            .bold()
+                            .padding(.top, 1)
 
-                    ForEach(menuItems) { menuItem in
-                        VStack(alignment: .leading, spacing: 5) {
-                            Text(menuItem.title)
-                                .font(.headline)
-                                .padding(.bottom, 1)
+                        ForEach(menuItems) { menuItem in
+                            VStack(alignment: .leading, spacing: 5) {
+                                Text(menuItem.title)
+                                    .font(.headline)
+                                    .padding(.bottom, 1)
 
-                            if let subMenuItems = menuItem.subMenuItems {
-                                ForEach(subMenuItems, id: \.self) { subMenuItem in
-                                    NavigationLink(destination: destinationView(for: subMenuItem)) {
-                                        Text(subMenuItem)
-                                            .foregroundColor(.blue)
-                                            .fixedSize(horizontal: false, vertical: true)
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                            .padding(.leading, 1)
-                                            .padding(.top, 5)
+                                if let subMenuItems = menuItem.subMenuItems {
+                                    ForEach(subMenuItems, id: \.self) { subMenuItem in
+                                        NavigationLink(destination: destinationView(for: subMenuItem)) {
+                                            Text(subMenuItem)
+                                                .foregroundColor(.blue)
+                                                .fixedSize(horizontal: false, vertical: true)
+                                                .frame(maxWidth: .infinity, alignment: .leading)
+                                                .padding(.leading, 1)
+                                                .padding(.top, 5)
+                                        }
                                     }
                                 }
                             }
+                            .padding(.bottom, 20)
                         }
-                        .padding(.bottom, 20)
                     }
+                    .padding(.horizontal, 20)
+                    .navigationBarTitle("Welcome to Mat_Finder", displayMode: .inline)
+                    .padding(.leading, 50)
+                } else {
+                    // Show a login prompt or a message
+                    Text("Please log in to access the menu.")
+                        .font(.headline)
+                        .padding()
+                    // Here you might want to include a button to show the login view
                 }
-                .padding(.horizontal, 20)
-                .navigationBarTitle("Welcome to Mat_Finder", displayMode: .inline)
-                .padding(.leading, 50)
             }
         }
         .edgesIgnoringSafeArea(.all)
@@ -170,7 +186,7 @@ struct IslandMenu_Previews: PreviewProvider {
     static var previews: some View {
         let persistenceController = PersistenceController.preview
 
-        return IslandMenu(persistenceController: persistenceController)
+        return IslandMenu(persistenceController: persistenceController, isLoggedIn: .constant(true))
             .environment(\.managedObjectContext, persistenceController.container.viewContext)
             .previewDisplayName("Mat Menu Preview")
     }

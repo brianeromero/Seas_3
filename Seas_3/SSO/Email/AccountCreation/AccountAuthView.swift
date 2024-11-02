@@ -22,6 +22,8 @@ enum AccountAuthViewError: Error, LocalizedError {
     case invalidPassword
     case coreDataError
     case unknownError
+    case userAlreadyExists
+
     
     var errorDescription: String? {
         switch self {
@@ -35,6 +37,9 @@ enum AccountAuthViewError: Error, LocalizedError {
             return "Error saving user to Core Data."
         case .unknownError:
             return "An unknown error occurred."
+        case .userAlreadyExists:
+            return "User already exists. Please log in or request password reset."
+
         }
     }
 }
@@ -56,16 +61,17 @@ struct AccountAuthView: View {
     @State private var showAlert = false
     @State private var alertMessage = ""
     
-    // New property for navigateToAdminMenu
-    @Binding var navigateToAdminMenu: Bool // Add this line
+    @Binding var navigateToAdminMenu: Bool
+    @State private var isLoggedIn: Bool = false
+
 
     init(islandViewModel: PirateIslandViewModel,
          isUserProfileActive: Binding<Bool>,
-         navigateToAdminMenu: Binding<Bool> = .constant(false), // Add this parameter
+         navigateToAdminMenu: Binding<Bool> = .constant(false),
          emailManager: UnifiedEmailManager = .shared) {
         self._islandViewModel = ObservedObject(wrappedValue: islandViewModel)
         self._isUserProfileActive = isUserProfileActive
-        self._navigateToAdminMenu = navigateToAdminMenu // Initialize the binding
+        self._navigateToAdminMenu = navigateToAdminMenu
         self.emailManager = emailManager
     }
     
@@ -73,12 +79,20 @@ struct AccountAuthView: View {
         NavigationView {
             VStack(spacing: 20) {
                 if isSelected == .login {
-                    LoginView(
-                        islandViewModel: islandViewModel,
-                        persistenceController: PersistenceController.preview,
-                        isSelected: $isSelected,
-                        navigateToAdminMenu: $navigateToAdminMenu
-                    )
+                    VStack(spacing: 20) {
+                        LoginForm(
+                            usernameOrEmail: $authViewModel.usernameOrEmail,
+                            password: $authViewModel.password,
+                            isSignInEnabled: $authViewModel.isSignInEnabled,
+                            errorMessage: $errorMessage,
+                            islandViewModel: islandViewModel,
+                            showMainContent: .constant(false),
+                            isLoggedIn: $isLoggedIn, navigateToAdminMenu: $navigateToAdminMenu)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        
+                        Spacer()
+                    }
                 } else if isSelected == .createAccount {
                     CreateAccountView(
                         islandViewModel: islandViewModel,
@@ -99,7 +113,6 @@ struct AccountAuthView: View {
         }
     }
 }
-
 
 // Enhanced Preview Provider
 struct AccountAuthView_Previews: PreviewProvider {

@@ -116,11 +116,24 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
         // Configure Firebase.
         FirebaseApp.configure()
         FirebaseConfiguration.shared.setLoggerLevel(.debug)
+
+        // Initialize Firestore
+        let settings = FirestoreSettings()
+        Firestore.firestore().settings = settings
         
+        // Log Firestore initialization
+        print("Firestore initialized")
+        print("Firestore settings: \(settings)")
+
+
+        // Enable Firebase debug logging
+        FirebaseConfiguration.shared.setLoggerLevel(.debug)
+
         Messaging.messaging().delegate = self
         Messaging.messaging().isAutoInitEnabled = true
         Analytics.setAnalyticsCollectionEnabled(true)
-        
+
+
         // Additional logging
         print("Firebase Configuration:")
         if let googleAppID = getGoogleAppID() {
@@ -250,7 +263,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
         }
     }
     
-    func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
+    private func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) async -> Bool {
         if ApplicationDelegate.shared.application(app, open: url, options: options) {
             return true
         } else if GIDSignIn.sharedInstance.handle(url) {
@@ -261,7 +274,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
             return true
         }
 
-        EmailVerificationHandler.handleEmailVerification(url: url)
+        await EmailVerificationHandler.handleEmailVerification(url: url)
         return false
     }
 

@@ -20,6 +20,10 @@ extension String {
         return self.rangeOfCharacter(from: alphanumericSet.inverted) == nil
     }
 }
+import SwiftUI
+import CoreData
+import Firebase
+import Combine
 
 struct CreateAccountView: View {
     @EnvironmentObject var authenticationState: AuthenticationState
@@ -29,14 +33,13 @@ struct CreateAccountView: View {
     @State private var belt: String = ""
     @State private var bypassValidation = false
     @StateObject var authViewModel = AuthViewModel()
-    
-    @State private var showVerificationAlert = false
-    @State private var errorMessage: String = ""
+    @State private var errorMessage: String? = nil
+    @State private var showErrorAlert = false
+    @State private var shouldNavigateToLogin = false
     
     let beltOptions = ["White", "Blue", "Purple", "Brown", "Black", "Red&Black", "Red&White", "Red"]
     
     @ObservedObject var islandViewModel: PirateIslandViewModel
-    
     @State private var islandName = ""
     @State private var street = ""
     @State private var city = ""
@@ -45,11 +48,9 @@ struct CreateAccountView: View {
     @State private var gymWebsite = ""
     @State private var gymWebsiteURL: URL?
     @State private var selectedProtocol = "http://"
-    @State private var showAlert = false
-    @State private var showErrorAlert = false
+    @State private var showLoginReset = false
+
     
-    // For Inline Validation
-    @State private var alertMessage = ""
     
     let emailManager: UnifiedEmailManager
     
@@ -68,8 +69,9 @@ struct CreateAccountView: View {
                 // Title and error message
                 Text("Create Account")
                     .font(.largeTitle)
-                if !errorMessage.isEmpty {
-                    Text(errorMessage)
+                
+                if let error = errorMessage {
+                    Text(error)
                         .foregroundColor(.red)
                         .padding(.bottom)
                 }
@@ -118,17 +120,10 @@ struct CreateAccountView: View {
                     .padding(.bottom, 10)
                     
                     if !formState.password.isEmpty && !formState.confirmPassword.isEmpty {
-                        if formState.password == formState.confirmPassword {
-                            Image(systemName: "checkmark.circle.fill")
-                                .imageScale(.large)
-                                .fontWeight(.bold)
-                                .foregroundColor(Color(.systemGreen))
-                        } else {
-                            Image(systemName: "xmark.circle.fill")
-                                .imageScale(.large)
-                                .fontWeight(.bold)
-                                .foregroundColor(Color(.systemRed))
-                        }
+                        Image(systemName: formState.password == formState.confirmPassword ? "checkmark.circle.fill" : "xmark.circle.fill")
+                            .imageScale(.large)
+                            .fontWeight(.bold)
+                            .foregroundColor(formState.password == formState.confirmPassword ? Color(.systemGreen) : Color(.systemRed))
                     }
                 }
                 
@@ -149,7 +144,7 @@ struct CreateAccountView: View {
                         }
                     } label: {
                         HStack {
-                            Text(belt)
+                            Text(belt.isEmpty ? "Select a belt" : belt)
                                 .foregroundColor(belt.isEmpty ? .gray : .primary)
                             Spacer()
                             Image(systemName: "chevron.down")
@@ -176,17 +171,13 @@ struct CreateAccountView: View {
                         gymWebsite: $gymWebsite,
                         gymWebsiteURL: $gymWebsiteURL,
                         selectedProtocol: $selectedProtocol,
-                        showAlert: $showAlert,
-                        alertMessage: $alertMessage
+                        showAlert: .constant(false), // Modify as needed
+                        alertMessage: .constant("") // Modify as needed
                     )
                 }
                 
                 // Call-to-action
-                Button(action: {
-                    print("Button clicked")
-                    print("Form valid: \(formState.isValid)")
-                    self.createAccount()
-                }) {
+                Button(action: createAccount) {
                     Text("Create Account")
                         .font(.title)
                         .frame(maxWidth: .infinity)
@@ -199,74 +190,157 @@ struct CreateAccountView: View {
                 .padding(.bottom)
             }
             .padding()
-            .navigationTitle("Create Account")
-            .alert(isPresented: $showErrorAlert) {
-                Alert(
-                    title: Text("Error"),
-                    message: Text(errorMessage),
-                    dismissButton: .default(Text("OK"))
-                )
-            }
-            .showErrorAlert(isPresented: $showErrorAlert, message: errorMessage)
+        }
+        .alert(isPresented: $showErrorAlert) {
+            Alert(
+                title: Text("Error"),
+                message: Text(errorMessage ?? "Unknown error"),
+                dismissButton: .default(Text("OK")) {
+                    self.shouldNavigateToLogin = true
+                    isUserProfileActive = false
+                    authenticationState.isLoggedIn = false
+                    authenticationState.isAuthenticated = false
+                }
+            )
+        }
+        .navigationDestination(isPresented: $shouldNavigateToLogin) {
+            LoginView(
+                islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.shared),
+                persistenceController: PersistenceController.shared,
+                isSelected: .constant(.login),
+                navigateToAdminMenu: .constant(false),
+                isLoggedIn: .constant(false)
+            )
         }
     }
     
+    
     // MARK: - Create Account Functionality
+    /// Creates a new user account.
     private func createAccount() {
-        print("Create Account button clicked")
-        print("Checking password match")
+        print("Create Account button pressed.")
+        print("Current form state: \(formState)")
         
-        // Check password match
-        if formState.password != formState.confirmPassword {
-            print("Password mismatch")
+        guard formState.password == formState.confirmPassword else {
             errorMessage = AccountAuthViewError.passwordMismatch.errorDescription!
+            showErrorAlert = true
             return
         }
-        print("Passwords match")
         
-        print("Checking password validity")
-        
-        // Check password validity
-        if !formState.isPasswordValid {
-            print("Password invalid")
+        guard formState.isPasswordValid else {
             errorMessage = AccountAuthViewError.invalidPassword.errorDescription!
+            showErrorAlert = true
             return
         }
-        print("Password valid")
-        
-        print("Calling createUser")
         
         Task {
-            let result = await authViewModel.createUser(withEmail: formState.email,
-                                                        password: formState.password,
-                                                        userName: formState.userName,
-                                                        name: formState.name)
-            
-            switch result {
-            case .success:
-                if !authViewModel.errorMessage.isEmpty {
-                    errorMessage = authViewModel.errorMessage
-                    errorMessage = "You have created an account; a separate email should be received with login instructions."
-                    showErrorAlert = true
-                }
-            case .failure(let error):
-                print("Error creating account: \(error.localizedDescription)")
-                
-                if let errorCode = AuthErrorCode(rawValue: error._code) {
-                    switch errorCode {
-                    case .emailAlreadyInUse:
-                        errorMessage = "Email already in use. Please try another email."
-                        showErrorAlert = true
-                    default:
-                        errorMessage = AccountAuthViewError.unknownError.errorDescription!
-                        showErrorAlert = true
-                    }
-                }
+            do {
+                try await createUser()
+                handleSuccess()
+            } catch {
+                handleCreateAccountError(error)
             }
         }
     }
-}
+    
+    /// Creates a new user using the authentication view model.
+    private func createUser() async throws {
+        print("Entering createUser method.")
+        print("Sending data to Firebase for account creation: Email: \(formState.email), UserName: \(formState.userName), Name: \(formState.name)")
+        
+        try await authViewModel.createUser(
+            withEmail: formState.email,
+            password: formState.password,
+            userName: formState.userName,
+            name: formState.name
+        )
+        print("Data sent to Firebase successfully.")
+        
+        // Add data to Core Data and Firestore
+        print("Saving data to Core Data.")
+        // Insert Core Data save logic here, if applicable
+        
+        print("Saving data to Firestore.")
+        // Insert Firestore save logic here, if applicable
+        print("Exiting createUser method.")
+    }
+    
+    /// Handles successful account creation.
+    private func handleSuccess() {
+        print("Account created successfully. Preparing to send verification emails...")
+        
+        // Send Firebase email verification
+        UnifiedEmailManager.shared.sendEmailVerification(to: formState.email) { success in
+            print("Firebase email verification sent: \(success)")
+            if !success {
+                print("Error sending Firebase email verification.")
+            } else {
+                print("Firebase email verification sent successfully to \(self.formState.email).")
+            }
+        }
 
+        // Send custom verification token email
+        Task {
+            let success = await UnifiedEmailManager.shared.sendVerificationToken(
+                to: formState.email,
+                userName: formState.userName,
+                password: formState.password
+            )
+            
+            print("Custom verification token email sent: \(success)")
+            if !success {
+                print("Error sending custom verification token email.")
+            } else {
+                print("Custom verification token email sent successfully to \(self.formState.email).")
+            }
+        }
+        
+        errorMessage = "Account created successfully. Check your email for login instructions."
+        showErrorAlert = true
+        
+        // Reset authentication state
+        authenticationState.isAuthenticated = false
+        authenticationState.isLoggedIn = false
+        
+        // Navigate back to login
+        isUserProfileActive = false
+    }
+
+    
+    
+    
+    /// Handles create account errors, including existing user error.
+    func handleCreateAccountError(_ error: Error) {
+        let errorCode = (error as NSError).code
+        
+        switch errorCode {
+        case 17011:
+            errorMessage = "Invalid email or password."
+        case 17008:
+            errorMessage = "User not found."
+        case 7:
+            errorMessage = "Missing or insufficient permissions."
+        case 17007, AuthErrorCode.emailAlreadyInUse.rawValue:
+            errorMessage = AccountAuthViewError.userAlreadyExists.errorDescription
+        default:
+            errorMessage = "Error creating account: \(error.localizedDescription)"
+        }
+        
+        showErrorAlert = true
+        
+        print("Create account error: \(errorMessage ?? "Unknown error")")
+        
+        // Reset authentication state
+        authenticationState.isAuthenticated = false
+        authenticationState.isLoggedIn = false
+        authenticationState.navigateToAdminMenu = false
+        
+        isUserProfileActive = false
+    }
+}
+    
+    
+    
 // Preview
 struct CreateAccountView_Previews: PreviewProvider {
     static var previews: some View {

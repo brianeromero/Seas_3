@@ -26,14 +26,14 @@ func handleError(_ error: Error, context: String = "", presentation: ErrorPresen
             print("Context: \(context)")
         }
     case .user:
-        // Check if the error is a Firestore error
-        if errorCode == FirestoreErrorCode.permissionDenied.rawValue {
+        switch errorCode {
+        case 7: // Permission denied
             errorMessage?.wrappedValue = "Missing or insufficient permissions."
-        } else if errorCode == FirestoreErrorCode.unauthenticated.rawValue {
+        case 16: // Unauthenticated
             errorMessage?.wrappedValue = "Authentication error."
-        } else if errorCode == FirestoreErrorCode.invalidArgument.rawValue {
+        case 3: // Invalid argument
             errorMessage?.wrappedValue = "Invalid argument provided."
-        } else {
+        default:
             errorMessage?.wrappedValue = errorDescription
         }
     case .none:

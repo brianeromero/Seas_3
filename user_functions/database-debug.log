@@ -1,0 +1,8 @@
+10:50:34.055 [NamespaceSystem-akka.actor.default-dispatcher-4] INFO akka.event.slf4j.Slf4jLogger - Slf4jLogger started
+10:50:34.135 [main] INFO com.firebase.server.forge.App$ - Listening at 127.0.0.1:9000
+10:50:47.157 [NamespaceSystem-akka.actor.default-dispatcher-4] INFO com.firebase.core.namespace.NamespaceActor - smart-abacus-425519-r7-default-rtdb successfully activated FBKV (SurveyIdle(0)) wait: 69ms, init: 0ms
+10:50:47.185 [NamespaceSystem-blocking-namespace-operation-dispatcher-6] INFO com.firebase.core.namespace.StateManager - Namespace smart-abacus-425519-r7-default-rtdb status Active to Active
+10:58:44.877 [Thread-0] INFO com.firebase.server.forge.App$ - Attempting graceful shutdown.
+10:58:44.900 [NamespaceSystem-akka.actor.default-dispatcher-10] INFO com.firebase.core.namespace.Terminator$Terminator - 1 actors left to terminate: smart-abacus-425519-r7-default-rtdb
+10:58:44.906 [NamespaceSystem-akka.actor.default-dispatcher-10] INFO com.firebase.core.namespace.NamespaceActor - stopped namespace actor for smart-abacus-425519-r7-default-rtdb
+10:58:44.909 [Thread-0] INFO com.firebase.server.forge.App$ - Graceful shutdown complete.

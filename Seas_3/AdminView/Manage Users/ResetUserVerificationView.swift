@@ -66,21 +66,17 @@ struct ResetUserVerificationView: View {
 
     private func resetVerification() {
         logger.info("Resetting verification")
-        guard !isLoading, user != nil else {
+        guard !isLoading, let user = user, !user.email.isEmpty else {
+            logger.error("User email is empty or nil")
+            errorMessage = "User email is empty or nil"
+            isLoading = false
             return
         }
 
         isLoading = true
 
-        guard let userEmail = user?.email else {
-            logger.error("User email is nil")
-            errorMessage = "User email is nil"
-            isLoading = false
-            return
-        }
-
         // Validate email address
-        if let error = ValidationUtility.validateField(userEmail, type: .email) {
+        if let error = ValidationUtility.validateField(user.email, type: .email) {
             logger.error("Invalid email: \(error)")
             errorMessage = error
             isLoading = false
@@ -88,21 +84,19 @@ struct ResetUserVerificationView: View {
         }
 
         let functions = Functions.functions()
-        let data = ["email": userEmail]
+        let data = ["email": user.email]
 
         do {
             let jsonData = try JSONSerialization.data(withJSONObject: data, options: [])
             functions.httpsCallable("sendVerificationEmail").call(jsonData) { result, error in
                 self.isLoading = false
                 
-                // Check for error first
                 if let error = error as NSError? {
                     logger.error("Failed to send verification email: \(error), code: \(error.code), userInfo: \(error.userInfo)")
                     self.errorMessage = "Failed to send verification email: \(error.localizedDescription), code: \(error.code)"
                     return
                 }
                 
-                // Process full response result
                 if let resultData = result?.data as? [String: Any] {
                     self.successMessage = "Verification email sent successfully. Please check your inbox."
                     self.errorMessage = nil
@@ -132,13 +126,13 @@ struct ResetUserVerificationView: View {
             
             self.isLoading = false
 
-            if let error = error {
-                logger.error("Error fetching custom token: \(error), code: \(error._code)")
-                self.errorMessage = "Error fetching custom token: \(error.localizedDescription), code: \(error._code)"
+            if let error = error as NSError? {
+                logger.error("Error fetching custom token: \(error), code: \(error.code)")
+                self.errorMessage = "Error fetching custom token: \(error.localizedDescription), code: \(error.code)"
                 return
             }
             
-            guard let token = result?.data as? String else {
+            guard let tokenData = result?.data as? [String: Any], let token = tokenData["token"] as? String else {
                 logger.error("No token received")
                 self.errorMessage = "No token received"
                 return
@@ -157,6 +151,7 @@ struct ResetUserVerificationView: View {
             errorMessage = "Failed to fetch custom token"
             return
         }
+        
         Auth.auth().signIn(withCustomToken: customToken) { authDataResult, error in
             if let error = error {
                 logger.error("Error signing in: \(error.localizedDescription)")
@@ -226,7 +221,6 @@ struct ResetUserVerificationView: View {
             }
         }
     }
-
 }
 
 struct ResetUserVerificationView_Previews: PreviewProvider {

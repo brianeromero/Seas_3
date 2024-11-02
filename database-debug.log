@@ -1,0 +1,9 @@
+11:01:41.586 [NamespaceSystem-akka.actor.default-dispatcher-4] INFO akka.event.slf4j.Slf4jLogger - Slf4jLogger started
+11:01:41.680 [main] INFO com.firebase.server.forge.App$ - Listening at 127.0.0.1:9000
+11:01:55.353 [NamespaceSystem-akka.actor.default-dispatcher-4] INFO com.firebase.core.namespace.NamespaceActor - smart-abacus-425519-r7-default-rtdb successfully activated FBKV (SurveyIdle(0)) wait: 78ms, init: 0ms
+11:01:55.389 [NamespaceSystem-blocking-namespace-operation-dispatcher-6] INFO com.firebase.core.namespace.StateManager - Namespace smart-abacus-425519-r7-default-rtdb status Active to Active
+11:13:23.825 [FirebaseWorkerPool-1-1] WARN com.firebase.core.persistence.backend.dummy.EmulatorMetadataPersistence - Multiple projectIds are not recommended in single project mode. Requested 
+namespace smart-abacus-425519-r7, but the emulator is configured for smart-abacus-425519-r7-default-rtdb. To 
+opt-out of single project mode add/set the singleProjectMode: false property in 
+the firebase.json emulators config. 
+11:13:23.838 [NamespaceSystem-akka.actor.default-dispatcher-11] INFO com.firebase.core.namespace.NamespaceActor - smart-abacus-425519-r7 successfully activated FBKV (SurveyIdle(0)) wait: 6ms, init: 0ms
