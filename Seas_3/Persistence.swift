@@ -54,13 +54,15 @@ class PersistenceController: ObservableObject {
     // Save context method
     func saveContext() throws {
         if viewContext.hasChanges {
-            do {
-                try viewContext.save()
-                NotificationCenter.default.post(name: .contextSaved, object: nil)
-                print("Context saved successfully.")
-            } catch let saveError as NSError {
-                print("Error saving context (PersistenceController): \(saveError.localizedDescription), \(saveError.userInfo)")
-                throw PersistenceError.saveError(saveError)
+            try DispatchQueue.main.sync {
+                do {
+                    try viewContext.save()
+                    NotificationCenter.default.post(name: .contextSaved, object: nil)
+                    print("Context saved successfully.")
+                } catch let saveError as NSError {
+                    print("Error saving context (PersistenceController): \(saveError.localizedDescription), \(saveError.userInfo)")
+                    throw PersistenceError.saveError(saveError)
+                }
             }
         }
     }

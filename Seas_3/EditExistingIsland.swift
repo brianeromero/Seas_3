@@ -11,6 +11,7 @@ import CoreData
 
 struct EditExistingIsland: View {
     @ObservedObject var island: PirateIsland
+    @ObservedObject var islandViewModel: PirateIslandViewModel
     @Environment(\.presentationMode) var presentationMode
     
     @State private var islandName: String
@@ -23,8 +24,9 @@ struct EditExistingIsland: View {
     @State private var gymWebsiteURL: URL?
     @State private var lastModifiedByUserId: String
 
-    init(island: PirateIsland) {
+    init(island: PirateIsland, islandViewModel: PirateIslandViewModel) {
         self.island = island
+        self.islandViewModel = islandViewModel
         _islandName = State(initialValue: island.islandName ?? "")
         _islandLocation = State(initialValue: island.islandLocation ?? "")
         _createdByUserId = State(initialValue: island.createdByUserId ?? "")
@@ -39,8 +41,7 @@ struct EditExistingIsland: View {
                 TextField("Gym Location", text: $islandLocation)
                 TextField("Last Modified By", text: $lastModifiedByUserId)
                 TextField("Entered By", text: $createdByUserId)
-
-                    .disabled(true) // Make it non-editable
+                    .disabled(true)
                     .foregroundColor(.gray)
             }
 
@@ -77,47 +78,56 @@ struct EditExistingIsland: View {
         .navigationTitle("Edit Gym")
         .navigationBarItems(trailing:
             Button("Save") {
-                updateIsland()
+                saveIsland()
                 presentationMode.wrappedValue.dismiss()
             }
         )
-        .onDisappear {
-            updateIsland()
-        }
         .alert(isPresented: $showAlert) {
             Alert(title: Text("Alert"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
         }
     }
     
-    private func updateIsland() {
-        guard let context = island.managedObjectContext else {
-            print("Error: Managed object context is nil")
+    private func saveIsland() {
+        guard !islandName.isEmpty, !islandLocation.isEmpty, !lastModifiedByUserId.isEmpty else {
+            showAlert = true
+            alertMessage = "Please fill in all required fields"
             return
         }
         
-        MapUtils.fetchLocation(for: islandLocation) { coordinate, error in
-            context.performAndWait {
-                island.islandName = islandName
-                island.islandLocation = islandLocation
-                island.lastModifiedByUserId = lastModifiedByUserId
-                
-                if let coordinate = coordinate {
-                    island.latitude = coordinate.latitude
-                    island.longitude = coordinate.longitude
+        Task {
+            do {
+                let coordinates = try await geocode(address: islandLocation, apiKey: GeocodingConfig.apiKey)
+                islandViewModel.updatePirateIslandLatitudeLongitude(
+                    latitude: coordinates.latitude,
+                    longitude: coordinates.longitude,
+                    island: island
+                ) { result in
+                    switch result {
+                    case .success:
+                        print("Latitude/Longitude updated successfully")
+                    case .failure(let error):
+                        print("Error updating latitude/longitude: \(error.localizedDescription)")
+                    }
                 }
-                
-                if let url = gymWebsiteURL {
-                    island.gymWebsite = url
+                islandViewModel.updatePirateIsland(
+                    island: island,
+                    name: islandName,
+                    location: islandLocation,
+                    lastModifiedByUserId: lastModifiedByUserId,
+                    gymWebsiteURL: gymWebsiteURL
+                ) { result in
+                    switch result {
+                    case .success:
+                        print("Gym updated successfully")
+                        presentationMode.wrappedValue.dismiss()
+                    case .failure(let error):
+                        showAlert = true
+                        alertMessage = "Error updating gym: \(error.localizedDescription)"
+                    }
                 }
-                
-                // Update last modified timestamp
-                island.lastModifiedTimestamp = Date()
-                
-                do {
-                    try context.save()
-                } catch {
-                    print("Error saving gym: \(error.localizedDescription)")
-                }
+            } catch {
+                showAlert = true
+                alertMessage = "Failed to geocode address"
             }
         }
     }
@@ -141,6 +151,7 @@ struct EditExistingIsland: View {
         return false
     }
 }
+
 // EditExistingIsland_Previews definition
 struct EditExistingIsland_Previews: PreviewProvider {
     static var previews: some View {
@@ -153,8 +164,10 @@ struct EditExistingIsland_Previews: PreviewProvider {
         island.lastModifiedByUserId = "" // Set lastModifiedByUserId for preview
         island.gymWebsite = URL(string: "https://www.example.com")
         
+        let viewModel = PirateIslandViewModel(persistenceController: PersistenceController.shared)
+        
         return NavigationView {
-            EditExistingIsland(island: island)
+            EditExistingIsland(island: island, islandViewModel: viewModel)
                 .environment(\.managedObjectContext, context)
         }
     }

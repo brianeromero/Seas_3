@@ -159,16 +159,13 @@ struct ConsolidatedIslandMapView: View {
         updateRegion(newUserLocation, radius: selectedRadius)
 
         let address = "Your Address Here"
-        _ = 3
-
-        MapUtils.fetchLocation(for: address) { location, error in
-            if let error = error {
-                print("Error fetching location: \(error)")
-                return
-            }
-
-            if location != nil {
+        
+        Task {
+            do {
+                let location = try await MapUtils.fetchLocation(for: address)
                 // Handle the fetched location
+            } catch {
+                print("Error fetching location: \(error)")
             }
         }
     }

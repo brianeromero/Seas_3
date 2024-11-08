@@ -7,3 +7,4 @@ namespace smart-abacus-425519-r7, but the emulator is configured for smart-abacu
 opt-out of single project mode add/set the singleProjectMode: false property in 
 the firebase.json emulators config. 
 11:13:23.838 [NamespaceSystem-akka.actor.default-dispatcher-11] INFO com.firebase.core.namespace.NamespaceActor - smart-abacus-425519-r7 successfully activated FBKV (SurveyIdle(0)) wait: 6ms, init: 0ms
+16:23:30.898 [Thread-0] INFO com.firebase.server.forge.App$ - Attempting graceful shutdown.

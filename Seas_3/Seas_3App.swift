@@ -1,10 +1,3 @@
-//
-//  Seas_3App.swift
-//  Seas_3
-//
-//  Created by Brian Romero on 6/24/24.
-//
-
 import SwiftUI
 import CoreData
 import Combine
@@ -16,8 +9,11 @@ struct Seas3App: App {
     
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject var appState = AppState()
-    @StateObject var viewModel: AppDayOfWeekViewModel
     @StateObject var authenticationState = AuthenticationState()
+    
+    // Declare viewModel without initializing here
+    @StateObject var viewModel: AppDayOfWeekViewModel
+
     @State private var selectedTabIndex: LoginViewSelection = .login
 
     init() {
@@ -49,7 +45,7 @@ struct Seas3App: App {
                         .environmentObject(appState)
                         .environmentObject(viewModel)
                 } else if authenticationState.isAuthenticated && authenticationState.isLoggedIn {
-                    IslandMenu(persistenceController: PersistenceController.shared, isLoggedIn: $authenticationState.isLoggedIn)
+                    IslandMenu(persistenceController: PersistenceController.shared, isLoggedIn: $authenticationState.isLoggedIn, profileViewModel: ProfileViewModel(viewContext: PersistenceController.shared.container.viewContext)) // Provide ProfileViewModel
                         .environment(\.managedObjectContext, PersistenceController.shared.container.viewContext)
                         .environmentObject(appState)
                         .environmentObject(viewModel)
@@ -93,4 +89,3 @@ struct Seas3App: App {
         }
     }
 }
-

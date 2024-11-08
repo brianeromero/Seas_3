@@ -5,45 +5,123 @@
 //  Created by Brian Romero on 10/19/24.
 //
 
+import Foundation
 import SwiftUI
 
 struct UserInformationView: View {
     @Binding var formState: FormState
+    @State private var fieldName: String = ""
+    @State private var bypassPasswordValidation: Bool = false
 
+    
     var body: some View {
-        Section(header: Text("User Information").fontWeight(.bold)) {
-            UserNameField(
-                userName: $formState.userName,
-                isValid: $formState.isUserNameValid,
-                errorMessage: $formState.userNameErrorMessage,
-                validateUserName: ValidationUtility.validateUserName
+        Section(content: {
+            createField(
+                title: "Username",
+                binding: $formState.userName,
+                validationType: .userName
             )
-            .onChange(of: formState.userName) { newValue in  // Updated here
-                formState.isUserNameValid = ValidationUtility.validateUserName(newValue) == nil
-                formState.userNameErrorMessage = ValidationUtility.validateUserName(newValue) ?? ""
-            }
+            
+            createField(
+                title: "Name",
+                binding: $formState.name,
+                validationType: .name
+            )
+            
+            createField(
+                title: "Email",
+                binding: $formState.email,
+                validationType: .email
+            )
+        }, header: {
+            Text("User Information").fontWeight(.bold)
+        })
+    }
+    
+    // MARK: - Private Functions
 
-            NameField(
-                name: $formState.name,
-                isValid: $formState.isNameValid,
-                errorMessage: $formState.nameErrorMessage,
-                validateName: ValidationUtility.validateName
-            )
-            .onChange(of: formState.name) { newValue in
-                formState.isNameValid = ValidationUtility.validateName(newValue) == nil
-                formState.nameErrorMessage = ValidationUtility.validateName(newValue) ?? ""
-            }
+    private func createField(
+        title: String,
+        binding: Binding<String>,
+        validationType: ValidationType
+    ) -> some View {
+        precondition(!title.isEmpty, "Title cannot be empty")
 
-            EmailField(
-                email: $formState.email,
-                isValid: $formState.isEmailValid,
-                errorMessage: $formState.emailErrorMessage,
-                validateEmail: ValidationUtility.validateEmail
-            )
-            .onChange(of: formState.email) { newValue in
-                formState.isEmailValid = ValidationUtility.validateEmail(newValue) == nil
-                formState.emailErrorMessage = ValidationUtility.validateEmail(newValue) ?? ""
+        return VStack {
+            switch validationType {
+            case .userName:
+                UserNameField(
+                    userName: binding,
+                    isValid: $formState.isUserNameValid,
+                    errorMessage: $formState.userNameErrorMessage,
+                    validateField: { value in
+                        return ValidationUtility.validateField(value, type: .userName)?.rawValue
+                    }
+                )
+
+            case .email:
+                EmailField(
+                    email: binding,
+                    isValid: $formState.isEmailValid,
+                    errorMessage: $formState.emailErrorMessage,
+                    validateField: { value in
+                        return ValidationUtility.validateField(value, type: .email)?.rawValue
+                    }
+                )
+            case .name:
+                NameField(
+                    name: binding,
+                    isValid: $formState.isNameValid,
+                    errorMessage: $formState.nameErrorMessage,
+                    validateField: { value in
+                        return ValidationUtility.validateField(value, type: .name)?.rawValue
+                    }
+                )
+            default:
+                EmptyView()
             }
+        }
+        .onChange(of: binding.wrappedValue) { newValue in
+            formState.validateField(newValue, type: validationType)
+        }
+    }
+    
+    private func validateField(_ value: String, type: ValidationType) {
+        // Ensure that validateField returns a consistent type
+        if let error = ValidationUtility.validateField(value, type: type) {
+            handleValidationError(error, for: type)
+        } else {
+            handleValidationSuccess(for: type)
+        }
+    }
+
+    
+    private func handleValidationError(_ error: ValidationError, for type: ValidationType) {
+        let (isValid, errorMessage) = validationErrorHandling(type, error: error)
+        updateFormState(type, isValid: isValid, errorMessage: errorMessage)
+    }
+    
+    private func handleValidationSuccess(for type: ValidationType) {
+        updateFormState(type, isValid: true, errorMessage: "")
+    }
+    
+    private func validationErrorHandling(_ type: ValidationType, error: ValidationError) -> (Bool, String) {
+        return (false, error.rawValue)
+    }
+    
+    private func updateFormState(_ type: ValidationType, isValid: Bool, errorMessage: String) {
+        switch type {
+        case .userName:
+            formState.isUserNameValid = isValid
+            formState.userNameErrorMessage = errorMessage
+        case .name:
+            formState.isNameValid = isValid
+            formState.nameErrorMessage = errorMessage
+        case .email:
+            formState.isEmailValid = isValid
+            formState.emailErrorMessage = errorMessage
+        default:
+            print("Unexpected ValidationType: \(type)")
         }
     }
 }

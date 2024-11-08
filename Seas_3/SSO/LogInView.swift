@@ -295,7 +295,7 @@ struct LoginView: View {
                     } else if authenticationState.isAuthenticated && showMainContent {
                         IslandMenu(
                             persistenceController: self.persistenceController,
-                            isLoggedIn: $isLoggedIn
+                            isLoggedIn: $isLoggedIn, profileViewModel: ProfileViewModel(viewContext: viewContext)
                         )
                     } else if isSelected == .login {
                         VStack(spacing: 20) {

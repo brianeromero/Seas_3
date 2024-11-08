@@ -18,7 +18,6 @@ extension PirateIsland {
 
     // MARK: - Attributes
 
-    @NSManaged public var coordinate: Double
     @NSManaged public var createdByUserId: String?
     @NSManaged public var createdTimestamp: Date?
     @NSManaged public var gymWebsite: URL?

@@ -14,6 +14,7 @@ import Combine
 enum AuthError: Error, LocalizedError {
     case invalidInput
     case firebaseError(Error)
+    case coreDataError(Error)
     
     var errorDescription: String? {
         switch self {
@@ -21,8 +22,21 @@ enum AuthError: Error, LocalizedError {
             return "Email and password are required."
         case .firebaseError(let error):
             return error.localizedDescription
+        case .coreDataError(let error):
+            return error.localizedDescription
         }
     }
+}
+
+// Define error domains and codes
+enum ErrorDomain: String {
+    case auth
+    case coreData
+}
+
+enum ErrorCode: Int {
+    case invalidInput = 400
+    case userNotFound = 404
 }
 
 enum CoreDataError: Error, LocalizedError {
@@ -61,6 +75,7 @@ class AuthViewModel: ObservableObject {
         self.emailManager = emailManager
     }
 
+    
     // MARK: Create Firebase user with email/password
     @MainActor
     func createUser(withEmail email: String, password: String, userName: String, name: String) async throws {
@@ -68,70 +83,124 @@ class AuthViewModel: ObservableObject {
             throw AuthError.invalidInput
         }
         
-        // Create user in Firebase
-        let authResult = try await auth.createUser(withEmail: email, password: password)
-        print("Firebase user created successfully.")
-
-        // Check if user already exists in Core Data
-        let request: NSFetchRequest<UserInfo> = UserInfo.fetchRequest()
-        request.predicate = NSPredicate(format: "email == %@", email)
-        
-        let existingUsers: [UserInfo] = try await self.context.perform {
-            try self.context.fetch(request)
-        }
-        
-        if let existingUser = existingUsers.first {
-            // Update existing Core Data user
-            existingUser.userName = userName
-            existingUser.name = name
-            try context.save()
-            print("User already exists. Updated existing user.")
-            return
-        }
-        
-        // Add new user to Core Data
-        try addUserToCoreData(with: authResult.user.uid, email: email, userName: userName, name: name)
-
-        // Create Firestore document with user ID as the document ID
-        let userRef = Firestore.firestore().collection("users").document(authResult.user.uid)
         do {
-            try await userRef.setData([
-                "email": email,
-                "userName": userName,
-                "name": name,
-                "userID": authResult.user.uid,
-                "isVerified": false,
-                "createdAt": Timestamp(),
-                "lastLogin": Timestamp()
-            ], merge: true)
-        } catch let error as NSError {
-            if error.domain == FirestoreErrorDomain && error.code == FirestoreErrorCode.permissionDenied.rawValue {
-                print("Insufficient permissions to create Firestore document.")
-                self.errorMessage = "Error creating user: Missing permissions. Please try logging in again."
-            } else {
-                print("Error creating Firestore document: \(error.localizedDescription)")
-                self.errorMessage = "Error creating user: \(error.localizedDescription)"
-            }
-        }
-
-        // Send Firebase verification email
-        authResult.user.sendEmailVerification { [weak self] error in
-            if let error = error {
-                print("Firebase verification email error: \(error.localizedDescription)")
-                DispatchQueue.main.async {
-                    self?.errorMessage = "Error sending Firebase verification email: \(error.localizedDescription)"
+            let authResult = try await auth.createUser(withEmail: email, password: password)
+            
+            // Check if user already exists in Core Data
+            let result = await fetchUserByEmail(email)
+            switch result {
+            case .success(let existingUser):
+                if let existingUser = existingUser {
+                    try await updateUser(existingUser, with: userName, name: name)
+                } else {
+                    try await addUserToCoreData(with: authResult.user.uid, email: email, userName: userName, name: name)
                 }
+            case .failure(let error):
+                throw error
             }
-        }
-        
-        // Send custom verification email
-        let success = await emailManager.sendVerificationToken(to: email, userName: userName, password: password)
-        if success {
-            self.showVerificationAlert = true
-        } else {
-            self.errorMessage = "Error sending verification email."
+            
+            // Create Firestore document
+            try await createFirestoreDocument(for: authResult.user.uid, email: email, userName: userName, name: name)
+            
+            // Send Firebase verification email
+            try await sendVerificationEmail(to: email)
+            
+            // Send custom verification email
+            try await sendCustomVerificationEmail(to: email, userName: userName, password: password)
+        } catch {
+            throw AuthError.firebaseError(error)
         }
     }
+
+    // Ensure fetchUserByEmail is async
+    private func fetchUserByEmail(_ email: String) async -> Result<UserInfo?, Error> {
+        let request: NSFetchRequest<UserInfo> = UserInfo.fetchRequest()
+        request.predicate = NSPredicate(format: "email == %@", email)
+
+        do {
+            let users = try await self.context.perform {
+                try self.context.fetch(request)
+            }
+            // Wrap the result in a Result type
+            return .success(users.first)
+        } catch {
+            return .failure(CoreDataError.fetchError)
+        }
+    }
+
+    // Modify fetchUserByUsername
+    private func fetchUserByUsername(_ username: String) async -> Result<UserInfo?, Error> {
+        let firestore = Firestore.firestore()
+        let query = firestore.collection("users").whereField("userName", isEqualTo: username)
+        
+        do {
+            let querySnapshot = try await query.getDocuments()
+            if let document = querySnapshot.documents.first {
+                let userData = document.data()
+                let request: NSFetchRequest<UserInfo> = UserInfo.fetchRequest()
+                request.predicate = NSPredicate(format: "email == %@", userData["email"] as? String ?? "")
+                
+                let users = try await self.context.perform {
+                    try self.context.fetch(request)
+                }
+                // Wrap the result in a Result type
+                return .success(users.first)
+            } else {
+                return .failure(NSError(domain: "User not found", code: 404, userInfo: nil))
+            }
+        } catch {
+            return .failure(error)
+        }
+    }
+
+    
+    private func updateUser(_ user: UserInfo, with userName: String, name: String) async throws {
+        user.userName = userName
+        user.name = name
+        try context.save()
+    }
+
+    private func createFirestoreDocument(for userID: String, email: String, userName: String, name: String) async throws {
+        let userRef = Firestore.firestore().collection("users").document(userID)
+        try await userRef.setData([
+            "email": email,
+            "userName": userName,
+            "name": name,
+            "userID": userID,
+            "isVerified": false,
+            "createdAt": Timestamp(),
+            "lastLogin": Timestamp()
+        ], merge: true)
+    }
+
+    private func sendVerificationEmail(to email: String) async throws {
+        guard let user = Auth.auth().currentUser else {
+            throw AuthError.invalidInput
+        }
+        
+        try await Task<Void, Error> {
+            try await withCheckedThrowingContinuation { continuation in
+                user.sendEmailVerification { error in
+                    if let error = error {
+                        continuation.resume(throwing: AuthError.firebaseError(error))
+                    } else {
+                        continuation.resume()
+                    }
+                }
+            }
+        }.value
+    }
+    
+    
+    private func sendCustomVerificationEmail(to email: String, userName: String, password: String) async throws {
+        let success = await emailManager.sendVerificationToken(to: email, userName: userName, password: password)
+        if success {
+            print("Custom verification email sent successfully.")
+        } else {
+            throw AuthError.firebaseError(NSError(domain: "Error sending custom verification email", code: -1, userInfo: nil))
+        }
+    }
+
 
     // New method to add user to Core Data
     private func addUserToCoreData(with userID: String, email: String, userName: String, name: String) throws {
@@ -295,6 +364,7 @@ class AuthViewModel: ObservableObject {
     }
 
 
+    // Updated signInUser function
     func signInUser(with identifier: String, password: String) async throws {
         print("Signing in user \(identifier)...")
         
@@ -302,12 +372,11 @@ class AuthViewModel: ObservableObject {
             // Fetch user record
             guard let user = try await fetchUser(identifier) else {
                 print("User not found for identifier: \(identifier)")
-                throw NSError(domain: "User not found", code: 404, userInfo: nil)
+                throw NSError(domain: ErrorDomain.auth.rawValue, code: ErrorCode.userNotFound.rawValue, userInfo: nil)
             }
             
             // Sign in with fetched email
             let authResult = try await auth.signIn(withEmail: user.email, password: password)
-            print("User signed in successfully with email: \(user.email)")
             
             // Update Firestore with login event
             let userRef = Firestore.firestore().collection("users").document(user.email)
@@ -338,18 +407,41 @@ class AuthViewModel: ObservableObject {
         }
     }
     
-    // Fetch user by email from Firebase
-    private func fetchUserByEmail(_ email: String) async -> Result<User?, Error> {
-        if let firebaseUser = Auth.auth().currentUser {
-            let userName = "DefaultUserName" // Replace this with actual logic to get the username
-            let name = "DefaultName" // Replace this with actual logic to get the name
-            let user = User(from: firebaseUser, userName: userName, name: name) // Use the custom initializer
-            return .success(user)
-        } else {
-            return .failure(NSError(domain: "User not found", code: 404, userInfo: nil))
+    // Fetch user by email from Firebase Core Data
+    private func fetchUserByEmailFromCoreData(_ email: String) async -> Result<UserInfo?, Error> {
+        let request: NSFetchRequest<UserInfo> = UserInfo.fetchRequest()
+        request.predicate = NSPredicate(format: "email == %@", email)
+        
+        do {
+            let users = try await context.perform {
+                try self.context.fetch(request)
+            }
+            
+            return .success(users.first)
+        } catch {
+            return .failure(CoreDataError.fetchError)
         }
     }
 
+    // Fetch user by email from Firebase Authentication
+    private func fetchUserByEmailFromFirebase(_ email: String) async -> Result<UserInfo?, Error> {
+        do {
+            let firestore = Firestore.firestore()
+            let query = firestore.collection("users").whereField("email", isEqualTo: email)
+            let querySnapshot = try await query.getDocuments()
+            
+            if let document = querySnapshot.documents.first {
+                let userData = document.data()
+                let userInfo = UserInfo() // Populate the UserInfo object with data from Firestore
+                // Populate userInfo from userData as needed
+                return .success(userInfo)
+            } else {
+                throw NSError(domain: "User not found in Firestore", code: 404, userInfo: nil)
+            }
+        } catch {
+            return .failure(error)
+        }
+    }
 
 
 
@@ -380,10 +472,8 @@ class AuthViewModel: ObservableObject {
 
     // Manually verify user
     func manuallyVerifyUser(email: String) async throws -> Bool {
-        // Update user's verification status in Core Data
         try await updateVerificationStatus(for: email, isVerified: true)
         
-        // Update user's verification status in Firestore
         let firestore = Firestore.firestore()
         let userRef = firestore.collection("users").document(email)
         
@@ -396,37 +486,46 @@ class AuthViewModel: ObservableObject {
         }
     }
 
-    private func fetchUser(_ usernameOrEmail: String) async throws -> User? {
-        // Check if input is email
+    private func fetchUser(_ usernameOrEmail: String) async throws -> UserInfo? {
         if ValidationUtility.validateEmail(usernameOrEmail) == nil {
-            // Use `get` to retrieve only the User object, not Result
-            switch await fetchUserByEmail(usernameOrEmail) {
+            // Fetch user by email
+            let result: Result<UserInfo?, Error> = await fetchUserByEmail(usernameOrEmail)
+            switch result {
             case .success(let user):
                 return user
             case .failure(let error):
                 throw error
             }
         } else {
-            // Fetch user by username from Firebase (requires custom Firebase implementation)
-            return try await fetchUserByUsername(usernameOrEmail)
+            // Fetch user by username
+            let result: Result<UserInfo?, Error> = await fetchUserByUsername(usernameOrEmail)
+            switch result {
+            case .success(let user):
+                return user
+            case .failure(let error):
+                throw error
+            }
         }
     }
 
+    
     // Fetch user by username from Firebase
-    private func fetchUserByUsername(_ username: String) async throws -> User? {
+    private func fetchUserByUsername(_ username: String) async throws -> UserInfo? {
         let firestore = Firestore.firestore()
         let query = firestore.collection("users").whereField("userName", isEqualTo: username)
+        
         do {
             let querySnapshot = try await query.getDocuments()
             if let document = querySnapshot.documents.first {
                 let userData = document.data()
-                do {
-                    let jsonData = try JSONSerialization.data(withJSONObject: userData)
-                    return try JSONDecoder().decode(User.self, from: jsonData)
-                } catch {
-                    print("Error decoding user data: \(error.localizedDescription)")
-                    throw error
+                let request: NSFetchRequest<UserInfo> = UserInfo.fetchRequest()
+                request.predicate = NSPredicate(format: "email == %@", userData["email"] as? String ?? "")
+                
+                let users = try await self.context.perform { // Explicitly reference 'self' here
+                    try self.context.fetch(request) // And here as well
                 }
+                
+                return users.first
             } else {
                 throw NSError(domain: "User not found", code: 404, userInfo: nil)
             }
@@ -434,4 +533,5 @@ class AuthViewModel: ObservableObject {
             throw error
         }
     }
+
 }

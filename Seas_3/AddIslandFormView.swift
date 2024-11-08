@@ -22,12 +22,23 @@ struct AddIslandFormView: View {
     @Binding var createdByUserId: String
     @Binding var gymWebsite: String
     @Binding var gymWebsiteURL: URL?
-
     @State private var isSaveEnabled = false
     @State private var showAlert = false
     @State private var alertMessage = ""
+    @ObservedObject var pirateIslandViewModel: PirateIslandViewModel
 
-    init(islandName: Binding<String>, street: Binding<String>, city: Binding<String>, state: Binding<String>, zip: Binding<String>, createdByUserId: Binding<String>, gymWebsite: Binding<String>, gymWebsiteURL: Binding<URL?>) {
+
+    init(
+        islandName: Binding<String>,
+        street: Binding<String>,
+        city: Binding<String>,
+        state: Binding<String>,
+        zip: Binding<String>,
+        createdByUserId: Binding<String>,
+        gymWebsite: Binding<String>,
+        gymWebsiteURL: Binding<URL?>,
+        pirateIslandViewModel: PirateIslandViewModel
+    ) {
         self._islandName = islandName
         self._street = street
         self._city = city
@@ -36,6 +47,7 @@ struct AddIslandFormView: View {
         self._createdByUserId = createdByUserId
         self._gymWebsite = gymWebsite
         self._gymWebsiteURL = gymWebsiteURL
+        self.pirateIslandViewModel = pirateIslandViewModel
     }
 
     var body: some View {
@@ -70,8 +82,9 @@ struct AddIslandFormView: View {
 
                 Button("Save") {
                     if isSaveEnabled {
-                        print("Save button tapped")
-                        geocodeIslandLocation()
+                        Task {
+                            try await saveIslandData()
+                        }
                     } else {
                         print("Save button disabled")
                         alertMessage = "Required fields are empty or invalid"
@@ -112,27 +125,17 @@ struct AddIslandFormView: View {
         isSaveEnabled = isValid // Update isSaveEnabled based on validation
     }
 
-    private func geocodeIslandLocation() {
-        let fullAddress = "\(street), \(city), \(state) \(zip)"
-        print("Geocoding Gym Location: \(fullAddress)")
 
-        // Perform geocoding using GeocodingUtility
-        geocodeAddress(fullAddress) { result in
-            switch result {
-            case .success(let coordinates):
-                print("Geocoded coordinates: \(coordinates)")
-                // Update latitude and longitude fields if needed
-                // Example:
-                // self.latitude = coordinates.latitude
-                // self.longitude = coordinates.longitude
-            case .failure(let error):
-                print("Geocoding error: \(error.localizedDescription)")
-                DispatchQueue.main.async {
-                    showAlert = true
-                    alertMessage = "Failed to geocode address"
-                }
-            }
-        }
+    private func saveIslandData() async throws {
+        try await pirateIslandViewModel.saveIslandData(
+            islandName,
+            street,
+            city,
+            state,
+            zip,
+            website: gymWebsiteURL
+        )
+        presentationMode.wrappedValue.dismiss()
     }
 
     private func validateURL(_ urlString: String) -> Bool {
@@ -151,7 +154,8 @@ struct AddIslandFormView_Previews: PreviewProvider {
             zip: .constant(""),
             createdByUserId: .constant(""),
             gymWebsite: .constant(""),
-            gymWebsiteURL: .constant(nil)
+            gymWebsiteURL: .constant(nil),
+            pirateIslandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.shared)
         )
     }
 }

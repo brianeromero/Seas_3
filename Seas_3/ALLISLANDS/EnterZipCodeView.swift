@@ -69,45 +69,39 @@ struct EnterZipCodeView: View {
         }
     }
 
-        
-
     private func search() {
-        MapUtils.fetchLocation(for: locationInput) { coordinate, error in
-            if let error = error {
+        Task {
+            do {
+                let coordinate = try await MapUtils.fetchLocation(for: locationInput)
+                
+                // Update the region with the new coordinates
+                self.region = MKCoordinateRegion(
+                    center: coordinate,
+                    span: MKCoordinateSpan(
+                        latitudeDelta: self.selectedRadius * 0.01, // Convert miles to degrees
+                        longitudeDelta: self.selectedRadius * 0.01
+                    )
+                )
+                
+                // Fetch Pirate Islands near the found location
+                self.enterZipCodeViewModel.fetchPirateIslandsNear(
+                    CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude),
+                    within: self.selectedRadius * 1609.34 // Convert miles to meters
+                )
+                
+                // Filter results based on the selected radius
+                let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+                self.searchResults = self.enterZipCodeViewModel.pirateIslands.compactMap { $0.pirateIsland }.filter {
+                    let marker = CustomMapMarker(
+                        id: UUID(),
+                        coordinate: CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude),
+                        title: $0.name ?? "",
+                        pirateIsland: $0
+                    )
+                    return marker.distance(from: location) <= self.selectedRadius * 1609.34
+                }
+            } catch {
                 print("Geocoding error: \(error.localizedDescription)")
-                return
-            }
-
-            guard let coordinate = coordinate else {
-                print("No location found for the input.")
-                return
-            }
-
-            // Update the region with the new coordinates
-            self.region = MKCoordinateRegion(
-                center: coordinate,
-                span: MKCoordinateSpan(
-                    latitudeDelta: self.selectedRadius * 0.01, // Convert miles to degrees
-                    longitudeDelta: self.selectedRadius * 0.01
-                )
-            )
-
-            // Fetch Pirate Islands near the found location
-            self.enterZipCodeViewModel.fetchPirateIslandsNear(
-                CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude),
-                within: self.selectedRadius * 1609.34 // Convert miles to meters
-            )
-
-            // Filter results based on the selected radius
-            let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
-            self.searchResults = self.enterZipCodeViewModel.pirateIslands.compactMap { $0.pirateIsland }.filter {
-                let marker = CustomMapMarker(
-                    id: UUID(),
-                    coordinate: CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude),
-                    title: $0.name ?? "",
-                    pirateIsland: $0
-                )
-                return marker.distance(from: location) <= self.selectedRadius * 1609.34
             }
         }
     }

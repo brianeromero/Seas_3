@@ -20,11 +20,16 @@ extension String {
         return self.rangeOfCharacter(from: alphanumericSet.inverted) == nil
     }
 }
-import SwiftUI
-import CoreData
-import Firebase
-import Combine
 
+
+enum CreateAccountError: Int {
+    case invalidEmailOrPassword = 17011
+    case userNotFound = 17008
+    case missingPermissions = 7
+    case emailAlreadyInUse = 17007
+}
+
+// Ensure `FormFieldViews.swift` is accessible
 struct CreateAccountView: View {
     @EnvironmentObject var authenticationState: AuthenticationState
     @Environment(\.managedObjectContext) private var managedObjectContext
@@ -37,10 +42,8 @@ struct CreateAccountView: View {
     @State private var successMessage: String? = nil
     @State private var showErrorAlert = false
     @State private var shouldNavigateToLogin = false
-    
-    
-    let beltOptions = ["White", "Blue", "Purple", "Brown", "Black", "Red&Black", "Red&White", "Red"]
-    
+
+    let beltOptions = ["White", "Blue", "Purple", "Brown", "Black"]
     @ObservedObject var islandViewModel: PirateIslandViewModel
     @State private var islandName = ""
     @State private var street = ""
@@ -52,8 +55,6 @@ struct CreateAccountView: View {
     @State private var selectedProtocol = "http://"
     @State private var showLoginReset = false
 
-    
-    
     let emailManager: UnifiedEmailManager
     
     init(islandViewModel: PirateIslandViewModel,
@@ -65,11 +66,9 @@ struct CreateAccountView: View {
         self.emailManager = emailManager
     }
 
-    
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                // Title and error message
                 Text("Create Account")
                     .font(.largeTitle)
                     .fontWeight(.bold)
@@ -80,72 +79,27 @@ struct CreateAccountView: View {
                         .padding(.bottom)
                 }
                 
-                // Login Information
-                Section(header: Text("Login Information").fontWeight(.bold)) {
-                    UserNameField(
-                        userName: $formState.userName,
-                        isValid: $formState.isUserNameValid,
-                        errorMessage: $formState.userNameErrorMessage,
-                        validateUserName: { userName in ValidationUtility.validateField(userName, type: .userName) }
-                    )
-                    
-                    NameField(
-                        name: $formState.name,
-                        isValid: $formState.isNameValid,
-                        errorMessage: $formState.nameErrorMessage,
-                        validateName: ValidationUtility.validateName
-                    )
-                    
-                    EmailField(
-                        email: $formState.email,
-                        isValid: $formState.isEmailValid,
-                        errorMessage: $formState.emailErrorMessage,
-                        validateEmail: ValidationUtility.validateEmail
-                    )
-                    
-                    PasswordField(
-                        password: $formState.password,
-                        isValid: $formState.isPasswordValid,
-                        errorMessage: $formState.passwordErrorMessage,
-                        bypassValidation: $bypassValidation,
-                        validatePassword: ValidationUtility.isValidPassword
-                    )
-
-                    ConfirmPasswordField(
-                        confirmPassword: $formState.confirmPassword,
-                        isValid: $formState.isConfirmPasswordValid,
-                        password: $formState.password
-                    )
-                    
-                }
+                UserInformationView(formState: $formState)
                 
-                // Belt (optional)
-                Section(header: HStack {
-                    Text("Belt")
-                    Text("(Optional)")
-                        .foregroundColor(.gray)
-                        .opacity(0.7)
-                }) {
-                    Menu {
-                        ForEach(beltOptions, id: \.self) { belt in
-                            Button(action: {
-                                self.belt = belt
-                            }) {
-                                Text(belt)
-                            }
-                        }
-                    } label: {
-                        HStack {
-                            Text(belt.isEmpty ? "Select a belt" : belt)
-                                .foregroundColor(belt.isEmpty ? .gray : .primary)
-                            Spacer()
-                            Image(systemName: "chevron.down")
-                                .foregroundColor(.gray)
-                        }
+                PasswordField(
+                    password: $formState.password,
+                    isValid: $formState.isPasswordValid,
+                    errorMessage: $formState.passwordErrorMessage,
+                    bypassValidation: $bypassValidation,
+                    validateField: { password in
+                        let validationMessage = ValidationUtility.validateField(password, type: .password)
+                        return validationMessage?.rawValue ?? ""
                     }
-                }
+                )
                 
-                // Gym Information (optional)
+                ConfirmPasswordField(
+                    confirmPassword: $formState.confirmPassword,
+                    isValid: $formState.isConfirmPasswordValid,
+                    password: $formState.password
+                )
+                
+                BeltSection(belt: $belt)
+                
                 Section(header: HStack {
                     Text("Gym Information")
                         .fontWeight(.bold)
@@ -168,36 +122,54 @@ struct CreateAccountView: View {
                     )
                 }
                 
-                // Call-to-action
                 Button(action: createAccount) {
                     Text("Create Account")
                         .font(.title)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(Color.blue)
+                        .background(
+                            formState.isUserNameValid &&
+                            formState.isNameValid &&
+                            formState.isEmailValid &&
+                            formState.isPasswordValid &&
+                            formState.isConfirmPasswordValid &&
+                            errorMessage == nil ? Color.blue : Color.gray
+                        )
                         .foregroundColor(.white)
                         .cornerRadius(8)
                 }
-                .disabled(!formState.isValid)
+                .opacity(
+                    formState.isUserNameValid &&
+                    formState.isNameValid &&
+                    formState.isEmailValid &&
+                    formState.isPasswordValid &&
+                    formState.isConfirmPasswordValid &&
+                    errorMessage == nil ? 1 : 0.5
+                )
+                .disabled(
+                    !(formState.isUserNameValid &&
+                    formState.isNameValid &&
+                    formState.isEmailValid &&
+                    formState.isPasswordValid &&
+                    formState.isConfirmPasswordValid) || errorMessage != nil
+                )
                 .padding(.bottom)
             }
             .padding(.horizontal, 24)
-        }
-        .alert(isPresented: $showErrorAlert) {
-            Alert(
-                title: Text(successMessage != nil ? "Success" : "Error"),
-                message: Text(successMessage ?? errorMessage ?? "Unknown error"),
-                dismissButton: .default(Text("OK")) {
-                    // Reset messages and states after alert dismissal
-                    self.shouldNavigateToLogin = successMessage != nil
-                    isUserProfileActive = false
-                    authenticationState.isLoggedIn = false
-                    authenticationState.isAuthenticated = false
-                    // Clear messages
-                    successMessage = nil
-                    errorMessage = nil
-                }
-            )
+            .alert(isPresented: $showErrorAlert) {
+                Alert(
+                    title: Text(successMessage != nil ? "Success" : "Error"),
+                    message: Text(successMessage ?? errorMessage ?? "Unknown error"),
+                    dismissButton: .default(Text("OK")) {
+                        self.shouldNavigateToLogin = successMessage != nil
+                        isUserProfileActive = false
+                        authenticationState.isLoggedIn = false
+                        authenticationState.isAuthenticated = false
+                        successMessage = nil
+                        errorMessage = nil
+                    }
+                )
+            }
         }
         .navigationDestination(isPresented: $shouldNavigateToLogin) {
             LoginView(
@@ -210,85 +182,97 @@ struct CreateAccountView: View {
         }
     }
     
-    
-    // MARK: - Create Account Functionality
-    /// Creates a new user account.
     private func createAccount() {
         print("Create Account button pressed.")
         print("Current form state: \(formState)")
-        
-        guard formState.password == formState.confirmPassword else {
-            errorMessage = AccountAuthViewError.passwordMismatch.errorDescription!
-            showErrorAlert = true
-            return
-        }
-        
-        guard formState.isPasswordValid else {
-            errorMessage = AccountAuthViewError.invalidPassword.errorDescription!
-            showErrorAlert = true
-            return
-        }
-        
+        print("Validation Check:")
+        print("Username Valid: \(formState.isUserNameValid)")
+        print("Name Valid: \(formState.isNameValid)")
+        print("Email Valid: \(formState.isEmailValid)")
+        print("Password Valid: \(formState.isPasswordValid)")
+
         Task {
             do {
-                try await createUser()
-                handleSuccess()
+                try await authViewModel.createUser(
+                    withEmail: formState.email,
+                    password: formState.password,
+                    userName: formState.userName,
+                    name: formState.name
+                )
+                successMessage = "Account created successfully"
+                showErrorAlert = true
+                
+                if !islandName.isEmpty || !street.isEmpty || !city.isEmpty || !state.isEmpty || !zip.isEmpty || gymWebsiteURL != nil {
+                    let location = "\(street), \(city), \(state) \(zip)"
+                    
+                    if !location.isEmpty && !islandName.isEmpty {
+                        await islandViewModel.createPirateIsland(
+                            name: islandName,
+                            location: location,
+                            createdByUserId: formState.userName,
+                            gymWebsiteURL: gymWebsiteURL
+                        ) { result in
+                            switch result {
+                            case .success(let newIsland):
+                                self.updateIslandCoordinates(newIsland, location)
+                            case .failure(let error):
+                                // Handle error
+                                print("Error creating pirate island: \(error.localizedDescription)")
+                            }
+                        }
+                    }
+                    
+                    handleSuccess()
+                }
             } catch {
+                print("Create account error: \(error.localizedDescription)")
                 handleCreateAccountError(error)
             }
         }
     }
-    
-    /// Creates a new user using the authentication view model.
-    private func createUser() async throws {
-        print("Entering createUser method.")
-        print("Sending data to Firebase for account creation: Email: \(formState.email), UserName: \(formState.userName), Name: \(formState.name)")
-        
-        try await authViewModel.createUser(
-            withEmail: formState.email,
-            password: formState.password,
-            userName: formState.userName,
-            name: formState.name
-        )
-        print("Data sent to Firebase successfully.")
-        
-        // Add data to Core Data and Firestore
-        print("Saving data to Core Data.")
-        // Insert Core Data save logic here, if applicable
-        
-        print("Saving data to Firestore.")
-        // Insert Firestore save logic here, if applicable
-        print("Exiting createUser method.")
+
+    private func updateIslandCoordinates(_ island: PirateIsland, _ location: String) {
+        Task {
+            do {
+                try GeocodingConfig.validateApiKey()
+                let coordinates = try await geocode(address: location, apiKey: GeocodingConfig.apiKey)
+                self.islandViewModel.updatePirateIslandLatitudeLongitude(
+                    latitude: coordinates.latitude,
+                    longitude: coordinates.longitude,
+                    island: island
+                ) { result in
+                    switch result {
+                    case .success:
+                        print("Latitude/Longitude updated successfully")
+                    case .failure(let error):
+                        print("Error updating latitude/longitude: \(error.localizedDescription)")
+                    }
+                }
+            } catch {
+                print("Geocoding error: \(error.localizedDescription)")
+                // Handle geocoding error
+            }
+        }
     }
-    
+
     /// Handles successful account creation.
     private func handleSuccess() {
         print("Account created successfully. Preparing to send verification emails...")
         
         // Send Firebase email verification
-        UnifiedEmailManager.shared.sendEmailVerification(to: formState.email) { success in
+        let email = formState.email
+        UnifiedEmailManager.shared.sendEmailVerification(to: email) { success in
             print("Firebase email verification sent: \(success)")
-            if !success {
-                print("Error sending Firebase email verification.")
-            } else {
-                print("Firebase email verification sent successfully to \(self.formState.email).")
-            }
         }
-
+        
         // Send custom verification token email
         Task {
             let success = await UnifiedEmailManager.shared.sendVerificationToken(
-                to: formState.email,
+                to: email,
                 userName: formState.userName,
                 password: formState.password
             )
-            
             print("Custom verification token email sent: \(success)")
-            if !success {
-                print("Error sending custom verification token email.")
-            } else {
-                print("Custom verification token email sent successfully to \(self.formState.email).")
-            }
         }
         
         successMessage = "Account created successfully. Check your email for login instructions."
@@ -301,26 +285,10 @@ struct CreateAccountView: View {
         // Navigate back to login
         isUserProfileActive = false
     }
-
-    
-    
     
     /// Handles create account errors, including existing user error.
     func handleCreateAccountError(_ error: Error) {
-        let errorCode = (error as NSError).code
-        
-        switch errorCode {
-        case 17011:
-            errorMessage = "Invalid email or password."
-        case 17008:
-            errorMessage = "User not found."
-        case 7:
-            errorMessage = "Missing or insufficient permissions."
-        case 17007, AuthErrorCode.emailAlreadyInUse.rawValue:
-            errorMessage = AccountAuthViewError.userAlreadyExists.errorDescription
-        default:
-            errorMessage = "Error creating account: \(error.localizedDescription)"
-        }
+        errorMessage = getErrorMessage(error)
         
         showErrorAlert = true
         
@@ -333,20 +301,68 @@ struct CreateAccountView: View {
         
         isUserProfileActive = false
     }
+
+    func getErrorMessage(_ error: Error) -> String {
+        if let pirateIslandError = error as? PirateIslandError {
+            switch pirateIslandError {
+            case .invalidInput:
+                return "Invalid input"
+            case .islandExists:
+                return "Island already exists"
+            case .geocodingError:
+                return "Geocoding error"
+            case .savingError:
+                return "Saving error"
+            }
+        } else {
+            let errorCode = (error as NSError).code
+            switch CreateAccountError(rawValue: errorCode) {
+            case .invalidEmailOrPassword:
+                return "Invalid email or password."
+            case .userNotFound:
+                return "User not found."
+            case .missingPermissions:
+                return "Missing or insufficient permissions."
+            case .emailAlreadyInUse:
+                return AccountAuthViewError.userAlreadyExists.errorDescription ?? "Email already in use."
+            default:
+                return "Error creating account: \(error.localizedDescription)"
+            }
+        }
+    }
+
+    func getInvalidFields() -> String {
+        var invalidFields = [String]()
+        
+        if !formState.isUserNameValid {
+            invalidFields.append("Username")
+        }
+        
+        if !formState.isNameValid {
+            invalidFields.append("Name")
+        }
+        
+        if !formState.isEmailValid {
+            invalidFields.append("Email")
+        }
+        
+        if !formState.isPasswordValid {
+            invalidFields.append("Password")
+        }
+        
+        return invalidFields.joined(separator: ", ")
+    }
 }
-    
-    
-    
+
 // Preview
 struct CreateAccountView_Previews: PreviewProvider {
     static var previews: some View {
         CreateAccountView(
-            islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.preview),
-            isUserProfileActive: .constant(false),
-            persistenceController: PersistenceController.preview,
-            emailManager: UnifiedEmailManager.shared
+            islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.shared),
+            isUserProfileActive: .constant(true),
+            persistenceController: PersistenceController.shared
         )
         .environmentObject(AuthenticationState())
-        .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
+        .environment(\.managedObjectContext, PersistenceController.shared.container.viewContext)
     }
 }

@@ -77,6 +77,7 @@
 		0C6F7BDA2C79194500072237 /* Review+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCA11C62C79105F003CAB7C /* Review+CoreDataProperties.swift */; };
 		0C6F7BDC2C7931E600072237 /* GymMatReviewSelect.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C6F7BDB2C7931E600072237 /* GymMatReviewSelect.swift */; };
 		0C6F7BDE2C7B146200072237 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C6F7BDD2C7B146200072237 /* Extensions.swift */; };
+		0C7E22F92CDC0F5D004C46C8 /* Logging in Frameworks */ = {isa = PBXBuildFile; productRef = 0C7E22F82CDC0F5D004C46C8 /* Logging */; };
 		0C8817752C3371B7008FE469 /* MapDetails.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8817742C3371B7008FE469 /* MapDetails.swift */; };
 		0C8AEC252C59301F00D38635 /* ScheduleFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8AEC242C59301F00D38635 /* ScheduleFormView.swift */; };
 		0C8AEC272C59679300D38635 /* AppDayOfWeekFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8AEC262C59679300D38635 /* AppDayOfWeekFormView.swift */; };
@@ -371,6 +372,11 @@
 			path = Modal;
 			sourceTree = "<group>";
 		};
+		0C343B6E2CD937EC00468E89 /* UserProfile */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = UserProfile;
+			sourceTree = "<group>";
+		};
 		0C66E60F2C88DB8C00BCD2DE /* MapUtilities */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -401,6 +407,7 @@
 			files = (
 				0CBA13302CC19D5400A74C2A /* CoreML.framework in Frameworks */,
 				0CBA132E2CC19D4100A74C2A /* SwiftUI.framework in Frameworks */,
+				0C7E22F92CDC0F5D004C46C8 /* Logging in Frameworks */,
 				0C4A7B4D2CC0D443008CE1EA /* AdSupport.framework in Frameworks */,
 				0CBA132C2CC19D1600A74C2A /* CoreData.framework in Frameworks */,
 				0CBA132A2CC19D0C00A74C2A /* MapKit.framework in Frameworks */,
@@ -616,6 +623,7 @@
 		0CF13E432C2A326700D714C0 /* Seas_3 */ = {
 			isa = PBXGroup;
 			children = (
+				0C343B6E2CD937EC00468E89 /* UserProfile */,
 				0C8E21722CCDAD0B0093CEB3 /* AdminView */,
 				0CF247E92CB470D2008B02AA /* Seas_3.entitlements */,
 				0CF13E442C2A326700D714C0 /* Seas_3App.swift */,
@@ -723,6 +731,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
+				0C343B6E2CD937EC00468E89 /* UserProfile */,
 				0C8E21722CCDAD0B0093CEB3 /* AdminView */,
 			);
 			name = Seas_3;
@@ -803,6 +812,7 @@
 				0CA73BBD2CB733F9000A66E2 /* XCRemoteSwiftPackageReference "CryptoSwift" */,
 				0CA73BC02CB73597000A66E2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 				0CCA63962CC16A8C008D45F7 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */,
+				0C7E22F72CDC0F5D004C46C8 /* XCRemoteSwiftPackageReference "swift-log" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 0CF13E422C2A326700D714C0 /* Products */;
@@ -1322,6 +1332,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		0C7E22F72CDC0F5D004C46C8 /* XCRemoteSwiftPackageReference "swift-log" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-log.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.6.1;
+			};
+		};
 		0CA73BAD2CB733D8000A66E2 /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/facebook/facebook-ios-sdk";
@@ -1372,6 +1390,11 @@
 		0C33DC042CC095CF002C4835 /* FirebaseMLModelDownloader */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = FirebaseMLModelDownloader;
+		};
+		0C7E22F82CDC0F5D004C46C8 /* Logging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0C7E22F72CDC0F5D004C46C8 /* XCRemoteSwiftPackageReference "swift-log" */;
+			productName = Logging;
 		};
 		0CBA13052CC19BC100A74C2A /* GoogleSignIn */ = {
 			isa = XCSwiftPackageProductDependency;

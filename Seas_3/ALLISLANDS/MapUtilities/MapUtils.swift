@@ -18,30 +18,24 @@ struct MapUtils {
         return fromLocation.distance(from: toLocation) * metersToMilesConversionFactor
     }
     
-    static func fetchLocation(for address: String, retryCount: Int = 0, completion: @escaping (CLLocationCoordinate2D?, Error?) -> Void) {
+    static func fetchLocation(for address: String) async throws -> CLLocationCoordinate2D {
         let geocoder = CLGeocoder()
-        geocoder.geocodeAddressString(address) { placemarks, error in
-            if let error = error {
-                print("Geocoding error: \(error.localizedDescription)")
-                
-                if retryCount < 3 {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0 + Double(retryCount) * 0.5) {
-                        fetchLocation(for: address, retryCount: retryCount + 1, completion: completion)
-                    }
+        
+        let placemarks: [CLPlacemark]? = try await withCheckedThrowingContinuation { [geocoder] continuation in
+            geocoder.geocodeAddressString(address) { result, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
                 } else {
-                    completion(nil, error)
+                    continuation.resume(returning: result)
                 }
-                return
             }
-            
-            guard let placemark = placemarks?.first, let location = placemark.location else {
-                print("No placemarks found for address: \(address)")
-                completion(nil, NSError(domain: "GeocodingError", code: 0, userInfo: [NSLocalizedDescriptionKey: "No results found for the address provided."]))
-                return
-            }
-            
-            completion(location.coordinate, nil)
         }
+        
+        guard let placemark = placemarks?.first, let location = placemark.location else {
+            throw NSError(domain: "GeocodingError", code: 0, userInfo: [NSLocalizedDescriptionKey: "No results found for the address provided."])
+        }
+        
+        return location.coordinate
     }
     
     static func updateRegion(markers: [CustomMapMarker], selectedRadius: Double, center: CLLocationCoordinate2D) -> MKCoordinateRegion {

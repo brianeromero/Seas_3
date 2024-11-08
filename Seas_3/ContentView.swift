@@ -81,7 +81,8 @@ struct ContentView: View {
                         zip: $zip,
                         createdByUserId: $createdByUserId,
                         gymWebsite: $gymWebsite,
-                        gymWebsiteURL: $gymWebsiteURL
+                        gymWebsiteURL: $gymWebsiteURL,
+                        pirateIslandViewModel: viewModel
                     )
                     .environment(\.managedObjectContext, persistenceController.viewContext)
                 }

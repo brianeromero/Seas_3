@@ -75,7 +75,8 @@ public class AuthenticationState: ObservableObject {
     /// - Parameter password: Password to validate.
     /// - Returns: True if the password is valid, false otherwise, along with an optional error message.
     private func isValidPassword(_ password: String) -> (Bool, String?) {
-        let (isValid, feedback) = ValidationUtility.isValidPassword(password)
+        let isValid = ValidationUtility.isValidPassword(password) == nil
+        let feedback = ValidationUtility.isValidPassword(password)?.localizedDescription
         return (isValid, feedback ?? "Invalid password")
     }
 

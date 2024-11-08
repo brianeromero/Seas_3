@@ -6,7 +6,6 @@ import SwiftUI
 import CoreData
 import MapKit
 
-
 struct IslandMenu: View {
     @State private var showAlert = false
     @State private var alertMessage = ""
@@ -19,11 +18,10 @@ struct IslandMenu: View {
     @State private var searchResults: [PirateIsland] = []
     @StateObject var appDayOfWeekViewModel: AppDayOfWeekViewModel
     @Binding var isLoggedIn: Bool // Add this binding
-
     
-    let persistenceController: PersistenceController
+    @StateObject var profileViewModel: ProfileViewModel // Add ProfileViewModel here
 
-    // New state variable to track login status
+    let persistenceController: PersistenceController
 
     private var appDayOfWeekRepository: AppDayOfWeekRepository {
         return AppDayOfWeekRepository(persistenceController: persistenceController)
@@ -41,7 +39,7 @@ struct IslandMenu: View {
         .init(title: "FAQ", subMenuItems: ["FAQ & Disclaimer"])
     ]
 
-    init(persistenceController: PersistenceController, isLoggedIn: Binding<Bool>) { // Update initializer
+    init(persistenceController: PersistenceController, isLoggedIn: Binding<Bool>, profileViewModel: ProfileViewModel) { // Update initializer
         _appDayOfWeekViewModel = StateObject(wrappedValue: AppDayOfWeekViewModel(
             selectedIsland: nil,
             repository: AppDayOfWeekRepository(persistenceController: persistenceController),
@@ -52,6 +50,7 @@ struct IslandMenu: View {
         ))
         self.persistenceController = persistenceController
         self._isLoggedIn = isLoggedIn // Initialize the binding
+        self._profileViewModel = StateObject(wrappedValue: profileViewModel) // Initialize ProfileViewModel
     }
     
     var body: some View {
@@ -90,8 +89,15 @@ struct IslandMenu: View {
                             }
                             .padding(.bottom, 20)
                         }
+
+                        NavigationLink(destination: ProfileView(profileViewModel: profileViewModel)) {
+                            Label("Profile", systemImage: "person.crop.circle.fill")
+                                .font(.headline)
+                                .padding(.bottom, 1)
+                        }
+
+                        .padding(.bottom, 20)
                     }
-                    .padding(.horizontal, 20)
                     .navigationBarTitle("Welcome to Mat_Finder", displayMode: .inline)
                     .padding(.leading, 50)
                 } else {
@@ -117,7 +123,7 @@ struct IslandMenu: View {
     private func destinationView(for menuItem: String) -> some View {
         switch menuItem {
         case "Add New Gym":
-            AddNewIsland(viewModel: PirateIslandViewModel(persistenceController: persistenceController))
+            AddNewIsland(viewModel: PirateIslandViewModel(persistenceController: persistenceController), profileViewModel: profileViewModel) // Pass profileViewModel here
         case "Update Existing Gyms":
             EditExistingIslandList()
         case "All Locations":
@@ -185,8 +191,9 @@ struct IslandMenu: View {
 struct IslandMenu_Previews: PreviewProvider {
     static var previews: some View {
         let persistenceController = PersistenceController.preview
+        let profileViewModel = ProfileViewModel(viewContext: persistenceController.container.viewContext) // Create a profile view model for the preview
 
-        return IslandMenu(persistenceController: persistenceController, isLoggedIn: .constant(true))
+        return IslandMenu(persistenceController: persistenceController, isLoggedIn: .constant(true), profileViewModel: profileViewModel)
             .environment(\.managedObjectContext, persistenceController.container.viewContext)
             .previewDisplayName("Mat Menu Preview")
     }

@@ -1,15 +1,37 @@
 # Ignore sensitive plist files
-info3.plist
-Config.plist
-.DS_Store
 Info.plist
 GoogleService-Info.plist
+Config.plist
+info3.plist
+
+# Xcode-related files
+.DS_Store
 .build/
-Pods/
-Sources/
-build/
-database.rules.json
+xcuserdata/
+
+# Firebase files
 firebase.json
 firestore.indexes.json
 firestore.rules
 storage.rules
+database.rules.json
+
+# Package resolved files
+PackageResolved.swift
+
+# Environment files
+.env
+
+# Logs
+*.log
+
+# SQLite databases (if applicable)
+*.sqlite
+
+# Node modules (if applicable)
+node_modules/
+
+# Pods and build directories
+Pods/
+Sources/
+build/
