@@ -6,40 +6,35 @@ import SwiftUI
 import CoreData
 import MapKit
 
+enum Padding {
+    static let menuItem = 20
+    static let menuHeader = 15
+}
+
+
+// MARK: - View Definition
 struct IslandMenu: View {
+    
+    // MARK: - Environment Variables
+    @Environment(\.managedObjectContext) private var viewContext
+    @Environment(\.presentationMode) private var presentationMode
+
+    // MARK: - State Variables
     @State private var showAlert = false
     @State private var alertMessage = ""
     @State private var selectedIsland: PirateIsland? = nil
     @StateObject private var locationManager = UserLocationMapViewModel()
-    @Environment(\.managedObjectContext) private var viewContext
-    
-    @State private var selectedAppDayOfWeek: AppDayOfWeek? = nil
     @State private var region: MKCoordinateRegion = MKCoordinateRegion()
     @State private var searchResults: [PirateIsland] = []
+    @Binding var isLoggedIn: Bool
     @StateObject var appDayOfWeekViewModel: AppDayOfWeekViewModel
-    @Binding var isLoggedIn: Bool // Add this binding
-    
-    @StateObject var profileViewModel: ProfileViewModel // Add ProfileViewModel here
-
+    @StateObject var profileViewModel: ProfileViewModel
     let persistenceController: PersistenceController
+    let menuLeadingPadding: CGFloat = 50 + 0.5 * 10
 
-    private var appDayOfWeekRepository: AppDayOfWeekRepository {
-        return AppDayOfWeekRepository(persistenceController: persistenceController)
-    }
 
-    private var pirateIslandDataManager: PirateIslandDataManager {
-        return PirateIslandDataManager(viewContext: viewContext)
-    }
-
-    // Menu items
-    let menuItems: [MenuItem] = [
-        .init(title: "Search Gym Entries By", subMenuItems: ["All Locations", "Current Location", "ZipCode", "Day of the Week"]),
-        .init(title: "Manage Gyms Entries", subMenuItems: ["Add New Gym", "Update Existing Gyms", "Add or Edit Schedule/Open Mat"]),
-        .init(title: "Reviews", subMenuItems: ["Search Reviews", "Submit a Review"]),
-        .init(title: "FAQ", subMenuItems: ["FAQ & Disclaimer"])
-    ]
-
-    init(persistenceController: PersistenceController, isLoggedIn: Binding<Bool>, profileViewModel: ProfileViewModel) { // Update initializer
+    // MARK: - Initialization
+    init(persistenceController: PersistenceController, isLoggedIn: Binding<Bool>, profileViewModel: ProfileViewModel) {
         _appDayOfWeekViewModel = StateObject(wrappedValue: AppDayOfWeekViewModel(
             selectedIsland: nil,
             repository: AppDayOfWeekRepository(persistenceController: persistenceController),
@@ -49,10 +44,47 @@ struct IslandMenu: View {
             )
         ))
         self.persistenceController = persistenceController
-        self._isLoggedIn = isLoggedIn // Initialize the binding
-        self._profileViewModel = StateObject(wrappedValue: profileViewModel) // Initialize ProfileViewModel
+        self._isLoggedIn = isLoggedIn
+        self._profileViewModel = StateObject(wrappedValue: profileViewModel)
     }
+
+    enum IslandMenuOption: String, CaseIterable {
+        case allLocations = "All Locations"
+        case currentLocation = "Current Location"
+        case zipCode = "Zip Code"
+        case dayOfWeek = "Day of the Week"
+        case addNewGym = "Add New Gym"
+        case updateExistingGyms = "Update Existing Gyms"
+        case addOrEditScheduleOpenMat = "Add or Edit Schedule/Open Mat"
+        case searchReviews = "Search Reviews"
+        case submitReview = "Submit a Review"
+        case faqDisclaimer = "FAQ & Disclaimer"
+    }
+
     
+    let menuItems: [MenuItem] = [
+        .init(title: "Search Gym Entries By", subMenuItems: [
+            IslandMenuOption.allLocations.rawValue,
+            IslandMenuOption.currentLocation.rawValue,
+            IslandMenuOption.zipCode.rawValue,
+            IslandMenuOption.dayOfWeek.rawValue
+        ], padding: 20),
+        .init(title: "Manage Gyms Entries", subMenuItems: [
+            IslandMenuOption.addNewGym.rawValue,
+            IslandMenuOption.updateExistingGyms.rawValue,
+            IslandMenuOption.addOrEditScheduleOpenMat.rawValue
+        ], padding: 15),
+        .init(title: "Reviews", subMenuItems: [
+            IslandMenuOption.searchReviews.rawValue,
+            IslandMenuOption.submitReview.rawValue
+        ], padding: 20),
+        .init(title: "FAQ", subMenuItems: [
+            IslandMenuOption.faqDisclaimer.rawValue
+        ], padding: 20)
+    ]
+    
+    
+    // MARK: - Body
     var body: some View {
         NavigationStack {
             ZStack {
@@ -60,52 +92,10 @@ struct IslandMenu: View {
                     .frame(width: 500, height: 450)
                     .offset(x: 100, y: -150)
 
-                // Conditionally present the menu or a login prompt
                 if isLoggedIn {
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text("Main Menu")
-                            .font(.title)
-                            .bold()
-                            .padding(.top, 1)
-
-                        ForEach(menuItems) { menuItem in
-                            VStack(alignment: .leading, spacing: 5) {
-                                Text(menuItem.title)
-                                    .font(.headline)
-                                    .padding(.bottom, 1)
-
-                                if let subMenuItems = menuItem.subMenuItems {
-                                    ForEach(subMenuItems, id: \.self) { subMenuItem in
-                                        NavigationLink(destination: destinationView(for: subMenuItem)) {
-                                            Text(subMenuItem)
-                                                .foregroundColor(.blue)
-                                                .fixedSize(horizontal: false, vertical: true)
-                                                .frame(maxWidth: .infinity, alignment: .leading)
-                                                .padding(.leading, 1)
-                                                .padding(.top, 5)
-                                        }
-                                    }
-                                }
-                            }
-                            .padding(.bottom, 20)
-                        }
-
-                        NavigationLink(destination: ProfileView(profileViewModel: profileViewModel)) {
-                            Label("Profile", systemImage: "person.crop.circle.fill")
-                                .font(.headline)
-                                .padding(.bottom, 1)
-                        }
-
-                        .padding(.bottom, 20)
-                    }
-                    .navigationBarTitle("Welcome to Mat_Finder", displayMode: .inline)
-                    .padding(.leading, 50)
+                    menuView
                 } else {
-                    // Show a login prompt or a message
-                    Text("Please log in to access the menu.")
-                        .font(.headline)
-                        .padding()
-                    // Here you might want to include a button to show the login view
+                    loginPromptView
                 }
             }
         }
@@ -119,82 +109,149 @@ struct IslandMenu: View {
         }
     }
 
+    // MARK: - View Builders
+    private var menuHeaderView: some View {
+        Text("Main Menu")
+            .font(.title)
+            .bold()
+            .padding(.top, 1)
+    }
+
+    private var menuItemView: some View {
+        ForEach(menuItems, id: \.id) { menuItem in
+            VStack(alignment: .leading, spacing: 0) {
+                Text(menuItem.title)
+                    .font(.headline)
+                
+                ForEach(menuItem.subMenuItems, id: \.self) { subMenuItem in
+                    NavigationLink(destination: destinationView(for: IslandMenuOption(rawValue: subMenuItem)!)) {
+                        Text(subMenuItem)
+                            .foregroundColor(.blue)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.leading, 1)
+                    }
+                }
+            }
+            .padding(.bottom, CGFloat(Padding.menuItem))
+        }
+    }
+
+    private var profileLinkView: some View {
+        NavigationLink(destination: ProfileView(profileViewModel: profileViewModel)) {
+            Label("Profile", systemImage: "person.crop.circle.fill")
+                .font(.headline)
+                .padding(.bottom, 1)
+        }
+        .padding(.top, 40)
+    }
+
+    private var menuView: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            menuHeaderView
+            menuItemView
+            profileLinkView
+        }
+        .navigationBarTitle("Welcome to Mat_Finder", displayMode: .inline)
+        .padding(.leading, menuLeadingPadding)
+    }
+
+    private var loginPromptView: some View {
+        Text("Please log in to access the menu.")
+            .font(.headline)
+            .padding()
+    }
+
+    private func handleInvalidZipCode() -> Alert {
+        Alert(
+            title: Text("Invalid Zip Code"),
+            message: Text("Please enter a valid zip code."),
+            dismissButton: .default(Text("OK"))
+        )
+    }
+
+    // MARK: - Destination View
     @ViewBuilder
-    private func destinationView(for menuItem: String) -> some View {
-        switch menuItem {
-        case "Add New Gym":
-            AddNewIsland(viewModel: PirateIslandViewModel(persistenceController: persistenceController), profileViewModel: profileViewModel) // Pass profileViewModel here
-        case "Update Existing Gyms":
+    private func destinationView(for option: IslandMenuOption) -> some View {
+        switch option {
+        case .addNewGym:
+            AddNewIsland(viewModel: PirateIslandViewModel(persistenceController: persistenceController), profileViewModel: profileViewModel)
+        case .updateExistingGyms:
             EditExistingIslandList()
-        case "All Locations":
+        case .allLocations:
             AllEnteredLocations(context: viewContext)
-        case "Current Location":
+        case .currentLocation:
             ConsolidatedIslandMapView(
-                viewModel: AppDayOfWeekViewModel(
-                    selectedIsland: nil,
-                    repository: appDayOfWeekRepository,
-                    enterZipCodeViewModel: EnterZipCodeViewModel(
-                        repository: appDayOfWeekRepository,
-                        context: persistenceController.container.viewContext
-                    )
-                ),
+                viewModel: appDayOfWeekViewModel,
                 enterZipCodeViewModel: EnterZipCodeViewModel(
-                    repository: appDayOfWeekRepository,
+                    repository: AppDayOfWeekRepository(persistenceController: persistenceController),
                     context: persistenceController.container.viewContext
                 )
             )
-        case "ZipCode":
+        case .zipCode:
             EnterZipCodeView(
                 appDayOfWeekViewModel: appDayOfWeekViewModel,
                 allEnteredLocationsViewModel: AllEnteredLocationsViewModel(
-                    dataManager: pirateIslandDataManager
+                    dataManager: PirateIslandDataManager(viewContext: viewContext)
                 ),
                 enterZipCodeViewModel: EnterZipCodeViewModel(
-                    repository: appDayOfWeekRepository,
-                    context: viewContext
+                    repository: AppDayOfWeekRepository(persistenceController: persistenceController),
+                    context: persistenceController.container.viewContext
                 )
             )
-        case "Add or Edit Schedule/Open Mat":
+            .alert(isPresented: $showAlert) {
+                handleInvalidZipCode()
+            }
+        case .addOrEditScheduleOpenMat:
             DaysOfWeekFormView(
                 viewModel: appDayOfWeekViewModel,
                 selectedIsland: $selectedIsland,
                 selectedMatTime: .constant(nil),
                 showReview: .constant(false)
             )
-        case "Day of the Week":
+        case .dayOfWeek:
             DayOfWeekSearchView(
                 selectedIsland: $selectedIsland,
-                selectedAppDayOfWeek: $selectedAppDayOfWeek,
+                selectedAppDayOfWeek: .constant(nil),
                 region: $region,
                 searchResults: $searchResults
             )
-        case "Search Reviews":
-            ViewReviewSearch(selectedIsland: $selectedIsland, enterZipCodeViewModel: appDayOfWeekViewModel.enterZipCodeViewModel)
-        case "Submit a Review":
+        case .searchReviews:
+            ViewReviewSearch(
+                selectedIsland: $selectedIsland,
+                enterZipCodeViewModel: appDayOfWeekViewModel.enterZipCodeViewModel
+            )
+        case .submitReview:
             GymMatReviewSelect(
                 selectedIsland: $selectedIsland,
                 enterZipCodeViewModel: EnterZipCodeViewModel(
-                    repository: appDayOfWeekRepository,
+                    repository: AppDayOfWeekRepository(persistenceController: persistenceController),
                     context: viewContext
                 )
             )
             .navigationTitle("Select Gym for Review")
             .navigationBarTitleDisplayMode(.inline)
-        case "FAQ & Disclaimer":
+        case .faqDisclaimer:
             FAQnDisclaimerMenuView()
-        default:
-            EmptyView()
         }
     }
 }
 
+// MARK: - Preview
 struct IslandMenu_Previews: PreviewProvider {
     static var previews: some View {
-        let persistenceController = PersistenceController.preview
-        let profileViewModel = ProfileViewModel(viewContext: persistenceController.container.viewContext) // Create a profile view model for the preview
-
-        return IslandMenu(persistenceController: persistenceController, isLoggedIn: .constant(true), profileViewModel: profileViewModel)
-            .environment(\.managedObjectContext, persistenceController.container.viewContext)
-            .previewDisplayName("Mat Menu Preview")
+        // Accessing the preview context from PersistenceController
+        let previewContext = PersistenceController.preview.container.viewContext
+        
+        // Initializing ProfileViewModel with viewContext
+        let profileViewModel = ProfileViewModel(viewContext: previewContext)
+        
+        // Creating the IslandMenu view with dependencies
+        return IslandMenu(
+            persistenceController: PersistenceController.preview,
+            isLoggedIn: .constant(true),
+            profileViewModel: profileViewModel
+        )
+        .environment(\.managedObjectContext, previewContext)
     }
 }

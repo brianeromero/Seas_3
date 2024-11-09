@@ -75,7 +75,6 @@ class AuthViewModel: ObservableObject {
         self.emailManager = emailManager
     }
 
-    
     // MARK: Create Firebase user with email/password
     @MainActor
     func createUser(withEmail email: String, password: String, userName: String, name: String) async throws {
@@ -91,9 +90,9 @@ class AuthViewModel: ObservableObject {
             switch result {
             case .success(let existingUser):
                 if let existingUser = existingUser {
-                    try await updateUser(existingUser, with: userName, name: name)
+                    try updateUser(existingUser, with: userName, name: name) // Removed await
                 } else {
-                    try await addUserToCoreData(with: authResult.user.uid, email: email, userName: userName, name: name)
+                    try addUserToCoreData(with: authResult.user.uid, email: email, userName: userName, name: name)
                 }
             case .failure(let error):
                 throw error
@@ -154,7 +153,7 @@ class AuthViewModel: ObservableObject {
     }
 
     
-    private func updateUser(_ user: UserInfo, with userName: String, name: String) async throws {
+    private func updateUser(_ user: UserInfo, with userName: String, name: String) throws {
         user.userName = userName
         user.name = name
         try context.save()
@@ -431,7 +430,7 @@ class AuthViewModel: ObservableObject {
             let querySnapshot = try await query.getDocuments()
             
             if let document = querySnapshot.documents.first {
-                let userData = document.data()
+                _ = document.data()
                 let userInfo = UserInfo() // Populate the UserInfo object with data from Firestore
                 // Populate userInfo from userData as needed
                 return .success(userInfo)

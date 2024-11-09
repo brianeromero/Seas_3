@@ -5,15 +5,21 @@
 //  Created by Brian Romero on 6/26/24.
 //
 
+// MARK: - Import Statements
 import SwiftUI
 import CoreData
 import Combine
 
+// MARK: - View Definition
 struct AddNewIsland: View {
+    // MARK: - Environment Variables
     @Environment(\.managedObjectContext) private var viewContext
-    @ObservedObject private var islandViewModel: PirateIslandViewModel
+    @Environment(\.presentationMode) private var presentationMode
+
+    // MARK: - Observed Objects
+    @ObservedObject var islandViewModel: PirateIslandViewModel
     @ObservedObject var profileViewModel: ProfileViewModel
-    
+
     // MARK: - State Variables
     @State private var islandName = ""
     @State private var street = ""
@@ -26,19 +32,15 @@ struct AddNewIsland: View {
     @State private var showAlert = false
     @State private var alertMessage = ""
     @State private var selectedProtocol = "http://"
-    
-    @Environment(\.presentationMode) private var presentationMode
-    
-    // MARK: - Toast Message State
     @State private var showToast = false
     @State private var toastMessage = ""
-    
+
     // MARK: - Initialization
     init(viewModel: PirateIslandViewModel, profileViewModel: ProfileViewModel) {
         self.islandViewModel = viewModel
         self.profileViewModel = profileViewModel
     }
-    
+
     // MARK: - Body
     var body: some View {
         NavigationView {
@@ -64,32 +66,34 @@ struct AddNewIsland: View {
 
                 enteredBySection
                 saveButton
+                cancelButton
             }
-        }
-        .navigationBarTitle("Add New Gym", displayMode: .inline)
-        .alert(isPresented: $showAlert) {
-            Alert(title: Text("Error"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
-        }
-        .onAppear {
-            validateFields()
-        }
-        .overlay(
-            Group {
-                if showToast {
-                    withAnimation {
-                        ToastView(showToast: $showToast, message: toastMessage)
-                            .transition(.move(edge: .bottom))
-                            .onAppear {
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                    showToast = false
+            .navigationBarTitle("Add New Gym", displayMode: .inline)
+            .alert(isPresented: $showAlert) {
+                Alert(title: Text("Error"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
+            }
+            .onAppear {
+                validateFields()
+            }
+            .overlay(
+                Group {
+                    if showToast {
+                        withAnimation {
+                            ToastView(showToast: $showToast, message: toastMessage)
+                                .transition(.move(edge: .bottom))
+                                .onAppear {
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                        showToast = false
+                                    }
                                 }
-                            }
+                        }
                     }
                 }
-            }
-        )
+            )
+        }
     }
-    
+
+    // MARK: - View Builders
     private var enteredBySection: some View {
         Section(header: Text("Entered By")) {
             Text(profileViewModel.name)
@@ -97,7 +101,7 @@ struct AddNewIsland: View {
                 .padding()
         }
     }
-    
+
     private var saveButton: some View {
         Button("Save") {
             Task {
@@ -105,13 +109,16 @@ struct AddNewIsland: View {
             }
         }
         .disabled(!isSaveEnabled)
+        .padding()
     }
+
     private var cancelButton: some View {
         Button("Cancel") {
             presentationMode.wrappedValue.dismiss()
         }
+        .padding()
     }
-    
+
     // MARK: - Private Methods
     private func saveIsland() async {
         print("Saving Island:")
@@ -123,7 +130,7 @@ struct AddNewIsland: View {
         print("Gym Website: \(gymWebsite)")
         print("Gym Website URL: \(String(describing: gymWebsiteURL))")
         print("Location: \(street), \(city), \(state) \(zip)")
-        
+
         await islandViewModel.createPirateIsland(
             name: islandName,
             location: "\(street), \(city), \(state) \(zip)",
@@ -132,13 +139,12 @@ struct AddNewIsland: View {
         ) { result in
             switch result {
             case .success(let island):
-                print("Gym saved successfully: \(island.islandName)")
-                clearFields() // Clear fields after successful save
+                print("Gym saved successfully: \(String(describing: island.islandName))")
+                clearFields()
             case .failure(let error):
                 self.showToast = true
                 self.toastMessage = "Error saving island: \(error.localizedDescription)"
-                
-                // Log specific error types for detailed feedback
+
                 if let pirateIslandError = error as? PirateIslandError {
                     switch pirateIslandError {
                     case .savingError:
@@ -156,13 +162,13 @@ struct AddNewIsland: View {
             }
         }
     }
-    
+
     private func validateFields() {
         let location = "\(street), \(city), \(state) \(zip)"
         isSaveEnabled = islandViewModel.validateIslandData(
             islandName,
             location,
-            profileViewModel.name  // Include `profileViewModel.name` if required for validation
+            profileViewModel.name
         ) && !islandName.isEmpty && !street.isEmpty && !city.isEmpty && !state.isEmpty && !zip.isEmpty
     }
 

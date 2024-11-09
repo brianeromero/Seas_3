@@ -7,14 +7,26 @@ import FBSDKLoginKit
 import Security
 import CryptoSwift
 
-enum LoginViewSelection {
-    case login
-    case createAccount
+enum LoginViewSelection: Int {
+    case login = 0
+    case createAccount = 1
+    
+    init?(rawValue: Int) {
+        switch rawValue {
+        case 0:
+            self = .login
+        case 1:
+            self = .createAccount
+        default:
+            return nil
+        }
+    }
 }
 
 // Extracted login form view
 struct LoginForm: View {
     @Binding var usernameOrEmail: String
+    @StateObject private var authViewModel = AuthViewModel()
     @Binding var password: String
     @Binding var isSignInEnabled: Bool
     @Binding var errorMessage: String
@@ -26,12 +38,9 @@ struct LoginForm: View {
     @Environment(\.managedObjectContext) private var viewContext
     @State private var isPasswordVisible = false
     @Binding var isLoggedIn: Bool
-    @StateObject private var authViewModel = AuthViewModel.shared
     @Binding var navigateToAdminMenu: Bool
 
-    
-    // LoginForm
-    public init(
+    init(
         usernameOrEmail: Binding<String>,
         password: Binding<String>,
         isSignInEnabled: Binding<Bool>,
@@ -51,11 +60,14 @@ struct LoginForm: View {
         _navigateToAdminMenu = navigateToAdminMenu
     }
 
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 20) {
+            Image("logo")
+                .resizable()
+                .frame(width: 100, height: 100)
+
             Text("Username or Email")
-                .font(.subheadline)
+                .font(.headline)
             TextField("Username or Email", text: $usernameOrEmail)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .onChange(of: usernameOrEmail) { newValue in
@@ -63,9 +75,7 @@ struct LoginForm: View {
                 }
 
             Text("Password")
-                .font(.subheadline)
-            
-            // Updated Password Field with Visibility Toggle
+                .font(.headline)
             HStack {
                 if isPasswordVisible {
                     TextField("Password", text: $password)
@@ -101,35 +111,30 @@ struct LoginForm: View {
             }
             .disabled(!isSignInEnabled)
 
-            Text("OR")
-                .font(.footnote)
-                .foregroundColor(.secondary)
+            HStack {
+                GoogleSignInButtonWrapper(
+                    authenticationState: _authenticationState,
+                    handleError: { message in
+                        self.errorMessage = message
+                    },
+                    googleClientID: AppConfig.shared.googleClientID
+                )
+                .frame(height: 50)
+                .clipped()
 
-            // Google Sign-In Button
-            GoogleSignInButtonWrapper(
-                authenticationState: _authenticationState,
-                handleError: { message in
-                    self.errorMessage = message
-                },
-                googleClientID: AppConfig.shared.googleClientID
-            )
-            .frame(height: 50)
-            .clipped()
-
-            // Facebook Sign-In Button
-            FacebookSignInButtonWrapper(
-                authenticationState: _authenticationState,
-                handleError: { message in
-                    self.errorMessage = message
-                }
-            )
-            .frame(height: 50)
-            .clipped()
-            .frame(height: 50)
-            .clipped()
+                FacebookSignInButtonWrapper(
+                    authenticationState: _authenticationState,
+                    handleError: { message in
+                        self.errorMessage = message
+                    }
+                )
+                .frame(height: 50)
+                .clipped()
+            }
 
             if !errorMessage.isEmpty {
-                Text(errorMessage).foregroundColor(.red)
+                Text(errorMessage)
+                    .foregroundColor(.red)
             }
 
             Text("By continuing, you agree to the updated Terms of Service/Disclaimer")
@@ -143,7 +148,6 @@ struct LoginForm: View {
                     DisclaimerView()
                 }
 
-            // Admin Login Button
             Button(action: {
                 showAdminLogin.toggle()
             }) {
@@ -155,6 +159,7 @@ struct LoginForm: View {
                 AdminLoginView(isPresented: $showAdminLogin, navigateToAdminMenu: $navigateToAdminMenu)
             }
         }
+        .padding()
     }
 
     // MARK: - Facebook Sign In Logic
@@ -169,19 +174,14 @@ struct LoginForm: View {
             return
         }
 
-        // Validate email if usernameOrEmail is expected to be an email
         if ValidationUtility.validateEmail(usernameOrEmail) != nil {
-            // If it's an email, fetch user by email
             do {
                 let user = try fetchUser(usernameOrEmail)
-                // Here we assume email is non-optional
-                let email = user.email // This will be non-optional
-                // Sign in with email and password
+                let email = user.email
                 Auth.auth().signIn(withEmail: email, password: password) { result, error in
                     if let error = error {
                         showAlert(with: error.localizedDescription)
                     } else {
-                        // Handle successful sign-in
                         DispatchQueue.main.async {
                             self.authenticationState.isAuthenticated = true
                             showMainContent = true // Update the main content
@@ -194,7 +194,7 @@ struct LoginForm: View {
         } else {
             // Handle username login (assuming your `signInUser` method handles username)
             do {
-                try await authViewModel.signInUser(with: usernameOrEmail, password: password) // Updated label
+                try await authViewModel.signInUser(with: usernameOrEmail, password: password)
                 // Handle successful sign-in
                 DispatchQueue.main.async {
                     self.authenticationState.isAuthenticated = true
@@ -206,8 +206,9 @@ struct LoginForm: View {
         }
     }
 
-
     
+
+    // MARK: - Fetch User
     private func fetchUser(_ usernameOrEmail: String) throws -> UserInfo {
         let request = NSFetchRequest<UserInfo>(entityName: "UserInfo")
         request.predicate = NSPredicate(format: "userName == %@ OR email == %@", usernameOrEmail, usernameOrEmail)
@@ -226,7 +227,7 @@ struct LoginForm: View {
     }
 
 
-    // Alert Helper
+    // MARK: - Alert Helper
     private func showAlert(with message: String) {
         errorMessage = message
     }
@@ -245,6 +246,7 @@ struct LoginView: View {
     @State private var showAdminLogin = false
     @StateObject private var islandViewModel: PirateIslandViewModel
     @State private var isUserProfileActive: Bool = false
+    @State private var selectedTabIndex: Int = 0 // Added selectedTabIndex
     @Binding var isSelected: LoginViewSelection
     @Binding var navigateToAdminMenu: Bool
     let persistenceController: PersistenceController
@@ -253,9 +255,6 @@ struct LoginView: View {
     @StateObject private var authViewModel = AuthViewModel.shared
     @Binding var isLoggedIn: Bool
 
-
-
-    // LoginView
     init(islandViewModel: PirateIslandViewModel,
          persistenceController: PersistenceController,
          isSelected: Binding<LoginViewSelection>,
@@ -267,58 +266,78 @@ struct LoginView: View {
         self._navigateToAdminMenu = navigateToAdminMenu
         self._isLoggedIn = isLoggedIn
     }
-
-        
+    
     var body: some View {
         NavigationStack {
             VStack(spacing: 20) {
-                NavigationLink(destination: AdminMenu(), isActive: $navigateToAdminMenu) {
+                // Admin Menu Navigation
+                NavigationLink(destination: AdminMenu(
+                    persistenceController: persistenceController,
+                    appDayOfWeekRepository: AppDayOfWeekRepository(persistenceController: persistenceController),
+                    enterZipCodeViewModel: EnterZipCodeViewModel(
+                        repository: AppDayOfWeekRepository(persistenceController: persistenceController),
+                        context: viewContext
+                    ),
+                    appDayOfWeekViewModel: AppDayOfWeekViewModel(
+                        repository: AppDayOfWeekRepository(persistenceController: persistenceController),
+                        enterZipCodeViewModel: EnterZipCodeViewModel(
+                            repository: AppDayOfWeekRepository(persistenceController: persistenceController),
+                            context: viewContext
+                        )
+                    )
+                ), isActive: $navigateToAdminMenu) {
                     EmptyView()
                 }
 
-                // Use .onAppear to log the authentication state
-                .onAppear {
-                    // Debug prints to check authentication state
-                    print("isAuthenticated: \(authenticationState.isAuthenticated)")
-                    print("navigateToAdminMenu: \(authenticationState.navigateToAdminMenu)")
-                }
-
-                // Use AnyView to wrap the conditional output
+                // Conditional Content Based on Selection
                 VStack {
                     if isSelected == .createAccount {
                         CreateAccountView(
                             islandViewModel: islandViewModel,
                             isUserProfileActive: $isUserProfileActive,
                             persistenceController: persistenceController,
+                            selectedTabIndex: $selectedTabIndex,  // Pass selectedTabIndex here
                             emailManager: UnifiedEmailManager.shared
                         )
                     } else if authenticationState.isAuthenticated && showMainContent {
                         IslandMenu(
-                            persistenceController: self.persistenceController,
-                            isLoggedIn: $isLoggedIn, profileViewModel: ProfileViewModel(viewContext: viewContext)
+                            persistenceController: persistenceController,
+                            isLoggedIn: $isLoggedIn,
+                            profileViewModel: ProfileViewModel(viewContext: viewContext)
                         )
                     } else if isSelected == .login {
                         VStack(spacing: 20) {
                             HStack(alignment: .center, spacing: 10) {
                                 Text("Log In OR")
-
-                                NavigationLink(value: LoginViewSelection.createAccount) {
+                                
+                                // Create Account Navigation Link
+                                NavigationLink(destination: CreateAccountView(
+                                    islandViewModel: islandViewModel,
+                                    isUserProfileActive: $isUserProfileActive,
+                                    persistenceController: persistenceController,
+                                    selectedTabIndex: $selectedTabIndex,  // Pass selectedTabIndex here as well
+                                    emailManager: UnifiedEmailManager.shared
+                                )) {
                                     Text("Create an Account")
                                         .font(.body)
                                         .foregroundColor(.blue)
                                         .underline()
                                 }
                             }
-
-                            LoginForm(usernameOrEmail: $usernameOrEmail,
-                                      password: $password,
-                                      isSignInEnabled: $isSignInEnabled,
-                                      errorMessage: $errorMessage,
-                                      islandViewModel: islandViewModel,
-                                      showMainContent: $showMainContent,
-                                      isLoggedIn: $isLoggedIn, navigateToAdminMenu: $navigateToAdminMenu)
-                                .frame(maxWidth: .infinity)
-                                .padding()
+                            
+                            // Login Form
+                            LoginForm(
+                                usernameOrEmail: $usernameOrEmail,
+                                password: $password,
+                                isSignInEnabled: $isSignInEnabled,
+                                errorMessage: $errorMessage,
+                                islandViewModel: islandViewModel,
+                                showMainContent: $showMainContent,
+                                isLoggedIn: $isLoggedIn,
+                                navigateToAdminMenu: $navigateToAdminMenu
+                            )
+                            .frame(maxWidth: .infinity)
+                            .padding()
 
                             Spacer()
                         }
@@ -331,19 +350,6 @@ struct LoginView: View {
                 Alert(title: Text("Error"), message: Text(errorMessage), dismissButton: .default(Text("OK")))
             }
             .padding()
-            .navigationDestination(for: LoginViewSelection.self) { selection in
-                switch selection {
-                case .createAccount:
-                    CreateAccountView(
-                        islandViewModel: islandViewModel,
-                        isUserProfileActive: $isUserProfileActive,
-                        persistenceController: persistenceController,
-                        emailManager: UnifiedEmailManager.shared
-                    )
-                case .login:
-                    EmptyView()
-                }
-            }
             .onChange(of: showMainContent) { newValue in
                 isLoggedIn = newValue
             }
@@ -351,8 +357,7 @@ struct LoginView: View {
     }
 }
 
-
-
+// Updated preview with .constant bindings
 struct LoginView_Previews: PreviewProvider {
     static var previews: some View {
         LoginView(
@@ -362,5 +367,7 @@ struct LoginView_Previews: PreviewProvider {
             navigateToAdminMenu: .constant(false),
             isLoggedIn: .constant(false)
         )
+        .environmentObject(AuthenticationState())
+        .environment(\.managedObjectContext, PersistenceController.shared.container.viewContext)
     }
 }

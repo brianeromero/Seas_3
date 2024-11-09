@@ -42,6 +42,8 @@ struct CreateAccountView: View {
     @State private var successMessage: String? = nil
     @State private var showErrorAlert = false
     @State private var shouldNavigateToLogin = false
+    @Binding var selectedTabIndex: Int
+
 
     let beltOptions = ["White", "Blue", "Purple", "Brown", "Black"]
     @ObservedObject var islandViewModel: PirateIslandViewModel
@@ -57,12 +59,16 @@ struct CreateAccountView: View {
 
     let emailManager: UnifiedEmailManager
     
-    init(islandViewModel: PirateIslandViewModel,
-         isUserProfileActive: Binding<Bool>,
-         persistenceController: PersistenceController,
-         emailManager: UnifiedEmailManager = .shared) {
+    init(
+        islandViewModel: PirateIslandViewModel,
+        isUserProfileActive: Binding<Bool>,
+        persistenceController: PersistenceController,
+        selectedTabIndex: Binding<Int>,
+        emailManager: UnifiedEmailManager = .shared
+    ) {
         self._islandViewModel = ObservedObject(wrappedValue: islandViewModel)
         self._isUserProfileActive = isUserProfileActive
+        self._selectedTabIndex = selectedTabIndex
         self.emailManager = emailManager
     }
 
@@ -175,9 +181,9 @@ struct CreateAccountView: View {
             LoginView(
                 islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.shared),
                 persistenceController: PersistenceController.shared,
-                isSelected: .constant(.login),
-                navigateToAdminMenu: .constant(false),
-                isLoggedIn: .constant(false)
+                isSelected: .constant(LoginViewSelection(rawValue: selectedTabIndex) ?? .login),
+                navigateToAdminMenu: $authenticationState.navigateToAdminMenu,
+                isLoggedIn: $authenticationState.isLoggedIn
             )
         }
     }
@@ -356,11 +362,14 @@ struct CreateAccountView: View {
 
 // Preview
 struct CreateAccountView_Previews: PreviewProvider {
+    @State static var selectedTabIndex = 0
+
     static var previews: some View {
         CreateAccountView(
             islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.shared),
             isUserProfileActive: .constant(true),
-            persistenceController: PersistenceController.shared
+            persistenceController: PersistenceController.shared,
+            selectedTabIndex: $selectedTabIndex
         )
         .environmentObject(AuthenticationState())
         .environment(\.managedObjectContext, PersistenceController.shared.container.viewContext)

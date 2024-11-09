@@ -9,32 +9,26 @@ import Foundation
 import SwiftUI
 
 struct AdminMenu: View {
-    @StateObject private var persistenceController = PersistenceController.shared
+    @StateObject private var persistenceController: PersistenceController
     @StateObject private var appDayOfWeekRepository: AppDayOfWeekRepository
     @StateObject private var enterZipCodeViewModel: EnterZipCodeViewModel
     @StateObject private var appDayOfWeekViewModel: AppDayOfWeekViewModel
 
-    
-    init() {
-        let appDayOfWeekRepository = AppDayOfWeekRepository(persistenceController: PersistenceController.shared)
-        let enterZipCodeViewModel = EnterZipCodeViewModel(
-            repository: appDayOfWeekRepository,
-            context: PersistenceController.shared.container.viewContext
-        )
-        let appDayOfWeekViewModel = AppDayOfWeekViewModel(
-            repository: appDayOfWeekRepository,
-            enterZipCodeViewModel: enterZipCodeViewModel
-        )
-
+    init(persistenceController: PersistenceController,
+         appDayOfWeekRepository: AppDayOfWeekRepository,
+         enterZipCodeViewModel: EnterZipCodeViewModel,
+         appDayOfWeekViewModel: AppDayOfWeekViewModel) {
+        _persistenceController = StateObject(wrappedValue: persistenceController)
         _appDayOfWeekRepository = StateObject(wrappedValue: appDayOfWeekRepository)
         _enterZipCodeViewModel = StateObject(wrappedValue: enterZipCodeViewModel)
         _appDayOfWeekViewModel = StateObject(wrappedValue: appDayOfWeekViewModel)
     }
+    
 
     let menuItems: [MenuItem] = [
-        MenuItem(title: "Manage Users", subMenuItems: ["Reset User Verification", "Edit User", "Remove User", "Manual User Verification"]),
-        MenuItem(title: "Manage Gyms", subMenuItems: ["All Gyms", "ALL Gym Schedules", "ALL Mat Schedules"]),
-        MenuItem(title: "Manage Reviews", subMenuItems: ["View All Reviews", "Moderate Reviews"])
+        MenuItem(title: "Manage Users", subMenuItems: ["Reset User Verification", "Edit User", "Remove User", "Manual User Verification"], padding: 20),
+        MenuItem(title: "Manage Gyms", subMenuItems: ["All Gyms", "ALL Gym Schedules", "ALL Mat Schedules"], padding: 15),
+        MenuItem(title: "Manage Reviews", subMenuItems: ["View All Reviews", "Moderate Reviews"], padding: 20)
     ]
 
     var body: some View {
@@ -48,13 +42,12 @@ struct AdminMenu: View {
                     VStack(alignment: .leading, spacing: 5) {
                         Text(menuItem.title)
                             .font(.headline)
-                        if let subMenuItems = menuItem.subMenuItems {
-                            ForEach(subMenuItems, id: \.self) { subMenuItem in
-                                NavigationLink(destination: destinationView(for: subMenuItem)) {
-                                    Text(subMenuItem)
-                                        .foregroundColor(.blue)
-                                        .padding(.leading, 10)
-                                }
+                        
+                        ForEach(menuItem.subMenuItems, id: \.self) { subMenuItem in
+                            NavigationLink(destination: destinationView(for: subMenuItem)) {
+                                Text(subMenuItem)
+                                    .foregroundColor(.blue)
+                                    .padding(.leading, 10)
                             }
                         }
                     }
@@ -66,8 +59,14 @@ struct AdminMenu: View {
     }
     
     @ViewBuilder
-    private func destinationView(for menuItem: String) -> some View {
-        switch menuItem {
+    private func destinationView(for option: String) -> some View {
+        switch option {
+        case IslandMenuOption.allLocations.rawValue:
+            // TODO: Implement destination view
+            EmptyView()
+        case IslandMenuOption.currentLocation.rawValue:
+            // TODO: Implement destination view
+            EmptyView()
         case "Reset User Verification":
             ResetUserVerificationView()
         case "Manual User Verification":
@@ -104,7 +103,21 @@ class MockAppDayOfWeekViewModel: AppDayOfWeekViewModel {
 // PreviewProvider for Canvas preview
 struct AdminMenu_Previews: PreviewProvider {
     static var previews: some View {
-        AdminMenu()
-            .environmentObject(PersistenceController.shared)
+        let persistenceController = PersistenceController.shared
+        let appDayOfWeekRepository = AppDayOfWeekRepository(persistenceController: persistenceController)
+        let enterZipCodeViewModel = EnterZipCodeViewModel(
+            repository: appDayOfWeekRepository,
+            context: persistenceController.container.viewContext
+        )
+        let appDayOfWeekViewModel = AppDayOfWeekViewModel(
+            repository: appDayOfWeekRepository,
+            enterZipCodeViewModel: enterZipCodeViewModel
+        )
+        
+        AdminMenu(persistenceController: persistenceController,
+                  appDayOfWeekRepository: appDayOfWeekRepository,
+                  enterZipCodeViewModel: enterZipCodeViewModel,
+                  appDayOfWeekViewModel: appDayOfWeekViewModel)
+            .environmentObject(persistenceController)
     }
 }

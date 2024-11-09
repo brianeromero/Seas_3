@@ -9,6 +9,12 @@ import Foundation
 
 struct MenuItem: Identifiable {
     let id = UUID()
-    let title: String
-    let subMenuItems: [String]?
+    var title: String
+    var subMenuItems: [String]
+    var padding: CGFloat
+}
+
+enum IslandMenuOption: String, CaseIterable {
+    case allLocations
+    case currentLocation
 }

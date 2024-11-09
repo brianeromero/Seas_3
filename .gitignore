@@ -1,37 +1,56 @@
-# Ignore sensitive plist files
+# Sensitive files
 Info.plist
 GoogleService-Info.plist
 Config.plist
 info3.plist
-
-# Xcode-related files
-.DS_Store
-.build/
-xcuserdata/
-
-# Firebase files
 firebase.json
 firestore.indexes.json
 firestore.rules
 storage.rules
 database.rules.json
-
-# Package resolved files
-PackageResolved.swift
-
-# Environment files
 .env
+*.api_key
+*.secret
+*.pem
+*.cer
+*.key
+
+# Xcode-related files
+.DS_Store
+.build/
+xcuserdata/
+*.xcodeproj
+!*.xcodeproj/project.pbxproj
+*.swiftmodules
+*.xcarchive
+XcodeLogs/
+
+# CocoaPods
+Podfile
+Podfile.lock
+Pods/
 
 # Logs
 *.log
 
-# SQLite databases (if applicable)
+# SQLite databases
 *.sqlite
 
-# Node modules (if applicable)
+# Node modules
 node_modules/
 
-# Pods and build directories
-Pods/
-Sources/
+# Package resolved files
+PackageResolved.swift
+
+# Editor-specific files
+.vscode/
+.idea/
+
+# Other unnecessary files
+*.bak
+*.tmp
+*.zip
+*.tar
+*.gz
 build/
+Sources/

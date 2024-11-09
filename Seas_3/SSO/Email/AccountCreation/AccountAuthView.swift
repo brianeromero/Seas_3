@@ -56,7 +56,7 @@ struct AccountAuthView: View {
     @State private var isLoginSelected = false
     let emailManager: UnifiedEmailManager
     @ObservedObject var islandViewModel: PirateIslandViewModel
-    @State private var selectedTabIndex: LoginViewSelection = .login
+    @State private var selectedTabIndex = 0
     @State private var isSelected: LoginViewSelection = .login
     @State private var showAlert = false
     @State private var alertMessage = ""
@@ -87,7 +87,9 @@ struct AccountAuthView: View {
                             errorMessage: $errorMessage,
                             islandViewModel: islandViewModel,
                             showMainContent: .constant(false),
-                            isLoggedIn: $isLoggedIn, navigateToAdminMenu: $navigateToAdminMenu)
+                            isLoggedIn: $isLoggedIn,
+                            navigateToAdminMenu: $navigateToAdminMenu
+                        )
                         .frame(maxWidth: .infinity)
                         .padding()
                         
@@ -98,6 +100,7 @@ struct AccountAuthView: View {
                         islandViewModel: islandViewModel,
                         isUserProfileActive: $isUserProfileActive,
                         persistenceController: PersistenceController.preview,
+                        selectedTabIndex: $selectedTabIndex,
                         emailManager: UnifiedEmailManager.shared
                     )
                 }

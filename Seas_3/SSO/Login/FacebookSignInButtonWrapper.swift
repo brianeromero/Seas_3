@@ -25,13 +25,12 @@ struct FacebookSignInButtonWrapper: UIViewRepresentable {
         loginButton.permissions = ["public_profile", "email"]
 
         view.addSubview(loginButton)
-
         loginButton.translatesAutoresizingMaskIntoConstraints = false
 
         NSLayoutConstraint.activate([
             loginButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             loginButton.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-            loginButton.widthAnchor.constraint(equalToConstant: 335),
+            loginButton.widthAnchor.constraint(equalTo: view.widthAnchor, multiplier: 0.8),
             loginButton.heightAnchor.constraint(equalToConstant: 45)
         ])
 
@@ -41,11 +40,11 @@ struct FacebookSignInButtonWrapper: UIViewRepresentable {
     func updateUIView(_ uiView: UIView, context: Context) {}
 
     func makeCoordinator() -> Coordinator {
-        return Coordinator(self)
+        Coordinator(self)
     }
 
     class Coordinator: NSObject, LoginButtonDelegate {
-        var parent: FacebookSignInButtonWrapper?
+        var parent: FacebookSignInButtonWrapper
 
         init(_ parent: FacebookSignInButtonWrapper) {
             self.parent = parent
@@ -53,14 +52,14 @@ struct FacebookSignInButtonWrapper: UIViewRepresentable {
         }
 
         func loginButton(_ loginButton: FBLoginButton, didCompleteWith result: LoginManagerLoginResult?, error: Error?) {
-            guard let result = result, result.isCancelled == false else {
+            guard let result = result, !result.isCancelled else {
                 print("User cancelled login.")
                 return
             }
 
             if let error = error {
                 FacebookHelper.handleFacebookSDKError(error)
-                parent?.handleError(error.localizedDescription)
+                parent.handleError(error.localizedDescription)
                 print("Facebook login error: \(error.localizedDescription)")
                 return
             }
@@ -75,13 +74,30 @@ struct FacebookSignInButtonWrapper: UIViewRepresentable {
                     return
                 }
 
-                try? self.parent?.authenticationState.updateSocialUser(.facebook, id, name, email)
+                try? self.parent.authenticationState.updateSocialUser(.facebook, id, name, email)
             }
         }
 
         func loginButtonDidLogOut(_ loginButton: FBLoginButton) {
-            parent?.authenticationState.resetSocialUser()
+            parent.authenticationState.resetSocialUser()
             print("User signed out")
         }
+    }
+}
+
+struct FacebookSignInButtonWrapper_Previews: PreviewProvider {
+    @StateObject static var authenticationState = AuthenticationState()
+
+    static var previews: some View {
+        FacebookSignInButtonWrapper(
+            handleError: { message in
+                print("Error: \(message)")
+            }
+        )
+        .environmentObject(authenticationState)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .edgesIgnoringSafeArea(.all)
+        .previewLayout(.sizeThatFits)
+        .padding()
     }
 }

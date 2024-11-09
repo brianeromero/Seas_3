@@ -79,7 +79,7 @@ class PirateIslandViewModel: ObservableObject {
     func handleGeocodingError(_ error: Error) -> Error {
         if let error = error as? PirateIslandError {
             return error
-        } else if let error = error as? GeocodingError {
+        } else if error is GeocodingError {
             return PirateIslandError.geocodingError
         } else {
             return PirateIslandError.savingError

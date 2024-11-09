@@ -324,8 +324,6 @@
 		0CF7993C2CAFAED000F2F018 /* Exceptions for "SSO" folder in "Seas_3" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				AppConfig.swift,
-				AuthenticationState.swift,
 				DealingWErrors/AdMob/AdMobBannerAdd.swift,
 				DealingWErrors/AlertModifier.swift,
 				DealingWErrors/ConfigLoader.swift,
@@ -352,12 +350,15 @@
 				Email/ReverificationView.swift,
 				Email/SendGridEmailService.swift,
 				Email/UnifiedEmailManager.swift,
-				FacebookSignInButtonWrapper.swift,
-				fetchGoogleUserProfile.swift,
-				GoogleSignInButton.swift,
-				GoogleSignInButtonWrapper.swift,
-				LogInView.swift,
-				UserProfileViewModel.swift,
+				Login/AppConfig.swift,
+				Login/AuthenticationState.swift,
+				Login/ButtonStyle.swift,
+				Login/FacebookSignInButtonWrapper.swift,
+				Login/fetchGoogleUserProfile.swift,
+				Login/GoogleSignInButton.swift,
+				Login/GoogleSignInButtonWrapper.swift,
+				Login/LogInView.swift,
+				Login/UserProfileViewModel.swift,
 			);
 			target = 0CF13E402C2A326700D714C0 /* Seas_3 */;
 		};
