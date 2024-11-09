@@ -53,4 +53,5 @@ PackageResolved.swift
 *.tar
 *.gz
 build/
-Sources/
+Sources/CocoaPods/
+git-filter-repo/
