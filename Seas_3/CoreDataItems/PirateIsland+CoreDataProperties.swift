@@ -65,12 +65,7 @@ extension PirateIsland {
     // Convert the NSSet of appDayOfWeeks to an array of AppDayOfWeek
     public var daysOfWeekArray: [AppDayOfWeek] {
         let set = appDayOfWeeks as? Set<AppDayOfWeek> ?? []
-        return set.sorted {
-            // Safely unwrap and sort by day; provide a default value if day is nil
-            let day1 = $0.day ?? ""
-            let day2 = $1.day ?? ""
-            return day1 < day2
-        }
+        return set.sorted { $0.day < $1.day }
     }
 
     // MARK: - Custom Methods

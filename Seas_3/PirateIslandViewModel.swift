@@ -3,6 +3,7 @@ import Foundation
 import CoreData
 import Combine
 import CoreLocation
+import os
 
 enum PirateIslandError: Error {
     case invalidInput
@@ -24,14 +25,15 @@ enum PirateIslandError: Error {
     }
 }
 
-class PirateIslandViewModel: ObservableObject {
+public class PirateIslandViewModel: ObservableObject {
     @Published var selectedDestination: IslandDestination?
+    let logger = OSLog(subsystem: "Seas3.Subsystem", category: "CoreData")
+    
     private let persistenceController: PersistenceController
     
     init(persistenceController: PersistenceController) {
         self.persistenceController = persistenceController
     }
-    
     
     private func geocodeAddress(_ location: String) async throws -> (latitude: Double, longitude: Double) {
         try await geocode(address: location, apiKey: GeocodingConfig.apiKey)
@@ -87,17 +89,11 @@ class PirateIslandViewModel: ObservableObject {
     }
     
     // MARK: - Validation
-    
     public func validateIslandData(_ name: String, _ location: String, _ createdByUserId: String) -> Bool {
         ![name, location, createdByUserId].isEmpty
     }
     
-    // MARK: - Geocoding
-    
-
-    
     // MARK: - Saving Island Data
-    
     func saveIslandData(_ name: String, _ street: String, _ city: String, _ state: String, _ zip: String, website: URL?) async throws {
         guard validateIslandData(name, street, city) else {
             throw PirateIslandError.invalidInput
@@ -127,16 +123,17 @@ class PirateIslandViewModel: ObservableObject {
     }
     
     // MARK: - Helpers
-    
     private func pirateIslandExists(name: String) -> Bool {
         let fetchRequest = PirateIsland.fetchRequest()
         fetchRequest.predicate = NSPredicate(format: "islandName == %@", name)
+        
+        os_log("Executing fetch request: %@", log: logger, String(describing: fetchRequest))
         
         do {
             let count = try persistenceController.viewContext.count(for: fetchRequest)
             return count > 0
         } catch {
-            print("Error counting islands: \(error.localizedDescription)")
+            os_log("Error counting islands: %@", log: logger, error.localizedDescription)
             return false
         }
     }
@@ -149,7 +146,7 @@ class PirateIslandViewModel: ObservableObject {
         } catch {
             print("Geocoding failed for \(location): \(error.localizedDescription)")
             island.latitude = 0.0
-            island.longitude = 0.0 // Default location
+            island.longitude = 0.0 // Default location in case of failure
         }
     }
     

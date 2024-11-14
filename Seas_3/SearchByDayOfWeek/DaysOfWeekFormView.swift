@@ -188,6 +188,29 @@ struct ErrorView: View {
     }
 }
 
+
+class MockAppDayOfWeekRepository: AppDayOfWeekRepository {
+    override init(persistenceController: PersistenceController) {
+        super.init(persistenceController: persistenceController)
+    }
+    
+    // Optionally, mock any methods used in the view model
+    override func getViewContext() -> NSManagedObjectContext {
+        return PersistenceController.shared.viewContext
+    }
+    
+    // Add any other methods if needed for your preview scenario
+}
+
+
+class MockEnterZipCodeViewModel: EnterZipCodeViewModel {
+    init() {
+        super.init(repository: MockAppDayOfWeekRepository(persistenceController: PersistenceController.shared), persistenceController: PersistenceController.shared)
+    }
+    
+    // You can mock or override methods if necessary for your preview scenario
+}
+
 struct DaysOfWeekFormView_Previews: PreviewProvider {
     static func createMockIsland(in context: NSManagedObjectContext) -> PirateIsland {
         let mockIsland = PirateIsland(context: context)
@@ -196,14 +219,14 @@ struct DaysOfWeekFormView_Previews: PreviewProvider {
         mockIsland.latitude = 0.0
         mockIsland.longitude = 0.0
         mockIsland.gymWebsite = URL(string: "https://www.example.com")
-
         return mockIsland
     }
 
     static var previews: some View {
-        let context = PersistenceController.shared.container.viewContext
+        let context = PersistenceController.shared.viewContext // Access viewContext directly
         let mockIsland = createMockIsland(in: context)
 
+        // Create the mock repository and view model
         let mockRepository = MockAppDayOfWeekRepository(persistenceController: PersistenceController.shared)
         let viewModel = AppDayOfWeekViewModel(
             selectedIsland: mockIsland,
@@ -225,26 +248,7 @@ struct DaysOfWeekFormView_Previews: PreviewProvider {
         )
 
         return DaysOfWeekFormView(viewModel: viewModel, selectedIsland: selectedIsland, selectedMatTime: selectedMatTime, showReview: showReview)
-            .environment(\.managedObjectContext, context)
+            .environment(\.managedObjectContext, context) // Inject the managed object context here
             .previewDisplayName("DaysOfWeekFormView")
-    }
-}
-
-class MockAppDayOfWeekRepository: AppDayOfWeekRepository {
-    override init(persistenceController: PersistenceController) {
-        super.init(persistenceController: persistenceController)
-        // Create mock data
-    }
-
-    override func getViewContext() -> NSManagedObjectContext {
-        return persistenceController.container.viewContext
-    }
-
-    // Override other methods as needed
-}
-
-class MockEnterZipCodeViewModel: EnterZipCodeViewModel {
-    init() {
-        super.init(repository: MockAppDayOfWeekRepository(persistenceController: PersistenceController.shared), context: PersistenceController.shared.container.viewContext)
     }
 }

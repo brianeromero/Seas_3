@@ -20,7 +20,7 @@ struct EquatableMKCoordinateRegion: Equatable {
 }
     
 struct ConsolidatedIslandMapView: View {
-    @Environment(\.managedObjectContext) private var viewContext
+    @Environment(\.managedObjectContext) private var viewContext // Injected context
     @FetchRequest(
         entity: PirateIsland.entity(),
         sortDescriptors: []
@@ -86,12 +86,10 @@ struct ConsolidatedIslandMapView: View {
         .padding()
     }
 
-
     private func makeRadiusPicker() -> some View {
         RadiusPicker(selectedRadius: $selectedRadius)
             .padding()
     }
-
 
     private func overlayContentView() -> some View {
         ZStack {
@@ -162,8 +160,13 @@ struct ConsolidatedIslandMapView: View {
         
         Task {
             do {
-                let location = try await MapUtils.fetchLocation(for: address)
-                // Handle the fetched location
+                let locationCoordinate = try await MapUtils.fetchLocation(for: address)
+                // Create a CLLocation object using the fetched coordinate
+                self.fetchedLocation = CLLocation(latitude: locationCoordinate.latitude, longitude: locationCoordinate.longitude)
+                
+                if let location = self.fetchedLocation {
+                    updateRegion(location, radius: selectedRadius)
+                }
             } catch {
                 print("Error fetching location: \(error)")
             }
@@ -207,10 +210,7 @@ struct ConsolidatedIslandMapView: View {
         }
         print("Markers updated: \(pirateMarkers)")
     }
-
-
 }
-
 
 import SwiftUI
 import CoreLocation
@@ -221,7 +221,7 @@ struct MockData {
     static let sampleEnterZipCodeViewModel: EnterZipCodeViewModel = {
         EnterZipCodeViewModel(
             repository: AppDayOfWeekRepository.shared,
-            context: PersistenceController.preview.container.viewContext
+            persistenceController: PersistenceController.preview
         )
     }()
 
@@ -232,8 +232,6 @@ struct MockData {
         )
     }()
 }
-
-
 
 struct ConsolidatedIslandMapView_Previews: PreviewProvider {
     static var previews: some View {
@@ -252,6 +250,3 @@ struct ConsolidatedIslandMapView_Previews: PreviewProvider {
             .previewDevice("iPhone 14 Pro")
     }
 }
-
-
-

@@ -62,11 +62,11 @@ struct ScheduleDetailModal: View {
 
 struct ScheduleDetailModal_Previews: PreviewProvider {
     static var previews: some View {
-        let context = PersistenceController.preview.container.viewContext
+        let persistenceController = PersistenceController.preview
         
         // Create mock data for AppDayOfWeek and MatTime
-        let mockSchedule1 = AppDayOfWeek(context: context)
-        let mockMatTime1 = MatTime(context: context)
+        let mockSchedule1 = AppDayOfWeek(context: persistenceController.container.viewContext)
+        let mockMatTime1 = MatTime(context: persistenceController.container.viewContext)
         mockMatTime1.time = "10:00 AM"
         mockMatTime1.gi = true
         mockMatTime1.noGi = false
@@ -78,8 +78,8 @@ struct ScheduleDetailModal_Previews: PreviewProvider {
         mockSchedule1.day = DayOfWeek.monday.rawValue
         mockSchedule1.matTimes = [mockMatTime1] as NSSet
 
-        let mockSchedule2 = AppDayOfWeek(context: context)
-        let mockMatTime2 = MatTime(context: context)
+        let mockSchedule2 = AppDayOfWeek(context: persistenceController.container.viewContext)
+        let mockMatTime2 = MatTime(context: persistenceController.container.viewContext)
         mockMatTime2.time = "12:00 PM"
         mockMatTime2.gi = false
         mockMatTime2.noGi = true
@@ -94,18 +94,17 @@ struct ScheduleDetailModal_Previews: PreviewProvider {
         // Mock ViewModel with mock data
         let enterZipCodeViewModel = EnterZipCodeViewModel(
             repository: AppDayOfWeekRepository.shared,
-            context: context
+            persistenceController: persistenceController
         )
         let viewModel = AppDayOfWeekViewModel(
             selectedIsland: nil,
-            repository: MockAppDayOfWeekRepository(persistenceController: PersistenceController.preview),
+            repository: MockAppDayOfWeekRepository(persistenceController: persistenceController),
             enterZipCodeViewModel: enterZipCodeViewModel
         )
         viewModel.appDayOfWeekList = [mockSchedule1, mockSchedule2]
 
         return NavigationView {
             ScheduleDetailModal(viewModel: viewModel, day: .monday)
-                .environment(\.managedObjectContext, context)
         }
     }
 }

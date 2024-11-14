@@ -211,7 +211,10 @@ struct AddOpenMatFormView_Previews: PreviewProvider {
         let mockViewModel = AppDayOfWeekViewModel(
             selectedIsland: sampleIsland,
             repository: mockRepository,
-            enterZipCodeViewModel: EnterZipCodeViewModel(repository: mockRepository, context: context)
+            enterZipCodeViewModel: EnterZipCodeViewModel(
+                repository: mockRepository,
+                persistenceController: persistenceController
+            )
         )
 
         // Create binding for sample AppDayOfWeek

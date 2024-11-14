@@ -14,6 +14,7 @@ struct IslandModalView: View {
     @Binding var selectedDay: DayOfWeek?
     @Binding var showModal: Bool
     @State private var isLoadingData: Bool = false
+    @State private var showReview: Bool = false  // Add showReview here
     var isLoading: Bool {
         islandSchedules.isEmpty && !scheduleExists || isLoadingData
     }
@@ -133,11 +134,12 @@ struct IslandModalView: View {
                                 }
 
                                 NavigationLink(destination: ViewReviewforIsland(
-                                    selectedIsland: $selectedIsland,
+                                    selectedIsland: $selectedIsland, showReview: $showReview,
                                     enterZipCodeViewModel: enterZipCodeViewModel
                                 )) {
                                     Text("View Reviews")
                                 }
+
 
                             } else {
                                 Text("No reviews available.")
@@ -155,6 +157,7 @@ struct IslandModalView: View {
                                 }
                             }
                         }
+
                         .padding(.top, 20)
 
                         Spacer()
@@ -203,10 +206,14 @@ struct IslandModalView: View {
     }
 }
 
+
+
 struct IslandModalView_Previews: PreviewProvider {
     static var previews: some View {
+        let persistenceController = PersistenceController.preview
+        
         let mockIsland = PirateIsland(
-            context: PersistenceController.preview.container.viewContext
+            context: persistenceController.container.viewContext
         )
         mockIsland.islandName = "Big Bad Island"
         mockIsland.islandLocation = "Gym Address"
@@ -217,11 +224,11 @@ struct IslandModalView_Previews: PreviewProvider {
 
         let mockEnterZipCodeViewModel = EnterZipCodeViewModel(
             repository: AppDayOfWeekRepository.shared,
-            context: PersistenceController.preview.container.viewContext
+            persistenceController: persistenceController
         )
         let mockAppDayOfWeekViewModel = AppDayOfWeekViewModel(
             selectedIsland: mockIsland,
-            repository: AppDayOfWeekRepository.shared,
+            repository: MockAppDayOfWeekRepository(persistenceController: persistenceController),
             enterZipCodeViewModel: mockEnterZipCodeViewModel
         )
 
@@ -233,11 +240,11 @@ struct IslandModalView_Previews: PreviewProvider {
         )
 
         // Create mock reviews
-        let mockReview1 = Review(context: PersistenceController.preview.container.viewContext)
+        let mockReview1 = Review(context: persistenceController.container.viewContext)
         mockReview1.stars = 5
         mockReview1.createdTimestamp = Date()
 
-        let mockReview2 = Review(context: PersistenceController.preview.container.viewContext)
+        let mockReview2 = Review(context: persistenceController.container.viewContext)
         mockReview2.stars = 4
         mockReview2.createdTimestamp = Date()
 
@@ -262,6 +269,5 @@ struct IslandModalView_Previews: PreviewProvider {
         )
 
         return islandModalView
-            .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
     }
 }

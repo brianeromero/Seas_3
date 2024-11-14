@@ -17,46 +17,45 @@ func fetchGoogleUserProfile(managedObjectContext: NSManagedObjectContext) {
     if let currentUser = GIDSignIn.sharedInstance.currentUser,
        let userProfile = currentUser.profile {
         
-        // Log user data for debugging
-        print("Google Sign-In Current User:")
-        print(currentUser)
-        print("Google Sign-In User Profile:")
-        print(userProfile)
+        // Log user data for debugging (consider removing in production)
+        print("Google Sign-In Current User: \(currentUser)")
+        print("Google Sign-In User Profile: \(userProfile)")
         
         // Extract user info
         let userId = currentUser.userID // This is already a String
         let userName = userProfile.name
         let userEmail = userProfile.email
         
-        print("User Info: \(String(describing: userId)), \(String(describing: userName)), \(String(describing: userEmail))")
+        print("User Info: \(userId ?? "nil"), \(userName), \(userEmail)")
         
         // Create or update UserInfo entity
         let fetchRequest: NSFetchRequest<UserInfo> = UserInfo.fetchRequest()
         fetchRequest.predicate = NSPredicate(format: "email == %@", userEmail)
         
-        do {
-            // Fetch existing user data
-            let users = try managedObjectContext.fetch(fetchRequest)
-            var userInfo: UserInfo
-            
-            // Update existing user or create new one
-            if let existingUser = users.first {
-                userInfo = existingUser
-            } else {
-                userInfo = UserInfo(context: managedObjectContext)
+        DispatchQueue.main.async {
+            do {
+                // Fetch existing user data
+                let users = try managedObjectContext.fetch(fetchRequest)
+                var userInfo: UserInfo
+                
+                // Update existing user or create new one
+                if let existingUser = users.first {
+                    userInfo = existingUser
+                } else {
+                    userInfo = UserInfo(context: managedObjectContext)
+                }
+                
+                // Update user info
+                userInfo.email = userEmail
+                userInfo.name = userName
+                userInfo.userName = userName
+                userInfo.userID = userId ?? "" // Handle optional correctly if needed
+                
+                // Save changes to managed object context
+                try managedObjectContext.save()
+            } catch let error as NSError {
+                print("Error fetching or saving user: \(error.localizedDescription), \(error.userInfo)")
             }
-            
-            // Update user info
-            userInfo.email = userEmail
-            userInfo.name = userName
-            userInfo.userName = userName
-            userInfo.userID = userId ?? "" // Assign directly as String
-            
-            // Save changes to managed object context
-            try managedObjectContext.save()
-        } catch {
-            // Handle fetch or save error
-            print("Error fetching or saving user: \(error.localizedDescription)")
         }
         
         // Update AuthenticationState with Google user data
@@ -77,3 +76,4 @@ func fetchGoogleUserProfile(managedObjectContext: NSManagedObjectContext) {
         print("No current Google user")
     }
 }
+

@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0C00086E2CA895D600CA5181 /* SearchBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C00086D2CA895D600CA5181 /* SearchBar.swift */; };
+		0C00086E2CA895D600CA5181 /* SearchComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C00086D2CA895D600CA5181 /* SearchComponents.swift */; };
 		0C00087A2CAB092B00CA5181 /* ErrorHandling.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0008792CAB092B00CA5181 /* ErrorHandling.swift */; };
 		0C0008862CAB420100CA5181 /* Errors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0008852CAB420100CA5181 /* Errors.swift */; };
 		0C07B0712C2CFD0300D0BFB2 /* IslandMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0702C2CFD0300D0BFB2 /* IslandMenu.swift */; };
@@ -171,7 +171,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		0C00086D2CA895D600CA5181 /* SearchBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchBar.swift; sourceTree = "<group>"; };
+		0C00086D2CA895D600CA5181 /* SearchComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchComponents.swift; sourceTree = "<group>"; };
 		0C0008792CAB092B00CA5181 /* ErrorHandling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorHandling.swift; sourceTree = "<group>"; };
 		0C0008852CAB420100CA5181 /* Errors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Errors.swift; sourceTree = "<group>"; };
 		0C07B0702C2CFD0300D0BFB2 /* IslandMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandMenu.swift; sourceTree = "<group>"; };
@@ -358,6 +358,9 @@
 				Login/GoogleSignInButton.swift,
 				Login/GoogleSignInButtonWrapper.swift,
 				Login/LogInView.swift,
+				Login/LoginViewModel.swift,
+				Login/MFBACKGROUND.swift,
+				"Login/PLAYING WITH LOGIN.swift",
 				Login/UserProfileViewModel.swift,
 			);
 			target = 0CF13E402C2A326700D714C0 /* Seas_3 */;
@@ -543,7 +546,7 @@
 			children = (
 				0C4B34352C61A32700FD6893 /* PirateIslandDataManager.swift */,
 				0C955BEA2C75AE6700D03CAB /* Utilities.swift */,
-				0C00086D2CA895D600CA5181 /* SearchBar.swift */,
+				0C00086D2CA895D600CA5181 /* SearchComponents.swift */,
 				0C0008792CAB092B00CA5181 /* ErrorHandling.swift */,
 				0C0008852CAB420100CA5181 /* Errors.swift */,
 			);
@@ -946,7 +949,7 @@
 				0C276CCC2CC9A8FD00A6B6D6 /* SeasAppCheckProviderFactory.swift in Sources */,
 				0CA142242C3EF19900C366CF /* MainLoginViewController.swift in Sources */,
 				0C07B0772C2CFD6700D0BFB2 /* EditExistingIsland.swift in Sources */,
-				0C00086E2CA895D600CA5181 /* SearchBar.swift in Sources */,
+				0C00086E2CA895D600CA5181 /* SearchComponents.swift in Sources */,
 				0C8E21762CCDB3690093CEB3 /* MenuItem.swift in Sources */,
 				0CF13E7A2C2A36B500D714C0 /* AppDayOfWeek+CoreDataProperties.swift in Sources */,
 				0C1635522C35D6E2008FC297 /* AddOpenMatFormView.swift in Sources */,

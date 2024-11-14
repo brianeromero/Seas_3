@@ -179,13 +179,13 @@ struct CreateAccountView: View {
         }
         .navigationDestination(isPresented: $shouldNavigateToLogin) {
             LoginView(
-                islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.shared),
-                persistenceController: PersistenceController.shared,
+                islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.shared), // You can still pass this if needed for the ViewModel
                 isSelected: .constant(LoginViewSelection(rawValue: selectedTabIndex) ?? .login),
                 navigateToAdminMenu: $authenticationState.navigateToAdminMenu,
                 isLoggedIn: $authenticationState.isLoggedIn
             )
         }
+
     }
     
     private func createAccount() {

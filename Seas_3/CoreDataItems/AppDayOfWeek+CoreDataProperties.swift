@@ -14,7 +14,8 @@ extension AppDayOfWeek {
     @nonobjc public class func fetchRequest() -> NSFetchRequest<AppDayOfWeek> {
         return NSFetchRequest<AppDayOfWeek>(entityName: "AppDayOfWeek")
     }
-    @NSManaged public var day: String?
+
+    @NSManaged public var day: String // Changed from Optional to non-Optional
     @NSManaged public var pIsland: PirateIsland?
     @NSManaged public var name: String?
     @NSManaged public var appDayOfWeekID: String?

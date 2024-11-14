@@ -80,13 +80,15 @@ struct AddClassScheduleView: View {
 struct AddClassScheduleView_Previews: PreviewProvider {
     static var previews: some View {
         let persistenceController = PersistenceController.preview
-        let context = persistenceController.container.viewContext
 
         // Initialize AppDayOfWeekRepository with the preview PersistenceController
         let mockRepository = AppDayOfWeekRepository(persistenceController: persistenceController)
 
         // Initialize EnterZipCodeViewModel with mock data
-        let mockEnterZipCodeViewModel = EnterZipCodeViewModel(repository: mockRepository, context: context)
+        let mockEnterZipCodeViewModel = EnterZipCodeViewModel(
+            repository: mockRepository,
+            persistenceController: persistenceController
+        )
 
         // Initialize AppDayOfWeekViewModel with mock data
         let viewModel = AppDayOfWeekViewModel(
@@ -102,7 +104,6 @@ struct AddClassScheduleView_Previews: PreviewProvider {
         )
 
         return AddClassScheduleView(viewModel: viewModel, isPresented: isPresented)
-            .environment(\.managedObjectContext, context)
             .previewDisplayName("Add Class Schedule Preview")
     }
 }

@@ -18,8 +18,8 @@ class ProfileViewModel: ObservableObject {
     @Published var newPassword: String = ""
     @Published var confirmPassword: String = ""
     @Published var showPasswordChange: Bool = false
-
-
+    // Add these if needed
+    @Published var password: String = ""
     private var viewContext: NSManagedObjectContext
     private var authViewModel: AuthViewModel
 
@@ -92,6 +92,30 @@ class ProfileViewModel: ObservableObject {
             "belt": belt
         ], merge: true)
         print("User data successfully saved to Firestore.")
+    }
+    
+    
+    func validateProfile() -> Bool {
+        let emailError = ValidationUtility.validateEmail(email)
+        let userNameError = ValidationUtility.validateUserName(userName)
+        let nameError = ValidationUtility.validateName(name)
+
+        let isValid = [emailError, userNameError, nameError].allSatisfy { $0 == nil }
+
+        if !isValid {
+            // Handle errors
+            if let emailError = emailError {
+                print("Email error: \(emailError.rawValue)")
+            }
+            if let userNameError = userNameError {
+                print("Username error: \(userNameError.rawValue)")
+            }
+            if let nameError = nameError {
+                print("Name error: \(nameError.rawValue)")
+            }
+        }
+
+        return isValid
     }
 
 }

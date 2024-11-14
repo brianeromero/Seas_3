@@ -17,7 +17,9 @@ struct IslandDetailView: View {
     init(island: PirateIsland, selectedDestination: Binding<IslandDestination?>) {
         self.island = island
         self._selectedDestination = selectedDestination
-        let dataManager = PirateIslandDataManager(viewContext: PersistenceController.shared.container.viewContext)
+        
+        // Using PersistenceController.shared for shared access to the context
+        let dataManager = PirateIslandDataManager(viewContext: PersistenceController.shared.viewContext)
         _viewModel = StateObject(wrappedValue: AllEnteredLocationsViewModel(dataManager: dataManager))
     }
 
@@ -41,17 +43,16 @@ struct IslandDetailView: View {
         let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
         fetchRequest.predicate = NSPredicate(format: "islandID == %@", islandID as CVarArg)
 
-        print("Fetch Request: \(fetchRequest)")
-
         do {
             let results = try viewContext.fetch(fetchRequest)
             print("Fetched \(results.count) Gym objects.")
         } catch {
             print("Failed to fetch Gym: \(error.localizedDescription)")
-            // Handle error as needed (e.g., present an alert)
+            // Handle error or display error message
         }
     }
 }
+
 
 struct IslandDetailContent: View {
     let island: PirateIsland
@@ -63,7 +64,7 @@ struct IslandDetailContent: View {
         repository: AppDayOfWeekRepository(persistenceController: PersistenceController.shared),
         enterZipCodeViewModel: EnterZipCodeViewModel(
             repository: AppDayOfWeekRepository.shared,
-            context: PersistenceController.shared.container.viewContext
+            persistenceController: PersistenceController.shared // Pass PersistenceController.shared here
         )
     )
 
@@ -91,7 +92,7 @@ struct IslandDetailContent: View {
                     viewModel: mapViewModel,
                     enterZipCodeViewModel: EnterZipCodeViewModel(
                         repository: AppDayOfWeekRepository.shared,
-                        context: viewContext
+                        persistenceController: PersistenceController.shared // Pass PersistenceController.shared here
                     )
                 )
             }
@@ -140,9 +141,10 @@ struct IslandDetailContent: View {
     }
 }
 
+
 struct IslandDetailView_Previews: PreviewProvider {
     static var previews: some View {
-        let persistenceController = PersistenceController.shared
+        let persistenceController = PersistenceController.preview
         let context = persistenceController.viewContext
 
         let island = PirateIsland(context: context)

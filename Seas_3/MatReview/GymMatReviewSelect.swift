@@ -9,15 +9,16 @@ import Foundation
 import SwiftUI
 import CoreData
 
+
 struct GymMatReviewSelect: View {
     @Binding var selectedIsland: PirateIsland?
     @State private var searchQuery: String = ""
     @State private var filteredIslands: [PirateIsland] = []
     @State private var showNoMatchAlert: Bool = false
-
     @Environment(\.managedObjectContext) private var viewContext
-
     var enterZipCodeViewModel: EnterZipCodeViewModel
+    @State private var debounceTimer: Timer?
+
 
     init(selectedIsland: Binding<PirateIsland?>, enterZipCodeViewModel: EnterZipCodeViewModel) {
         _selectedIsland = selectedIsland
@@ -36,20 +37,17 @@ struct GymMatReviewSelect: View {
                             .font(.headline)
                             .foregroundColor(.gray)) {
                     SearchBar(text: $searchQuery)
-                        .onChange(of: searchQuery) { newValue in
+                        .onChange(of: searchQuery) { _ in
                             updateFilteredIslands()
                         }
                 }
 
-                // Use NavigationLink to display the review view consistently
-                List(filteredIslands) { island in
-                    NavigationLink(destination: GymMatReviewView(
-                        localSelectedIsland: .constant(island),
-                        isPresented: .constant(false),
+                List(filteredIslands, id: \.self) { island in
+                    NavigationLink(destination: SelectedIslandView(
+                        island: island,
                         enterZipCodeViewModel: enterZipCodeViewModel,
                         onIslandChange: { newIsland in
-                            // Handle island change
-                            self.selectedIsland = newIsland
+                            self.selectedIsland = newIsland  // No changes needed here as newIsland is already optional
                         }
                     )) {
                         VStack(alignment: .leading) {
@@ -77,40 +75,65 @@ struct GymMatReviewSelect: View {
     }
 
     private func updateFilteredIslands() {
+        // Cancel any existing debounce timer and set a new one
+        debounce(0.5) {
+            self.performFiltering()
+        }
+    }
+
+    private func performFiltering() {
         let lowercasedQuery = searchQuery.lowercased()
         
         if !searchQuery.isEmpty {
-            filteredIslands = islands.filter { island in
-                let predicate = NSPredicate(format: "islandName CONTAINS[c] %@ OR islandLocation CONTAINS[c] %@ OR gymWebsite.absoluteString CONTAINS[c] %@", argumentArray: [lowercasedQuery, lowercasedQuery, lowercasedQuery])
-                return predicate.evaluate(with: island)
-            }
-            print("Filtered Islands: \(filteredIslands.map { $0.islandName })")
+            let predicate = NSPredicate(format: "islandName CONTAINS[c] %@ OR islandLocation CONTAINS[c] %@ OR gymWebsite.absoluteString CONTAINS[c] %@", lowercasedQuery, lowercasedQuery, lowercasedQuery)
+            filteredIslands = islands.filter { predicate.evaluate(with: $0) }
         } else {
             filteredIslands = Array(islands)
-            print("All Islands: \(filteredIslands.map { $0.islandName })")
         }
         
         showNoMatchAlert = filteredIslands.isEmpty && !searchQuery.isEmpty
     }
 }
 
-// Preview
+// Custom Debounce Function
+extension GymMatReviewSelect {
+    func debounce(_ interval: TimeInterval, action: @escaping () -> Void) {
+        debounceTimer?.invalidate()
+        debounceTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: false) { _ in
+            action()
+        }
+    }
+}
+
+// New View for Selected Island
+struct SelectedIslandView: View {
+    let island: PirateIsland
+    var enterZipCodeViewModel: EnterZipCodeViewModel
+    var onIslandChange: (PirateIsland?) -> Void  // Changed to accept optional PirateIsland
+
+    var body: some View {
+        GymMatReviewView(
+            localSelectedIsland: .constant(island),
+            isPresented: .constant(false),
+            enterZipCodeViewModel: enterZipCodeViewModel,
+            onIslandChange: onIslandChange
+        )
+    }
+}
+
+
+// Preview Setup
 struct GymMatReviewSelect_Previews: PreviewProvider {
     static var previews: some View {
-        let context = PersistenceController.preview.container.viewContext
-        
-        let mockIsland = PirateIsland(context: context)
-        mockIsland.islandName = "Mock Gym"
-        mockIsland.islandLocation = "Mock Location"
-        mockIsland.latitude = 0.0
-        mockIsland.longitude = 0.0
-        mockIsland.gymWebsite = URL(string: "https://www.example.com")
-
-        // Create a mock instance of EnterZipCodeViewModel
         let mockRepository = AppDayOfWeekRepository(persistenceController: PersistenceController.preview)
-        let mockEnterZipCodeViewModel = EnterZipCodeViewModel(repository: mockRepository, context: context)
-        
-        return GymMatReviewSelect(selectedIsland: .constant(mockIsland), enterZipCodeViewModel: mockEnterZipCodeViewModel) // Pass the view model here
-            .environment(\.managedObjectContext, context)
+        let mockEnterZipCodeViewModel = EnterZipCodeViewModel(
+            repository: mockRepository,
+            persistenceController: PersistenceController.preview
+        )
+
+        return GymMatReviewSelect(
+            selectedIsland: .constant(nil),
+            enterZipCodeViewModel: mockEnterZipCodeViewModel
+        )
     }
 }

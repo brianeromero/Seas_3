@@ -21,9 +21,26 @@ struct DayOfWeekSearchView: View {
         repository: AppDayOfWeekRepository.shared,
         enterZipCodeViewModel: EnterZipCodeViewModel(
             repository: AppDayOfWeekRepository.shared,
-            context: PersistenceController.shared.container.viewContext
+            persistenceController: PersistenceController.preview
         )
     )
+    @StateObject private var enterZipCodeViewModel = EnterZipCodeViewModel(
+        repository: AppDayOfWeekRepository.shared,
+        persistenceController: PersistenceController.preview
+    )
+
+    init(
+        selectedIsland: Binding<PirateIsland?>,
+        selectedAppDayOfWeek: Binding<AppDayOfWeek?>,
+        region: Binding<MKCoordinateRegion>,
+        searchResults: Binding<[PirateIsland]>
+    ) {
+        _selectedIsland = selectedIsland
+        _selectedAppDayOfWeek = selectedAppDayOfWeek
+        _region = region
+        _searchResults = searchResults
+    }
+
 
     @State private var radius: Double = 10.0
     @State private var equatableRegion = MKCoordinateRegion(
@@ -33,11 +50,6 @@ struct DayOfWeekSearchView: View {
     @State private var errorMessage: String?
     @State private var selectedDay: DayOfWeek? = .monday
     @State private var showModal: Bool = false
-
-    @StateObject private var enterZipCodeViewModel = EnterZipCodeViewModel(
-        repository: AppDayOfWeekRepository.shared,
-        context: PersistenceController.shared.container.viewContext
-    )
 
     var body: some View {
         NavigationView {
@@ -83,7 +95,6 @@ struct DayOfWeekSearchView: View {
             }
         }
     }
-
     // Helper methods
     private func setupInitialRegion() {
         equatableRegion = MKCoordinateRegion(
@@ -91,6 +102,7 @@ struct DayOfWeekSearchView: View {
             span: MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1)
         )
     }
+
 
     private func requestUserLocation() {
         userLocationMapViewModel.requestLocation()
@@ -108,9 +120,14 @@ struct DayOfWeekSearchView: View {
         guard let newIsland = newIsland else { return }
         if let matchingIsland = viewModel.islandsWithMatTimes.map({ $0.0 }).first(where: { $0.islandID == newIsland.islandID }) {
             selectedIsland = matchingIsland
+        } else {
+            // Handle the case when no matching island is found
+            errorMessage = "Island not found in the current selection."
         }
     }
+
     
+
     // ErrorView.swift
     struct ErrorView: View {
         @Binding var errorMessage: String?
@@ -145,6 +162,7 @@ struct DayOfWeekSearchView: View {
         }
     }
     
+    
     private func updateRegion(center: CLLocationCoordinate2D) {
         if userLocationMapViewModel.userLocation != nil {
             withAnimation {
@@ -166,6 +184,7 @@ struct DayOfWeekSearchView: View {
         }
     }
 
+
     private func handleIslandTap(island: PirateIsland) {
         selectedIsland = island
         showModal = true
@@ -176,13 +195,17 @@ struct DayOfWeekSearchView: View {
             errorMessage = "Day of week is not selected."
             return
         }
-        
+
         print("Fetching islands for day: \(selectedDay)")
-        
-        await viewModel.fetchIslands(forDay: selectedDay)
-        
-        if let location = userLocationMapViewModel.userLocation {
-            updateRegion(center: location.coordinate)
+
+        do {
+            await viewModel.fetchIslands(forDay: selectedDay)
+            
+            if let location = userLocationMapViewModel.userLocation {
+                updateRegion(center: location.coordinate)
+            }
+        } catch {
+            errorMessage = "Failed to fetch islands: \(error.localizedDescription)"
         }
     }
 }
@@ -290,13 +313,14 @@ struct DayOfWeekSearchView_Previews: PreviewProvider {
         let islands = createSampleIslands(viewContext)
         createSampleAppDayOfWeekObjects(viewContext, islands: islands)
         
-        // Save the context
+        // Save the context after creating data
         do {
             try viewContext.save()
         } catch {
             print("Error saving preview data: \(error.localizedDescription)")
         }
     }
+
     
     static var previews: some View {
         let persistenceController = PersistenceController.preview
@@ -311,14 +335,15 @@ struct DayOfWeekSearchView_Previews: PreviewProvider {
         // Debugging print
         print("Preview - pirateIslands: \(pirateIslands)")
         
+        // Ensure correct Binding types and provide the missing view model initialization
         return DayOfWeekSearchView(
             selectedIsland: Binding.constant(pirateIslands.first),
             selectedAppDayOfWeek: Binding.constant(mondayAppDayOfWeek),
-            region: .constant(MKCoordinateRegion(
+            region: Binding.constant(MKCoordinateRegion(
                 center: CLLocationCoordinate2D(latitude: 37.385852, longitude: -122.031517),
                 span: MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1)
             )),
-            searchResults: .constant(pirateIslands)
+            searchResults: Binding.constant(pirateIslands)
         )
         .environment(\.managedObjectContext, viewContext)
     }

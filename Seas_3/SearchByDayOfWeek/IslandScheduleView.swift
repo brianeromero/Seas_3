@@ -21,10 +21,10 @@ struct IslandScheduleView: View {
         self.pIsland = pIsland
         _enterZipCodeViewModel = StateObject(wrappedValue: EnterZipCodeViewModel(
             repository: AppDayOfWeekRepository.shared,
-            context: viewModel.viewContext
+            persistenceController: PersistenceController.preview
         ))
     }
-
+    
     var body: some View {
         NavigationView {
             ScrollView {
@@ -127,29 +127,29 @@ struct IslandScheduleView: View {
 
 struct IslandScheduleView_Previews: PreviewProvider {
     static var previews: some View {
-        let context = PersistenceController.preview.container.viewContext
+        let persistenceController = PersistenceController.preview
         
         // Create a mock PirateIsland
-        let mockIsland = PirateIsland(context: context)
+        let mockIsland = PirateIsland(context: persistenceController.container.viewContext)
         mockIsland.islandName = "Mock Gym"
         
         // Create a mock EnterZipCodeViewModel
         let enterZipCodeViewModel = EnterZipCodeViewModel(
             repository: AppDayOfWeekRepository.shared,
-            context: context
+            persistenceController: persistenceController
         )
         
         // Create a mock AppDayOfWeekViewModel with mock data
         let viewModel = AppDayOfWeekViewModel(
             selectedIsland: mockIsland,
-            repository: MockAppDayOfWeekRepository(persistenceController: PersistenceController.preview),
+            repository: MockAppDayOfWeekRepository(persistenceController: persistenceController),
             enterZipCodeViewModel: enterZipCodeViewModel
         )
         
         // Populate viewModel with mock AppDayOfWeek data
         for day in DayOfWeek.allCases {
-            let mockSchedule = AppDayOfWeek(context: context)
-            let mockMatTime = MatTime(context: context)
+            let mockSchedule = AppDayOfWeek(context: persistenceController.container.viewContext)
+            let mockMatTime = MatTime(context: persistenceController.container.viewContext)
             mockMatTime.time = "10:00 AM"
             mockMatTime.gi = true
             mockMatTime.noGi = false
@@ -165,7 +165,6 @@ struct IslandScheduleView_Previews: PreviewProvider {
         
         return NavigationView {
             IslandScheduleView(viewModel: viewModel, pIsland: mockIsland)
-                .environment(\.managedObjectContext, context)
         }
     }
 }

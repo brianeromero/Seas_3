@@ -55,7 +55,6 @@ struct GymMatReviewView: View {
         let isReviewTextValid = !reviewText.trimmingCharacters(in: .whitespaces).isEmpty
         return isReviewTextValid && localSelectedIsland != nil
     }
-
     
     let onIslandChange: (PirateIsland?) -> Void
 
@@ -70,13 +69,14 @@ struct GymMatReviewView: View {
         self._enterZipCodeViewModel = StateObject(wrappedValue: enterZipCodeViewModel)
         self.onIslandChange = onIslandChange
     }
+
     var averageRating: Double {
         guard let island = localSelectedIsland else {
             return 0
         }
 
         let reviewsFetchRequest: NSFetchRequest<Review> = Review.fetchRequest()
-        reviewsFetchRequest.predicate = NSPredicate(format: "island == %@", island)
+        reviewsFetchRequest.predicate = NSPredicate(format: "%K == %@", "island", island)
 
         do {
             let reviews = try viewContext.fetch(reviewsFetchRequest)
@@ -96,15 +96,13 @@ struct GymMatReviewView: View {
             Form {
                 IslandSection(islands: Array(islands), selectedIsland: $activeIsland, showReview: $showReview)
                     .onChange(of: activeIsland) { newIsland in
-                        // Assuming "Select an island" corresponds to a nil or specific island property
                         if let island = newIsland {
                             localSelectedIsland = island
                         } else {
-                            localSelectedIsland = nil // or however you denote "Select an island"
+                            localSelectedIsland = nil
                         }
                         onIslandChange(newIsland)
                     }
-
 
                 ReviewSection(reviewText: $reviewText, isReviewValid: isReviewValid)
                 RatingSection(selectedRating: $selectedRating)
@@ -145,6 +143,7 @@ struct GymMatReviewView: View {
         }
     }
 
+
     private func submitReview() {
         guard let island = localSelectedIsland else {
             alertMessage = "Please Select a Gym"
@@ -161,7 +160,7 @@ struct GymMatReviewView: View {
         newReview.island = island
 
         let reviewsFetchRequest: NSFetchRequest<Review> = Review.fetchRequest()
-        reviewsFetchRequest.predicate = NSPredicate(format: "island == %@", island)
+        reviewsFetchRequest.predicate = NSPredicate(format: "%K == %@", "island", island)
 
         do {
             let existingReviews = try viewContext.fetch(reviewsFetchRequest)
@@ -298,8 +297,8 @@ struct GymMatReviewView_Previews: PreviewProvider {
 
 struct PreviewView: View {
     @StateObject private var enterZipCodeViewModel = EnterZipCodeViewModel(
-        repository: AppDayOfWeekRepository.shared,
-        context: PersistenceController.preview.container.viewContext
+        repository: AppDayOfWeekRepository(persistenceController: PersistenceController.preview),
+        persistenceController: PersistenceController.preview
     )
     @State private var selectedIsland: PirateIsland? = nil
 

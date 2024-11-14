@@ -10,7 +10,7 @@ import MapKit
 
 struct AllEnteredLocations: View {
     @State private var selectedDay: DayOfWeek? = .monday
-    @Environment(\.managedObjectContext) private var viewContext
+    @Environment(\.managedObjectContext) private var viewContext // Automatically gets context from environment
     @StateObject private var viewModel: AllEnteredLocationsViewModel
     @State private var showModal = false
     @State private var selectedIsland: PirateIsland?
@@ -19,19 +19,22 @@ struct AllEnteredLocations: View {
     @StateObject private var enterZipCodeViewModel: EnterZipCodeViewModel
     @StateObject private var appDayOfWeekViewModel: AppDayOfWeekViewModel
 
-    init(context: NSManagedObjectContext) {
-        let dataManager = PirateIslandDataManager(viewContext: context)
-        _viewModel = StateObject(wrappedValue: AllEnteredLocationsViewModel(dataManager: dataManager))
-        
-        let enterZipCodeViewModel = StateObject(wrappedValue: EnterZipCodeViewModel(
-            repository: AppDayOfWeekRepository.shared,
-            context: context
+
+    init() {
+        _viewModel = StateObject(wrappedValue: AllEnteredLocationsViewModel(
+            dataManager: PirateIslandDataManager(viewContext: PersistenceController.shared.viewContext)
         ))
-        
-        _enterZipCodeViewModel = enterZipCodeViewModel
+
+        // Initialize the EnterZipCodeViewModel and AppDayOfWeekViewModel
+        let zipCodeViewModel = EnterZipCodeViewModel(
+            repository: AppDayOfWeekRepository.shared,
+            persistenceController: PersistenceController.shared // Use the shared PersistenceController here
+        )
+        _enterZipCodeViewModel = StateObject(wrappedValue: zipCodeViewModel)
+
         _appDayOfWeekViewModel = StateObject(wrappedValue: AppDayOfWeekViewModel(
             repository: AppDayOfWeekRepository.shared,
-            enterZipCodeViewModel: enterZipCodeViewModel.wrappedValue
+            enterZipCodeViewModel: zipCodeViewModel // Pass the zip code view model directly
         ))
     }
 
@@ -90,8 +93,8 @@ struct AllEnteredLocations_Previews: PreviewProvider {
     static var previews: some View {
         let persistenceController = PersistenceController.preview
         let context = persistenceController.viewContext
-        return AllEnteredLocations(context: context)
-            .environment(\.managedObjectContext, context)
+        return AllEnteredLocations()
+            .environment(\.managedObjectContext, context) // Context is automatically passed through environment
             .previewDisplayName("All Entered Locations Preview")
     }
 }

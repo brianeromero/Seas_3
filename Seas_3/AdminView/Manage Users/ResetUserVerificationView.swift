@@ -19,8 +19,8 @@ struct ResetUserVerificationView: View {
     @State private var user: User?
     @State private var customToken: String?
 
-    let logger = os.Logger(subsystem: "com.example.Seas_3", category: "ResetUserVerification")
-
+    let logger = OSLog(subsystem: "MF-inder.Seas-3", category: "ResetUserVerification")
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             Text("Reset User Verification")
@@ -31,7 +31,7 @@ struct ResetUserVerificationView: View {
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding(.horizontal)
                 .onChange(of: userId) { newValue in
-                    logger.info("User entered email: \(newValue)")
+                    os_log("User entered email: %@", log: logger, newValue)
                 }
 
             Button(action: fetchCustomToken) {
@@ -46,7 +46,7 @@ struct ResetUserVerificationView: View {
             .padding(.horizontal)
             .simultaneousGesture(TapGesture()
                 .onEnded {
-                    logger.info("Reset Verification button clicked")
+                    os_log("Reset Verification button clicked", log: logger)
                 }
             )
 
@@ -65,9 +65,9 @@ struct ResetUserVerificationView: View {
     }
 
     private func resetVerification() {
-        logger.info("Resetting verification")
+        os_log("Resetting verification", log: logger)
         guard !isLoading, let user = user, !user.email.isEmpty else {
-            logger.error("User email is empty or nil")
+            os_log("User email is empty or nil", log: logger)
             errorMessage = "User email is empty or nil"
             isLoading = false
             return
@@ -77,8 +77,8 @@ struct ResetUserVerificationView: View {
 
         // Validate email address
         if let error = ValidationUtility.validateField(user.email, type: .email) {
-            logger.error("Invalid email: \(error.rawValue)")  // Convert ValidationError to String
-            errorMessage = error.rawValue  // Use rawValue for String
+            os_log("Invalid email: %@", log: logger, error.rawValue)
+            errorMessage = error.rawValue
             isLoading = false
             return
         }
@@ -92,7 +92,7 @@ struct ResetUserVerificationView: View {
                 self.isLoading = false
                 
                 if let error = error as NSError? {
-                    logger.error("Failed to send verification email: \(error), code: \(error.code), userInfo: \(error.userInfo)")
+                    os_log("Failed to send verification email: %@, code: %d, userInfo: %@", log: logger, error.localizedDescription, error.code, error.userInfo)
                     self.errorMessage = "Failed to send verification email: \(error.localizedDescription), code: \(error.code)"
                     return
                 }
@@ -100,71 +100,71 @@ struct ResetUserVerificationView: View {
                 if let resultData = result?.data as? [String: Any] {
                     self.successMessage = "Verification email sent successfully. Please check your inbox."
                     self.errorMessage = nil
-                    logger.info("Verification email sent successfully with response data: \(resultData)")
+                    os_log("Verification email sent successfully with response data: %@", log: logger, resultData)
                 } else {
                     self.errorMessage = "Failed to process the response data"
-                    logger.error("Failed to process the response data")
+                    os_log("Failed to process the response data", log: logger)
                 }
             }
         } catch {
-            logger.error("Error serializing JSON: \(error.localizedDescription)")
+            os_log("Error serializing JSON: %@", log: logger, error.localizedDescription)
             self.errorMessage = "Error serializing JSON"
             isLoading = false
         }
     }
 
     private func fetchCustomToken() {
-        logger.info("Fetching custom token")
+        os_log("Fetching custom token", log: logger)
         isLoading = true
 
         let functions = Functions.functions()
         let data = ["userId": userId]
 
         functions.httpsCallable("getCustomToken").call(data) { result, error in
-            logger.info("Cloud Function executed: \(Date())")
-            logger.info("Cloud Function response: \(String(describing: result))")
+            os_log("Cloud Function executed: %@", log: logger, "\(Date())")
+            os_log("Cloud Function response: %@", log: logger, String(describing: result))
             
             self.isLoading = false
 
             if let error = error as NSError? {
-                logger.error("Error fetching custom token: \(error), code: \(error.code)")
+                os_log("Error fetching custom token: %@, code: %d", log: logger, error.localizedDescription, error.code)
                 self.errorMessage = "Error fetching custom token: \(error.localizedDescription), code: \(error.code)"
                 return
             }
             
             guard let tokenData = result?.data as? [String: Any], let token = tokenData["token"] as? String else {
-                logger.error("No token received")
+                os_log("No token received", log: logger)
                 self.errorMessage = "No token received"
                 return
             }
 
-            logger.info("Custom token fetched successfully: \(token)")
+            os_log("Custom token fetched successfully: %@", log: logger, token)
             self.customToken = token
             self.signInWithCustomToken()
         }
     }
     
     private func signInWithCustomToken() {
-        logger.info("Signing in with custom token: \(customToken ?? "nil")")
+        os_log("Signing in with custom token: %@", log: logger, customToken ?? "nil")
         guard let customToken = customToken else {
-            logger.error("Custom token is nil")
+            os_log("Custom token is nil", log: logger)
             errorMessage = "Failed to fetch custom token"
             return
         }
         
         Auth.auth().signIn(withCustomToken: customToken) { authDataResult, error in
             if let error = error {
-                logger.error("Error signing in: \(error.localizedDescription)")
+                os_log("Error signing in: %@", log: logger, error.localizedDescription)
                 self.errorMessage = "Error signing in: \(error.localizedDescription)"
             } else {
-                logger.info("Signed in successfully. User ID: \(Auth.auth().currentUser?.uid ?? "nil")")
+                os_log("Signed in successfully. User ID: %@", log: logger, Auth.auth().currentUser?.uid ?? "nil")
                 self.fetchAndResetVerification()
             }
         }
     }
     
     private func fetchAndResetVerification() {
-        logger.info("Fetching and resetting verification for user ID: \(userId)")
+        os_log("Fetching and resetting verification for user ID: %@", log: logger, userId)
         guard !userId.isEmpty else {
             handleError(NSError(domain: "", code: 0, userInfo: [NSLocalizedDescriptionKey: "User ID or Email cannot be empty."]),
                         context: "User ID or Email validation",
@@ -174,10 +174,10 @@ struct ResetUserVerificationView: View {
         }
 
         let trimmedUserId = userId.trimmingCharacters(in: .whitespaces)
-        logger.info("Trimmed user ID: \(trimmedUserId)")
+        os_log("Trimmed user ID: %@", log: logger, trimmedUserId)
 
         if let error = ValidationUtility.validateField(trimmedUserId, type: .email) {
-            handleError(NSError(domain: "", code: 0, userInfo: [NSLocalizedDescriptionKey: error.rawValue]), // Use rawValue for the message
+            handleError(NSError(domain: "", code: 0, userInfo: [NSLocalizedDescriptionKey: error.rawValue]),
                         context: "Invalid email",
                         presentation: .user,
                         errorMessage: $errorMessage)
@@ -205,7 +205,7 @@ struct ResetUserVerificationView: View {
             if let document = documents.first {
                 do {
                     self.user = try document.data(as: User.self)
-                    logger.info("User data fetched successfully: \(String(describing: self.user))")
+                    os_log("User data fetched successfully: %@", log: logger, String(describing: self.user))
                     self.resetVerification()
                 } catch {
                     handleError(error,

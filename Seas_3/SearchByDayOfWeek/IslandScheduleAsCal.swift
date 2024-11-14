@@ -151,7 +151,7 @@ struct MatTimeRow: View {
 private func scheduleView(for schedule: AppDayOfWeek) -> some View {
     VStack(alignment: .leading, spacing: 8) {
         HStack {
-            Text(schedule.day ?? "Unknown day")
+            Text(schedule.day)
                 .font(.subheadline)
                 .foregroundColor(.primary)
             Spacer()
@@ -213,26 +213,25 @@ struct EventView: View {
 struct IslandScheduleAsCal_Previews: PreviewProvider {
     static var previews: some View {
         let persistenceController = PersistenceController.preview
-        let context = persistenceController.container.viewContext
         
         // Create a mock PirateIsland instance
-        let mockIsland = PirateIsland(context: context)
+        let mockIsland = PirateIsland(context: persistenceController.container.viewContext)
         mockIsland.islandID = UUID()
         mockIsland.islandName = "Mock Gym"
 
         // Create mock AppDayOfWeek instances
-        let appDayOfWeek1 = AppDayOfWeek(context: context)
+        let appDayOfWeek1 = AppDayOfWeek(context: persistenceController.container.viewContext)
         appDayOfWeek1.appDayOfWeekID = UUID().uuidString
         appDayOfWeek1.day = DayOfWeek.monday.rawValue
         appDayOfWeek1.name = "Morning Class"
         
-        let appDayOfWeek2 = AppDayOfWeek(context: context)
+        let appDayOfWeek2 = AppDayOfWeek(context: persistenceController.container.viewContext)
         appDayOfWeek2.appDayOfWeekID = UUID().uuidString
         appDayOfWeek2.day = DayOfWeek.tuesday.rawValue
         appDayOfWeek2.name = "Evening Class"
         
         // Create MatTime instances and associate them with AppDayOfWeek
-        let matTime1 = MatTime(context: context)
+        let matTime1 = MatTime(context: persistenceController.container.viewContext)
         matTime1.id = UUID()
         matTime1.time = "10:00"
         matTime1.gi = true
@@ -243,7 +242,7 @@ struct IslandScheduleAsCal_Previews: PreviewProvider {
         matTime1.goodForBeginners = true
         matTime1.kids = false
 
-        let matTime2 = MatTime(context: context)
+        let matTime2 = MatTime(context: persistenceController.container.viewContext)
         matTime2.id = UUID()
         matTime2.time = "18:00"
         matTime2.gi = false
@@ -259,7 +258,7 @@ struct IslandScheduleAsCal_Previews: PreviewProvider {
         appDayOfWeek2.addToMatTimes(matTime2)
         
         // Initialize EnterZipCodeViewModel
-        let mockEnterZipCodeViewModel = EnterZipCodeViewModel(repository: AppDayOfWeekRepository(persistenceController: persistenceController), context: context)
+        let mockEnterZipCodeViewModel = EnterZipCodeViewModel(repository: AppDayOfWeekRepository(persistenceController: persistenceController), persistenceController: persistenceController)
         
         // Initialize the view model
         let viewModel = AppDayOfWeekViewModel(
@@ -270,7 +269,6 @@ struct IslandScheduleAsCal_Previews: PreviewProvider {
         viewModel.appDayOfWeekList = [appDayOfWeek1, appDayOfWeek2]
 
         return IslandScheduleAsCal(viewModel: viewModel, pIsland: mockIsland)
-            .environment(\.managedObjectContext, context)
             .previewDisplayName("Gym Schedule Preview")
     }
 }

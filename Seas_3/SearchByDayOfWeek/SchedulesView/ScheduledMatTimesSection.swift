@@ -73,7 +73,7 @@ struct ScheduledMatTimesSection: View {
     func filterMatTimes(_ matTimes: [MatTime], for day: DayOfWeek, and island: PirateIsland) -> [MatTime] {
         return matTimes.filter {
             guard let appDayOfWeek = $0.appDayOfWeek else { return false }
-            return appDayOfWeek.pIsland?.islandID == island.islandID && appDayOfWeek.day?.caseInsensitiveCompare(day.rawValue) == .orderedSame
+            return appDayOfWeek.pIsland?.islandID == island.islandID && appDayOfWeek.day.caseInsensitiveCompare(day.rawValue) == .orderedSame
         }
     }
 
@@ -158,24 +158,22 @@ func debugPrintMatTimes(_ matTimes: [MatTime]) {
 }
 
 
-
 struct ScheduledMatTimesSectionPreview_Previews: PreviewProvider {
     static var previews: some View {
         let persistenceController = PersistenceController.preview
-        let context = persistenceController.container.viewContext
         
         // Create a PirateIsland object
-        let island = PirateIsland(context: context)
+        let island = PirateIsland(context: persistenceController.container.viewContext)
         island.islandID = UUID()
         island.islandName = "Black Pearl Academy"
         
         // Create AppDayOfWeek object for Monday
-        let monday = AppDayOfWeek(context: context)
+        let monday = AppDayOfWeek(context: persistenceController.container.viewContext)
         monday.day = "Monday"
         monday.pIsland = island
 
         // Create two MatTime objects for Monday and associate them with the 'monday' AppDayOfWeek
-        let morningMatTime = MatTime(context: context)
+        let morningMatTime = MatTime(context: persistenceController.container.viewContext)
         morningMatTime.time = "10:00 AM"
         morningMatTime.gi = true
         morningMatTime.noGi = false
@@ -185,7 +183,7 @@ struct ScheduledMatTimesSectionPreview_Previews: PreviewProvider {
         morningMatTime.kids = false
         morningMatTime.appDayOfWeek = monday
 
-        let noonMatTime = MatTime(context: context)
+        let noonMatTime = MatTime(context: persistenceController.container.viewContext)
         noonMatTime.time = "12:00 PM"
         noonMatTime.gi = false
         noonMatTime.noGi = true
@@ -201,27 +199,26 @@ struct ScheduledMatTimesSectionPreview_Previews: PreviewProvider {
             repository: AppDayOfWeekRepository(persistenceController: persistenceController),
             enterZipCodeViewModel: EnterZipCodeViewModel(
                 repository: AppDayOfWeekRepository(persistenceController: persistenceController),
-                context: context
+                persistenceController: persistenceController
             )
         )
 
         // Set up the viewModel's matTimesForDay to reflect the desired setup for Monday
         viewModel.matTimesForDay = [
-            .monday: [morningMatTime, noonMatTime]
+            DayOfWeek.monday: [morningMatTime, noonMatTime]
         ]
         
         // Set selectedDay to .monday for the preview
-        viewModel.selectedDay = .monday
+        viewModel.selectedDay = DayOfWeek.monday
         
         return NavigationView {
             ScheduledMatTimesSection(
                 island: island,
-                day: .monday,
+                day: DayOfWeek.monday,
                 viewModel: viewModel,
                 matTimesForDay: .constant(viewModel.matTimesForDay),
                 selectedDay: .constant(viewModel.selectedDay)
             )
-            .environment(\.managedObjectContext, context)
         }
         .previewDisplayName("Scheduled Mat Times for Monday Preview")
     }

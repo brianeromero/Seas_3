@@ -15,7 +15,11 @@ class PirateIslandDataManager {
         self.viewContext = viewContext
     }
 
-    func fetchPirateIslands(sortDescriptors: [NSSortDescriptor]? = nil, predicate: NSPredicate? = nil, fetchLimit: Int? = nil) -> Result<[PirateIsland], Error> {
+    enum FetchError: Error {
+        case failedFetchingIslands(Error)
+    }
+
+    func fetchPirateIslands(sortDescriptors: [NSSortDescriptor]? = nil, predicate: NSPredicate? = nil, fetchLimit: Int? = nil) -> Result<[PirateIsland], FetchError> {
         let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
         fetchRequest.sortDescriptors = sortDescriptors
         fetchRequest.predicate = predicate
@@ -25,8 +29,8 @@ class PirateIslandDataManager {
         do {
             let pirateIslands = try viewContext.fetch(fetchRequest)
             return .success(pirateIslands)
-        } catch {
-            return .failure(error)
+        } catch let error {
+            return .failure(.failedFetchingIslands(error))
         }
     }
 }

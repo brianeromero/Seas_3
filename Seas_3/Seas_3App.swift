@@ -20,26 +20,31 @@ struct URLHandler: View {
 
 @main
 struct Seas3App: App {
-    
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject var appState = AppState()
     @StateObject var authenticationState = AuthenticationState()
-    
-    // Declare viewModel without initializing here
-    @StateObject var viewModel: AppDayOfWeekViewModel
+    @StateObject private var persistenceController = PersistenceController.shared
+    @StateObject var profileViewModel: ProfileViewModel
 
-    @State private var selectedTabIndex: LoginViewSelection = .login
 
     init() {
-        let persistenceController = PersistenceController.shared
-        let repository = AppDayOfWeekRepository(persistenceController: persistenceController)
-        let enterZipCodeViewModel = EnterZipCodeViewModel(repository: repository, context: persistenceController.container.viewContext)
-        _viewModel = StateObject(wrappedValue: AppDayOfWeekViewModel(
-            selectedIsland: nil,
-            repository: repository,
-            enterZipCodeViewModel: enterZipCodeViewModel
+        _profileViewModel = StateObject(wrappedValue: ProfileViewModel(
+            viewContext: PersistenceController.shared.container.viewContext,
+            authViewModel: AuthViewModel.shared
         ))
     }
+
+
+    @StateObject var viewModel = AppDayOfWeekViewModel(
+        selectedIsland: nil,
+        repository: AppDayOfWeekRepository(persistenceController: PersistenceController.shared),
+        enterZipCodeViewModel: EnterZipCodeViewModel(
+            repository: AppDayOfWeekRepository(persistenceController: PersistenceController.shared),
+            persistenceController: PersistenceController.shared
+        )
+    )
+    
+    @State private var selectedTabIndex: LoginViewSelection = .login
 
     var body: some Scene {
         WindowGroup {
@@ -55,16 +60,8 @@ struct Seas3App: App {
                         setupGlobalErrorHandler()
                     }
             } else if authenticationState.isAuthenticated && authenticationState.navigateToAdminMenu {
-                AdminMenu(
-                    persistenceController: PersistenceController.shared,
-                    appDayOfWeekRepository: AppDayOfWeekRepository(persistenceController: PersistenceController.shared),
-                    enterZipCodeViewModel: EnterZipCodeViewModel(
-                        repository: AppDayOfWeekRepository(persistenceController: PersistenceController.shared),
-                        context: PersistenceController.shared.container.viewContext
-                    ),
-                    appDayOfWeekViewModel: viewModel
-                )
-                .environment(\.managedObjectContext, PersistenceController.shared.container.viewContext)
+                AdminMenu()
+                .environment(\.managedObjectContext, persistenceController.container.viewContext)
                 .environmentObject(appState)
                 .environmentObject(viewModel)
                 .onAppear {
@@ -72,15 +69,12 @@ struct Seas3App: App {
                 }
             } else if authenticationState.isAuthenticated && authenticationState.isLoggedIn {
                 IslandMenu(
-                    persistenceController: PersistenceController.shared,
-                    isLoggedIn: $authenticationState.isLoggedIn,
-                    profileViewModel: ProfileViewModel(
-                        viewContext: PersistenceController.shared.container.viewContext
-                    )
+                    isLoggedIn: $authenticationState.isLoggedIn
                 )
-                .environment(\.managedObjectContext, PersistenceController.shared.container.viewContext)
+                .environment(\.managedObjectContext, persistenceController.container.viewContext)
                 .environmentObject(appState)
                 .environmentObject(viewModel)
+                .environmentObject(profileViewModel)
                 .onAppear {
                     let sceneLoader = SceneLoader()
                     sceneLoader.loadScene()
@@ -88,19 +82,20 @@ struct Seas3App: App {
                 }
             } else {
                 LoginView(
-                    islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.shared),
-                    persistenceController: PersistenceController.shared, // Replaced placeholder
+                    islandViewModel: PirateIslandViewModel(persistenceController: persistenceController),
                     isSelected: $selectedTabIndex,
                     navigateToAdminMenu: $authenticationState.navigateToAdminMenu,
                     isLoggedIn: $authenticationState.isLoggedIn
                 )
-                .environment(\.managedObjectContext, PersistenceController.shared.container.viewContext)
+                .environment(\.managedObjectContext, persistenceController.container.viewContext)
                 .environmentObject(authenticationState)
                 .onAppear {
                     setupGlobalErrorHandler()
                 }
             }
         }
+        .environment(\.persistenceController, persistenceController)
+        .environmentObject(profileViewModel)
     }
 
     private func setupGlobalErrorHandler() {
@@ -111,5 +106,18 @@ struct Seas3App: App {
                 NSLog("Caught NaN error: %@", reason)
             }
         }
+    }
+}
+
+
+// Add this extension
+struct PersistenceControllerKey: EnvironmentKey {
+    static var defaultValue: PersistenceController { PersistenceController.shared }
+}
+
+extension EnvironmentValues {
+    var persistenceController: PersistenceController {
+        get { self[PersistenceControllerKey.self] }
+        set { self[PersistenceControllerKey.self] = newValue }
     }
 }

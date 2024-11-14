@@ -7,7 +7,7 @@
 
 import Foundation
 import SwiftUI
-import CoreData // To access Core Data classes
+import CoreData
 
 
 class AuthenticationHelper {
@@ -15,7 +15,9 @@ class AuthenticationHelper {
         return try verifyPasswordPbkdf(inputPassword, againstHash: storedHash)
     }
 
-    static func fetchStoredUserHash(context: NSManagedObjectContext, identifier: String) throws -> HashedPassword {
+    static func fetchStoredUserHash(identifier: String) throws -> HashedPassword {
+        let context = PersistenceController.shared.viewContext  // Use shared viewContext
+
         let predicate = NSCompoundPredicate(orPredicateWithSubpredicates: [
             NSPredicate(format: "email == %@", identifier),
             NSPredicate(format: "userName == %@", identifier)

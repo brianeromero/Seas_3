@@ -3,6 +3,7 @@
 //  Seas_3
 //  Created by Brian Romero on 6/24/24.
 
+
 import Combine
 import Foundation
 import CoreData
@@ -13,15 +14,20 @@ extension Notification.Name {
     static let contextSaved = Notification.Name("contextSaved")
 }
 
-class PersistenceController: ObservableObject {
-    static let shared = PersistenceController(inMemory: false)
-    let container: NSPersistentContainer
+public class PersistenceController: ObservableObject {
+    // Make the shared instance public
+    public static let shared = PersistenceController(inMemory: false)
 
-    var viewContext: NSManagedObjectContext {
+    // Ensure container is accessible
+    public let container: NSPersistentContainer
+
+    // Make viewContext public for access in preview
+    public var viewContext: NSManagedObjectContext {
         return container.viewContext
     }
 
-    private init(inMemory: Bool = false) {
+    // Make init public
+    public init(inMemory: Bool = false) {
         container = NSPersistentContainer(name: "Seas_3")
         if inMemory {
             container.persistentStoreDescriptions.first!.url = URL(fileURLWithPath: "/dev/null")
@@ -39,6 +45,7 @@ class PersistenceController: ObservableObject {
         do {
             return try viewContext.fetch(request)
         } catch {
+            print("Fetch error: \(error.localizedDescription)")
             throw PersistenceError.fetchError(error)
         }
     }
@@ -60,7 +67,7 @@ class PersistenceController: ObservableObject {
                     NotificationCenter.default.post(name: .contextSaved, object: nil)
                     print("Context saved successfully.")
                 } catch let saveError as NSError {
-                    print("Error saving context (PersistenceController): \(saveError.localizedDescription), \(saveError.userInfo)")
+                    print("Error saving context: \(saveError.localizedDescription), \(saveError.userInfo)")
                     throw PersistenceError.saveError(saveError)
                 }
             }
@@ -78,6 +85,7 @@ class PersistenceController: ObservableObject {
             try saveContext() // Catch the error
         } catch {
             print("Failed to save context after deletion: \(error.localizedDescription)")
+            // Handle error
         }
     }
 
@@ -160,4 +168,41 @@ class PersistenceController: ObservableObject {
 
         return result
     }()
+
+    // MARK: - UserInfo Helper Methods
+
+    // Fetch UserInfo from Core Data
+    func fetchUser(byUserName userName: String) -> UserInfo? {
+        let fetchRequest: NSFetchRequest<UserInfo> = UserInfo.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "userName == %@", userName)
+
+        do {
+            let results = try viewContext.fetch(fetchRequest)
+            if let user = results.first {
+                print("User fetched successfully for userName: \(userName)")  // Log for success
+                return user
+            } else {
+                print("No user found for userName: \(userName)")  // Log for no results
+                return nil
+            }
+        } catch {
+            print("Error fetching user info for userName: \(userName) - \(error.localizedDescription)")  // Detailed error log
+            return nil
+        }
+    }
+
+
+    // Update UserInfo in Core Data
+    func updateUserInfo(email: String, userName: String, name: String, belt: String?) throws {
+        let fetchRequest: NSFetchRequest<UserInfo> = UserInfo.fetchRequest()
+        if let userInfo = try fetch(request: fetchRequest).first {
+            userInfo.email = email
+            userInfo.userName = userName
+            userInfo.name = name
+            userInfo.belt = belt
+            try saveContext()
+        } else {
+            print("No user profile found.")
+        }
+    }
 }

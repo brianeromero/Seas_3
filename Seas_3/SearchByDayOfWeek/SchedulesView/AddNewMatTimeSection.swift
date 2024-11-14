@@ -225,18 +225,22 @@ extension Date {
     }
 }
 
-
 struct AddNewMatTimeSection_Previews: PreviewProvider {
     @State private static var selectedDay: DayOfWeek = .monday
 
     static var previews: some View {
-        let pirateIsland = PirateIsland()
-        let appDayOfWeek = AppDayOfWeek()
+        let pirateIsland = PirateIsland(context: PersistenceController.preview.container.viewContext)
+        pirateIsland.islandName = "Sample Island"
+        let appDayOfWeek = AppDayOfWeek(context: PersistenceController.preview.container.viewContext)
         let matTime: MatTime? = nil
         let persistenceController = PersistenceController.preview
         let repository = AppDayOfWeekRepository(persistenceController: persistenceController)
-        let enterZipCodeViewModel = EnterZipCodeViewModel(repository: repository, context: persistenceController.container.viewContext)
-        let viewModel = AppDayOfWeekViewModel(repository: repository, enterZipCodeViewModel: enterZipCodeViewModel)
+        let enterZipCodeViewModel = EnterZipCodeViewModel(repository: repository, persistenceController: persistenceController)
+        let viewModel = AppDayOfWeekViewModel(
+            selectedIsland: pirateIsland,
+            repository: repository,
+            enterZipCodeViewModel: enterZipCodeViewModel
+        )
 
         return Group {
             AddNewMatTimeSection(

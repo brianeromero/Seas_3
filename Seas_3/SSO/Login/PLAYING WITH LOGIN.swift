@@ -7,24 +7,13 @@ import FBSDKLoginKit
 import Security
 import CryptoSwift
 
-public enum LoginViewSelection: Int {
-    case login = 0
-    case createAccount = 1
-    
-    public init?(rawValue: Int) {
-        switch rawValue {
-        case 0:
-            self = .login
-        case 1:
-            self = .createAccount
-        default:
-            return nil
-        }
-    }
+enum LoginViewSelectionLoginViewSelection: Int {
+    case login
+    case createAccount
 }
 
-// Login Form View
-struct LoginForm: View {
+// Extracted login form view
+struct LoginFormLoginForm: View {
     @Binding var usernameOrEmail: String
     @StateObject private var authViewModel = AuthViewModel()
     @Binding var password: String
@@ -39,15 +28,37 @@ struct LoginForm: View {
     @State private var isPasswordVisible = false
     @Binding var isLoggedIn: Bool
     @Binding var navigateToAdminMenu: Bool
+    @FocusState private var focusedField: Field?
+
+    enum Field {
+        case usernameOrEmail
+        case password
+    }
+    
+    
+    init(
+        usernameOrEmail: Binding<String>,
+        password: Binding<String>,
+        isSignInEnabled: Binding<Bool>,
+        errorMessage: Binding<String>,
+        islandViewModel: PirateIslandViewModel,
+        showMainContent: Binding<Bool>,
+        isLoggedIn: Binding<Bool>,
+        navigateToAdminMenu: Binding<Bool>
+    ) {
+        _usernameOrEmail = usernameOrEmail
+        _password = password
+        _isSignInEnabled = isSignInEnabled
+        _errorMessage = errorMessage
+        self.islandViewModel = islandViewModel
+        _showMainContent = showMainContent
+        _isLoggedIn = isLoggedIn
+        _navigateToAdminMenu = navigateToAdminMenu
+    }
 
     var body: some View {
-        VStack(spacing: 20) {
-            // Centered Image with a flexible size
-            Image("MF_little_trans")
-                .resizable()
-                .scaledToFit() // Maintains aspect ratio while resizing
-                .frame(width: 300, height: 300) // Or any value that suits you
-            
+        VStack(alignment: .leading, spacing: 20) {
+
             // Left-aligned fields: Username or Email & Password
             VStack(alignment: .leading, spacing: 20) {
                 Text("Username or Email")
@@ -127,64 +138,71 @@ struct LoginForm: View {
 
                 Text("By continuing, you agree to the updated Terms of Service/Disclaimer")
                     .font(.footnote)
-                    .multilineTextAlignment(.center)
-                    .padding()
+                    .foregroundColor(.secondary)
+                    .underline()
+                    .onTapGesture {
+                        self.showDisclaimer = true
+                    }
+                    .navigationDestination(isPresented: $showDisclaimer) {
+                        DisclaimerView()
+                    }
 
-                if showDisclaimer {
-                    Text("Disclaimer details go here")
-                        .font(.subheadline)
-                        .padding()
+                Button(action: {
+                    showAdminLogin.toggle()
+                }) {
+                    Text("Admin Login")
+                        .font(.footnote)
+                        .foregroundColor(.blue)
                 }
-
-                if showAdminLogin {
+                .sheet(isPresented: $showAdminLogin) {
                     AdminLoginView(isPresented: $showAdminLogin)
+
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .center) // Center-align these views
         }
+        .padding()
+    }
+    
+    // MARK: - Helper Functions
+
+    private func updateSignInEnabled() {
+        isSignInEnabled = !usernameOrEmail.isEmpty && !password.isEmpty
     }
 
-
-    // MARK: - Facebook Sign In Logic
-    private func facebookSignIn() {
-        FacebookHelper.handleFacebookLogin()
-    }
-
-
-    // MARK: - Sign In Logic
     private func signIn() async {
         guard !usernameOrEmail.isEmpty && !password.isEmpty else {
             showAlert(with: "Please enter both username and password.")
             return
         }
 
-        do {
-            // Ensure that fetchUser() is a throwing function
-            if ValidationUtility.validateEmail(usernameOrEmail) != nil {
-                let user = try fetchUser(usernameOrEmail)  // This should now throw if it fails
+        if ValidationUtility.validateEmail(usernameOrEmail) != nil {
+            do {
+                let user = try fetchUser(usernameOrEmail)
                 let email = user.email
-                try await signInWithEmail(email: email, password: password)
-            } else {
-                // Handle username login
+                Auth.auth().signIn(withEmail: email, password: password) { result, error in
+                    if let error = error {
+                        showAlert(with: error.localizedDescription)
+                    } else {
+                        DispatchQueue.main.async {
+                            self.authenticationState.isAuthenticated = true
+                            showMainContent = true
+                        }
+                    }
+                }
+            } catch {
+                showAlert(with: "User not found.")
+            }
+        } else {
+            do {
                 try await authViewModel.signInUser(with: usernameOrEmail, password: password)
+                DispatchQueue.main.async {
+                    self.authenticationState.isAuthenticated = true
+                    showMainContent = true
+                }
+            } catch {
+                showAlert(with: error.localizedDescription)
             }
-        } catch let error {
-            showAlert(with: error.localizedDescription)
-        }
-    }
-
-
-    // Example of signInWithEmail for simplification
-    private func signInWithEmail(email: String, password: String) async throws {
-        do {
-            _ = try await Auth.auth().signIn(withEmail: email, password: password)
-            DispatchQueue.main.async {
-                self.authenticationState.isAuthenticated = true
-                self.isLoggedIn = true
-                showMainContent = true
-            }
-        } catch let error {
-            showAlert(with: error.localizedDescription)
-            throw error // Rethrow the error if needed
         }
     }
 
@@ -193,7 +211,7 @@ struct LoginForm: View {
         let request = NSFetchRequest<UserInfo>(entityName: "UserInfo")
         request.predicate = NSPredicate(format: "userName == %@ OR email == %@", usernameOrEmail, usernameOrEmail)
 
-        let results = try viewContext.fetch(request)  // This is the throwing function
+        let results = try viewContext.fetch(request)
         guard let user = results.first else {
             throw NSError(domain: "User not found", code: 404, userInfo: nil)
         }
@@ -205,14 +223,49 @@ struct LoginForm: View {
         return user
     }
 
-
     // MARK: - Alert Helper
     private func showAlert(with message: String) {
         errorMessage = message
     }
 }
 
-public struct LoginView: View {
+struct TermsOfServiceLink: View {
+    @Binding var showDisclaimer: Bool
+
+    var body: some View {
+        Text("By continuing, you agree to the updated Terms of Service/Disclaimer")
+            .font(.footnote)
+            .foregroundColor(.secondary)
+            .underline()
+            .onTapGesture {
+                self.showDisclaimer = true
+            }
+            .navigationDestination(isPresented: $showDisclaimer) {
+                DisclaimerView()
+            }
+    }
+}
+
+struct AdminLoginLink: View {
+    @Binding var showAdminLogin: Bool
+    @Binding var navigateToAdminMenu: Bool
+
+    var body: some View {
+        Button(action: {
+            showAdminLogin.toggle()
+        }) {
+            Text("Admin Login")
+                .font(.footnote)
+                .foregroundColor(.blue)
+        }
+        .sheet(isPresented: $showAdminLogin) {
+            AdminLoginView(isPresented: $showAdminLogin)
+        }
+    }
+}
+
+
+struct LoginViewLoginView: View {
     @EnvironmentObject var authenticationState: AuthenticationState
     @Environment(\.managedObjectContext) private var viewContext
     @State private var showMainContent: Bool = false
@@ -226,95 +279,71 @@ public struct LoginView: View {
     @StateObject private var islandViewModel: PirateIslandViewModel
     @State private var isUserProfileActive: Bool = false
     @State private var selectedTabIndex: Int = 0
-    @Binding private var isSelected: LoginViewSelection
-    @Binding private var navigateToAdminMenu: Bool
+    @Binding var isSelected: LoginViewSelection
+    @Binding var navigateToAdminMenu: Bool
     @State private var createAccountLinkActive = false
     @State private var isSignInEnabled: Bool = false
     @StateObject private var authViewModel = AuthViewModel.shared
-    @Binding private var isLoggedIn: Bool
+    @Binding var isLoggedIn: Bool
+    @State private var persistenceController: PersistenceController
 
-    public init(
+    init(
         islandViewModel: PirateIslandViewModel,
+        persistenceController: PersistenceController,
         isSelected: Binding<LoginViewSelection>,
         navigateToAdminMenu: Binding<Bool>,
         isLoggedIn: Binding<Bool>
     ) {
-        _isSelected = isSelected
-        _navigateToAdminMenu = navigateToAdminMenu
-        _isLoggedIn = isLoggedIn
         _islandViewModel = StateObject(wrappedValue: islandViewModel)
+        self.persistenceController = persistenceController
+        self._isSelected = isSelected
+        self._navigateToAdminMenu = navigateToAdminMenu
+        self._isLoggedIn = isLoggedIn
     }
-
-    public var body: some View {
+    
+    var body: some View {
         NavigationStack {
-            VStack(spacing: 20) {
-                // Admin Menu Navigation
-                NavigationLink(destination: AdminMenu(), isActive: $navigateToAdminMenu) {
-                    EmptyView()
-                }
-
-                // Conditional Content Based on Selection
-                VStack {
+            ZStack {
+                MFBACKGROUND() // Background view
+                
+                VStack(spacing: 20) {
+                    // Display CreateAccountView when the selected view is 'createAccount'
                     if isSelected == .createAccount {
                         CreateAccountView(
                             islandViewModel: islandViewModel,
                             isUserProfileActive: $isUserProfileActive,
-                            persistenceController: PersistenceController.shared,
-                            selectedTabIndex: $selectedTabIndex,
-                            emailManager: UnifiedEmailManager.shared
+                            persistenceController: persistenceController, // Pass to CreateAccountView
+                            selectedTabIndex: $selectedTabIndex
                         )
-                    } else if authenticationState.isAuthenticated && showMainContent {
+                    }
+                    // Display IslandMenu if authenticated and 'showMainContent' is true
+                    else if authenticationState.isAuthenticated && showMainContent {
                         IslandMenu(
                             isLoggedIn: $authenticationState.isLoggedIn
                         )
-                    } else if isSelected == .login {
+                    }
+                    // Display LoginForm when the selected view is 'login'
+                    else if isSelected == .login {
                         VStack(spacing: 20) {
-                            HStack(alignment: .center, spacing: 10) {
-                                Text("Log In OR")
-                                
-                                // Create Account Navigation Link
-                                NavigationLink(destination: CreateAccountView(
-                                    islandViewModel: islandViewModel,
-                                    isUserProfileActive: $isUserProfileActive,
-                                    persistenceController: PersistenceController.shared,
-                                    selectedTabIndex: $selectedTabIndex,
-                                    emailManager: UnifiedEmailManager.shared
-                                )) {
-                                    Text("Create an Account")
-                                        .font(.body)
-                                        .foregroundColor(.blue)
-                                        .underline()
-                                }
+                            // NavigationLink to AdminMenu
+                            NavigationLink(destination: AdminMenu(), isActive: $navigateToAdminMenu) {
+                                EmptyView()
                             }
-                            
-                            // Login Form
-                            LoginForm(
+                           
+                            // Login form view
+                            LoginFormLoginForm(
                                 usernameOrEmail: $usernameOrEmail,
                                 password: $password,
                                 isSignInEnabled: $isSignInEnabled,
                                 errorMessage: $errorMessage,
-                                authenticationState: _authenticationState,
                                 islandViewModel: islandViewModel,
                                 showMainContent: $showMainContent,
                                 isLoggedIn: $isLoggedIn,
                                 navigateToAdminMenu: $navigateToAdminMenu
                             )
-                            .frame(maxWidth: .infinity)
-                            .padding()
-
-                            Spacer()
                         }
-                    } else {
-                        EmptyView() // Fallback case
                     }
                 }
-            }
-            .alert(isPresented: $showAlert) {
-                Alert(title: Text("Error"), message: Text(errorMessage), dismissButton: .default(Text("OK")))
-            }
-            .padding()
-            .onChange(of: showMainContent) { newValue in
-                isLoggedIn = newValue
             }
         }
     }
@@ -323,20 +352,20 @@ public struct LoginView: View {
 
 
 
-// Preview with mock data
-struct LoginView_Previews: PreviewProvider {
+// Preview setup with corrected initializations
+struct LoginViewLoginView_Previews: PreviewProvider {
     static var previews: some View {
-        LoginForm(
-            usernameOrEmail: .constant("test@example.com"),
-            password: .constant("password123"),
-            isSignInEnabled: .constant(true),
-            errorMessage: .constant(""),
-            islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.shared),
-            showMainContent: .constant(false),
-            isLoggedIn: .constant(false),
-            navigateToAdminMenu: .constant(false)
+        let persistenceController = PersistenceController.preview
+        let islandViewModel = PirateIslandViewModel(persistenceController: persistenceController)
+        let authenticationState = AuthenticationState()
+        
+        LoginViewLoginView(
+            islandViewModel: islandViewModel,
+            persistenceController: persistenceController, // <-- Add this here
+            isSelected: .constant(.login),
+            navigateToAdminMenu: .constant(false),
+            isLoggedIn: .constant(false)
         )
-        .environmentObject(AuthenticationState())
-        .environment(\.managedObjectContext, PersistenceController.shared.container.viewContext)
+        .environmentObject(authenticationState)
     }
 }

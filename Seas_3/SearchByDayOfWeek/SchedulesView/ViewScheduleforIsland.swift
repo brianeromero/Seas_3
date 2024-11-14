@@ -113,8 +113,14 @@ struct ViewScheduleForIsland_Previews: PreviewProvider {
         
         // Create a mock AppDayOfWeekViewModel
         let repository = AppDayOfWeekRepository(persistenceController: persistenceController)
-        let enterZipCodeViewModel = EnterZipCodeViewModel(repository: repository, context: context)
-        let viewModel = AppDayOfWeekViewModel(repository: repository, enterZipCodeViewModel: enterZipCodeViewModel)
+        let viewModel = AppDayOfWeekViewModel(
+            selectedIsland: nil,
+            repository: repository,
+            enterZipCodeViewModel: EnterZipCodeViewModel(
+                repository: repository,
+                persistenceController: persistenceController
+            )
+        )
         
         // Simulate data loading
         viewModel.loadSchedules(for: mockIsland) // Load schedules for the mock island

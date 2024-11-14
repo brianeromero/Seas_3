@@ -9,8 +9,7 @@ import Foundation
 import SwiftUI
 
 struct AdminLoginView: View {
-    @Binding var isPresented: Bool            // Binding to dismiss the view
-    @Binding var navigateToAdminMenu: Bool    // Binding to trigger navigation to AdminMenu
+    @Binding var isPresented: Bool
     @EnvironmentObject var authenticationState: AuthenticationState
 
     @State private var adminUsername: String = ""
@@ -34,7 +33,7 @@ struct AdminLoginView: View {
 
             Button("Login") {
                 Task {
-                    await adminLogin() // Call to the login function
+                    await adminLogin()
                 }
             }
             .padding()
@@ -45,9 +44,8 @@ struct AdminLoginView: View {
                 title: Text("Admin Login"),
                 message: Text(alertMessage),
                 dismissButton: .default(Text("OK")) {
-                    // Dismiss the login view if access is granted
                     if alertMessage == "Access Granted" {
-                        isPresented = false // Dismiss only if access is granted
+                        isPresented = false
                     }
                 }
             )
@@ -60,11 +58,9 @@ struct AdminLoginView: View {
         if isValid {
             print("Access granted. Navigating to AdminMenu.")
             alertMessage = "Access Granted"
-            authenticationState.isAuthenticated = true  // Ensure authentication state is updated
-            navigateToAdminMenu = true
-            print("navigateToAdminMenu: \(navigateToAdminMenu)")
-            print("authenticationState.isAuthenticated: \(authenticationState.isAuthenticated)")
-            isPresented = false // Dismiss the login view if necessary
+            authenticationState.isAuthenticated = true
+            authenticationState.navigateToAdminMenu = true
+            isPresented = false
         } else {
             print("Invalid credentials.")
             alertMessage = "Invalid credentials."

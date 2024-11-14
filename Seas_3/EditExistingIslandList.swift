@@ -9,16 +9,14 @@ import Foundation
 import SwiftUI
 import CoreData
 
-
 struct EditExistingIslandList: View {
     var body: some View {
-        NavigationView {
+        NavigationStack {  // Move NavigationStack to the top-level view
             EditExistingIslandListContent()
                 .padding()
         }
     }
 }
-
 
 struct EditExistingIslandListContent: View {
     @Environment(\.managedObjectContext) private var viewContext
@@ -30,17 +28,26 @@ struct EditExistingIslandListContent: View {
     @State private var searchQuery: String = ""
     @State private var showNoMatchAlert: Bool = false
     @State private var filteredIslands: [PirateIsland] = []
-    
     @State private var debounceTimer: Timer? = nil
+    @State private var selectedIsland: PirateIsland? = nil
+    @State private var showReview: Bool = false
+
+    @StateObject private var viewModel = IslandListViewModel.shared  // Add the viewModel here
 
     var body: some View {
         VStack(alignment: .leading) {
             SearchHeader()
             SearchBar(text: $searchQuery)
-                .onChange(of: searchQuery) { newValue in
+                .onChange(of: searchQuery) { _ in
                     updateSearchResults()
                 }
-            IslandList(islands: filteredIslands)
+            IslandList(
+                islands: filteredIslands,
+                selectedIsland: $selectedIsland,
+                showReview: $showReview,
+                title: "Edit Gyms",
+                viewModel: viewModel // Pass the viewModel to IslandList
+            )
         }
         .alert(isPresented: $showNoMatchAlert) {
             Alert(
@@ -54,20 +61,20 @@ struct EditExistingIslandListContent: View {
             logFetch()
         }
     }
-    
+
     private func updateSearchResults() {
         debounceTimer?.invalidate()
         debounceTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { _ in
             self.updateFilteredIslands()
         }
     }
-    
+
     private func updateFilteredIslands() {
         let lowercasedQuery = searchQuery.lowercased()
         filteredIslands = islands.filter { matchesIsland($0, query: lowercasedQuery) }
         showNoMatchAlert = filteredIslands.isEmpty && !searchQuery.isEmpty
     }
-    
+
     private func matchesIsland(_ island: PirateIsland, query: String) -> Bool {
         let properties = [
             island.islandName,
@@ -77,53 +84,23 @@ struct EditExistingIslandListContent: View {
             String(island.longitude)
         ]
         
-        return properties.compactMap { $0?.lowercased() }.contains { $0.contains(query.lowercased()) }
+        return properties.compactMap { $0?.lowercased() }.contains { $0.contains(query) }
     }
-    
+
     private func logFetch() {
         print("Fetched \(islands.count) Gym objects.")
     }
 }
 
 
-struct SearchHeader: View {
-    var body: some View {
-        Text("Search by: gym name, zip code, or address/location")
-            .font(.headline)
-            .padding(.bottom, 4)
-            .foregroundColor(.gray)
-    }
-}
 
-struct IslandList: View {
-    @Environment(\.managedObjectContext) private var viewContext
-    let islands: [PirateIsland]
-    let persistenceController = PersistenceController.shared
-
-    var body: some View {
-        List {
-            ForEach(islands) { island in
-                NavigationLink(destination: EditExistingIsland(island: island, islandViewModel: PirateIslandViewModel(persistenceController: persistenceController))) {
-                    VStack(alignment: .leading) {
-                        Text(island.islandName ?? "Unknown Gym")
-                            .font(.headline)
-                        Text(island.islandLocation ?? "")
-                            .foregroundColor(.secondary)
-                    }
-                }
-            }
-        }
-        .listStyle(PlainListStyle())
-        .navigationTitle("Edit Existing Gyms")
-    }
-}
-
+// MARK: - Previews
 struct EditExistingIslandList_Previews: PreviewProvider {
     static var previews: some View {
-        let persistenceController = PersistenceController.shared
-        
-        // Create example islands for preview
+        let persistenceController = PersistenceController.preview
         let context = persistenceController.viewContext
+        
+        // Sample islands for preview
         let island1 = PirateIsland(context: context)
         island1.islandName = "Sample Gym 1"
         island1.islandLocation = "123 Main St"
@@ -132,9 +109,13 @@ struct EditExistingIslandList_Previews: PreviewProvider {
         island2.islandName = "Sample Gym 2"
         island2.islandLocation = "456 Elm St"
         
-        // Save context changes
-        try? context.save()
-        
+        // Save context for preview
+        do {
+            try context.save()
+        } catch {
+            print("Error saving context: \(error.localizedDescription)")
+        }
+
         return EditExistingIslandList()
             .environment(\.managedObjectContext, context)
             .previewDisplayName("Edit Existing Gyms List")

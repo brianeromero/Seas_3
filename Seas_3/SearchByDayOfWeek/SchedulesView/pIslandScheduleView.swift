@@ -113,13 +113,15 @@ struct pIslandScheduleView: View {
 struct pIslandScheduleView_Previews: PreviewProvider {
     static var previews: some View {
         let persistenceController = PersistenceController.preview
-        let context = persistenceController.container.viewContext
 
         // Initialize AppDayOfWeekRepository with the preview PersistenceController
         let mockRepository = AppDayOfWeekRepository(persistenceController: persistenceController)
 
         // Initialize a mock EnterZipCodeViewModel
-        let mockEnterZipCodeViewModel = EnterZipCodeViewModel(repository: mockRepository, context: context)
+        let mockEnterZipCodeViewModel = EnterZipCodeViewModel(
+            repository: mockRepository,
+            persistenceController: persistenceController
+        )
 
         // Initialize AppDayOfWeekViewModel with mock data
         let viewModel = AppDayOfWeekViewModel(
@@ -129,7 +131,6 @@ struct pIslandScheduleView_Previews: PreviewProvider {
         )
 
         return pIslandScheduleView(viewModel: viewModel)
-            .environment(\.managedObjectContext, context)
             .previewDisplayName("Gym Schedule Preview")
     }
 }

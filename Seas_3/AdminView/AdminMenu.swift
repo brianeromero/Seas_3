@@ -9,21 +9,21 @@ import Foundation
 import SwiftUI
 
 struct AdminMenu: View {
-    @StateObject private var persistenceController: PersistenceController
-    @StateObject private var appDayOfWeekRepository: AppDayOfWeekRepository
+    @Environment(\.persistenceController) private var persistenceController
+    private var appDayOfWeekRepository: AppDayOfWeekRepository
     @StateObject private var enterZipCodeViewModel: EnterZipCodeViewModel
     @StateObject private var appDayOfWeekViewModel: AppDayOfWeekViewModel
 
-    init(persistenceController: PersistenceController,
-         appDayOfWeekRepository: AppDayOfWeekRepository,
-         enterZipCodeViewModel: EnterZipCodeViewModel,
-         appDayOfWeekViewModel: AppDayOfWeekViewModel) {
-        _persistenceController = StateObject(wrappedValue: persistenceController)
-        _appDayOfWeekRepository = StateObject(wrappedValue: appDayOfWeekRepository)
-        _enterZipCodeViewModel = StateObject(wrappedValue: enterZipCodeViewModel)
-        _appDayOfWeekViewModel = StateObject(wrappedValue: appDayOfWeekViewModel)
+    init() {
+        let persistenceController = PersistenceController.shared
+        let repository = AppDayOfWeekRepository(persistenceController: persistenceController)
+        
+        let enterZipCodeVM = EnterZipCodeViewModel(repository: repository, persistenceController: persistenceController)
+        
+        self.appDayOfWeekRepository = repository
+        self._enterZipCodeViewModel = StateObject(wrappedValue: enterZipCodeVM)
+        self._appDayOfWeekViewModel = StateObject(wrappedValue: AppDayOfWeekViewModel(repository: repository, enterZipCodeViewModel: enterZipCodeVM))
     }
-    
 
     let menuItems: [MenuItem] = [
         MenuItem(title: "Manage Users", subMenuItems: ["Reset User Verification", "Edit User", "Remove User", "Manual User Verification"], padding: 20),
@@ -62,11 +62,9 @@ struct AdminMenu: View {
     private func destinationView(for option: String) -> some View {
         switch option {
         case IslandMenuOption.allLocations.rawValue:
-            // TODO: Implement destination view
-            EmptyView()
+            EmptyView() // Placeholder until implemented
         case IslandMenuOption.currentLocation.rawValue:
-            // TODO: Implement destination view
-            EmptyView()
+            EmptyView() // Placeholder until implemented
         case "Reset User Verification":
             ResetUserVerificationView()
         case "Manual User Verification":
@@ -74,13 +72,11 @@ struct AdminMenu: View {
         case "All Gyms":
             ContentView(persistenceController: persistenceController)
         case "ALL Gym Schedules":
+            // Ensure that the viewModel is passed correctly
             pIslandScheduleView(viewModel: appDayOfWeekViewModel)
         case "ALL Mat Schedules":
-            AllpIslandScheduleView(
-                viewModel: appDayOfWeekViewModel,
-                persistenceController: persistenceController,
-                enterZipCodeViewModel: enterZipCodeViewModel
-            )
+            AllpIslandScheduleView(viewModel: appDayOfWeekViewModel, enterZipCodeViewModel: enterZipCodeViewModel)
+                .environment(\.persistenceController, PersistenceController.shared)
         default:
             EmptyView()
         }
@@ -93,7 +89,7 @@ class MockAppDayOfWeekViewModel: AppDayOfWeekViewModel {
         let mockRepository = MockAppDayOfWeekRepository(persistenceController: PersistenceController.shared)
         let mockEnterZipCodeViewModel = EnterZipCodeViewModel(
             repository: mockRepository,
-            context: PersistenceController.shared.container.viewContext
+            persistenceController: PersistenceController.shared
         )
         self.init(repository: mockRepository, enterZipCodeViewModel: mockEnterZipCodeViewModel)
         // Mock initialization
@@ -103,21 +99,12 @@ class MockAppDayOfWeekViewModel: AppDayOfWeekViewModel {
 // PreviewProvider for Canvas preview
 struct AdminMenu_Previews: PreviewProvider {
     static var previews: some View {
-        let persistenceController = PersistenceController.shared
-        let appDayOfWeekRepository = AppDayOfWeekRepository(persistenceController: persistenceController)
-        let enterZipCodeViewModel = EnterZipCodeViewModel(
-            repository: appDayOfWeekRepository,
-            context: persistenceController.container.viewContext
-        )
-        let appDayOfWeekViewModel = AppDayOfWeekViewModel(
-            repository: appDayOfWeekRepository,
-            enterZipCodeViewModel: enterZipCodeViewModel
-        )
+        let persistenceController = PersistenceController.preview
         
-        AdminMenu(persistenceController: persistenceController,
-                  appDayOfWeekRepository: appDayOfWeekRepository,
-                  enterZipCodeViewModel: enterZipCodeViewModel,
-                  appDayOfWeekViewModel: appDayOfWeekViewModel)
-            .environmentObject(persistenceController)
+        return NavigationView {
+            AdminMenu()
+                .environment(\.persistenceController, persistenceController)
+                .environmentObject(AuthenticationState())
+        }
     }
 }

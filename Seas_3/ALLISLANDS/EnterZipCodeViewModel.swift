@@ -16,6 +16,8 @@ class EnterZipCodeViewModel: ObservableObject {
     @Published var region: MKCoordinateRegion
     private var repository: AppDayOfWeekRepository
     private var context: NSManagedObjectContext
+    @Published var zipCode: String = ""
+
 
     @Published var enteredLocation: CustomMapMarker?
     @Published var pirateIslands: [CustomMapMarker] = []
@@ -25,10 +27,12 @@ class EnterZipCodeViewModel: ObservableObject {
     private let geocoder = CLGeocoder()
     private let updateQueue = DispatchQueue(label: "com.example.Seas_3.updateQueue")
     let locationManager = UserLocationMapViewModel()
+    private let earthRadius = 6371.0088 // Radius of Earth in kilometers
 
-    init(repository: AppDayOfWeekRepository, context: NSManagedObjectContext) {
+
+    init(repository: AppDayOfWeekRepository, persistenceController: PersistenceController) {
         self.repository = repository
-        self.context = context
+        self.context = persistenceController.viewContext
         self.region = MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194), span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)) // Default to San Francisco
         
         locationManager.$userLocation
@@ -42,12 +46,15 @@ class EnterZipCodeViewModel: ObservableObject {
         locationManager.startLocationServices()
     }
 
+    func isValidZipCode() -> Bool {
+        zipCode.count == 5 && zipCode.allSatisfy(\.isNumber)
+    }
+    
     func fetchLocation(for address: String) {
         Task {
             do {
                 let coordinate = try await MapUtils.fetchLocation(for: address)
                 
-                // Handle successful geocoding
                 DispatchQueue.main.async {
                     self.region = MKCoordinateRegion(center: coordinate, span: MKCoordinateSpan(latitudeDelta: self.currentRadius / 69.0, longitudeDelta: self.currentRadius / 69.0))
                     self.enteredLocation = CustomMapMarker(id: UUID(), coordinate: coordinate, title: address, pirateIsland: nil)
@@ -82,21 +89,18 @@ class EnterZipCodeViewModel: ObservableObject {
                 return distance <= radius
             }
 
-            DispatchQueue.main.async {
-                self.pirateIslands = filteredIslands.map { island in
-                    CustomMapMarker(
-                        id: island.islandID ?? UUID(),
-                        coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude),
-                        title: island.islandName ?? "Unknown Gym",
-                        pirateIsland: island
-                    )
-                }
+            self.pirateIslands = filteredIslands.map { island in
+                CustomMapMarker(
+                    id: island.islandID ?? UUID(),
+                    coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude),
+                    title: island.islandName ?? "Unknown Gym",
+                    pirateIsland: island
+                )
             }
         } catch {
             print("Error fetching islands: \(error.localizedDescription)")
         }
     }
-
 
     func updateRegion(_ userLocation: CLLocation, radius: Double) {
         let span = MKCoordinateSpan(latitudeDelta: radius / 69.0, longitudeDelta: radius / 69.0)

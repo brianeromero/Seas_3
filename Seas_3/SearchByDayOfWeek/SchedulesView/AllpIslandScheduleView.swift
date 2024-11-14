@@ -15,16 +15,8 @@ struct AllpIslandScheduleView: View {
     @State private var showAddMatTimeForm = false
     @State private var selectedMatTime: MatTime?
 
-    let persistenceController: PersistenceController
     let enterZipCodeViewModel: EnterZipCodeViewModel
 
-
-    init(viewModel: AppDayOfWeekViewModel, persistenceController: PersistenceController, enterZipCodeViewModel: EnterZipCodeViewModel) {
-        self.viewModel = viewModel
-        self.persistenceController = persistenceController
-        self.enterZipCodeViewModel = enterZipCodeViewModel
-    }
-    
     var body: some View {
         VStack {
             Text("All Gyms Schedules")
@@ -163,34 +155,32 @@ struct AllpIslandScheduleView: View {
 }
 
 // MARK: - Preview
-
 struct AllpIslandScheduleView_Previews: PreviewProvider {
     static var previews: some View {
-        let persistenceController = PersistenceController.preview
-        let context = persistenceController.container.viewContext
-        
-        let mockIsland = PirateIsland(context: context)
+        let persistenceController = PersistenceController.shared  // Use the shared instance
+
+        let mockIsland = PirateIsland(context: persistenceController.container.viewContext)
         mockIsland.islandName = "Sample Island"
 
-        let mockAppDayOfWeek = AppDayOfWeek(context: context)
+        let mockAppDayOfWeek = AppDayOfWeek(context: persistenceController.container.viewContext)
         mockAppDayOfWeek.day = DayOfWeek.monday.rawValue
         mockAppDayOfWeek.pIsland = mockIsland
         
         let dateFormatter = DateFormatter()
         dateFormatter.timeStyle = .short
         
-        let mockMatTime1 = MatTime(context: context)
+        let mockMatTime1 = MatTime(context: persistenceController.container.viewContext)
         mockMatTime1.time = DateFormat.time.string(from: Date().addingTimeInterval(-3600))
         mockAppDayOfWeek.addToMatTimes(mockMatTime1)
 
-        let mockMatTime2 = MatTime(context: context)
+        let mockMatTime2 = MatTime(context: persistenceController.container.viewContext)
         mockMatTime2.time = DateFormat.time.string(from: Date().addingTimeInterval(3600))
         mockAppDayOfWeek.addToMatTimes(mockMatTime2)
 
-        try? context.save()
+        try? persistenceController.container.viewContext.save()
 
         let repository = AppDayOfWeekRepository(persistenceController: persistenceController)
-        let enterZipCodeViewModel = EnterZipCodeViewModel(repository: repository, context: context)
+        let enterZipCodeViewModel = EnterZipCodeViewModel(repository: repository, persistenceController: persistenceController)
         let viewModel = AppDayOfWeekViewModel(
             selectedIsland: mockIsland,
             repository: repository,
@@ -199,9 +189,7 @@ struct AllpIslandScheduleView_Previews: PreviewProvider {
 
         return AllpIslandScheduleView(
             viewModel: viewModel,
-            persistenceController: persistenceController,
-            enterZipCodeViewModel: enterZipCodeViewModel // Add this line
+            enterZipCodeViewModel: enterZipCodeViewModel
         )
-        .environment(\.managedObjectContext, context)
     }
 }

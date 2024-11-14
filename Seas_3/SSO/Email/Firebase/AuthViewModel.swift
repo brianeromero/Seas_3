@@ -15,6 +15,8 @@ enum AuthError: Error, LocalizedError {
     case invalidInput
     case firebaseError(Error)
     case coreDataError(Error)
+    case userNotAuthenticated
+    case passwordsDoNotMatch
     
     var errorDescription: String? {
         switch self {
@@ -24,6 +26,10 @@ enum AuthError: Error, LocalizedError {
             return error.localizedDescription
         case .coreDataError(let error):
             return error.localizedDescription
+        case .userNotAuthenticated:
+            return "User not authenticated."
+        case .passwordsDoNotMatch:
+            return "Passwords do not match."
         }
     }
 }
@@ -70,10 +76,12 @@ class AuthViewModel: ObservableObject {
     public let context: NSManagedObjectContext
     private let emailManager: UnifiedEmailManager
 
-    public init(managedObjectContext: NSManagedObjectContext = PersistenceController.shared.container.viewContext, emailManager: UnifiedEmailManager = .shared) {
+    public init(managedObjectContext: NSManagedObjectContext = PersistenceController.shared.container.viewContext,
+                emailManager: UnifiedEmailManager = .shared) {
         self.context = managedObjectContext
         self.emailManager = emailManager
     }
+
 
     // MARK: Create Firebase user with email/password
     @MainActor
@@ -110,6 +118,8 @@ class AuthViewModel: ObservableObject {
             throw AuthError.firebaseError(error)
         }
     }
+    
+    
 
     // Ensure fetchUserByEmail is async
     private func fetchUserByEmail(_ email: String) async -> Result<UserInfo?, Error> {
@@ -117,10 +127,9 @@ class AuthViewModel: ObservableObject {
         request.predicate = NSPredicate(format: "email == %@", email)
 
         do {
-            let users = try await self.context.perform {
+            let users = try await context.perform {
                 try self.context.fetch(request)
             }
-            // Wrap the result in a Result type
             return .success(users.first)
         } catch {
             return .failure(CoreDataError.fetchError)
@@ -191,6 +200,7 @@ class AuthViewModel: ObservableObject {
     }
     
     
+    
     private func sendCustomVerificationEmail(to email: String, userName: String, password: String) async throws {
         let success = await emailManager.sendVerificationToken(to: email, userName: userName, password: password)
         if success {
@@ -208,12 +218,10 @@ class AuthViewModel: ObservableObject {
         newUser.userName = userName
         newUser.email = email
         newUser.name = name
-        newUser.isVerified = false // Set this based on your app's logic for new users
+        newUser.isVerified = false
 
-        // Hash the password
         let hashedPassword = try hashPasswordPbkdf(password)
 
-        // Convert hash, salt, and iterations safely
         guard let passwordHashData = hashedPassword.hash.base64EncodedString().data(using: .utf8),
               let saltData = hashedPassword.salt.base64EncodedString().data(using: .utf8) else {
             throw AuthError.firebaseError(NSError(domain: "Hash conversion error", code: -1, userInfo: nil))
@@ -229,10 +237,9 @@ class AuthViewModel: ObservableObject {
             print("User successfully saved to Core Data")
         } catch {
             print("Failed to save user to Core Data: \(error)")
-            throw error // Handle the error as needed
+            throw error // Rethrow or handle error accordingly
         }
     }
-
 
     // Handle email verification response
     func handleEmailVerificationResponse() async {
@@ -275,28 +282,17 @@ class AuthViewModel: ObservableObject {
                 try context.save()
                 print("User verification status updated for: \(user.email)")
             } else {
-                print("User not found in Core Data for email: \(email)")
+                print("User not found in Core Data")
             }
         } catch {
-            throw error
+            print("Failed to fetch or save user in Core Data: \(error)")
+            throw CoreDataError.saveError
         }
 
-        // Update Firestore
-        let userRef = Firestore.firestore().collection("users").document(email)
-        do {
-            try await userRef.setData(["isVerified": isVerified], merge: true)
-            print("Firestore verification status updated for: \(email)")
-        } catch let error as NSError {
-            if error.domain == FirestoreErrorDomain && error.code == 7 {
-                print("Missing or insufficient permissions.")
-                // Handle permission error
-            } else {
-                print("Error updating Firestore verification status: \(error.localizedDescription)")
-            }
-            throw error // Throw the error to propagate it up
-        }
+        let firestore = Firestore.firestore()
+        let userRef = firestore.collection("users").document(email)
+        try await userRef.updateData(["isVerified": isVerified])
     }
-
 
     func mapFirebaseUserToSeasUser(firebaseUser: FirebaseAuth.User, userName: String, name: String) async throws -> UserInfo {
         // Use Core Data's context to create a new UserInfo
@@ -533,4 +529,15 @@ class AuthViewModel: ObservableObject {
         }
     }
 
+    
+    // Sign out user from Firebase
+    func signOut() {
+        do {
+            try auth.signOut()
+            self.userSession = nil
+            self.currentUser = nil
+        } catch {
+            print("Error signing out: \(error.localizedDescription)")
+        }
+    }
 }

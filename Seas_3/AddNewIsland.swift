@@ -185,9 +185,15 @@ struct AddNewIsland: View {
 
 struct AddNewIsland_Previews: PreviewProvider {
     static var previews: some View {
-        let persistenceController = PersistenceController.shared
-        let profileViewModel = ProfileViewModel(viewContext: persistenceController.container.viewContext)
+        let persistenceController = PersistenceController.preview
+        let profileViewModel = ProfileViewModel(
+            viewContext: PersistenceController.preview.container.viewContext,
+            authViewModel: AuthViewModel.shared
+        )
         profileViewModel.name = "Brian Romero" // Example name for preview
-        return AddNewIsland(viewModel: PirateIslandViewModel(persistenceController: persistenceController), profileViewModel: profileViewModel)
+        return AddNewIsland(
+            viewModel: PirateIslandViewModel(persistenceController: persistenceController),
+            profileViewModel: profileViewModel
+        )
     }
 }

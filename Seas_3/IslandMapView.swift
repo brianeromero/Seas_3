@@ -52,7 +52,7 @@ struct IslandMapView: View {
                     formattedTimestamp: island.formattedTimestamp,
                     gymWebsite: island.gymWebsite,
                     reviews: ReviewUtils.getReviews(from: island.reviews),
-                    dayOfWeekData: island.daysOfWeekArray.compactMap { DayOfWeek(rawValue: $0.day ?? "") },
+                    dayOfWeekData: island.daysOfWeekArray.compactMap { DayOfWeek(rawValue: $0.day) },
                     selectedAppDayOfWeek: $selectedAppDayOfWeek,
                     selectedIsland: $selectedIsland,
                     viewModel: viewModel,
@@ -185,11 +185,13 @@ struct IslandMapViewMap: View {
         }
     }
 }
+
+
 struct IslandMapView_Previews: PreviewProvider {
     static var previews: some View {
-        let context = PersistenceController.preview.viewContext
+        let persistenceController = PersistenceController.preview
         
-        let island1 = PirateIsland(context: context)
+        let island1 = PirateIsland(context: persistenceController.container.viewContext)
         island1.islandName = "Gym 1"
         island1.islandLocation = "123 Main St"
         island1.latitude = 37.7749
@@ -197,7 +199,7 @@ struct IslandMapView_Previews: PreviewProvider {
         island1.createdTimestamp = Date()
         island1.gymWebsite = URL(string: "https://gym1.com")
         
-        let island2 = PirateIsland(context: context)
+        let island2 = PirateIsland(context: persistenceController.container.viewContext)
         island2.islandName = "Gym 2"
         island2.islandLocation = "456 Elm St"
         island2.latitude = 37.7859
@@ -205,13 +207,14 @@ struct IslandMapView_Previews: PreviewProvider {
         island2.createdTimestamp = Date()
         island2.gymWebsite = URL(string: "https://gym2.com")
         
-        let dataManager = PirateIslandDataManager(viewContext: context)
+        let dataManager = PirateIslandDataManager(viewContext: persistenceController.container.viewContext)
         let allEnteredLocationsViewModel = AllEnteredLocationsViewModel(dataManager: dataManager)
         let enterZipCodeViewModel = EnterZipCodeViewModel(
             repository: AppDayOfWeekRepository.shared,
-            context: context
+            persistenceController: persistenceController
         )
         let appDayOfWeekViewModel = AppDayOfWeekViewModel(
+            selectedIsland: island1,
             repository: AppDayOfWeekRepository.shared,
             enterZipCodeViewModel: enterZipCodeViewModel
         )

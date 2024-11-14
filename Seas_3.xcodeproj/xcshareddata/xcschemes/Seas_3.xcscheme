@@ -80,6 +80,10 @@
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
+            argument = "-com.apple.CoreData.PersistencyDebug 1 "
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "FIRDebugEnabled"
             isEnabled = "YES">
          </CommandLineArgument>

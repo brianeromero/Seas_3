@@ -110,6 +110,7 @@ struct ContentView: View {
                 try persistenceController.viewContext.save()
             } catch {
                 print("Error deleting gym: \(error.localizedDescription)")
+                // Handle error or display error message
             }
         }
     }

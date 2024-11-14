@@ -109,8 +109,12 @@ struct EnterZipCodeView: View {
 
 struct EnterZipCodeView_Previews: PreviewProvider {
     static var previews: some View {
-        let context = PersistenceController.preview.container.viewContext
-        let mockRepository = AppDayOfWeekRepository(persistenceController: PersistenceController.preview)
+        let context = PersistenceController.shared.viewContext
+        
+        // Initialize the AppDayOfWeekRepository using the shared PersistenceController
+        let mockRepository = AppDayOfWeekRepository(persistenceController: PersistenceController.shared)
+        
+        // Create mock PirateIsland objects
         let mockIsland = PirateIsland(context: context)
         
         let newYorkIsland = PirateIsland(context: context)
@@ -131,17 +135,20 @@ struct EnterZipCodeView_Previews: PreviewProvider {
             print("Failed to save mock data: \(error.localizedDescription)")
         }
 
+        // Initialize EnterZipCodeViewModel with the mock repository and PersistenceController
         let mockEnterZipCodeViewModel = EnterZipCodeViewModel(
             repository: mockRepository,
-            context: context
+            persistenceController: PersistenceController.shared
         )
         
+        // Initialize AppDayOfWeekViewModel with the mock Island
         let mockAppDayOfWeekViewModel = AppDayOfWeekViewModel(
             selectedIsland: mockIsland,
             repository: AppDayOfWeekRepository.shared,
             enterZipCodeViewModel: mockEnterZipCodeViewModel
         )
         
+        // Initialize AllEnteredLocationsViewModel with the data manager
         let mockAllEnteredLocationsViewModel = AllEnteredLocationsViewModel(
             dataManager: PirateIslandDataManager(viewContext: context)
         )

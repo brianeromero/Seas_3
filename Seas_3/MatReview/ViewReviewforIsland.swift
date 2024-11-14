@@ -33,25 +33,25 @@ enum SortType: String, CaseIterable {
     }
 }
 
+
 struct ViewReviewforIsland: View {
-    @State private var showReview = false
+    @Binding var showReview: Bool
     @Binding var selectedIsland: PirateIsland?
     @State private var selectedSortType: SortType = .latest
     @ObservedObject var enterZipCodeViewModel: EnterZipCodeViewModel
-
+    
     // FetchRequest for Pirate Islands
-    @FetchRequest(
-        entity: PirateIsland.entity(),
-        sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.islandName, ascending: true)]
-    ) private var islands: FetchedResults<PirateIsland>
-
+    @FetchRequest(entity: PirateIsland.entity(), sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.islandName, ascending: true)]) private var islands: FetchedResults<PirateIsland>
+    
     // FetchRequest for Reviews related to the selected island
     @FetchRequest private var reviews: FetchedResults<Review>
-
-    init(selectedIsland: Binding<PirateIsland?>, enterZipCodeViewModel: EnterZipCodeViewModel) {
+    
+    // The initializer here should expect the @Binding for showReview
+    init(selectedIsland: Binding<PirateIsland?>, showReview: Binding<Bool>, enterZipCodeViewModel: EnterZipCodeViewModel) {
         self._selectedIsland = selectedIsland
+        self._showReview = showReview  // Initialize showReview with the passed binding
         self.enterZipCodeViewModel = enterZipCodeViewModel
-
+        
         // Define the fetch request for reviews here
         let sortDescriptor = NSSortDescriptor(key: "createdTimestamp", ascending: false)
         let predicate: NSPredicate = selectedIsland.wrappedValue == nil ?
@@ -259,9 +259,11 @@ struct ViewReviewforIsland_Previews: PreviewProvider {
 
 struct IslandReviewPreview: View {
     @State private var selectedIsland: PirateIsland?
+    @State private var showReview: Bool = false // Initialize showReview as a state variable
 
     var body: some View {
-        let context = PersistenceController.preview.container.viewContext
+        let persistenceController = PersistenceController.preview
+        let context = persistenceController.container.viewContext
 
         // Create and save a mock island
         let mockIsland = PirateIsland(context: context)
@@ -285,12 +287,11 @@ struct IslandReviewPreview: View {
 
         let mockViewModel = EnterZipCodeViewModel(
             repository: AppDayOfWeekRepository.shared,
-            context: context
+            persistenceController: persistenceController
         )
 
         return ScrollView {
-            ViewReviewforIsland(selectedIsland: $selectedIsland, enterZipCodeViewModel: mockViewModel)
-                .environment(\.managedObjectContext, context)
+            ViewReviewforIsland(selectedIsland: $selectedIsland, showReview: $showReview, enterZipCodeViewModel: mockViewModel) // Pass showReview binding here
         }
     }
 }

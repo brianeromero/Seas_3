@@ -14,15 +14,25 @@ class UserProfileViewModel: ObservableObject {
     private let persistenceController = PersistenceController.shared
 
     func fetchData() {
+        fetchData { [weak self] result in
+            switch result {
+            case .success(let userInfo):
+                self?.userInfo = userInfo
+            case .failure(let error):
+                print("Error fetching UserInfo: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    private func fetchData(completion: @escaping (Result<UserInfo?, Error>) -> Void) {
         let context = persistenceController.container.viewContext
         let request: NSFetchRequest<UserInfo> = UserInfo.fetchRequest()
-
+        
         do {
             let results = try context.fetch(request)
-            // Assuming you only want the first UserInfo object
-            self.userInfo = results.first
+            completion(.success(results.first))
         } catch {
-            print("Error fetching UserInfo: \(error.localizedDescription)")
+            completion(.failure(error))
         }
     }
 }
