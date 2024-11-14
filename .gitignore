@@ -24,6 +24,8 @@ xcuserdata/
 *.swiftmodules
 *.xcarchive
 XcodeLogs/
+DerivedData/
+*.pbxuser
 
 # CocoaPods
 Podfile
@@ -41,6 +43,7 @@ node_modules/
 
 # Package resolved files
 PackageResolved.swift
+Package.resolved
 
 # Editor-specific files
 .vscode/
@@ -55,3 +58,6 @@ PackageResolved.swift
 build/
 Sources/CocoaPods/
 git-filter-repo/
+
+# Simulator data
+~/Library/Application Support/iPhone Simulator/
