@@ -41,12 +41,12 @@ struct LoginForm: View {
     @Binding var navigateToAdminMenu: Bool
 
     var body: some View {
-        VStack(spacing: 20) {
-            // Centered Image with a flexible size
+        VStack(spacing: 10) {
             Image("MF_little_trans")
                 .resizable()
-                .scaledToFit() // Maintains aspect ratio while resizing
-                .frame(width: 300, height: 300) // Or any value that suits you
+                .scaledToFit()
+                .frame(width: 300, height: 300)
+                .padding(.bottom, -40) // Reduce bottom padding
             
             // Left-aligned fields: Username or Email & Password
             VStack(alignment: .leading, spacing: 20) {
@@ -80,6 +80,8 @@ struct LoginForm: View {
                     isSignInEnabled = !usernameOrEmail.isEmpty && !newValue.isEmpty
                 }
             }
+            .padding(.top, -20) // Reduce top padding
+
             .frame(maxWidth: .infinity, alignment: .leading) // Left-align these fields
 
             // Centered Sign In Button, Text, and Admin Login
@@ -125,20 +127,15 @@ struct LoginForm: View {
                         .foregroundColor(.red)
                 }
 
-                Text("By continuing, you agree to the updated Terms of Service/Disclaimer")
-                    .font(.footnote)
-                    .multilineTextAlignment(.center)
-                    .padding()
-
-                if showDisclaimer {
-                    Text("Disclaimer details go here")
-                        .font(.subheadline)
+                NavigationLink(destination: ApplicationOfServiceView()) {
+                    Text("By continuing, you agree to the updated Terms of Service/Disclaimer")
+                        .font(.footnote)
+                        .lineLimit(nil) // or .lineLimit(2) for 2 lines, etc.
+                        .multilineTextAlignment(.center)
                         .padding()
+                        .fixedSize(horizontal: false, vertical: true) // Allow wrapping
                 }
-
-                if showAdminLogin {
-                    AdminLoginView(isPresented: $showAdminLogin)
-                }
+                .padding(.top, -10) // Reduce top padding
             }
         }
     }
