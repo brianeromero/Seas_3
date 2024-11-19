@@ -8,7 +8,7 @@ import os
 enum PirateIslandError: Error {
     case invalidInput
     case islandExists
-    case geocodingError
+    case geocodingError(String) // Now includes error message for better detail
     case savingError
     
     var localizedDescription: String {
@@ -17,8 +17,8 @@ enum PirateIslandError: Error {
             return "Invalid input"
         case .islandExists:
             return "Island already exists"
-        case .geocodingError:
-            return "Geocoding error"
+        case .geocodingError(let message):
+            return "Geocoding error: \(message)"
         case .savingError:
             return "Saving error"
         }
@@ -39,7 +39,7 @@ public class PirateIslandViewModel: ObservableObject {
         try await geocode(address: location, apiKey: GeocodingConfig.apiKey)
     }
     
-    // MARK: - Island Creation
+    // MARK: - Island Creation (Original)
     func createPirateIsland(
         name: String,
         location: String,
@@ -77,16 +77,63 @@ public class PirateIslandViewModel: ObservableObject {
             completion(.failure(handleGeocodingError(error)))
         }
     }
+    
+    // MARK: - Island Creation (Async)
+    func createPirateIslandAsync(
+        islandDetails: IslandDetails,
+        createdByUserId: String,
+        gymWebsiteURL: URL?
+    ) async -> Result<PirateIsland, Error> {
+        let name = islandDetails.islandName
+        let location = "\(islandDetails.street), \(islandDetails.city), \(islandDetails.state) \(islandDetails.zip)"
+
+        // Validate the island data
+        guard validateIslandData(name, location, createdByUserId) else {
+            return .failure(PirateIslandError.invalidInput)
+        }
+
+        // Check if the island already exists
+        guard !pirateIslandExists(name: name) else {
+            return .failure(PirateIslandError.islandExists)
+        }
+
+        // Create a new PirateIsland instance
+        let newIsland = PirateIsland(context: persistenceController.viewContext)
+        newIsland.islandName = name  // Correctly using islandName from Core Data properties
+        newIsland.islandLocation = location
+        newIsland.createdTimestamp = Date()
+        newIsland.createdByUserId = createdByUserId
+        newIsland.lastModifiedByUserId = createdByUserId
+        newIsland.lastModifiedTimestamp = Date()
+        newIsland.gymWebsite = gymWebsiteURL
+        newIsland.islandID = UUID()
+
+        do {
+            // Get the coordinates using the address from IslandDetails, provide a default value if location is nil
+            let coordinates = try await geocodeAddress(location.isEmpty ? "Default Address" : location)
+            newIsland.latitude = coordinates.latitude
+            newIsland.longitude = coordinates.longitude
+            
+            // Save the new island to Core Data
+            try persistenceController.viewContext.save()
+            return .success(newIsland)
+        } catch {
+            return .failure(PirateIslandError.geocodingError(error.localizedDescription))
+        }
+    }
+
+
 
     func handleGeocodingError(_ error: Error) -> Error {
         if let error = error as? PirateIslandError {
             return error
-        } else if error is GeocodingError {
-            return PirateIslandError.geocodingError
+        } else if let geocodingError = error as? GeocodingError {
+            return PirateIslandError.geocodingError(geocodingError.localizedDescription)
         } else {
             return PirateIslandError.savingError
         }
     }
+
     
     // MARK: - Validation
     public func validateIslandData(_ name: String, _ location: String, _ createdByUserId: String) -> Bool {
@@ -157,7 +204,7 @@ public class PirateIslandViewModel: ObservableObject {
         lastModifiedByUserId: String,
         gymWebsiteURL: URL?,
         completion: @escaping (Result<Void, Error>) -> Void
-    ) {
+    ) async {
         guard !name.isEmpty, !location.isEmpty, !lastModifiedByUserId.isEmpty else {
             completion(.failure(PirateIslandError.invalidInput))
             return
@@ -173,7 +220,7 @@ public class PirateIslandViewModel: ObservableObject {
         island.lastModifiedByUserId = lastModifiedByUserId
         island.gymWebsite = gymWebsiteURL
         island.lastModifiedTimestamp = Date()
-        
+
         Task {
             do {
                 let coordinates = try await geocodeAddress(location)
@@ -182,27 +229,29 @@ public class PirateIslandViewModel: ObservableObject {
                 try persistenceController.saveContext()
                 completion(.success(()))
             } catch {
-                completion(.failure(PirateIslandError.geocodingError))
+                completion(.failure(PirateIslandError.geocodingError(error.localizedDescription)))
             }
         }
     }
     
-    func updatePirateIslandLatitudeLongitude(latitude: Double, longitude: Double, island: PirateIsland, completion: @escaping (Result<Void, Error>) -> Void) {
+    // Make sure this method is async and properly handles the result
+    func updatePirateIslandLatitudeLongitude(
+        latitude: Double,
+        longitude: Double,
+        island: PirateIsland
+    ) async throws {
         guard island.managedObjectContext != nil else {
-            completion(.failure(PirateIslandError.invalidInput))
-            return
+            throw PirateIslandError.invalidInput
         }
-        
+
         island.latitude = latitude
         island.longitude = longitude
-        
-        Task {
-            do {
-                try persistenceController.saveContext()
-                completion(.success(()))
-            } catch {
-                completion(.failure(PirateIslandError.savingError))
-            }
+
+        do {
+            // If saveContext is synchronous, remove 'await' here
+            try persistenceController.saveContext()
+        } catch {
+            throw PirateIslandError.savingError
         }
     }
 }

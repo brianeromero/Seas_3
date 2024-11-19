@@ -23,6 +23,11 @@ public enum LoginViewSelection: Int {
     }
 }
 
+enum UserFetchError: Error {
+    case userNotFound
+    case emailNotFound
+}
+
 // Login Form View
 struct LoginForm: View {
     @Binding var usernameOrEmail: String
@@ -47,7 +52,7 @@ struct LoginForm: View {
                 .scaledToFit()
                 .frame(width: 300, height: 300)
                 .padding(.bottom, -40) // Reduce bottom padding
-            
+
             // Left-aligned fields: Username or Email & Password
             VStack(alignment: .leading, spacing: 20) {
                 Text("Username or Email")
@@ -62,16 +67,25 @@ struct LoginForm: View {
                     .font(.headline)
                 HStack {
                     if isPasswordVisible {
+                        // Show password in plain text
                         TextField("Password", text: $password)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .accessibilityLabel("Password field")
+                            .textFieldStyle(RoundedBorderTextFieldStyle())                            .disableAutocorrection(true)
+                            .textContentType(.password)
                     } else {
+                        // Show password as dots
                         SecureField("Password", text: $password)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .disableAutocorrection(true)
+                            .textContentType(.password)
                     }
+
+                    // Button to toggle visibility of the password
                     Button(action: {
                         isPasswordVisible.toggle()
                     }) {
                         Image(systemName: isPasswordVisible ? "eye.slash" : "eye")
+                            .accessibilityLabel(isPasswordVisible ? "Hide password" : "Show password")
                             .foregroundColor(.blue)
                     }
                     .buttonStyle(BorderlessButtonStyle())
@@ -81,7 +95,6 @@ struct LoginForm: View {
                 }
             }
             .padding(.top, -20) // Reduce top padding
-
             .frame(maxWidth: .infinity, alignment: .leading) // Left-align these fields
 
             // Centered Sign In Button, Text, and Admin Login
@@ -127,15 +140,25 @@ struct LoginForm: View {
                         .foregroundColor(.red)
                 }
 
-                NavigationLink(destination: ApplicationOfServiceView()) {
-                    Text("By continuing, you agree to the updated Terms of Service/Disclaimer")
-                        .font(.footnote)
-                        .lineLimit(nil) // or .lineLimit(2) for 2 lines, etc.
-                        .multilineTextAlignment(.center)
-                        .padding()
-                        .fixedSize(horizontal: false, vertical: true) // Allow wrapping
+                VStack {
+                    NavigationLink(destination: ApplicationOfServiceView()) {
+                        Text("By continuing, you agree to the updated Terms of Service/Disclaimer")
+                            .font(.footnote)
+                            .lineLimit(nil)
+                            .multilineTextAlignment(.center)
+                            .padding()
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.top, -10) // Reduce top padding
+
+                    // Link to AdminLoginView
+                    NavigationLink(destination: AdminLoginView(isPresented: .constant(false))) {
+                        Text("Admin Login")
+                            .font(.footnote)
+                            .foregroundColor(.blue)
+                            .underline()
+                    }
                 }
-                .padding(.top, -10) // Reduce top padding
             }
         }
     }
@@ -155,7 +178,6 @@ struct LoginForm: View {
         }
 
         do {
-            // Ensure that fetchUser() is a throwing function
             if ValidationUtility.validateEmail(usernameOrEmail) != nil {
                 let user = try fetchUser(usernameOrEmail)  // This should now throw if it fails
                 let email = user.email
@@ -186,19 +208,18 @@ struct LoginForm: View {
     }
 
     // MARK: - Fetch User
+    enum UserFetchError: Error {
+        case userNotFound
+        case emailNotFound
+    }
+
     private func fetchUser(_ usernameOrEmail: String) throws -> UserInfo {
         let request = NSFetchRequest<UserInfo>(entityName: "UserInfo")
         request.predicate = NSPredicate(format: "userName == %@ OR email == %@", usernameOrEmail, usernameOrEmail)
 
-        let results = try viewContext.fetch(request)  // This is the throwing function
-        guard let user = results.first else {
-            throw NSError(domain: "User not found", code: 404, userInfo: nil)
-        }
-
-        if user.email.isEmpty {
-            throw NSError(domain: "User email not found.", code: 404, userInfo: nil)
-        }
-
+        let results = try viewContext.fetch(request)
+        guard let user = results.first else { throw UserFetchError.userNotFound }
+        guard !user.email.isEmpty else { throw UserFetchError.emailNotFound }
         return user
     }
 

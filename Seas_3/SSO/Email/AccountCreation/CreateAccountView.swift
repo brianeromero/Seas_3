@@ -21,7 +21,6 @@ extension String {
     }
 }
 
-
 enum CreateAccountError: Int {
     case invalidEmailOrPassword = 17011
     case userNotFound = 17008
@@ -43,7 +42,7 @@ struct CreateAccountView: View {
     @State private var showErrorAlert = false
     @State private var shouldNavigateToLogin = false
     @Binding var selectedTabIndex: Int
-
+    @State private var showValidationMessage = false
 
     let beltOptions = ["White", "Blue", "Purple", "Brown", "Black"]
     @ObservedObject var islandViewModel: PirateIslandViewModel
@@ -56,9 +55,18 @@ struct CreateAccountView: View {
     @State private var gymWebsiteURL: URL?
     @State private var selectedProtocol = "http://"
     @State private var showLoginReset = false
+    @State private var province = ""
+    @State private var postalCode = ""
+    @State private var selectedCountry: Country? = Country(name: Country.Name(common: "United States"), cca2: "US")
+    @State private var governorate = ""
+    @State private var postcode = ""
+    @State private var countries: [Country] = []
+    @State private var region = ""
+    @State private var county = ""
+    @State private var islandDetails = IslandDetails()
 
     let emailManager: UnifiedEmailManager
-    
+
     init(
         islandViewModel: PirateIslandViewModel,
         isUserProfileActive: Binding<Bool>,
@@ -120,14 +128,40 @@ struct CreateAccountView: View {
                         city: $city,
                         state: $state,
                         zip: $zip,
+                        province: $province,
+                        postalCode: $postalCode,
                         gymWebsite: $gymWebsite,
                         gymWebsiteURL: $gymWebsiteURL,
-                        selectedProtocol: $selectedProtocol,
+                        selectedCountry: $selectedCountry,
                         showAlert: .constant(false),
-                        alertMessage: .constant("")
+                        alertMessage: .constant(""),
+                        islandDetails: $islandDetails // Corrected line
                     )
+                    
+                    if let country = selectedCountry,
+                       let format = countryAddressFormats.first(where: { $0.key == country.name.common })?.value {
+                        
+                        // Unwrap requiredFields directly (if it’s non-optional)
+                        let requiredFields = format.requiredFields
+
+                        // Address fields
+                        ForEach(requiredFields, id: \.self) { field in
+                            Text("Rendering field: \(field.rawValue)") // Display field name as part of the UI for debugging
+                                .onAppear {
+                                    print("Rendering field: \(field.rawValue)") // Debug print when the field appears
+                                }
+                            addressField(for: field)
+                        }
+                        
+                        // Validation message
+                        if showValidationMessage {
+                            Text("Required fields for \(country.name.common) are missing.")
+                                .foregroundColor(.red)
+                        }
+                    }
                 }
                 
+
                 Button(action: createAccount) {
                     Text("Create Account")
                         .font(.title)
@@ -162,32 +196,73 @@ struct CreateAccountView: View {
                 .padding(.bottom)
             }
             .padding(.horizontal, 24)
-            .alert(isPresented: $showErrorAlert) {
-                Alert(
-                    title: Text(successMessage != nil ? "Success" : "Error"),
-                    message: Text(successMessage ?? errorMessage ?? "Unknown error"),
-                    dismissButton: .default(Text("OK")) {
-                        self.shouldNavigateToLogin = successMessage != nil
-                        isUserProfileActive = false
-                        authenticationState.isLoggedIn = false
-                        authenticationState.isAuthenticated = false
-                        successMessage = nil
-                        errorMessage = nil
-                    }
-                )
-            }
+        }
+        .alert(isPresented: $showErrorAlert) {
+            Alert(
+                title: Text(successMessage != nil ? "Success" : "Error"),
+                message: Text(successMessage ?? errorMessage ?? "Unknown error"),
+                dismissButton: .default(Text("OK")) {
+                    self.shouldNavigateToLogin = successMessage != nil
+                    isUserProfileActive = false
+                    authenticationState.isLoggedIn = false
+                    authenticationState.isAuthenticated = false
+                    successMessage = nil
+                    errorMessage = nil
+                }
+            )
         }
         .navigationDestination(isPresented: $shouldNavigateToLogin) {
             LoginView(
-                islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.shared), // You can still pass this if needed for the ViewModel
+                islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.shared),
                 isSelected: .constant(LoginViewSelection(rawValue: selectedTabIndex) ?? .login),
                 navigateToAdminMenu: $authenticationState.navigateToAdminMenu,
                 isLoggedIn: $authenticationState.isLoggedIn
             )
         }
-
     }
-    
+
+    @ViewBuilder
+    func addressField(for field: AddressField) -> some View {
+        let binding = AddressBindingHelper.binding(for: field, islandDetails: $islandDetails)
+        
+        switch field {
+        case .street:
+            TextField("Enter street", text: binding)
+        case .city:
+            TextField("Enter city", text: binding)
+        case .zip:
+            TextField("Enter zip code", text: binding)
+        case .postalCode:
+            TextField("Enter postal code", text: binding)
+        case .county:
+            TextField("Enter county", text: binding)
+        case .country:
+            if let country = selectedCountry {
+                TextField("Enter country", text: Binding(
+                    get: { country.name.common },
+                    set: { newValue in
+                        selectedCountry = Country(name: Country.Name(common: newValue), cca2: country.cca2)
+                    }
+                ))
+            } else {
+                TextField("Enter country", text: Binding(
+                    get: { "" },
+                    set: { newValue in
+                        // Handle initialization logic
+                    }
+                ))
+            }
+        case .governorate:
+            TextField("Enter governorate", text: binding)
+        case .postcode:
+            TextField("Enter postcode", text: binding)
+        case .region:
+            TextField("Enter region", text: binding)
+        default:
+            EmptyView() // Handle unexpected cases
+        }
+    }
+
     private func createAccount() {
         print("Create Account button pressed.")
         print("Current form state: \(formState)")
@@ -197,8 +272,10 @@ struct CreateAccountView: View {
         print("Email Valid: \(formState.isEmailValid)")
         print("Password Valid: \(formState.isPasswordValid)")
 
+        // Start an asynchronous task
         Task {
             do {
+                // Create the user account
                 try await authViewModel.createUser(
                     withEmail: formState.email,
                     password: formState.password,
@@ -207,70 +284,72 @@ struct CreateAccountView: View {
                 )
                 successMessage = "Account created successfully"
                 showErrorAlert = true
-                
-                if !islandName.isEmpty || !street.isEmpty || !city.isEmpty || !state.isEmpty || !zip.isEmpty || gymWebsiteURL != nil {
-                    let location = "\(street), \(city), \(state) \(zip)"
-                    
-                    if !location.isEmpty && !islandName.isEmpty {
-                        await islandViewModel.createPirateIsland(
-                            name: islandName,
-                            location: location,
-                            createdByUserId: formState.userName,
-                            gymWebsiteURL: gymWebsiteURL
-                        ) { result in
-                            switch result {
-                            case .success(let newIsland):
-                                self.updateIslandCoordinates(newIsland, location)
-                            case .failure(let error):
-                                // Handle error
-                                print("Error creating pirate island: \(error.localizedDescription)")
-                            }
-                        }
+
+                // Construct the location string
+                let location = "\(street), \(city), \(state) \(zip)".trimmingCharacters(in: .whitespacesAndNewlines)
+
+                // Prepare for creating the Pirate Island, only if name and location are not empty
+                if !islandName.isEmpty && !location.isEmpty {
+                    // Attempt to create the Pirate Island asynchronously
+                    let result = await islandViewModel.createPirateIslandAsync(
+                        islandDetails: islandDetails,
+                        createdByUserId: formState.userName,
+                        gymWebsiteURL: gymWebsiteURL
+                    )
+
+                    // Handle the result of creating the Pirate Island
+                    switch result {
+                    case .success(let newIsland):
+                        // Update coordinates for the new island
+                        await self.updateIslandCoordinates(newIsland, location)  // Now it's valid to use 'await'
+                    case .failure(let error):
+                        // Handle the failure case when creating the Pirate Island
+                        print("Error creating pirate island: \(error.localizedDescription)")
                     }
-                    
-                    handleSuccess()
                 }
+
+                // Handle overall success (e.g., show a success message or navigate to another view)
+                handleSuccess()
+
             } catch {
+                // Handle any errors that occurred during the account creation process
                 print("Create account error: \(error.localizedDescription)")
                 handleCreateAccountError(error)
             }
         }
     }
 
-    private func updateIslandCoordinates(_ island: PirateIsland, _ location: String) {
-        Task {
-            do {
-                try GeocodingConfig.validateApiKey()
-                let coordinates = try await geocode(address: location, apiKey: GeocodingConfig.apiKey)
-                self.islandViewModel.updatePirateIslandLatitudeLongitude(
-                    latitude: coordinates.latitude,
-                    longitude: coordinates.longitude,
-                    island: island
-                ) { result in
-                    switch result {
-                    case .success:
-                        print("Latitude/Longitude updated successfully")
-                    case .failure(let error):
-                        print("Error updating latitude/longitude: \(error.localizedDescription)")
-                    }
-                }
-            } catch {
-                print("Geocoding error: \(error.localizedDescription)")
-                // Handle geocoding error
-            }
+    private func updateIslandCoordinates(_ island: PirateIsland, _ location: String) async {
+        do {
+            try GeocodingConfig.validateApiKey()
+            let coordinates = try await geocode(address: location, apiKey: GeocodingConfig.apiKey)
+            
+            // Call the method to update latitude/longitude with the fetched coordinates
+            // Ensure this method is async so that it can be awaited without the completion handler
+            try await self.islandViewModel.updatePirateIslandLatitudeLongitude(
+                latitude: coordinates.latitude,
+                longitude: coordinates.longitude,
+                island: island
+            )
+            
+            print("Latitude/Longitude updated successfully")
+        } catch {
+            print("Error updating latitude/longitude: \(error.localizedDescription)")
+            // Handle geocoding or saving error
         }
     }
+
 
     /// Handles successful account creation.
     private func handleSuccess() {
         print("Account created successfully. Preparing to send verification emails...")
-        
+
         // Send Firebase email verification
         let email = formState.email
         UnifiedEmailManager.shared.sendEmailVerification(to: email) { success in
             print("Firebase email verification sent: \(success)")
         }
-        
+
         // Send custom verification token email
         Task {
             let success = await UnifiedEmailManager.shared.sendVerificationToken(
@@ -280,31 +359,30 @@ struct CreateAccountView: View {
             )
             print("Custom verification token email sent: \(success)")
         }
-        
+
         successMessage = "Account created successfully. Check your email for login instructions."
         showErrorAlert = true
-        
+
         // Reset authentication state
         authenticationState.isAuthenticated = false
         authenticationState.isLoggedIn = false
-        
+
         // Navigate back to login
         isUserProfileActive = false
     }
-    
+
     /// Handles create account errors, including existing user error.
     func handleCreateAccountError(_ error: Error) {
         errorMessage = getErrorMessage(error)
-        
         showErrorAlert = true
-        
+
         print("Create account error: \(errorMessage ?? "Unknown error")")
-        
+
         // Reset authentication state
         authenticationState.isAuthenticated = false
         authenticationState.isLoggedIn = false
         authenticationState.navigateToAdminMenu = false
-        
+
         isUserProfileActive = false
     }
 
@@ -339,24 +417,44 @@ struct CreateAccountView: View {
 
     func getInvalidFields() -> String {
         var invalidFields = [String]()
-        
+
         if !formState.isUserNameValid {
             invalidFields.append("Username")
         }
-        
+
         if !formState.isNameValid {
             invalidFields.append("Name")
         }
-        
+
         if !formState.isEmailValid {
             invalidFields.append("Email")
         }
-        
+
         if !formState.isPasswordValid {
             invalidFields.append("Password")
         }
-        
+
         return invalidFields.joined(separator: ", ")
+    }
+    
+    struct BeltSection: View {
+        @Binding var belt: String
+
+        var body: some View {
+            VStack(alignment: .leading) {
+                Text("Belt")
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+
+                Picker("Select your belt", selection: $belt) {
+                    ForEach(["White", "Blue", "Purple", "Brown", "Black"], id: \.self) { belt in
+                        Text(belt)
+                    }
+                }
+                .pickerStyle(MenuPickerStyle())
+                .padding(.bottom)
+            }
+        }
     }
 }
 

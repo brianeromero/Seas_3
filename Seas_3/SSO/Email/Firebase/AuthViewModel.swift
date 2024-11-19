@@ -17,6 +17,8 @@ enum AuthError: Error, LocalizedError {
     case coreDataError(Error)
     case userNotAuthenticated
     case passwordsDoNotMatch
+    case invalidEmail
+    case unknownError
     
     var errorDescription: String? {
         switch self {
@@ -30,6 +32,10 @@ enum AuthError: Error, LocalizedError {
             return "User not authenticated."
         case .passwordsDoNotMatch:
             return "Passwords do not match."
+        case .invalidEmail:
+            return "Email is invalid."
+        case .unknownError:
+            return "Unknown Error, pleaes reach out to email: mfinder.bjj@gmail.com"
         }
     }
 }
@@ -120,6 +126,30 @@ class AuthViewModel: ObservableObject {
     }
     
     
+    
+    // Resets all the profile form fields
+    func resetProfileForm() {
+        self.usernameOrEmail = ""
+        self.password = ""
+        self.errorMessage = ""
+        self.formState = FormState() // Reset formState as well
+    }
+
+    // Add this method to AuthViewModel
+    func logoutUser() async throws {
+        do {
+            try auth.signOut() // No need for 'await' here
+            DispatchQueue.main.async {
+                self.userSession = nil
+                self.currentUser = nil
+                // Optionally reset other relevant states or notify UI
+            }
+        } catch {
+            throw AuthError.firebaseError(error)
+        }
+    }
+
+
 
     // Ensure fetchUserByEmail is async
     private func fetchUserByEmail(_ email: String) async -> Result<UserInfo?, Error> {
@@ -358,48 +388,73 @@ class AuthViewModel: ObservableObject {
         }
     }
 
+    // Verify password using PBKDF2 hashing
+    func verifyPassword(_ inputPassword: String, storedHash: String, storedSalt: String, iterations: Int) -> Bool {
+        do {
+            // Decode the stored salt from Base64
+            let salt = Data(base64Encoded: storedSalt)!
 
-    // Updated signInUser function
+            // Create a PBKDF2 object using CryptoSwift
+            let pbkdf = try PKCS5.PBKDF2(
+                password: Array(inputPassword.utf8),
+                salt: salt.bytes,
+                iterations: iterations,
+                keyLength: storedHash.count,
+                variant: .sha2(.sha256)  // Use SHA-256 variant of PBKDF2
+            )
+
+            // Calculate the hashed password from the input
+            let inputPasswordData = try pbkdf.calculate()
+            let inputHash = Data(inputPasswordData).base64EncodedString()
+
+            // Compare hashes
+            return inputHash == storedHash
+        } catch {
+            errorMessage = "Password verification failed: \(error.localizedDescription)"
+            return false
+        }
+    }
+    
+    // Refactor sign-in method to separate password verification and Firebase authentication
     func signInUser(with identifier: String, password: String) async throws {
         print("Signing in user \(identifier)...")
         
-        do {
-            // Fetch user record
-            guard let user = try await fetchUser(identifier) else {
-                print("User not found for identifier: \(identifier)")
-                throw NSError(domain: ErrorDomain.auth.rawValue, code: ErrorCode.userNotFound.rawValue, userInfo: nil)
-            }
-            
-            // Sign in with fetched email
-            let authResult = try await auth.signIn(withEmail: user.email, password: password)
-            
-            // Update Firestore with login event
-            let userRef = Firestore.firestore().collection("users").document(user.email)
-            try await userRef.updateData(["lastLogin": Timestamp()])
-            
-            // Map Firebase user to local user model
-            let currentUser = try await mapFirebaseUserToSeasUser(
-                firebaseUser: authResult.user,
-                userName: user.userName,
-                name: user.name
-            )
-            
-            DispatchQueue.main.async { [weak self] in
-                self?.userSession = authResult.user
-                self?.currentUser = currentUser
-            }
-        } catch {
-            DispatchQueue.main.async { [weak self] in
-                switch error {
-                case AuthErrorCode.invalidEmail:
-                    self?.errorMessage = "Invalid email address."
-                case AuthErrorCode.wrongPassword:
-                    self?.errorMessage = "Incorrect password."
-                default:
-                    self?.errorMessage = "Sign-in failed: \(error.localizedDescription)"
-                }
-            }
+        // Fetch user from Core Data
+        guard let user = try await fetchUser(identifier) else {
+            print("User not found for identifier: \(identifier)")
+            throw NSError(domain: ErrorDomain.auth.rawValue, code: ErrorCode.userNotFound.rawValue, userInfo: nil)
         }
+        
+        // Verify password before Firebase sign-in
+        let storedHash = HashedPassword(salt: user.salt, iterations: Int(user.iterations), hash: user.passwordHash)
+        
+        // Verify password using PBKDF2
+        guard try verifyPasswordPbkdf(password, againstHash: storedHash) else {
+            throw AuthError.passwordsDoNotMatch
+        }
+
+        // Directly use email as a String (no need for a conditional cast)
+        let emailString = user.email // Assuming user.email is already a String type
+        
+        // Sign in with Firebase
+        let authResult = try await auth.signIn(withEmail: emailString, password: password)
+        
+        // Update Firestore with last login timestamp
+        try await updateFirestoreLoginTimestamp(for: emailString)
+        
+        // Map Firebase user to local user model
+        let currentUser = try await mapFirebaseUserToSeasUser(firebaseUser: authResult.user, userName: user.userName, name: user.name)
+
+        // Set session and current user state on main thread
+        DispatchQueue.main.async { [weak self] in
+            self?.userSession = authResult.user
+            self?.currentUser = currentUser
+        }
+    }
+
+    private func updateFirestoreLoginTimestamp(for email: String) async throws {
+        let userRef = Firestore.firestore().collection("users").document(email)
+        try await userRef.updateData(["lastLogin": Timestamp()])
     }
     
     // Fetch user by email from Firebase Core Data

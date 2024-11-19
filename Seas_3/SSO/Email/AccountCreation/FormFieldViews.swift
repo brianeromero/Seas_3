@@ -215,8 +215,14 @@ struct GymInformationSection: View {
     @Binding var gymWebsite: String
     @Binding var gymWebsiteURL: URL?
     @Binding var selectedProtocol: String
+    @Binding var province: String
+    @Binding var postalCode: String
+    @Binding var selectedCountry: Country?
     @ObservedObject var islandViewModel: PirateIslandViewModel
-
+    
+    // Define islandDetails, assuming it's a structure with necessary fields
+    @State private var islandDetails: IslandDetails // Example type, replace with your actual model
+    
     var body: some View {
         Section(header: HStack {
             Text("Gym Information")
@@ -232,16 +238,18 @@ struct GymInformationSection: View {
                 city: $city,
                 state: $state,
                 zip: $zip,
+                province: $province,
+                postalCode: $postalCode,
                 gymWebsite: $gymWebsite,
                 gymWebsiteURL: $gymWebsiteURL,
-                selectedProtocol: $selectedProtocol,
+                selectedCountry: $selectedCountry,
                 showAlert: .constant(false),
-                alertMessage: .constant("")
+                alertMessage: .constant(""),
+                islandDetails: $islandDetails // Pass the islandDetails binding
             )
         }
     }
 }
-
 
 
 struct IslandNameField: View {

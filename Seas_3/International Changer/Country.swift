@@ -8,11 +8,11 @@
 import Foundation
 import SwiftUI
 
-struct Country: Codable {
+struct Country: Codable, Hashable {
     let name: Name
     let cca2: String
 
-    struct Name: Codable {
+    struct Name: Codable, Hashable {
         let common: String
     }
 }

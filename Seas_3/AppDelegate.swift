@@ -1,23 +1,22 @@
-import UIKit
-import Firebase
-import FirebaseCore
-import FirebaseAppCheck
-import FirebaseDatabase
-import SwiftUI
-import CoreData
-import GoogleSignIn
-import FBSDKCoreKit
-import FacebookCore
-import DeviceCheck
-import FirebaseAnalytics
-import FirebaseMessaging
-import AppTrackingTransparency
 import AdSupport
-import GoogleMobileAds
+import AppTrackingTransparency
+import CoreData
+import DeviceCheck
+import FacebookCore
+import FBSDKCoreKit
 import FBSDKLoginKit
-import UserNotifications
-import FirebaseFirestore
+import Firebase
+import FirebaseAnalytics
+import FirebaseAppCheck
 import FirebaseAuth
+import FirebaseCore
+import FirebaseFirestore
+import FirebaseDatabase
+import GoogleMobileAds
+import GoogleSignIn
+import SwiftUI
+import UIKit
+import UserNotifications
 
 extension NSNotification.Name {
     static let signInLinkReceived = NSNotification.Name("signInLinkReceived")
@@ -45,11 +44,20 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
         configureFirebase()
         print("Firebase configured")
         
+        // Create Firestore collection after Firebase configuration
+        Firestore.firestore().collection("appDayOfWeeks").addDocument(data: [:]) { error in
+            if let error = error {
+                print("Error creating collection: \(error)")
+            } else {
+                print("Collection created successfully")
+            }
+        }
         
         print("Configuring App Check...")
         setupAppCheck()
         print("App Check configured")
         print("Setting App Check provider factory: \(SeasAppCheckProviderFactory.self)")
+        
         
         print("Configuring Google Ads...")
         configureGoogleAds()
@@ -67,9 +75,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
         registerForPushNotifications()
         print("Push notifications registered")
         
-        // Sign in as brianeromero@gmail.com to reverify the email
-        reverifyEmail(for: "brianeromero@gmail.com", password: "your_password")
-
         return true
     }
     
@@ -263,56 +268,17 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
         }
     }
     
-    private func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) async -> Bool {
-        if ApplicationDelegate.shared.application(app, open: url, options: options) {
-            return true
-        } else if GIDSignIn.sharedInstance.handle(url) {
-            print("Google URL Handled: \(url)")
-            return true
-        } else if Auth.auth().isSignIn(withEmailLink: url.absoluteString) {
-            NotificationCenter.default.post(name: .signInLinkReceived, object: url.absoluteString)
-            return true
-        }
-
-        await EmailVerificationHandler.handleEmailVerification(url: url)
-        return false
-    }
-
-    func applicationDidEnterBackground(_ application: UIApplication) {
-        saveContext()
-    }
-
-    func applicationWillTerminate(_ application: UIApplication) {
-        saveContext()
-    }
-
-    private func saveContext() {
-        do {
-            try persistenceController.saveContext()
-        } catch {
-            print("Failed to save context: \(error.localizedDescription)")
-        }
-    }
-    
     private func reverifyEmail(for email: String, password: String) {
-        let auth = Auth.auth()
-        auth.signIn(withEmail: email, password: password) { result, error in
+        // Ensure Firebase Authentication is initialized
+        Auth.auth().signIn(withEmail: email, password: password) { result, error in
             if let error = error {
-                print("Error signing in for reverification: \(error.localizedDescription)")
-            } else if let user = auth.currentUser, !user.isEmailVerified {
-                user.sendEmailVerification { error in
-                    if let error = error {
-                        print("Error sending verification email: \(error.localizedDescription)")
-                    } else {
-                        print("Verification email sent to \(email).")
-                    }
-                }
+                print("Email verification failed: \(error.localizedDescription)")
             } else {
-                print("User \(email) is already verified.")
+                print("Email verification successful for: \(email)")
             }
         }
     }
-    
+
     private func configureApplicationAppearance() {
         UINavigationBar.appearance().tintColor = .systemOrange
         UITabBar.appearance().tintColor = .systemOrange

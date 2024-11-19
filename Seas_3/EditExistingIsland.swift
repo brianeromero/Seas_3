@@ -96,38 +96,41 @@ struct EditExistingIsland: View {
         
         Task {
             do {
+                // Geocode the address
                 let coordinates = try await geocode(address: islandLocation, apiKey: GeocodingConfig.apiKey)
-                islandViewModel.updatePirateIslandLatitudeLongitude(
+                
+                // Update latitude and longitude
+                try await islandViewModel.updatePirateIslandLatitudeLongitude(
                     latitude: coordinates.latitude,
                     longitude: coordinates.longitude,
                     island: island
-                ) { result in
-                    switch result {
-                    case .success:
-                        print("Latitude/Longitude updated successfully")
-                    case .failure(let error):
-                        print("Error updating latitude/longitude: \(error.localizedDescription)")
-                    }
-                }
-                islandViewModel.updatePirateIsland(
+                )
+                print("Latitude/Longitude updated successfully")
+                
+                // Update the pirate island details
+                await islandViewModel.updatePirateIsland(
                     island: island,
                     name: islandName,
                     location: islandLocation,
                     lastModifiedByUserId: lastModifiedByUserId,
-                    gymWebsiteURL: gymWebsiteURL
-                ) { result in
-                    switch result {
-                    case .success:
-                        print("Gym updated successfully")
-                        presentationMode.wrappedValue.dismiss()
-                    case .failure(let error):
-                        showAlert = true
-                        alertMessage = "Error updating gym: \(error.localizedDescription)"
+                    gymWebsiteURL: gymWebsiteURL,
+                    completion: { result in
+                        switch result {
+                        case .success:
+                            print("Gym updated successfully")
+                        case .failure(let error):
+                            print("Error updating gym: \(error.localizedDescription)")
+                        }
                     }
-                }
+                )
+                
+                // Dismiss the view
+                presentationMode.wrappedValue.dismiss()
+                
             } catch {
+                // Handle errors
                 showAlert = true
-                alertMessage = "Failed to geocode address"
+                alertMessage = "Error: \(error.localizedDescription)"
             }
         }
     }

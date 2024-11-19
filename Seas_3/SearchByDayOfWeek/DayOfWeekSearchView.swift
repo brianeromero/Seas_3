@@ -198,14 +198,12 @@ struct DayOfWeekSearchView: View {
 
         print("Fetching islands for day: \(selectedDay)")
 
-        do {
-            await viewModel.fetchIslands(forDay: selectedDay)
-            
-            if let location = userLocationMapViewModel.userLocation {
-                updateRegion(center: location.coordinate)
-            }
-        } catch {
-            errorMessage = "Failed to fetch islands: \(error.localizedDescription)"
+        // If fetchIslands doesn't throw errors, remove the do-catch
+        await viewModel.fetchIslands(forDay: selectedDay)
+
+        // Check if userLocationMapViewModel.userLocation exists
+        if let location = userLocationMapViewModel.userLocation {
+            updateRegion(center: location.coordinate)
         }
     }
 }

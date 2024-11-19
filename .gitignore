@@ -1,6 +1,8 @@
 # Sensitive files
 Info.plist
 GoogleService-Info.plist
+GoogleService-Info-Debug.plist
+GoogleService-Info-Release.plist
 Config.plist
 info3.plist
 firebase.json
@@ -21,19 +23,25 @@ database.rules.json
 xcuserdata/
 *.xcodeproj
 !*.xcodeproj/project.pbxproj
-*.swiftmodules
+*.swiftmodules/
 *.xcarchive
 XcodeLogs/
 DerivedData/
 *.pbxuser
+*.xcscheme
+*.xcscmblueprint
+*.xcodeproj/xcshareddata/
 
 # CocoaPods
 Podfile
 Podfile.lock
 Pods/
+*.podspec
 
 # Logs
 *.log
+*.crash
+*.trace
 
 # SQLite databases
 *.sqlite
@@ -48,6 +56,9 @@ Package.resolved
 # Editor-specific files
 .vscode/
 .idea/
+.atom/
+.code/
+.eclipse/
 
 # Other unnecessary files
 *.bak
@@ -58,6 +69,14 @@ Package.resolved
 build/
 Sources/CocoaPods/
 git-filter-repo/
+*.orig
+*.patch
+*.diff
 
 # Simulator data
 ~/Library/Application Support/iPhone Simulator/
+
+# Git-related files
+.gitattributes
+.gitmodules
+firebase-ios-sdk/

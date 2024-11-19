@@ -7,37 +7,33 @@
 
 import Foundation
 import SwiftUI
+import GoogleMobileAds
 
 struct AdminMenu: View {
     @Environment(\.persistenceController) private var persistenceController
     private var appDayOfWeekRepository: AppDayOfWeekRepository
     @StateObject private var enterZipCodeViewModel: EnterZipCodeViewModel
     @StateObject private var appDayOfWeekViewModel: AppDayOfWeekViewModel
-
+    
     init() {
         let persistenceController = PersistenceController.shared
         let repository = AppDayOfWeekRepository(persistenceController: persistenceController)
-        
         let enterZipCodeVM = EnterZipCodeViewModel(repository: repository, persistenceController: persistenceController)
         
         self.appDayOfWeekRepository = repository
         self._enterZipCodeViewModel = StateObject(wrappedValue: enterZipCodeVM)
         self._appDayOfWeekViewModel = StateObject(wrappedValue: AppDayOfWeekViewModel(repository: repository, enterZipCodeViewModel: enterZipCodeVM))
     }
-
+    
     let menuItems: [MenuItem] = [
         MenuItem(title: "Manage Users", subMenuItems: ["Reset User Verification", "Edit User", "Remove User", "Manual User Verification"], padding: 20),
         MenuItem(title: "Manage Gyms", subMenuItems: ["All Gyms", "ALL Gym Schedules", "ALL Mat Schedules"], padding: 15),
         MenuItem(title: "Manage Reviews", subMenuItems: ["View All Reviews", "Moderate Reviews"], padding: 20)
     ]
-
+    
     var body: some View {
         NavigationView {
             VStack(alignment: .leading, spacing: 20) {
-                Text("Admin Menu")
-                    .font(.title)
-                    .bold()
-
                 ForEach(menuItems) { menuItem in
                     VStack(alignment: .leading, spacing: 5) {
                         Text(menuItem.title)
@@ -52,6 +48,26 @@ struct AdminMenu: View {
                         }
                     }
                 }
+                
+                Spacer()
+                
+                // Add the Sign Out button
+                NavigationLink(destination: LoginView(
+                    islandViewModel: PirateIslandViewModel(persistenceController: persistenceController),
+                    isSelected: .constant(.login),
+                    navigateToAdminMenu: .constant(false),
+                    isLoggedIn: .constant(false)
+                )) {
+                    Text("Sign Out")
+                        .font(.headline)
+                        .foregroundColor(.blue)
+                        .padding()
+                        .background(Color.gray.opacity(0.2))
+                        .cornerRadius(8)
+                }
+
+                BannerView() // Use BannerView
+
             }
             .padding()
             .navigationTitle("Admin Control Panel")
@@ -72,7 +88,6 @@ struct AdminMenu: View {
         case "All Gyms":
             ContentView(persistenceController: persistenceController)
         case "ALL Gym Schedules":
-            // Ensure that the viewModel is passed correctly
             pIslandScheduleView(viewModel: appDayOfWeekViewModel)
         case "ALL Mat Schedules":
             AllpIslandScheduleView(viewModel: appDayOfWeekViewModel, enterZipCodeViewModel: enterZipCodeViewModel)

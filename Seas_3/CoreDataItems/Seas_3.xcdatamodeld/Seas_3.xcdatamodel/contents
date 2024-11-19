@@ -24,6 +24,7 @@
         <relationship name="appDayOfWeek" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="AppDayOfWeek" inverseName="matTimes" inverseEntity="AppDayOfWeek"/>
     </entity>
     <entity name="PirateIsland" representedClassName="PirateIsland" syncable="YES">
+        <attribute name="country" optional="YES" attributeType="String"/>
         <attribute name="createdByUserId" optional="YES" attributeType="String"/>
         <attribute name="createdTimestamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="gymWebsite" optional="YES" attributeType="URI"/>

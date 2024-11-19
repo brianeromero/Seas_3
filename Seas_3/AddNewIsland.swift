@@ -10,7 +10,6 @@ import SwiftUI
 import CoreData
 import Combine
 
-// MARK: - View Definition
 struct AddNewIsland: View {
     // MARK: - Environment Variables
     @Environment(\.managedObjectContext) private var viewContext
@@ -19,19 +18,12 @@ struct AddNewIsland: View {
     // MARK: - Observed Objects
     @ObservedObject var islandViewModel: PirateIslandViewModel
     @ObservedObject var profileViewModel: ProfileViewModel
+    @ObservedObject var islandDetails = IslandDetails() // Updated to ObservedObject
 
     // MARK: - State Variables
-    @State private var islandName = ""
-    @State private var street = ""
-    @State private var city = ""
-    @State private var state = ""
-    @State private var zip = ""
-    @State private var gymWebsite = ""
-    @State private var gymWebsiteURL: URL?
     @State private var isSaveEnabled = false
     @State private var showAlert = false
     @State private var alertMessage = ""
-    @State private var selectedProtocol = "http://"
     @State private var showToast = false
     @State private var toastMessage = ""
 
@@ -45,25 +37,7 @@ struct AddNewIsland: View {
     var body: some View {
         NavigationView {
             Form {
-                IslandFormSections(
-                    viewModel: islandViewModel,
-                    islandName: $islandName,
-                    street: $street,
-                    city: $city,
-                    state: $state,
-                    zip: $zip,
-                    gymWebsite: $gymWebsite,
-                    gymWebsiteURL: $gymWebsiteURL,
-                    selectedProtocol: $selectedProtocol,
-                    showAlert: $showAlert,
-                    alertMessage: $alertMessage
-                )
-                .onChange(of: islandName) { _ in validateFields() }
-                .onChange(of: street) { _ in validateFields() }
-                .onChange(of: city) { _ in validateFields() }
-                .onChange(of: state) { _ in validateFields() }
-                .onChange(of: zip) { _ in validateFields() }
-
+                islandFormSection
                 enteredBySection
                 saveButton
                 cancelButton
@@ -75,25 +49,25 @@ struct AddNewIsland: View {
             .onAppear {
                 validateFields()
             }
-            .overlay(
-                Group {
-                    if showToast {
-                        withAnimation {
-                            ToastView(showToast: $showToast, message: toastMessage)
-                                .transition(.move(edge: .bottom))
-                                .onAppear {
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                        showToast = false
-                                    }
-                                }
-                        }
-                    }
-                }
-            )
+            .overlay(toastOverlay)
         }
     }
 
-    // MARK: - View Builders
+    // MARK: - Extracted Views
+    private var islandFormSection: some View {
+        Section(header: Text("Gym Details")) {
+            TextField("Island Name", text: $islandDetails.islandName)
+            TextField("Street", text: $islandDetails.street)
+            TextField("City", text: $islandDetails.city)
+            TextField("State", text: $islandDetails.state)
+            TextField("Zip Code", text: $islandDetails.zip)
+            TextField("Website", text: $islandDetails.gymWebsite)
+                .onChange(of: islandDetails.gymWebsite) { newValue in
+                    islandDetails.gymWebsiteURL = URL(string: newValue)
+                }
+        }
+    }
+
     private var enteredBySection: some View {
         Section(header: Text("Entered By")) {
             Text(profileViewModel.name)
@@ -119,70 +93,69 @@ struct AddNewIsland: View {
         .padding()
     }
 
-    // MARK: - Private Methods
-    private func saveIsland() async {
-        print("Saving Island:")
-        print("Name: \(islandName)")
-        print("Street: \(street)")
-        print("City: \(city)")
-        print("State: \(state)")
-        print("Zip: \(zip)")
-        print("Gym Website: \(gymWebsite)")
-        print("Gym Website URL: \(String(describing: gymWebsiteURL))")
-        print("Location: \(street), \(city), \(state) \(zip)")
-
-        await islandViewModel.createPirateIsland(
-            name: islandName,
-            location: "\(street), \(city), \(state) \(zip)",
-            createdByUserId: profileViewModel.name,
-            gymWebsiteURL: gymWebsiteURL
-        ) { result in
-            switch result {
-            case .success(let island):
-                print("Gym saved successfully: \(String(describing: island.islandName))")
-                clearFields()
-            case .failure(let error):
-                self.showToast = true
-                self.toastMessage = "Error saving island: \(error.localizedDescription)"
-
-                if let pirateIslandError = error as? PirateIslandError {
-                    switch pirateIslandError {
-                    case .savingError:
-                        print("Saving error occurred in Core Data.")
-                    case .invalidInput:
-                        print("Invalid input detected.")
-                    case .islandExists:
-                        print("An island with this name or location already exists.")
-                        alertMessage = "An island with this name already exists. Please enter a unique name or location."
-                        showAlert = true
-                    case .geocodingError:
-                        print("Geocoding failed for the provided location.")
-                    }
+    private var toastOverlay: some View {
+        Group {
+            if showToast {
+                withAnimation {
+                    ToastView(showToast: $showToast, message: toastMessage)
+                        .transition(.move(edge: .bottom))
+                        .onAppear {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                showToast = false
+                            }
+                        }
                 }
             }
         }
     }
 
+    // MARK: - Private Methods
+    private func saveIsland() async {
+        guard !islandDetails.islandName.isEmpty,
+              !islandDetails.street.isEmpty,
+              !islandDetails.city.isEmpty,
+              !islandDetails.state.isEmpty,
+              !islandDetails.zip.isEmpty else {
+            showToast = true
+            toastMessage = "Please fill in all fields."
+            return
+        }
+
+        let result = await islandViewModel.createPirateIslandAsync(
+            islandDetails: islandDetails,
+            createdByUserId: profileViewModel.name,
+            gymWebsiteURL: islandDetails.gymWebsiteURL
+        )
+
+        switch result {
+        case .success:
+            clearFields()
+        case .failure(let error):
+            showToast = true
+            toastMessage = error.localizedDescription
+        }
+    }
+
     private func validateFields() {
-        let location = "\(street), \(city), \(state) \(zip)"
-        isSaveEnabled = islandViewModel.validateIslandData(
-            islandName,
-            location,
-            profileViewModel.name
-        ) && !islandName.isEmpty && !street.isEmpty && !city.isEmpty && !state.isEmpty && !zip.isEmpty
+        isSaveEnabled = !islandDetails.islandName.isEmpty &&
+                        !islandDetails.street.isEmpty &&
+                        !islandDetails.city.isEmpty &&
+                        !islandDetails.state.isEmpty &&
+                        !islandDetails.zip.isEmpty
     }
 
     private func clearFields() {
-        islandName = ""
-        street = ""
-        city = ""
-        state = ""
-        zip = ""
-        gymWebsite = ""
-        gymWebsiteURL = nil
+        islandDetails.islandName = ""
+        islandDetails.street = ""
+        islandDetails.city = ""
+        islandDetails.state = ""
+        islandDetails.zip = ""
+        islandDetails.gymWebsite = ""
+        islandDetails.gymWebsiteURL = nil
     }
 }
 
+// MARK: - PreviewProvider
 struct AddNewIsland_Previews: PreviewProvider {
     static var previews: some View {
         let persistenceController = PersistenceController.preview

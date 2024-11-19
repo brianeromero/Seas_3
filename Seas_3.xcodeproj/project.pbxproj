@@ -115,6 +115,7 @@
 		0CBA13302CC19D5400A74C2A /* CoreML.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0CBA132F2CC19D5400A74C2A /* CoreML.framework */; };
 		0CC1120F2C45F7D80066CF80 /* MatTime+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC1120D2C45F7D80066CF80 /* MatTime+CoreDataClass.swift */; };
 		0CC112102C45F7D80066CF80 /* MatTime+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC1120E2C45F7D80066CF80 /* MatTime+CoreDataProperties.swift */; };
+		0CC29C802CEC49AA00FC48F9 /* IslandDetails.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC29C7F2CEC49AA00FC48F9 /* IslandDetails.swift */; };
 		0CD4E2BF2C7CDA0C005082AC /* ScheduledMatTimesSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CD4E2BE2C7CDA0C005082AC /* ScheduledMatTimesSection.swift */; };
 		0CD901502CB655B50097D71F /* DoNotStorePasswords.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CD9014F2CB655B40097D71F /* DoNotStorePasswords.swift */; };
 		0CD930AB2C33D4D90051E923 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0CF13E482C2A326A00D714C0 /* Assets.xcassets */; };
@@ -265,6 +266,7 @@
 		0CBA132F2CC19D5400A74C2A /* CoreML.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreML.framework; path = System/Library/Frameworks/CoreML.framework; sourceTree = SDKROOT; };
 		0CC1120D2C45F7D80066CF80 /* MatTime+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MatTime+CoreDataClass.swift"; sourceTree = SOURCE_ROOT; };
 		0CC1120E2C45F7D80066CF80 /* MatTime+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MatTime+CoreDataProperties.swift"; sourceTree = SOURCE_ROOT; };
+		0CC29C7F2CEC49AA00FC48F9 /* IslandDetails.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandDetails.swift; sourceTree = "<group>"; };
 		0CCA11C52C79105F003CAB7C /* Review+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Review+CoreDataClass.swift"; sourceTree = "<group>"; };
 		0CCA11C62C79105F003CAB7C /* Review+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Review+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		0CD4E2BE2C7CDA0C005082AC /* ScheduledMatTimesSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduledMatTimesSection.swift; sourceTree = "<group>"; };
@@ -324,12 +326,13 @@
 		0CF7993C2CAFAED000F2F018 /* Exceptions for "SSO" folder in "Seas_3" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				DealingWErrors/AdMob/AdMobBannerAdd.swift,
+				AdMob/AdMobBannerAdd.swift,
+				AdMob/BannerView.swift,
+				AdMob/GoogleAdsHelper.swift,
 				DealingWErrors/AlertModifier.swift,
 				DealingWErrors/ConfigLoader.swift,
 				DealingWErrors/EmailVerificationHandler.swift,
 				DealingWErrors/FacebookHelper.swift,
-				DealingWErrors/GoogleAdsHelper.swift,
 				DealingWErrors/IDFAHelper.swift,
 				DealingWErrors/NetworkMonitor.swift,
 				Email/AccountCreation/AccountAuthView.swift,
@@ -344,6 +347,7 @@
 				Email/EmailUtility.swift,
 				Email/Firebase/AuthViewModel.swift,
 				Email/Firebase/EmailSignOn.swift,
+				Email/Firebase/FirestoreManager.swift,
 				Email/Firebase/User.swift,
 				Email/ForgotYourPassword.swift,
 				Email/hashPassword.swift,
@@ -387,6 +391,16 @@
 				0C66E6102C88DB9700BCD2DE /* Exceptions for "MapUtilities" folder in "Seas_3" target */,
 			);
 			path = MapUtilities;
+			sourceTree = "<group>";
+		};
+		0C882BF52CE6598600E03B02 /* International Changer */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "International Changer";
+			sourceTree = "<group>";
+		};
+		0C882BFA2CE666B600E03B02 /* IDFA Analytrics */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "IDFA Analytrics";
 			sourceTree = "<group>";
 		};
 		0C8E21722CCDAD0B0093CEB3 /* AdminView */ = {
@@ -627,6 +641,8 @@
 		0CF13E432C2A326700D714C0 /* Seas_3 */ = {
 			isa = PBXGroup;
 			children = (
+				0C882BFA2CE666B600E03B02 /* IDFA Analytrics */,
+				0C882BF52CE6598600E03B02 /* International Changer */,
 				0C343B6E2CD937EC00468E89 /* UserProfile */,
 				0C8E21722CCDAD0B0093CEB3 /* AdminView */,
 				0CF247E92CB470D2008B02AA /* Seas_3.entitlements */,
@@ -640,9 +656,9 @@
 				0C07B0702C2CFD0300D0BFB2 /* IslandMenu.swift */,
 				0C07B0722C2CFD2800D0BFB2 /* AddNewIsland.swift */,
 				0C2CEC9C2CBA1F5400926D0D /* IslandFormSections.swift */,
+				0CC29C7F2CEC49AA00FC48F9 /* IslandDetails.swift */,
 				0C07B0742C2CFD4900D0BFB2 /* EditExistingIslandList.swift */,
 				0C07B0762C2CFD6700D0BFB2 /* EditExistingIsland.swift */,
-				0CEB03952C2B9B73007CA3CC /* PirateIslandViewModel.swift */,
 				0CF13E462C2A326700D714C0 /* ContentView.swift */,
 				0CF13E482C2A326A00D714C0 /* Assets.xcassets */,
 				0CF13E4D2C2A326A00D714C0 /* Persistence.swift */,
@@ -654,6 +670,7 @@
 				0C07B0842C2CFE6200D0BFB2 /* AdditionalGymInfo.swift */,
 				0C07B0C02C2D01F300D0BFB2 /* CustomUnarchiveTransformer.swift */,
 				0C07B0BE2C2D01D700D0BFB2 /* Logger.swift */,
+				0CEB03952C2B9B73007CA3CC /* PirateIslandViewModel.swift */,
 				0C07B0C52C2D022C00D0BFB2 /* calendar Image.png */,
 				0C07B0C42C2D022C00D0BFB2 /* flashing.gif */,
 				0C07B0C92C2D022D00D0BFB2 /* flashing2.gif */,
@@ -736,6 +753,8 @@
 			);
 			fileSystemSynchronizedGroups = (
 				0C343B6E2CD937EC00468E89 /* UserProfile */,
+				0C882BF52CE6598600E03B02 /* International Changer */,
+				0C882BFA2CE666B600E03B02 /* IDFA Analytrics */,
 				0C8E21722CCDAD0B0093CEB3 /* AdminView */,
 			);
 			name = Seas_3;
@@ -925,6 +944,7 @@
 				0C07B0812C2CFE3600D0BFB2 /* IslandMap.swift in Sources */,
 				0C1893D32C7F95FB007BFADB /* ViewReviewforIsland.swift in Sources */,
 				0C07B0A82C2D004900D0BFB2 /* RenderingManager.swift in Sources */,
+				0CC29C802CEC49AA00FC48F9 /* IslandDetails.swift in Sources */,
 				0C07B0AA2C2D007000D0BFB2 /* GIFBackgroundView.swift in Sources */,
 				0C524E952C308E4A008D6623 /* EnterZipCodeViewModel.swift in Sources */,
 				0C07B0AC2C2D009300D0BFB2 /* SwiftGIF.swift in Sources */,
