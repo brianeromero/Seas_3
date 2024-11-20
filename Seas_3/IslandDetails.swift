@@ -14,7 +14,8 @@ class IslandDetails: ObservableObject {
     @Published var zip: String = ""
     @Published var gymWebsite: String = ""
     @Published var gymWebsiteURL: URL?
-    
+    @Published var country: Country?
+
     // New address-related fields
     @Published var neighborhood: String = ""
     @Published var complement: String = ""
@@ -26,7 +27,7 @@ class IslandDetails: ObservableObject {
     @Published var province: String = ""
     @Published var postalCode: String = ""
     @Published var pincode: String = ""
-    
+
     // Optional Initializer
     init(islandName: String = "",
          street: String = "",
@@ -34,7 +35,8 @@ class IslandDetails: ObservableObject {
          state: String = "",
          zip: String = "",
          gymWebsite: String = "",
-         gymWebsiteURL: URL? = nil) {
+         gymWebsiteURL: URL? = nil,
+         country: Country? = nil) {
         self.islandName = islandName
         self.street = street
         self.city = city
@@ -42,5 +44,6 @@ class IslandDetails: ObservableObject {
         self.zip = zip
         self.gymWebsite = gymWebsite
         self.gymWebsiteURL = gymWebsiteURL
+        self.country = country
     }
 }

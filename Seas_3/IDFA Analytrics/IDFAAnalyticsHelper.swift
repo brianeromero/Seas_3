@@ -11,6 +11,8 @@ import AdSupport
 import FirebaseAnalytics
 import GoogleMobileAds
 import FBSDKCoreKit
+import FirebaseFirestore
+import CoreData // Ensure Core Data is imported
 
 
 class IDFAAnalyticsHelper {
@@ -18,12 +20,31 @@ class IDFAAnalyticsHelper {
     // MARK: - Advertising and Analytics
     
     /// Delivers personalized ads using IDFA
-    static func configureTargetedAdvertising() {
+    static func configureTargetedAdvertising() async throws {
         guard let idfa = IDFAHelper.getIdfa() else { return }
         
         // Pass IDFA to ad networks (e.g., AdMob)
         GADMobileAds.sharedInstance().requestConfiguration.testDeviceIdentifiers = [idfa]
+        
+        // Save to Firestore
+        try await Firestore.firestore().collection("advertising").document("targeted_ads").setData([
+            "idfa": idfa
+        ])
+        
+        // Cache in Core Data Stack
+        let context = PersistenceController.shared.container.viewContext
+        if let userInfo = try? await PersistenceController.shared.fetchSingle(entityName: "UserInfo") as? UserInfo {
+            if userInfo.adSettings == nil {
+                let adSettings = AdSettings(context: context)
+                adSettings.enabled = true
+                userInfo.adSettings = adSettings
+            }
+            userInfo.adSettings?.idfa = idfa
+            try await PersistenceController.shared.saveContext()
+        }
     }
+
+
     
     /// Measures ad effectiveness using IDFA
     static func trackAdAttribution() {
@@ -44,21 +65,51 @@ class IDFAAnalyticsHelper {
     // MARK: - Tracking and Identification
     
     /// Links user behavior across sessions using IDFA
-    static func identifyUser() {
+    static func identifyUser() async throws {
         guard let idfa = IDFAHelper.getIdfa() else { return }
         
-        // Store IDFA in user database
-        // Use idfa for user identification
-        UserDefaults.standard.set(idfa, forKey: "user_idfa")
+        // Store IDFA in Core Data
+        let context = PersistenceController.shared.container.viewContext
+        if let userInfo = try? await PersistenceController.shared.fetchSingle(entityName: "UserInfo") as? UserInfo {
+            if userInfo.adSettings == nil {
+                let adSettings = AdSettings(context: context)
+                adSettings.enabled = true
+                userInfo.adSettings = adSettings
+            }
+            userInfo.adSettings?.idfa = idfa
+            try await PersistenceController.shared.saveContext()
+        }
+        
+        // Save to Firestore
+        try await Firestore.firestore().collection("users").document("user_idfa").setData([
+            "idfa": idfa
+        ])
     }
+
     
     /// Associates users across devices using IDFA
-    static func trackCrossDevice() {
+    static func trackCrossDevice() async throws {
         guard let idfa = IDFAHelper.getIdfa() else { return }
         
-        // Log cross-device events
-        Analytics.logEvent("cross_device", parameters: ["idfa": idfa])
+        // Log cross-device events in Firestore
+        try await Firestore.firestore().collection("analytics").document("cross_device").setData([
+            "idfa": idfa,
+            "timestamp": Date()
+        ])
+        
+        // Cache in Core Data Stack
+        let context = PersistenceController.shared.container.viewContext
+        if let userInfo = try? await PersistenceController.shared.fetchSingle(entityName: "UserInfo") as? UserInfo {
+            if userInfo.adSettings == nil {
+                let adSettings = AdSettings(context: context)
+                adSettings.enabled = true
+                userInfo.adSettings = adSettings
+            }
+            userInfo.adSettings?.idfa = idfa
+            try await PersistenceController.shared.saveContext()
+        }
     }
+
     
     // MARK: - Specific Use Cases
     
@@ -68,10 +119,6 @@ class IDFAAnalyticsHelper {
             switch status {
             case .authorized:
                 guard let idfa = IDFAHelper.getIdfa() else { return }
-                
-                // Enable advertiser tracking
-                // Facebook Ads SDK doesn't provide direct 'setAdvertiserTrackingEnabled'
-                // Use Facebook's Ads Manager API or Audience Network
                 
                 // Configure Facebook Ads
                 print("Facebook Ads configured with IDFA: \(idfa)")

@@ -198,7 +198,7 @@ struct IslandModalView: View {
                 return
             }
             Task {
-                viewModel.loadSchedules(for: island)
+                await viewModel.loadSchedules(for: island)
                 scheduleExists = !viewModel.schedules.isEmpty
                 isLoadingData = false
             }

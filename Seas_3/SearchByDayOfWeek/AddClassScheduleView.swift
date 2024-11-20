@@ -52,19 +52,23 @@ struct AddClassScheduleView: View {
                 }
                 
                 Button(action: {
-                    viewModel.addOrUpdateMatTime(
-                        time: matTime,
-                        type: matType,
-                        gi: gi,
-                        noGi: noGi,
-                        openMat: openMat,
-                        restrictions: restrictions,
-                        restrictionDescription: restrictionDescription,
-                        goodForBeginners: goodForBeginners,
-                        kids: kids,
-                        for: selectedDay
-                    )
-                    isPresented = false
+                    DispatchQueue.main.async {
+                        Task {
+                            await viewModel.addOrUpdateMatTime(
+                                time: matTime,
+                                type: matType,
+                                gi: gi,
+                                noGi: noGi,
+                                openMat: openMat,
+                                restrictions: restrictions,
+                                restrictionDescription: restrictionDescription,
+                                goodForBeginners: goodForBeginners,
+                                kids: kids,
+                                for: selectedDay
+                            )
+                            isPresented = false
+                        }
+                    }
                 }) {
                     Text("Save")
                 }

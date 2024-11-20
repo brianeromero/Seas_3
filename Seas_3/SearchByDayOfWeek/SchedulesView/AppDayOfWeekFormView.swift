@@ -8,6 +8,7 @@
 import Foundation
 import SwiftUI
 import CoreData
+import FirebaseFirestore
 
 struct AppDayOfWeekFormView: View {
     @Environment(\.managedObjectContext) private var viewContext
@@ -48,7 +49,7 @@ struct AppDayOfWeekFormView: View {
         }
     }
     
-    private func saveAppDayOfWeek() {
+    private func saveAppDayOfWeekLocally() {
         let newAppDayOfWeek = AppDayOfWeek(context: viewContext)
         newAppDayOfWeek.day = day
         newAppDayOfWeek.name = name
@@ -63,12 +64,33 @@ struct AppDayOfWeekFormView: View {
         do {
             try viewContext.save()
         } catch {
-            // Handle the error appropriately in a production app
-            print("Failed to save AppDayOfWeek: \(error.localizedDescription)")
+            print("Failed to save AppDayOfWeek locally: \(error.localizedDescription)")
         }
     }
+    
+    private func saveAppDayOfWeekToFirestore() {
+        guard let island = selectedIsland else { return }
+        
+        let data: [String: Any] = [
+            "day": day,
+            "name": name,
+            "appDayOfWeekID": appDayOfWeekID,
+            "pIsland": island.islandID ?? ""
+        ]
+        
+        Firestore.firestore().collection("appDayOfWeek").document(appDayOfWeekID).setData(data) { error in
+            if let error = error {
+                print("Failed to save AppDayOfWeek to Firestore: \(error.localizedDescription)")
+            } else {
+                self.saveAppDayOfWeekLocally()
+            }
+        }
+    }
+    
+    private func saveAppDayOfWeek() {
+        saveAppDayOfWeekToFirestore()
+    }
 }
-
 
 
 struct AppDayOfWeekFormView_Previews: PreviewProvider {

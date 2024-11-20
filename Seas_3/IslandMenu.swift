@@ -196,7 +196,8 @@ struct IslandMenu: View {
             // Use the shared persistence controller in the view model
             AddNewIsland(
                 viewModel: PirateIslandViewModel(persistenceController: PersistenceController.shared),
-                profileViewModel: profileViewModel
+                profileViewModel: profileViewModel,
+                islandDetails: IslandDetails()
             )
             
         case .updateExistingGyms:

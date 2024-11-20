@@ -69,20 +69,21 @@ struct AddOpenMatFormView: View {
                 selection: Binding(
                     get: { viewModel.selectedTimeForDay[day] ?? Date() },
                     set: { newDate in
-                        viewModel.selectedTimeForDay[day] = newDate
-                        let formattedTime = DateFormat.time.string(from: newDate)
-                        viewModel.addOrUpdateMatTime(
-                            time: formattedTime,
-                            type: viewModel.selectedType,
-                            gi: viewModel.giForDay[day] ?? false,
-                            noGi: viewModel.noGiForDay[day] ?? false,
-                            openMat: viewModel.openMatForDay[day] ?? false,
-                            restrictions: viewModel.restrictionsForDay[day] ?? false,
-                            restrictionDescription: viewModel.restrictionDescriptionForDay[day] ?? "",
-                            goodForBeginners: viewModel.goodForBeginnersForDay[day] ?? false,
-                            kids: viewModel.kidsForDay[day] ?? false,
-                            for: day
-                        )
+                        Task {
+                            let formattedTime = DateFormat.time.string(from: newDate)
+                            await viewModel.addOrUpdateMatTime(
+                                time: formattedTime,
+                                type: viewModel.selectedType,
+                                gi: viewModel.giForDay[day] ?? false,
+                                noGi: viewModel.noGiForDay[day] ?? false,
+                                openMat: viewModel.openMatForDay[day] ?? false,
+                                restrictions: viewModel.restrictionsForDay[day] ?? false,
+                                restrictionDescription: viewModel.restrictionDescriptionForDay[day] ?? "",
+                                goodForBeginners: viewModel.goodForBeginnersForDay[day] ?? false,
+                                kids: viewModel.kidsForDay[day] ?? false,
+                                for: day
+                            )
+                        }
                     }
                 ),
                 displayedComponents: .hourAndMinute
@@ -91,6 +92,17 @@ struct AddOpenMatFormView: View {
         }
     }
     
+    func removeMatTimes(at indices: IndexSet, for day: DayOfWeek) {
+        indices.forEach { index in
+            guard let matTime = viewModel.matTimesForDay[day]?[index] else { return }
+            DispatchQueue.main.async {
+                Task {
+                    await viewModel.removeMatTime(matTime)
+                }
+            }
+        }
+    }
+
     func matTimesListSection(for day: DayOfWeek) -> some View {
         Section(header: Text("Scheduled Mat Times")) {
             if let matTimes = viewModel.matTimesForDay[day] {
@@ -106,11 +118,8 @@ struct AddOpenMatFormView: View {
                         }
                     }
                 }
-                .onDelete { indexSet in
-                    indexSet.forEach { index in
-                        let matTime = matTimes[index]
-                        viewModel.removeMatTime(matTime)
-                    }
+                .onDelete { indices in
+                    removeMatTimes(at: indices, for: day)
                 }
             }
         }
@@ -165,23 +174,25 @@ struct AddOpenMatFormView: View {
     
     var saveButton: some View {
         Button(action: {
-            if viewModel.validateFields() {
-                let timeString = DateFormat.time.string(from: viewModel.selectedTimeForDay[viewModel.selectedDay ?? DayOfWeek.monday] ?? Date())
-                viewModel.addOrUpdateMatTime(
-                    time: timeString,
-                    type: viewModel.selectedType,
-                    gi: viewModel.giForDay[viewModel.selectedDay ?? DayOfWeek.monday] ?? false,
-                    noGi: viewModel.noGiForDay[viewModel.selectedDay ?? DayOfWeek.monday] ?? false,
-                    openMat: viewModel.openMatForDay[viewModel.selectedDay ?? DayOfWeek.monday] ?? false,
-                    restrictions: viewModel.restrictionsForDay[viewModel.selectedDay ?? DayOfWeek.monday] ?? false,
-                    restrictionDescription: viewModel.restrictionDescriptionForDay[viewModel.selectedDay ?? DayOfWeek.monday] ?? "",
-                    goodForBeginners: viewModel.goodForBeginnersForDay[viewModel.selectedDay ?? DayOfWeek.monday] ?? false,
-                    kids: viewModel.kidsForDay[viewModel.selectedDay ?? DayOfWeek.monday] ?? false,
-                    for: viewModel.selectedDay ?? DayOfWeek.monday
-                )
-            } else {
-                alertMessage = "Please fill in all required fields."
-                showAlert = true
+            Task {
+                if viewModel.validateFields() {
+                    let timeString = DateFormat.time.string(from: viewModel.selectedTimeForDay[viewModel.selectedDay ?? DayOfWeek.monday] ?? Date())
+                    await viewModel.addOrUpdateMatTime(
+                        time: timeString,
+                        type: viewModel.selectedType,
+                        gi: viewModel.giForDay[viewModel.selectedDay ?? DayOfWeek.monday] ?? false,
+                        noGi: viewModel.noGiForDay[viewModel.selectedDay ?? DayOfWeek.monday] ?? false,
+                        openMat: viewModel.openMatForDay[viewModel.selectedDay ?? DayOfWeek.monday] ?? false,
+                        restrictions: viewModel.restrictionsForDay[viewModel.selectedDay ?? DayOfWeek.monday] ?? false,
+                        restrictionDescription: viewModel.restrictionDescriptionForDay[viewModel.selectedDay ?? DayOfWeek.monday] ?? "",
+                        goodForBeginners: viewModel.goodForBeginnersForDay[viewModel.selectedDay ?? DayOfWeek.monday] ?? false,
+                        kids: viewModel.kidsForDay[viewModel.selectedDay ?? DayOfWeek.monday] ?? false,
+                        for: viewModel.selectedDay ?? DayOfWeek.monday
+                    )
+                } else {
+                    alertMessage = "Please fill in all required fields."
+                    showAlert = true
+                }
             }
         }) {
             Text("Save")

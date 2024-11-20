@@ -27,6 +27,9 @@ extension UserInfo {
     // Optional fields
     @NSManaged public var belt: String? // Optional
     @NSManaged public var verificationToken: String? // Optional
+
+    // Relationship
+    @NSManaged public var adSettings: AdSettings? // Relationship to AdSettings
 }
 
 extension UserInfo: Identifiable {}

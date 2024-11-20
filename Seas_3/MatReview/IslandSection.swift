@@ -29,8 +29,8 @@ struct IslandSection: View {
                 print("Initial selected island: \(selectedIsland?.islandName ?? "Unknown Gym")")
                 showReview = true
             }
-            .onChange(of: selectedIsland) { newIsland in
-                print("Selected Gym: \(newIsland?.islandName ?? "Unknown Gym")")
+            .onChange(of: selectedIsland) {
+                print("Selected Gym: \(selectedIsland?.islandName ?? "Unknown Gym")")
                 showReview = true
             }
         }
@@ -39,15 +39,24 @@ struct IslandSection: View {
 
 struct IslandSection_Previews: PreviewProvider {
     static var previews: some View {
-        @State var selectedIsland: PirateIsland? = nil
-        @State var showReview: Bool = false
-        let islands = PersistenceController.preview.fetchAllPirateIslands()
+        Preview()
+    }
+}
 
-        return Group {
-            IslandSection(islands: islands, selectedIsland: $selectedIsland, showReview: $showReview)
-                .previewLayout(.sizeThatFits)
-                .padding()
-                .previewDisplayName("Gym Section Preview")
-        }
+struct Preview: View {
+    @State var islands: [PirateIsland] = []
+
+    var body: some View {
+        IslandSection(islands: islands, selectedIsland: .constant(nil), showReview: .constant(false))
+            .previewLayout(.sizeThatFits)
+            .padding()
+            .previewDisplayName("Gym Section Preview")
+            .task {
+                do {
+                    islands = try await PersistenceController.preview.fetchAllPirateIslands()
+                } catch {
+                    print("Error fetching pirate islands: \(error.localizedDescription)")
+                }
+            }
     }
 }

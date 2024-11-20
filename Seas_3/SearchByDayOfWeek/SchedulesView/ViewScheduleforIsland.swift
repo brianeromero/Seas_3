@@ -24,7 +24,9 @@ struct ViewScheduleForIsland: View {
                     ForEach(DayOfWeek.allCases, id: \.self) { day in
                         Button(action: {
                             viewModel.selectedDay = day
-                            viewModel.loadSchedules(for: island)
+                            Task {
+                                await viewModel.loadSchedules(for: island)
+                            }
                         }) {
                             Text(day.displayName)
                                 .font(.headline)
@@ -68,9 +70,11 @@ struct ViewScheduleForIsland: View {
         }
         .onAppear {
             if viewModel.selectedDay == nil {
-                viewModel.selectedDay = DayOfWeek.monday // Set default day
+                viewModel.selectedDay = DayOfWeek.monday
             }
-            viewModel.loadSchedules(for: island) // Load schedules
+            Task {
+                await viewModel.loadSchedules(for: island)
+            }
             print("Loaded schedules for island: \(island.islandName ?? "Unknown")")
             print("Loaded schedules: \(viewModel.matTimesForDay.count) mat times")
         }
@@ -123,8 +127,10 @@ struct ViewScheduleForIsland_Previews: PreviewProvider {
         )
         
         // Simulate data loading
-        viewModel.loadSchedules(for: mockIsland) // Load schedules for the mock island
-        viewModel.selectedDay = DayOfWeek.monday
+        Task {
+            await viewModel.loadSchedules(for: mockIsland) // Load schedules for the mock island
+            viewModel.selectedDay = DayOfWeek.monday
+        }
         
         // Provide the view with the mock data
         return ViewScheduleForIsland(viewModel: viewModel, island: mockIsland)

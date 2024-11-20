@@ -116,6 +116,8 @@
 		0CC1120F2C45F7D80066CF80 /* MatTime+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC1120D2C45F7D80066CF80 /* MatTime+CoreDataClass.swift */; };
 		0CC112102C45F7D80066CF80 /* MatTime+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC1120E2C45F7D80066CF80 /* MatTime+CoreDataProperties.swift */; };
 		0CC29C802CEC49AA00FC48F9 /* IslandDetails.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC29C7F2CEC49AA00FC48F9 /* IslandDetails.swift */; };
+		0CD376E02CED4C7200491DD8 /* AdSettings+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CD376DE2CED4C7200491DD8 /* AdSettings+CoreDataClass.swift */; };
+		0CD376E12CED4C7200491DD8 /* AdSettings+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CD376DF2CED4C7200491DD8 /* AdSettings+CoreDataProperties.swift */; };
 		0CD4E2BF2C7CDA0C005082AC /* ScheduledMatTimesSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CD4E2BE2C7CDA0C005082AC /* ScheduledMatTimesSection.swift */; };
 		0CD901502CB655B50097D71F /* DoNotStorePasswords.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CD9014F2CB655B40097D71F /* DoNotStorePasswords.swift */; };
 		0CD930AB2C33D4D90051E923 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0CF13E482C2A326A00D714C0 /* Assets.xcassets */; };
@@ -269,6 +271,8 @@
 		0CC29C7F2CEC49AA00FC48F9 /* IslandDetails.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandDetails.swift; sourceTree = "<group>"; };
 		0CCA11C52C79105F003CAB7C /* Review+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Review+CoreDataClass.swift"; sourceTree = "<group>"; };
 		0CCA11C62C79105F003CAB7C /* Review+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Review+CoreDataProperties.swift"; sourceTree = "<group>"; };
+		0CD376DE2CED4C7200491DD8 /* AdSettings+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AdSettings+CoreDataClass.swift"; sourceTree = "<group>"; };
+		0CD376DF2CED4C7200491DD8 /* AdSettings+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AdSettings+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		0CD4E2BE2C7CDA0C005082AC /* ScheduledMatTimesSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduledMatTimesSection.swift; sourceTree = "<group>"; };
 		0CD9014F2CB655B40097D71F /* DoNotStorePasswords.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoNotStorePasswords.swift; sourceTree = "<group>"; };
 		0CDF61CE2C3C9BE900A8A0BF /* IslandScheduleAsCal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandScheduleAsCal.swift; sourceTree = "<group>"; };
@@ -731,6 +735,8 @@
 				0CF13E782C2A36B500D714C0 /* UserInfo+CoreDataProperties.swift */,
 				0CCA11C52C79105F003CAB7C /* Review+CoreDataClass.swift */,
 				0CCA11C62C79105F003CAB7C /* Review+CoreDataProperties.swift */,
+				0CD376DE2CED4C7200491DD8 /* AdSettings+CoreDataClass.swift */,
+				0CD376DF2CED4C7200491DD8 /* AdSettings+CoreDataProperties.swift */,
 			);
 			path = CoreDataItems;
 			sourceTree = "<group>";
@@ -961,6 +967,8 @@
 				0C0008862CAB420100CA5181 /* Errors.swift in Sources */,
 				0CF13E792C2A36B500D714C0 /* AppDayOfWeek+CoreDataClass.swift in Sources */,
 				0C07B0942C2CFF3B00D0BFB2 /* AddClassScheduleView.swift in Sources */,
+				0CD376E02CED4C7200491DD8 /* AdSettings+CoreDataClass.swift in Sources */,
+				0CD376E12CED4C7200491DD8 /* AdSettings+CoreDataProperties.swift in Sources */,
 				0C07B0712C2CFD0300D0BFB2 /* IslandMenu.swift in Sources */,
 				0C1893D52C7F9621007BFADB /* ViewScheduleforIsland.swift in Sources */,
 				0CC1120F2C45F7D80066CF80 /* MatTime+CoreDataClass.swift in Sources */,

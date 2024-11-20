@@ -82,7 +82,7 @@ struct IslandFormSections: View {
     @Binding var showAlert: Bool
     @Binding var alertMessage: String
     @Binding var selectedCountry: Country?
-    @Binding var islandDetails: IslandDetails // Binding to IslandDetails
+    @Binding var islandDetails: IslandDetails
 
     @State private var region: String = ""
     @State private var countries: [Country] = []
@@ -372,27 +372,29 @@ struct IslandFormSections: View {
     }
 
     func saveButtonAction() async {
-        if !validateFields() {
+        if !validateGymNameAndAddress() {
             showError = true
-        } else {
-            do {
-                // Ensure gymWebsiteURL is passed properly
-                try await viewModel.saveIslandData(
-                    islandName,
-                    street,
-                    city,
-                    state,
-                    zip,
-                    website: gymWebsiteURL
-                )
-                print("Island data saved successfully")
-            } catch {
-                print("Error saving island data: \(error.localizedDescription)")
-                self.errorMessage = "Error saving island data: \(error.localizedDescription)"
-                self.showError = true
-            }
+            return
+        }
+
+        do {
+            // Ensure gymWebsiteURL is passed properly
+            try await viewModel.saveIslandData(
+                islandName,
+                street,
+                city,
+                state,
+                zip,
+                website: gymWebsiteURL
+            )
+            print("Island data saved successfully")
+        } catch {
+            print("Error saving island data: \(error.localizedDescription)")
+            self.errorMessage = "Error saving island data: \(error.localizedDescription)"
+            self.showError = true
         }
     }
+
 
     func fetchAddressFromGymName(_ gymName: String) async {
         guard !gymName.isEmpty else { return }

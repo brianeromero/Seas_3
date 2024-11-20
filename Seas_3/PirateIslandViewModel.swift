@@ -3,6 +3,7 @@ import Foundation
 import CoreData
 import Combine
 import CoreLocation
+import FirebaseFirestore
 import os
 
 enum PirateIslandError: Error {
@@ -26,11 +27,16 @@ enum PirateIslandError: Error {
 }
 
 public class PirateIslandViewModel: ObservableObject {
+    @Published var pirateIsland: PirateIsland?
+    @Published var firestoreDocumentID: String? // Add this property to store the document ID
     @Published var selectedDestination: IslandDestination?
+    @Published var coordinates: CLLocationCoordinate2D?
+
+    var firestore = Firestore.firestore()
     let logger = OSLog(subsystem: "Seas3.Subsystem", category: "CoreData")
     
     private let persistenceController: PersistenceController
-    
+
     init(persistenceController: PersistenceController) {
         self.persistenceController = persistenceController
     }
@@ -57,24 +63,38 @@ public class PirateIslandViewModel: ObservableObject {
             return
         }
         
-        let newIsland = PirateIsland(context: persistenceController.viewContext)
-        newIsland.islandName = name
-        newIsland.islandLocation = location
-        newIsland.createdTimestamp = Date()
-        newIsland.createdByUserId = createdByUserId
-        newIsland.lastModifiedByUserId = createdByUserId
-        newIsland.lastModifiedTimestamp = Date()
-        newIsland.gymWebsite = gymWebsiteURL
-        newIsland.islandID = UUID()
-        
         do {
             let coordinates = try await geocodeAddress(location)
+            self.coordinates = CLLocationCoordinate2D(latitude: coordinates.latitude, longitude: coordinates.longitude)
+            
+            // Save to Firestore
+            let firestoreDocument = firestore.collection("pirateIslands").document()
+            try await firestoreDocument.setData([
+                "name": name,
+                "location": location,
+                "createdByUserId": createdByUserId,
+                "gymWebsiteURL": gymWebsiteURL?.absoluteString as Any,
+                "latitude": coordinates.latitude,
+                "longitude": coordinates.longitude,
+            ])
+            
+            // Cache in Core Data
+            let newIsland = PirateIsland(context: persistenceController.viewContext)
+            newIsland.islandName = name
+            newIsland.islandLocation = location
+            newIsland.createdTimestamp = Date()
+            newIsland.createdByUserId = createdByUserId
+            newIsland.lastModifiedByUserId = createdByUserId
+            newIsland.lastModifiedTimestamp = Date()
+            newIsland.gymWebsite = gymWebsiteURL
+            newIsland.islandID = UUID()
             newIsland.latitude = coordinates.latitude
             newIsland.longitude = coordinates.longitude
-            try persistenceController.viewContext.save()
+            
+            try await persistenceController.saveContext()
             completion(.success(newIsland))
-        } catch let error {
-            completion(.failure(handleGeocodingError(error)))
+        } catch {
+            completion(.failure(PirateIslandError.savingError))
         }
     }
     
@@ -86,43 +106,49 @@ public class PirateIslandViewModel: ObservableObject {
     ) async -> Result<PirateIsland, Error> {
         let name = islandDetails.islandName
         let location = "\(islandDetails.street), \(islandDetails.city), \(islandDetails.state) \(islandDetails.zip)"
-
-        // Validate the island data
+        
         guard validateIslandData(name, location, createdByUserId) else {
             return .failure(PirateIslandError.invalidInput)
         }
-
-        // Check if the island already exists
+        
         guard !pirateIslandExists(name: name) else {
             return .failure(PirateIslandError.islandExists)
         }
-
-        // Create a new PirateIsland instance
-        let newIsland = PirateIsland(context: persistenceController.viewContext)
-        newIsland.islandName = name  // Correctly using islandName from Core Data properties
-        newIsland.islandLocation = location
-        newIsland.createdTimestamp = Date()
-        newIsland.createdByUserId = createdByUserId
-        newIsland.lastModifiedByUserId = createdByUserId
-        newIsland.lastModifiedTimestamp = Date()
-        newIsland.gymWebsite = gymWebsiteURL
-        newIsland.islandID = UUID()
-
+        
         do {
-            // Get the coordinates using the address from IslandDetails, provide a default value if location is nil
-            let coordinates = try await geocodeAddress(location.isEmpty ? "Default Address" : location)
+            let coordinates = try await geocodeAddress(location)
+            self.coordinates = CLLocationCoordinate2D(latitude: coordinates.latitude, longitude: coordinates.longitude)
+            
+            // Save to Firestore
+            let firestoreDocument = firestore.collection("pirateIslands").document()
+            try await firestoreDocument.setData([
+                "name": islandDetails.islandName,
+                "location": location,
+                "createdByUserId": createdByUserId,
+                "gymWebsiteURL": gymWebsiteURL?.absoluteString as Any,
+                "latitude": coordinates.latitude,
+                "longitude": coordinates.longitude,
+            ])
+            
+            // Cache in Core Data
+            let newIsland = PirateIsland(context: persistenceController.viewContext)
+            newIsland.islandName = islandDetails.islandName
+            newIsland.islandLocation = location
+            newIsland.createdTimestamp = Date()
+            newIsland.createdByUserId = createdByUserId
+            newIsland.lastModifiedByUserId = createdByUserId
+            newIsland.lastModifiedTimestamp = Date()
+            newIsland.gymWebsite = gymWebsiteURL
+            newIsland.islandID = UUID()
             newIsland.latitude = coordinates.latitude
             newIsland.longitude = coordinates.longitude
             
-            // Save the new island to Core Data
-            try persistenceController.viewContext.save()
+            try await persistenceController.saveContext()
             return .success(newIsland)
         } catch {
-            return .failure(PirateIslandError.geocodingError(error.localizedDescription))
+            return .failure(PirateIslandError.savingError)
         }
     }
-
-
 
     func handleGeocodingError(_ error: Error) -> Error {
         if let error = error as? PirateIslandError {
@@ -141,7 +167,14 @@ public class PirateIslandViewModel: ObservableObject {
     }
     
     // MARK: - Saving Island Data
-    func saveIslandData(_ name: String, _ street: String, _ city: String, _ state: String, _ zip: String, website: URL?) async throws {
+    func saveIslandData(
+        _ name: String,
+        _ street: String,
+        _ city: String,
+        _ state: String,
+        _ zip: String,
+        website: URL?
+    ) async throws {
         guard validateIslandData(name, street, city) else {
             throw PirateIslandError.invalidInput
         }
@@ -151,6 +184,20 @@ public class PirateIslandViewModel: ObservableObject {
         let existingIsland = (try? persistenceController.viewContext.fetch(fetchRequest).first) ?? nil
         var newIsland: PirateIsland? = existingIsland
         
+        let coordinates = try await geocodeAddress("\(street), \(city), \(state) \(zip)")
+        self.coordinates = CLLocationCoordinate2D(latitude: coordinates.latitude, longitude: coordinates.longitude)
+        
+        // Save to Firestore
+        let firestoreDocument = firestore.collection("pirateIslands").document(name)
+        try await firestoreDocument.setData([
+            "name": name,
+            "location": "\(street), \(city), \(state) \(zip)",
+            "gymWebsiteURL": website?.absoluteString as Any,
+            "latitude": coordinates.latitude,
+            "longitude": coordinates.longitude,
+        ])
+        
+        // Cache in Core Data
         if let existingIsland = existingIsland {
             existingIsland.islandLocation = "\(street), \(city), \(state) \(zip)"
             existingIsland.gymWebsite = website
@@ -160,22 +207,19 @@ public class PirateIslandViewModel: ObservableObject {
             newIsland?.islandLocation = "\(street), \(city), \(state) \(zip)"
             newIsland?.gymWebsite = website
             newIsland?.islandID = UUID()
+            newIsland?.latitude = coordinates.latitude
+            newIsland?.longitude = coordinates.longitude
         }
         
-        let location = "\(street), \(city), \(state) \(zip)"
-        if let island = existingIsland ?? newIsland {
-            try await saveIslandCoordinates(island, location)
-        }
-        try persistenceController.saveContext()
+        try await persistenceController.saveContext()
     }
-    
     // MARK: - Helpers
     private func pirateIslandExists(name: String) -> Bool {
         let fetchRequest = PirateIsland.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "islandName == %@", name)
-        
+        fetchRequest.predicate = NSPredicate(format: "islandName ==[c] %@", name.trimmingCharacters(in: .whitespacesAndNewlines))
+
         os_log("Executing fetch request: %@", log: logger, String(describing: fetchRequest))
-        
+
         do {
             let count = try persistenceController.viewContext.count(for: fetchRequest)
             return count > 0
@@ -184,7 +228,7 @@ public class PirateIslandViewModel: ObservableObject {
             return false
         }
     }
-    
+
     func saveIslandCoordinates(_ island: PirateIsland, _ location: String) async throws {
         do {
             let coordinates = try await geocodeAddress(location)
@@ -215,22 +259,33 @@ public class PirateIslandViewModel: ObservableObject {
             return
         }
         
-        island.islandName = name
-        island.islandLocation = location
-        island.lastModifiedByUserId = lastModifiedByUserId
-        island.gymWebsite = gymWebsiteURL
-        island.lastModifiedTimestamp = Date()
-
-        Task {
-            do {
-                let coordinates = try await geocodeAddress(location)
-                island.latitude = coordinates.latitude
-                island.longitude = coordinates.longitude
-                try persistenceController.saveContext()
-                completion(.success(()))
-            } catch {
-                completion(.failure(PirateIslandError.geocodingError(error.localizedDescription)))
-            }
+        do {
+            let coordinates = try await geocodeAddress(location)
+            self.coordinates = CLLocationCoordinate2D(latitude: coordinates.latitude, longitude: coordinates.longitude)
+            
+            // Save to Firestore
+            let firestoreDocument = firestore.collection("pirateIslands").document(island.islandName ?? "")
+            try await firestoreDocument.updateData([
+                "name": name,
+                "location": location,
+                "lastModifiedByUserId": lastModifiedByUserId,
+                "gymWebsiteURL": gymWebsiteURL?.absoluteString as Any,
+                "latitude": coordinates.latitude,
+                "longitude": coordinates.longitude,
+            ])
+            
+            // Cache in Core Data
+            island.islandName = name
+            island.islandLocation = location
+            island.lastModifiedByUserId = lastModifiedByUserId
+            island.gymWebsite = gymWebsiteURL
+            island.latitude = coordinates.latitude
+            island.longitude = coordinates.longitude
+            
+            try await persistenceController.saveContext()
+            completion(.success(()))
+        } catch {
+            completion(.failure(PirateIslandError.savingError))
         }
     }
     
@@ -240,19 +295,18 @@ public class PirateIslandViewModel: ObservableObject {
         longitude: Double,
         island: PirateIsland
     ) async throws {
-        guard island.managedObjectContext != nil else {
-            throw PirateIslandError.invalidInput
-        }
-
+        // Save to Firestore
+        let firestoreDocument = firestore.collection("pirateIslands").document(island.islandName ?? "")
+        try await firestoreDocument.updateData([
+            "latitude": latitude,
+            "longitude": longitude,
+        ])
+        
+        // Cache in Core Data
         island.latitude = latitude
         island.longitude = longitude
-
-        do {
-            // If saveContext is synchronous, remove 'await' here
-            try persistenceController.saveContext()
-        } catch {
-            throw PirateIslandError.savingError
-        }
+        
+        try await persistenceController.saveContext()
     }
 }
 

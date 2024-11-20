@@ -1,13 +1,13 @@
-//
-//  Persistence.swift
-//  Seas_3
-//  Created by Brian Romero on 6/24/24.
-
+// Persistence.swift
+// Seas_3
+// Created by Brian Romero on 6/24/24.
 
 import Combine
 import Foundation
 import CoreData
 import UIKit
+import FirebaseFirestore
+import Firebase
 
 // Notification Name extension
 extension Notification.Name {
@@ -15,42 +15,53 @@ extension Notification.Name {
 }
 
 public class PersistenceController: ObservableObject {
-    // Make the shared instance public
-    public static let shared = PersistenceController(inMemory: false)
+    // Shared instance
+    public static let shared = try! PersistenceController(inMemory: false)
 
-    // Ensure container is accessible
+    // Firestore instance
+    let db: Firestore
+    
+    // Container
     public let container: NSPersistentContainer
 
-    // Make viewContext public for access in preview
+    // View context
     public var viewContext: NSManagedObjectContext {
         return container.viewContext
     }
 
-    // Make init public
-    public init(inMemory: Bool = false) {
+    // Initialize with error handling
+    public init(inMemory: Bool = false) throws {
+        FirebaseApp.configure()
+        self.db = Firestore.firestore()
+
         container = NSPersistentContainer(name: "Seas_3")
         if inMemory {
             container.persistentStoreDescriptions.first!.url = URL(fileURLWithPath: "/dev/null")
         }
+        
+        var loadError: Error?
         container.loadPersistentStores { storeDescription, error in
-            if let error = error as NSError? {
-                fatalError("Unresolved error \(error), \(error.userInfo)")
+            if let error = error {
+                loadError = error
             }
         }
+        
+        if let error = loadError {
+            throw PersistenceError.loadError(error)
+        }
+        
         viewContext.automaticallyMergesChangesFromParent = true
     }
 
-    // General fetch method
-    func fetch<T: NSManagedObject>(request: NSFetchRequest<T>) throws -> [T] {
-        do {
-            return try viewContext.fetch(request)
-        } catch {
-            print("Fetch error: \(error.localizedDescription)")
-            throw PersistenceError.fetchError(error)
-        }
-    }
+    // MARK: - General Persistence Methods
 
-    // General create method
+    func fetch<T: NSManagedObject>(_ request: NSFetchRequest<T>) async throws -> [T] {
+        if T.self == PirateIsland.self {
+            try await cachePirateIslandsFromFirestore()
+        }
+        return try viewContext.fetch(request)
+    }
+    
     func create<T: NSManagedObject>(entityName: String) -> T? {
         guard let entity = NSEntityDescription.entity(forEntityName: entityName, in: viewContext) else {
             return nil
@@ -58,99 +69,134 @@ public class PersistenceController: ObservableObject {
         return T(entity: entity, insertInto: viewContext)
     }
 
-    // Save context method
-    func saveContext() throws {
+    func saveContext() async throws {
         if viewContext.hasChanges {
-            try DispatchQueue.main.sync {
-                do {
-                    try viewContext.save()
-                    NotificationCenter.default.post(name: .contextSaved, object: nil)
-                    print("Context saved successfully.")
-                } catch let saveError as NSError {
-                    print("Error saving context: \(saveError.localizedDescription), \(saveError.userInfo)")
-                    throw PersistenceError.saveError(saveError)
-                }
-            }
+            try viewContext.save()
+            try await db.collection("contexts").document("latest").setData(["timestamp": Date()])
+            NotificationCenter.default.post(name: .contextSaved, object: nil)
         }
     }
 
-    // Delete method
-    func deleteAppDayOfWeek(at offsets: IndexSet, for island: PirateIsland, day: DayOfWeek) {
-        let daySchedules = fetchAppDayOfWeekForIslandAndDay(for: island, day: day)
-        for index in offsets {
-            let scheduleToDelete = daySchedules[index]
-            viewContext.delete(scheduleToDelete)
-        }
-        do {
-            try saveContext() // Catch the error
-        } catch {
-            print("Failed to save context after deletion: \(error.localizedDescription)")
-            // Handle error
-        }
-    }
+    // MARK: - Entity-Specific Methods
 
-    // Specific fetch methods
-    func fetchSchedules(for predicate: NSPredicate) -> [AppDayOfWeek] {
+    func fetchSchedules(for predicate: NSPredicate) async throws -> [AppDayOfWeek] {
         let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
         fetchRequest.predicate = predicate
         fetchRequest.relationshipKeyPathsForPrefetching = ["matTimes"]
-        do {
-            return try fetch(request: fetchRequest)
-        } catch {
-            print("Error fetching schedules: \(error)")
-            return []
-        }
+        return try await fetch(fetchRequest)
     }
 
-    // Custom error enum
-    enum PersistenceError: Error {
-        case fetchError(Error)
-        case saveError(Error)
-    }
-
-    func fetchAllPirateIslands() -> [PirateIsland] {
+    func fetchAllPirateIslands() async throws -> [PirateIsland] {
         let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
-        do {
-            return try fetch(request: fetchRequest)
-        } catch {
-            print("Error fetching islands: \(error)")
-            return []
-        }
+        return try await fetch(fetchRequest)
     }
 
-    func fetchLastPirateIsland() -> PirateIsland? {
+    func fetchLastPirateIsland() async throws -> PirateIsland? {
         let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
         fetchRequest.sortDescriptors = [NSSortDescriptor(keyPath: \PirateIsland.createdTimestamp, ascending: false)]
         fetchRequest.fetchLimit = 1
-        do {
-            let results = try fetch(request: fetchRequest)
-            return results.first
-        } catch {
-            print("Error fetching last island: \(error)")
-            return nil
+        let results = try await fetch(fetchRequest)
+        return results.first
+    }
+
+    // MARK: - UserInfo Helper Methods
+
+    func fetchUser(byUserName userName: String) throws -> UserInfo? {
+        let fetchRequest: NSFetchRequest<UserInfo> = UserInfo.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "userName == %@", userName)
+        let results = try viewContext.fetch(fetchRequest)
+        return results.first
+    }
+
+    func updateUserInfo(email: String, userName: String, name: String, belt: String?) async throws {
+        try await db.collection("users").document(userName).setData(["email": email, "name": name, "belt": belt ?? ""])
+        let fetchRequest: NSFetchRequest<UserInfo> = UserInfo.fetchRequest()
+        if let userInfo = try await fetch(fetchRequest).first {
+            userInfo.email = email
+            userInfo.userName = userName
+            userInfo.name = name
+            userInfo.belt = belt
+            try await saveContext()
+        } else {
+            print("No user profile found.")
         }
     }
 
-    func fetchAppDayOfWeekForIslandAndDay(for island: PirateIsland, day: DayOfWeek) -> [AppDayOfWeek] {
+    // MARK: - Pirate Island Helper Methods
+
+    func fetchAppDayOfWeekForIslandAndDay(for island: PirateIsland, day: DayOfWeek) async throws -> [AppDayOfWeek] {
         let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
         fetchRequest.predicate = NSPredicate(format: "pIsland == %@ AND day == %@", island, day.rawValue)
         fetchRequest.relationshipKeyPathsForPrefetching = ["matTimes"]
+        return try await fetch(fetchRequest)
+    }
+
+
+    func fetchSingle(entityName: String) async throws -> NSManagedObject? {
+        let fetchRequest = NSFetchRequest<NSManagedObject>(entityName: entityName)
+        fetchRequest.fetchLimit = 1
+        if let result = try container.viewContext.fetch(fetchRequest).first {
+            return result
+        }
+        
+        // If not found in Core Data, fetch from Firebase
+        if entityName == "PirateIsland" {
+            let fetchedIsland = try await fetchPirateIslandFromFirebase()
+            
+            // Cache the result into Core Data if found in Firebase
+            if let island = fetchedIsland {
+                let islandEntity = NSEntityDescription.entity(forEntityName: "PirateIsland", in: container.viewContext)!
+                let pirateIsland = PirateIsland(entity: islandEntity, insertInto: container.viewContext)
+                let uuidString = "\(island.id)"
+                pirateIsland.islandID = UUID(uuidString: uuidString)
+                pirateIsland.islandName = island.islandName
+                // Map other attributes
+                try await saveContext()
+                return pirateIsland
+            }
+        }
+        
+        return nil
+    }
+
+    private func fetchPirateIslandFromFirebase() async throws -> PirateIsland? {
+        let snapshot = try await db.collection("pirateIslands").limit(to: 1).getDocuments()
+        guard let document = snapshot.documents.first else {
+            return nil
+        }
+        
+        let island = PirateIsland(context: viewContext)
+        island.islandID = UUID(uuidString: document.documentID)
+        island.islandName = document.get("islandName") as? String
+        return island
+    }
+
+    // Cache pirate islands from Firestore
+    func cachePirateIslandsFromFirestore() async throws {
         do {
-            return try fetch(request: fetchRequest)
+            let snapshot = try await db.collection("pirateIslands").getDocuments()
+            let _: [PirateIsland] = snapshot.documents.compactMap { document in
+                let pirateIsland = PirateIsland(context: viewContext)
+                pirateIsland.islandID = UUID(uuidString: document.documentID)
+                pirateIsland.islandName = document.get("islandName") as? String ?? ""
+                // Map other attributes
+                return pirateIsland
+            }
+            try await saveContext()
         } catch {
-            print("Error fetching app day of week: \(error)")
-            return []
+            throw PersistenceError.firestoreError(error)
         }
     }
 
     // MARK: - Preview Persistence Controller
+
     static var preview: PersistenceController = {
-        let result = PersistenceController(inMemory: true)
+        let result = try! PersistenceController(inMemory: true)
         let viewContext = result.viewContext
 
         for _ in 0..<10 {
             let newIsland = PirateIsland(context: viewContext)
-            newIsland.islandID = UUID() // Set the islandID
+            newIsland.islandID = UUID()
             newIsland.islandName = "Preview Gym"
             newIsland.latitude = 37.7749
             newIsland.longitude = -122.4194
@@ -159,50 +205,21 @@ public class PersistenceController: ObservableObject {
             // Set other required attributes as needed
         }
 
-        do {
-            try viewContext.save()
-        } catch let saveError as NSError {
-            print("Error saving preview context: \(saveError.localizedDescription), \(saveError.userInfo)")
-            fatalError("Unresolved error \(saveError), \(saveError.userInfo)")
-        }
-
+        try! viewContext.save()
         return result
     }()
 
-    // MARK: - UserInfo Helper Methods
-
-    // Fetch UserInfo from Core Data
-    func fetchUser(byUserName userName: String) -> UserInfo? {
-        let fetchRequest: NSFetchRequest<UserInfo> = UserInfo.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "userName == %@", userName)
-
-        do {
-            let results = try viewContext.fetch(fetchRequest)
-            if let user = results.first {
-                print("User fetched successfully for userName: \(userName)")  // Log for success
-                return user
-            } else {
-                print("No user found for userName: \(userName)")  // Log for no results
-                return nil
-            }
-        } catch {
-            print("Error fetching user info for userName: \(userName) - \(error.localizedDescription)")  // Detailed error log
-            return nil
-        }
+    // Custom error enum
+    enum PersistenceError: Error {
+        case fetchError(Error)
+        case saveError(Error)
+        case firestoreError(Error)
+        case loadError(Error)
+    }
     }
 
-
-    // Update UserInfo in Core Data
-    func updateUserInfo(email: String, userName: String, name: String, belt: String?) throws {
-        let fetchRequest: NSFetchRequest<UserInfo> = UserInfo.fetchRequest()
-        if let userInfo = try fetch(request: fetchRequest).first {
-            userInfo.email = email
-            userInfo.userName = userName
-            userInfo.name = name
-            userInfo.belt = belt
-            try saveContext()
-        } else {
-            print("No user profile found.")
+    extension PirateIsland {
+        var uuidID: UUID? {
+            return islandID
         }
     }
-}

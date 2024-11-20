@@ -70,10 +70,10 @@ class AppDayOfWeekRepository: ObservableObject {
         return request
     }
 
-    func saveData() {
+    func saveData() async {
         print("AppDayOfWeekRepository - Saving data")
         do {
-            try PersistenceController.shared.saveContext()
+            try await PersistenceController.shared.saveContext()
         } catch {
             print("Error saving data: \(error)")
         }
@@ -208,7 +208,7 @@ class AppDayOfWeekRepository: ObservableObject {
         print("Created or fetched AppDayOfWeek: \(newAppDayOfWeek.debugDescription)")
     }
 
-    func deleteSchedule(at indexSet: IndexSet, for day: DayOfWeek, island: PirateIsland) {
+    func deleteSchedule(at indexSet: IndexSet, for day: DayOfWeek, island: PirateIsland) async {
         let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
         fetchRequest.entity = NSEntityDescription.entity(forEntityName: "AppDayOfWeek", in: PersistenceController.shared.viewContext)!
         fetchRequest.predicate = NSPredicate(format: "pIsland == %@ AND day == %@", island, day.rawValue)
@@ -224,25 +224,35 @@ class AppDayOfWeekRepository: ObservableObject {
                 }
                 PersistenceController.shared.viewContext.delete(dayToDelete)
             }
-            saveData()
+            await saveData()
         } catch {
             print("Error deleting schedule: \(error.localizedDescription)")
         }
     }
 
-    func fetchSchedules(for island: PirateIsland) -> [AppDayOfWeek] {
+    func fetchSchedules(for island: PirateIsland) async -> [AppDayOfWeek] {
         print("AppDayOfWeekRepository - Fetching schedules for island: \(island.islandName ?? "Unknown Gym")")
         let predicate = NSPredicate(format: "pIsland == %@", island)
-        return PersistenceController.shared.fetchSchedules(for: predicate)
+        do {
+            return try await PersistenceController.shared.fetchSchedules(for: predicate)
+        } catch {
+            print("Error fetching schedules: \(error.localizedDescription)")
+            return []
+        }
     }
 
-    func fetchSchedules(for island: PirateIsland, day: DayOfWeek) -> [AppDayOfWeek] {
+    func fetchSchedules(for island: PirateIsland, day: DayOfWeek) async -> [AppDayOfWeek] {
         print("AppDayOfWeekRepository - Fetching schedules for island: \(island.islandName!) and day: \(day.displayName)")
         let predicate = NSPredicate(format: "pIsland == %@ AND day == %@", island, day.rawValue)
-        return PersistenceController.shared.fetchSchedules(for: predicate)
+        do {
+            return try await PersistenceController.shared.fetchSchedules(for: predicate)
+        } catch {
+            print("Error fetching schedules: \(error.localizedDescription)")
+            return []
+        }
     }
-    
-    func deleteRecord(for appDayOfWeek: AppDayOfWeek) {
+
+    func deleteRecord(for appDayOfWeek: AppDayOfWeek) async {
         print("AppDayOfWeekRepository - Deleting record for AppDayOfWeek: \(appDayOfWeek.appDayOfWeekID ?? "Unknown")")
         if let matTimes = appDayOfWeek.matTimes as? Set<MatTime> {
             for matTime in matTimes {
@@ -250,7 +260,7 @@ class AppDayOfWeekRepository: ObservableObject {
             }
         }
         PersistenceController.shared.viewContext.delete(appDayOfWeek)
-        saveData()
+        await saveData()
     }
     
     private func performFetch(request: NSFetchRequest<AppDayOfWeek>) -> [AppDayOfWeek]? {

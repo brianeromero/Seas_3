@@ -1,14 +1,13 @@
+// AddNewIsland.swift
+// Seas_3
 //
-//  AddNewIsland.swift
-//  Seas_3
-//
-//  Created by Brian Romero on 6/26/24.
+// Created by Brian Romero on 6/26/24.
 //
 
-// MARK: - Import Statements
 import SwiftUI
 import CoreData
 import Combine
+import FirebaseFirestore
 
 struct AddNewIsland: View {
     // MARK: - Environment Variables
@@ -18,7 +17,7 @@ struct AddNewIsland: View {
     // MARK: - Observed Objects
     @ObservedObject var islandViewModel: PirateIslandViewModel
     @ObservedObject var profileViewModel: ProfileViewModel
-    @ObservedObject var islandDetails = IslandDetails() // Updated to ObservedObject
+    @State var islandDetails: IslandDetails
 
     // MARK: - State Variables
     @State private var isSaveEnabled = false
@@ -28,9 +27,10 @@ struct AddNewIsland: View {
     @State private var toastMessage = ""
 
     // MARK: - Initialization
-    init(viewModel: PirateIslandViewModel, profileViewModel: ProfileViewModel) {
+    init(viewModel: PirateIslandViewModel, profileViewModel: ProfileViewModel, islandDetails: IslandDetails) {
         self.islandViewModel = viewModel
         self.profileViewModel = profileViewModel
+        self.islandDetails = islandDetails  // Initialize IslandDetails
     }
 
     // MARK: - Body
@@ -39,6 +39,7 @@ struct AddNewIsland: View {
             Form {
                 islandFormSection
                 enteredBySection
+                countrySpecificFieldsSection
                 saveButton
                 cancelButton
             }
@@ -55,24 +56,37 @@ struct AddNewIsland: View {
 
     // MARK: - Extracted Views
     private var islandFormSection: some View {
-        Section(header: Text("Gym Details")) {
-            TextField("Island Name", text: $islandDetails.islandName)
-            TextField("Street", text: $islandDetails.street)
-            TextField("City", text: $islandDetails.city)
-            TextField("State", text: $islandDetails.state)
-            TextField("Zip Code", text: $islandDetails.zip)
-            TextField("Website", text: $islandDetails.gymWebsite)
-                .onChange(of: islandDetails.gymWebsite) { newValue in
-                    islandDetails.gymWebsiteURL = URL(string: newValue)
-                }
-        }
+        IslandFormSections(
+            viewModel: islandViewModel,
+            islandName: $islandDetails.islandName,
+            street: $islandDetails.street,
+            city: $islandDetails.city,
+            state: $islandDetails.state,
+            zip: $islandDetails.zip,
+            province: $islandDetails.province,
+            postalCode: $islandDetails.postalCode,
+            gymWebsite: $islandDetails.gymWebsite,
+            gymWebsiteURL: $islandDetails.gymWebsiteURL,
+            selectedCountry: $islandDetails.country, // Selected country binding
+            showAlert: $showAlert,
+            alertMessage: $alertMessage,
+            islandDetails: $islandDetails
+        )
     }
+
 
     private var enteredBySection: some View {
         Section(header: Text("Entered By")) {
             Text(profileViewModel.name)
                 .foregroundColor(.primary)
                 .padding()
+        }
+    }
+
+    private var countrySpecificFieldsSection: some View {
+        Section(header: Text("Gym Information")) {
+            // Use AddressFormView for country-specific dynamic fields
+            AddressFormView()
         }
     }
 
@@ -121,6 +135,7 @@ struct AddNewIsland: View {
             return
         }
 
+        // First, save the island to Core Data
         let result = await islandViewModel.createPirateIslandAsync(
             islandDetails: islandDetails,
             createdByUserId: profileViewModel.name,
@@ -129,10 +144,55 @@ struct AddNewIsland: View {
 
         switch result {
         case .success:
+            // After successfully saving to Core Data, save the island to Firestore
+            await saveIslandToFirestore()
             clearFields()
         case .failure(let error):
             showToast = true
             toastMessage = error.localizedDescription
+        }
+    }
+
+    private func saveIslandToFirestore() async {
+        // Prepare the data for Firestore
+        let islandData: [String: Any] = [
+            "islandName": islandDetails.islandName,
+            "street": islandDetails.street,
+            "city": islandDetails.city,
+            "state": islandDetails.state,
+            "zip": islandDetails.zip,
+            "website": islandDetails.gymWebsite,
+            "createdBy": profileViewModel.name
+        ]
+        
+        do {
+            // Save to Firestore
+            let documentRef = try await islandViewModel.firestore.collection("islands").addDocument(data: islandData)
+            
+            // Store the Firestore document ID in the ViewModel
+            islandViewModel.firestoreDocumentID = documentRef.documentID
+            
+            // Save the island data to Core Data as a local cache
+            let newIsland = PirateIsland(context: viewContext) // Using viewContext directly from @Environment
+            newIsland.islandName = islandDetails.islandName
+            newIsland.islandLocation = "\(islandDetails.street), \(islandDetails.city), \(islandDetails.state) \(islandDetails.zip)"
+            
+            // Convert the gymWebsite string to a URL
+            newIsland.gymWebsite = URL(string: islandDetails.gymWebsite)
+            
+            newIsland.createdByUserId = profileViewModel.name
+            newIsland.islandID = UUID()
+            newIsland.createdTimestamp = Date()
+            newIsland.lastModifiedTimestamp = Date()
+            
+            // Save to Core Data
+            try viewContext.save()
+            
+            toastMessage = "Island saved successfully!"
+            showToast = true
+        } catch {
+            toastMessage = "Error saving to Firestore: \(error.localizedDescription)"
+            showToast = true
         }
     }
 
@@ -155,7 +215,6 @@ struct AddNewIsland: View {
     }
 }
 
-// MARK: - PreviewProvider
 struct AddNewIsland_Previews: PreviewProvider {
     static var previews: some View {
         let persistenceController = PersistenceController.preview
@@ -166,7 +225,8 @@ struct AddNewIsland_Previews: PreviewProvider {
         profileViewModel.name = "Brian Romero" // Example name for preview
         return AddNewIsland(
             viewModel: PirateIslandViewModel(persistenceController: persistenceController),
-            profileViewModel: profileViewModel
+            profileViewModel: profileViewModel,
+            islandDetails: IslandDetails() // Pass IslandDetails here
         )
     }
 }

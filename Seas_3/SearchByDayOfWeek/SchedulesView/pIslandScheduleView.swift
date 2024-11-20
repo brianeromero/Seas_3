@@ -87,7 +87,9 @@ struct pIslandScheduleView: View {
                 List(viewModel.allIslands, id: \.self) { island in
                     Button(action: {
                         self.selectedIsland = island
-                        viewModel.loadSchedules(for: island)
+                        Task {
+                            await viewModel.loadSchedules(for: island)
+                        }
                     }) {
                         Text(island.islandName ?? "Unknown Gym")
                     }

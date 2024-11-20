@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23507" systemVersion="24A348" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+    <entity name="AdSettings" representedClassName="AdSettings" syncable="YES">
+        <attribute name="enabled" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="idfa" optional="YES" attributeType="String"/>
+        <relationship name="user" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="UserInfo" inverseName="adSettings" inverseEntity="UserInfo"/>
+    </entity>
     <entity name="AppDayOfWeek" representedClassName="AppDayOfWeek" syncable="YES">
         <attribute name="appDayOfWeekID" optional="YES" attributeType="String"/>
         <attribute name="createdTimestamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
@@ -57,5 +62,6 @@
         <attribute name="userID" attributeType="String"/>
         <attribute name="userName" attributeType="String"/>
         <attribute name="verificationToken" optional="YES" attributeType="String"/>
+        <relationship name="adSettings" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="AdSettings" inverseName="user" inverseEntity="AdSettings"/>
     </entity>
 </model>
