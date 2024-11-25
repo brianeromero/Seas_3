@@ -7,7 +7,14 @@ import Foundation
 import Combine
 
 class IslandDetails: ObservableObject {
-    @Published var islandName: String = ""
+    @Published var islandName: String = "" {
+        didSet {
+            debounceValidation()
+        }
+    }
+    @Published var isIslandNameValid: Bool = true
+    @Published var islandNameErrorMessage: String = ""
+
     @Published var street: String = ""
     @Published var city: String = ""
     @Published var state: String = ""
@@ -48,6 +55,29 @@ class IslandDetails: ObservableObject {
             if pincode != oldValue {
                 pincode = pincode.trimmingCharacters(in: .whitespaces)
             }
+        }
+    }
+    
+    private var validationCancellable: AnyCancellable?
+    private let debounceDelay = 0.5 // Delay in seconds
+
+    // Debounce logic for islandName validation
+    private func debounceValidation() {
+        validationCancellable?.cancel()
+        validationCancellable = $islandName
+            .debounce(for: .seconds(debounceDelay), scheduler: RunLoop.main)
+            .sink { [weak self] value in
+                self?.validateIslandName(value)
+            }
+    }
+
+    private func validateIslandName(_ name: String) {
+        if name.isEmpty {
+            isIslandNameValid = false
+            islandNameErrorMessage = "Island name cannot be empty."
+        } else {
+            isIslandNameValid = true
+            islandNameErrorMessage = ""
         }
     }
 
@@ -97,5 +127,10 @@ class IslandDetails: ObservableObject {
         self.province = province
         self.postalCode = postalCode
         self.pincode = pincode
+    }
+
+    // Deinitializer to clean up resources
+    deinit {
+        validationCancellable?.cancel()
     }
 }

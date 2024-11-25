@@ -290,40 +290,42 @@ struct CreateAccountView: View {
         print("Email Valid: \(formState.isEmailValid)")
         print("Password Valid: \(formState.isPasswordValid)")
 
-        // Start an asynchronous task
         Task {
             do {
-                // Create the user account
+                // Attempt to create the user account
                 try await authViewModel.createUser(
                     withEmail: formState.email,
                     password: formState.password,
                     userName: formState.userName,
-                    name: formState.name, belt: belt
+                    name: formState.name,
+                    belt: belt
                 )
                 successMessage = "Account created successfully"
                 showErrorAlert = true
 
-                // Construct the location string
-                let location = "\(street), \(city), \(state) \(zip)".trimmingCharacters(in: .whitespacesAndNewlines)
+                // Update individual address fields in islandDetails
+                islandDetails.islandName = islandName
+                islandDetails.street = street
+                islandDetails.city = city
+                islandDetails.state = state
+                islandDetails.zip = zip
+                islandDetails.country = selectedCountry?.name.common ?? ""
 
-                // Prepare for creating the Pirate Island, only if name and location are not empty
+                // Use fullAddress indirectly through its computed value after fields are set
+                let location = islandDetails.fullAddress
+
                 if !islandName.isEmpty && !location.isEmpty {
-                    Logger.logCreatedByIdEvent(createdByUserId: formState.userName, fileName: "CreateAccountView", functionName: "createPirateIslandAsync")
-                    let result = await islandViewModel.createPirateIslandAsync(
-                        islandDetails: islandDetails,
+                    Logger.logCreatedByIdEvent(
                         createdByUserId: formState.userName,
-                        gymWebsiteURL: gymWebsiteURL
+                        fileName: "CreateAccountView",
+                        functionName: "createPirateIsland"
+                    )
+                    let newIsland = try await islandViewModel.createPirateIsland(
+                        islandDetails: islandDetails,
+                        createdByUserId: formState.userName
                     )
 
-                    // Handle the result of creating the Pirate Island
-                    switch result {
-                    case .success(let newIsland):
-                        // Update coordinates for the new island
-                        await self.updateIslandCoordinates(newIsland, location)  // Now it's valid to use 'await'
-                    case .failure(let error):
-                        // Handle the failure case when creating the Pirate Island
-                        print("Error creating pirate island: \(error.localizedDescription)")
-                    }
+                    print("Pirate island created successfully: \(newIsland.islandName ?? "Unknown")")
                 }
 
                 // Handle overall success (e.g., show a success message or navigate to another view)
@@ -340,16 +342,10 @@ struct CreateAccountView: View {
     private func updateIslandCoordinates(_ island: PirateIsland, _ location: String) async {
         do {
             try GeocodingConfig.validateApiKey()
-            let coordinates = try await geocode(address: location, apiKey: GeocodingConfig.apiKey)
-            
-            // Call the method to update latitude/longitude with the fetched coordinates
-            // Ensure this method is async so that it can be awaited without the completion handler
-            try await self.islandViewModel.updatePirateIslandLatitudeLongitude(
-                latitude: coordinates.latitude,
-                longitude: coordinates.longitude,
-                island: island
-            )
-            
+            let coordinates = try await islandViewModel.geocodeAddress(location)
+            island.latitude = coordinates.latitude
+            island.longitude = coordinates.longitude
+            try await PersistenceController.shared.saveContext()
             print("Latitude/Longitude updated successfully")
         } catch {
             print("Error updating latitude/longitude: \(error.localizedDescription)")
@@ -411,13 +407,24 @@ struct CreateAccountView: View {
                 return "Invalid input"
             case .islandExists:
                 return "Island already exists"
-            case .geocodingError:
-                return "Geocoding error"
+            case .geocodingError(let message):
+                return "Geocoding error: \(message)"
             case .savingError:
                 return "Saving error"
             case .islandNameMissing:
                 return "Island name is missing"
+            case .streetMissing:
+                return "Street address is missing"
+            case .cityMissing:
+                return "City is missing"
+            case .stateMissing:
+                return "State is missing"
+            case .zipMissing:
+                return "Zip code is missing"
+            case .fieldMissing(_):
+                return "Some OTHER field is missing"
             }
+            
         } else {
             let errorCode = (error as NSError).code
             switch CreateAccountError(rawValue: errorCode) {

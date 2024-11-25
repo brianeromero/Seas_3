@@ -150,8 +150,6 @@ struct AddIslandFormView: View {
         return fields
     }
 
-
-    
     func updateIslandLocation() {
         isGeocoding = true
         Task {
@@ -192,7 +190,15 @@ struct AddIslandFormView: View {
                 let location = addressComponents.joined(separator: ", ")
                 
                 // Attempt to geocode the location
-                try await pirateIslandViewModel.saveIslandCoordinates(currentIsland, location)
+                let coordinates = try await pirateIslandViewModel.geocodeAddress(location)
+                
+                // Update the island's coordinates
+                currentIsland.latitude = coordinates.latitude
+                currentIsland.longitude = coordinates.longitude
+                
+                // Save changes to Core Data
+                try await viewContext.save()
+                
                 islandLocation = location  // Update the island location field
                 validateFields()  // Validate after updating the location
             } catch {
@@ -202,9 +208,6 @@ struct AddIslandFormView: View {
             isGeocoding = false
         }
     }
-
-
-    // AddIslandFormView.swift
 
     private func validateFields() {
         Logger.logCreatedByIdEvent(createdByUserId: createdByUserId, fileName: "AddIslandFormView", functionName: "validateFields")

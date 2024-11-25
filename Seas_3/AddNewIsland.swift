@@ -174,25 +174,7 @@ struct AddNewIsland: View {
             
         Task {
             do {
-                try await islandViewModel.saveIslandData(
-                    islandDetails.islandName,
-                    islandDetails.street,
-                    islandDetails.city,
-                    islandDetails.state,
-                    islandDetails.zip,
-                    islandDetails.province,
-                    islandDetails.postalCode,
-                    islandDetails.neighborhood,
-                    islandDetails.complement,
-                    islandDetails.apartment,
-                    islandDetails.region,
-                    islandDetails.county,
-                    islandDetails.governorate,
-                    islandDetails.additionalInfo,
-                    islandDetails.country!,
-                    createdByUserId: profileViewModel.name,
-                    website: islandDetails.gymWebsiteURL
-                )
+                _ = try await islandViewModel.createPirateIsland(islandDetails: islandDetails, createdByUserId: profileViewModel.name)
                 toastMessage = "Island saved successfully!"
                 clearFields()
             } catch {

@@ -54,7 +54,6 @@ struct IslandFormSections: View {
     @State private var showValidationMessage = false
     @ObservedObject var profileViewModel: ProfileViewModel
 
-
     var body: some View {
         VStack(spacing: 10) {
             UnifiedCountryPickerView(selectedCountry: $selectedCountry)
@@ -66,11 +65,7 @@ struct IslandFormSections: View {
             Alert(title: Text("Error"), message: Text(errorMessage), dismissButton: .default(Text("OK")))
         }
         .onAppear(perform: fetchCountries)
-        .onAppear {
-            os_log("IslandFormSections view appeared", log: .default, type: .info)
-        }
     }
-
 
     var islandDetailsSection: some View {
         Section(header: Text("Gym Details").fontWeight(.bold)) {
@@ -79,11 +74,12 @@ struct IslandFormSections: View {
                 TextField("Enter Gym Name", text: $islandName)
                     .onChange(of: islandName) { newValue in
                         os_log("Island name changed to '%@'", log: .default, type: .info, islandName)
-                        Task {
-                            await validateGymDetails()
-                        }
+                        Task { await validateGymDetails() }
                     }
                     .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .onChange(of: islandDetails.islandName) { newValue in
+                        print("Updated island details: \(islandDetails)")
+                    }
 
                 AddressFieldsView(
                     selectedCountry: $selectedCountry,
@@ -96,6 +92,9 @@ struct IslandFormSections: View {
                     apartment: $apartment,
                     additionalInfo: $additionalInfo
                 )
+                .onChange(of: islandDetails.street) { newValue in
+                    print("Updated street: \(newValue)")
+                }
 
                 if showValidationMessage {
                     Text("Required fields are missing.")
@@ -104,31 +103,8 @@ struct IslandFormSections: View {
             }
         }
         .padding()
-        .onChange(of: street) { newValue in
-            os_log("Street address changed to '%@'", log: .default, type: .info, street)
-        }
-        .onChange(of: city) { newValue in
-            os_log("City changed to '%@'", log: .default, type: .info, city)
-        }
-        .onChange(of: state) { newValue in
-            os_log("State changed to '%@'", log: .default, type: .info, state)
-        }
-        .onChange(of: zip) { newValue in
-            os_log("Zip code changed to '%@'", log: .default, type: .info, zip)
-        }
-        .onChange(of: neighborhood) { newValue in
-            os_log("Neighborhood changed to '%@'", log: .default, type: .info, neighborhood)
-        }
-        .onChange(of: complement) { newValue in
-            os_log("Complement changed to '%@'", log: .default, type: .info, complement)
-        }
-        .onChange(of: apartment) { newValue in
-            os_log("Apartment changed to '%@'", log: .default, type: .info, apartment)
-        }
-        .onChange(of: additionalInfo) { newValue in
-            os_log("Additional info changed to '%@'", log: .default, type: .info, additionalInfo)
-        }
     }
+
     
     // MARK: - Helper Functions
     func requiredFields(for country: Country?) -> [AddressField] {
@@ -145,6 +121,7 @@ struct IslandFormSections: View {
                 }
             }
     }
+
 
     func binding(for field: AddressField) -> Binding<String> {
         switch field {
@@ -233,15 +210,18 @@ struct IslandFormSections: View {
             return
         }
 
-        let requiredFields = requiredFields(for: selectedCountry)
-        let allFieldsValid = requiredFields.allSatisfy { !binding(for: $0).wrappedValue.isEmpty }
-        let zipValid = isValidZip(zip, regex: countryAddressFormats[selectedCountry.cca2]?.zipValidationRegex)
-
-        if !(allFieldsValid && zipValid) {
-            setError("Required fields for \(selectedCountry.name.common) are missing or invalid.")
-        } else {
+        if validateAddress(for: selectedCountry) {
             await updateIslandLocation()
+        } else {
+            setError("Please fill in all required fields.")
         }
+    }
+    
+    func validateAddress(for country: Country) -> Bool {
+        let requiredFields = requiredFields(for: country)
+        let allFieldsValid = requiredFields.allSatisfy { !binding(for: $0).wrappedValue.isEmpty }
+        let zipValid = isValidZip(zip, regex: countryAddressFormats[country.cca2]?.zipValidationRegex)
+        return allFieldsValid && zipValid
     }
 
 
@@ -255,24 +235,19 @@ struct IslandFormSections: View {
 
         // Update island location data in view model
         do {
-            try await viewModel.saveIslandData(
-                islandName,
-                street,
-                city,
-                state,
-                zip,
-                province,
-                postalCode,
-                neighborhood,
-                complement,
-                apartment,
-                region,
-                county,
-                governorate,
-                additionalInfo,
-                selectedCountry?.name.common ?? "",
-                createdByUserId: profileViewModel.name, // Replace placeholder with actual user ID
-                website: gymWebsiteURL
+            try await viewModel.updatePirateIsland(
+                island: PirateIsland(), // Replace with the actual island object
+                islandDetails: IslandDetails(
+                    islandName: islandName,
+                    street: street,
+                    city: city,
+                    state: state,
+                    zip: zip,
+                    gymWebsite: gymWebsite,
+                    gymWebsiteURL: gymWebsiteURL,
+                    country: selectedCountry?.name.common ?? ""
+                ),
+                lastModifiedByUserId: profileViewModel.name // Replace with actual user ID
             )
         } catch {
             self.errorMessage = "Error updating island location: \(error.localizedDescription)"
@@ -284,7 +259,7 @@ struct IslandFormSections: View {
         guard let regex = regex else { return true }
         return NSPredicate(format: "SELF MATCHES %@", regex).evaluate(with: zip)
     }
-
+    
     func validateGymNameAndAddress() -> Bool {
         // Validation logic to ensure fields are not empty
         return !islandName.isEmpty && !street.isEmpty && !city.isEmpty && !state.isEmpty && !zip.isEmpty
@@ -296,23 +271,16 @@ struct IslandFormSections: View {
 
 
     func processWebsiteURL() {
-        guard !gymWebsite.isEmpty else {
-            gymWebsiteURL = nil
-            return
-        }
-        let strippedURL = stripProtocol(from: gymWebsite)
-        let fullURLString = "https://" + strippedURL
-
+        guard !gymWebsite.isEmpty else { gymWebsiteURL = nil; return }
+        let fullURLString = "https://" + stripProtocol(from: gymWebsite)
         if validateURL(fullURLString) {
             gymWebsiteURL = URL(string: fullURLString)
         } else {
             showAlert = true
             alertMessage = "Invalid URL format"
             gymWebsite = ""
-            gymWebsiteURL = nil
         }
     }
-
 
     private func stripProtocol(from urlString: String) -> String {
         if urlString.lowercased().starts(with: "http://") {
@@ -323,8 +291,9 @@ struct IslandFormSections: View {
         return urlString
     }
 
-    private func validateURL(_ urlString: String) -> Bool {
-        return URL(string: urlString) != nil
+    func validateURL(_ urlString: String) -> Bool {
+        guard let url = URL(string: urlString) else { return false }
+        return UIApplication.shared.canOpenURL(url)
     }
 
     private func validateFields() -> Bool {
@@ -351,24 +320,19 @@ struct IslandFormSections: View {
         }
 
         do {
-            try await viewModel.saveIslandData(
-                islandName,
-                street,
-                city,
-                state,
-                zip,
-                province,
-                postalCode,
-                neighborhood,
-                complement,
-                apartment,
-                region,
-                county,
-                governorate,
-                additionalInfo,
-                selectedCountry?.name.common ?? "",
-                createdByUserId: "userId", // Replace with actual user ID
-                website: gymWebsiteURL
+            try await viewModel.updatePirateIsland(
+                island: PirateIsland(), // Replace with the actual island object
+                islandDetails: IslandDetails(
+                    islandName: islandName,
+                    street: street,
+                    city: city,
+                    state: state,
+                    zip: zip,
+                    gymWebsite: gymWebsite,
+                    gymWebsiteURL: gymWebsiteURL,
+                    country: selectedCountry?.name.common ?? ""
+                ),
+                lastModifiedByUserId: "userId" // Replace with actual user ID
             )
             print("Island data saved successfully")
         } catch {

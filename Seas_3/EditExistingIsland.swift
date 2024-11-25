@@ -13,6 +13,8 @@ struct EditExistingIsland: View {
     @ObservedObject var island: PirateIsland
     @ObservedObject var islandViewModel: PirateIslandViewModel
     @Environment(\.presentationMode) var presentationMode
+    @State var islandDetails: IslandDetails
+
     
     @State private var islandName: String
     @State private var islandLocation: String
@@ -33,6 +35,16 @@ struct EditExistingIsland: View {
         _createdByUserId = State(initialValue: island.createdByUserId ?? "")
         _gymWebsite = State(initialValue: island.gymWebsite?.absoluteString ?? "")
         _lastModifiedByUserId = State(initialValue: island.lastModifiedByUserId ?? "")
+        _islandDetails = State(initialValue: IslandDetails(
+            islandName: island.islandName ?? "",
+            street: island.islandLocation ?? "",
+            city: "",
+            state: "",
+            zip: "",
+            gymWebsite: island.gymWebsite?.absoluteString ?? "",
+            gymWebsiteURL: island.gymWebsite,
+            country: ""
+        ))
     }
     
     var body: some View {
@@ -101,27 +113,16 @@ struct EditExistingIsland: View {
                 let coordinates = try await geocode(address: islandLocation, apiKey: GeocodingConfig.apiKey)
                 
                 // Update latitude and longitude
-                try await islandViewModel.updatePirateIslandLatitudeLongitude(
-                    latitude: coordinates.latitude,
-                    longitude: coordinates.longitude,
-                    island: island
-                )
-                print("Latitude/Longitude updated successfully")
+                island.latitude = coordinates.latitude
+                island.longitude = coordinates.longitude
                 
                 // Update the pirate island details
-                await islandViewModel.updatePirateIsland(
+                try await islandViewModel.updatePirateIsland(
                     island: island,
-                    name: islandName,
-                    location: islandLocation,
-                    lastModifiedByUserId: lastModifiedByUserId,
-                    gymWebsiteURL: gymWebsiteURL) { result in
-                        switch result {
-                        case .success:
-                            print("Gym updated successfully")
-                        case .failure(let error):
-                            print("Error updating gym: \(error.localizedDescription)")
-                        }
-                    }
+                    islandDetails: islandDetails,
+                    lastModifiedByUserId: lastModifiedByUserId
+                )
+                
                 // Dismiss the view
                 presentationMode.wrappedValue.dismiss()
                 
