@@ -85,7 +85,7 @@ class IslandDetails: ObservableObject {
     var fullAddress: String {
         """
         \(street)\(neighborhood.isEmpty ? "" : ", \(neighborhood)")\(block.isEmpty ? "" : ", \(block)")\(apartment.isEmpty ? "" : ", Apt \(apartment)")
-        \(city)\(region.isEmpty ? "" : ", \(region)")\(state.isEmpty ? "" : ", \(state)")
+        \(city)\(region.isEmpty ? "" : ", \(region)")\(state.isEmpty ? "" : ", \(state)") \(zip)
         \(country ?? "")\(postalCode.isEmpty ? "" : ", \(postalCode)")
         """
     }

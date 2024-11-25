@@ -30,7 +30,8 @@ class AppDayOfWeekRepository: ObservableObject {
     }
 
     static let shared: AppDayOfWeekRepository = {
-        return AppDayOfWeekRepository(persistenceController: PersistenceController.shared)
+        let persistenceController = PersistenceController.shared
+        return AppDayOfWeekRepository(persistenceController: persistenceController)
     }()
 
     func setSelectedIsland(_ island: PirateIsland) {
