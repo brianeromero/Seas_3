@@ -56,6 +56,7 @@ public class PirateIslandViewModel: ObservableObject {
         gymWebsiteURL: URL?,
         completion: @escaping (Result<PirateIsland, Error>) -> Void
     ) async {
+        Logger.logCreatedByIdEvent(createdByUserId: createdByUserId, fileName: "PirateIslandViewModel", functionName: "createPirateIsland")
         guard validateIslandData(name, location, createdByUserId) else {
             completion(.failure(PirateIslandError.invalidInput))
             return
@@ -107,6 +108,8 @@ public class PirateIslandViewModel: ObservableObject {
         createdByUserId: String,
         gymWebsiteURL: URL?
     ) async -> Result<PirateIsland, Error> {
+        Logger.logCreatedByIdEvent(createdByUserId: createdByUserId, fileName: "PirateIslandViewModel", functionName: "createPirateIslandAsync")
+
         let name = islandDetails.islandName
         let location = "\(islandDetails.street), \(islandDetails.city), \(islandDetails.state) \(islandDetails.zip)"
         
@@ -120,7 +123,9 @@ public class PirateIslandViewModel: ObservableObject {
         
         do {
             let coordinates = try await geocodeAddress(location)
-            self.coordinates = CLLocationCoordinate2D(latitude: coordinates.latitude, longitude: coordinates.longitude)
+            await MainActor.run {
+                self.coordinates = CLLocationCoordinate2D(latitude: coordinates.latitude, longitude: coordinates.longitude)
+            }
             
             // Save to Firestore
             let firestoreDocument = firestore.collection("pirateIslands").document()
@@ -166,7 +171,8 @@ public class PirateIslandViewModel: ObservableObject {
     
     // MARK: - Validation
     public func validateIslandData(_ name: String, _ location: String, _ createdByUserId: String) -> Bool {
-        ![name, location, createdByUserId].isEmpty
+        Logger.logCreatedByIdEvent(createdByUserId: createdByUserId, fileName: "PirateIslandViewModel", functionName: "validateIslandData")
+        return ![name, location, createdByUserId].isEmpty
     }
     
     // MARK: - Saving Island Data
@@ -189,6 +195,12 @@ public class PirateIslandViewModel: ObservableObject {
         createdByUserId: String,
         website: URL?
     ) async throws {
+        Logger.logCreatedByIdEvent(createdByUserId: createdByUserId, fileName: "PirateIslandViewModel", functionName: "saveIslandData")
+
+        guard !islandName.isEmpty else {
+            throw PirateIslandError.islandNameMissing
+        }
+        
         guard validateIslandData(islandName, street, city) else {
             throw PirateIslandError.invalidInput
         }
@@ -202,14 +214,14 @@ public class PirateIslandViewModel: ObservableObject {
         self.coordinates = CLLocationCoordinate2D(latitude: coordinates.latitude, longitude: coordinates.longitude)
         
         // Save to Firestore
-        let firestoreDocument = firestore.collection("pirateIslands").document(islandName)
-        try await firestoreDocument.setData([
+        let data: [String: Any] = [
             "name": islandName,
             "location": "\(street), \(city), \(state) \(zip)",
             "gymWebsiteURL": website?.absoluteString as Any,
             "latitude": coordinates.latitude,
             "longitude": coordinates.longitude,
-        ])
+        ]
+        try await updateFirestoreDocument(islandName: islandName, data: data)
         
         // Cache in Core Data
         if let existingIsland = existingIsland {
@@ -227,6 +239,8 @@ public class PirateIslandViewModel: ObservableObject {
         
         try await persistenceController.saveContext()
     }
+    
+    
     // MARK: - Helpers
     private func pirateIslandExists(name: String) -> Bool {
         let fetchRequest = PirateIsland.fetchRequest()
@@ -263,6 +277,7 @@ public class PirateIslandViewModel: ObservableObject {
         gymWebsiteURL: URL?,
         completion: @escaping (Result<Void, Error>) -> Void
     ) async {
+        Logger.logCreatedByIdEvent(createdByUserId: lastModifiedByUserId, fileName: "PirateIslandViewModel", functionName: "updatePirateIsland")
         guard !name.isEmpty, !location.isEmpty, !lastModifiedByUserId.isEmpty else {
             completion(.failure(PirateIslandError.invalidInput))
             return
@@ -309,16 +324,16 @@ public class PirateIslandViewModel: ObservableObject {
         longitude: Double,
         island: PirateIsland
     ) async throws {
-        guard let islandName = island.islandName else {
+        guard let islandName = island.islandName, !islandName.isEmpty else {
             throw PirateIslandError.islandNameMissing
         }
         
         // Save to Firestore
-        let firestoreDocument = firestore.collection("pirateIslands").document(islandName)
-        try await firestoreDocument.updateData([
+        let data: [String: Any] = [
             "latitude": latitude,
             "longitude": longitude,
-        ])
+        ]
+        try await updateFirestoreDocument(islandName: islandName, data: data)
         
         // Cache in Core Data
         island.latitude = latitude
@@ -326,6 +341,13 @@ public class PirateIslandViewModel: ObservableObject {
         
         try await persistenceController.saveContext()
     }
+    
+    // MARK: - Firestore Helpers
+    func updateFirestoreDocument(islandName: String, data: [String: Any]) async throws {
+        let firestoreDocument = firestore.collection("pirateIslands").document(islandName)
+        try await firestoreDocument.setData(data, merge: true)
+    }
+    
 }
 
 extension PirateIsland {

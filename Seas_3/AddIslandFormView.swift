@@ -83,7 +83,10 @@ struct AddIslandFormView: View {
 
                 Section(header: Text("Entered By")) {
                     TextField("Your Name", text: $createdByUserId)
-                        .onChange(of: createdByUserId) { _ in validateFields() }
+                        .onChange(of: createdByUserId) { newValue in
+                            Logger.logCreatedByIdEvent(createdByUserId: newValue, fileName: "AddIslandFormView", functionName: "TextField.onChange")
+                            validateFields()
+                        }
                 }
 
                 Section(header: Text("Website (if applicable)")) {
@@ -204,6 +207,7 @@ struct AddIslandFormView: View {
     // AddIslandFormView.swift
 
     private func validateFields() {
+        Logger.logCreatedByIdEvent(createdByUserId: createdByUserId, fileName: "AddIslandFormView", functionName: "validateFields")
         let (isSaveEnabled, alertMessage) = ValidationUtility.validateIslandForm(
             islandName: islandName,
             street: street,
@@ -223,7 +227,8 @@ struct AddIslandFormView: View {
         do {
             // Save the single `islandLocation` field along with other data
             currentIsland.islandName = islandName
-            currentIsland.islandLocation = islandLocation  // Address is saved as a single field
+            currentIsland.islandLocation = islandLocation
+            Logger.logCreatedByIdEvent(createdByUserId: createdByUserId, fileName: "AddIslandFormView", functionName: "saveIslandData")
             currentIsland.createdByUserId = createdByUserId
             currentIsland.gymWebsite = gymWebsiteURL
 

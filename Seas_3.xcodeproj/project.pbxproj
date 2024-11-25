@@ -42,7 +42,6 @@
 		0C07B0B92C2D017500D0BFB2 /* WhoWeAre.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0B82C2D017500D0BFB2 /* WhoWeAre.swift */; };
 		0C07B0BB2C2D018D00D0BFB2 /* Disclaimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0BA2C2D018D00D0BFB2 /* Disclaimer.swift */; };
 		0C07B0BD2C2D01AB00D0BFB2 /* FAQ.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0BC2C2D01AB00D0BFB2 /* FAQ.swift */; };
-		0C07B0BF2C2D01D700D0BFB2 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0BE2C2D01D700D0BFB2 /* Logger.swift */; };
 		0C07B0D32C2D033700D0BFB2 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0D22C2D033700D0BFB2 /* AppState.swift */; };
 		0C1635512C35D686008FC297 /* ClassScheduleRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1635502C35D686008FC297 /* ClassScheduleRow.swift */; };
 		0C1635522C35D6E2008FC297 /* AddOpenMatFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0952C2CFF5A00D0BFB2 /* AddOpenMatFormView.swift */; };
@@ -212,7 +211,6 @@
 		0C07B0B82C2D017500D0BFB2 /* WhoWeAre.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhoWeAre.swift; sourceTree = "<group>"; };
 		0C07B0BA2C2D018D00D0BFB2 /* Disclaimer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Disclaimer.swift; sourceTree = "<group>"; };
 		0C07B0BC2C2D01AB00D0BFB2 /* FAQ.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FAQ.swift; sourceTree = "<group>"; };
-		0C07B0BE2C2D01D700D0BFB2 /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
 		0C07B0C02C2D01F300D0BFB2 /* CustomUnarchiveTransformer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomUnarchiveTransformer.swift; sourceTree = "<group>"; };
 		0C07B0C22C2D020C00D0BFB2 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		0C07B0C42C2D022C00D0BFB2 /* flashing.gif */ = {isa = PBXFileReference; lastKnownFileType = image.gif; path = flashing.gif; sourceTree = "<group>"; };
@@ -340,6 +338,7 @@
 				DealingWErrors/EmailVerificationHandler.swift,
 				DealingWErrors/FacebookHelper.swift,
 				DealingWErrors/IDFAHelper.swift,
+				DealingWErrors/Logger.swift,
 				DealingWErrors/NetworkMonitor.swift,
 				Email/AccountCreation/AccountAuthView.swift,
 				Email/AccountCreation/AuthenticationHelper.swift,
@@ -677,7 +676,6 @@
 				0C07B0822C2CFE5000D0BFB2 /* GeocodingUtility.swift */,
 				0C07B0842C2CFE6200D0BFB2 /* AdditionalGymInfo.swift */,
 				0C07B0C02C2D01F300D0BFB2 /* CustomUnarchiveTransformer.swift */,
-				0C07B0BE2C2D01D700D0BFB2 /* Logger.swift */,
 				0CEB03952C2B9B73007CA3CC /* PirateIslandViewModel.swift */,
 				0C07B0C52C2D022C00D0BFB2 /* calendar Image.png */,
 				0C07B0C42C2D022C00D0BFB2 /* flashing.gif */,
@@ -986,7 +984,6 @@
 				0CF13E7A2C2A36B500D714C0 /* AppDayOfWeek+CoreDataProperties.swift in Sources */,
 				0C1635522C35D6E2008FC297 /* AddOpenMatFormView.swift in Sources */,
 				0C4F3C412C3C4645008D04B9 /* IslandScheduleView.swift in Sources */,
-				0C07B0BF2C2D01D700D0BFB2 /* Logger.swift in Sources */,
 				0CDF61D12C3CA0F400A8A0BF /* ScheduleDetailModal.swift in Sources */,
 				0CA142262C3EF7F200C366CF /* IslandScheduleAsCalViewController.swift in Sources */,
 				0C8B5B6B2CA12CE600C5694F /* IslandSection.swift in Sources */,

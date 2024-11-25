@@ -49,6 +49,8 @@ struct AddNewIsland: View {
                 Alert(title: Text("Error"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
             }
             .onAppear {
+                Logger.logCreatedByIdEvent(createdByUserId: profileViewModel.name, fileName: "AddNewIsland", functionName: "onAppear")
+
                 let (isValid, errorMessage) = ValidationUtility.validateIslandForm(
                     islandName: islandDetails.islandName,
                     street: islandDetails.street,
@@ -167,6 +169,7 @@ struct AddNewIsland: View {
     // MARK: - Private Methods
         
     private func saveIsland() {
+        Logger.logCreatedByIdEvent(createdByUserId: profileViewModel.name, fileName: "AddNewIsland", functionName: "saveIsland")
         guard !profileViewModel.name.isEmpty else { return }
             
         Task {

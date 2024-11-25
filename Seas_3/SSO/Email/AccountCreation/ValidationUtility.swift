@@ -213,6 +213,7 @@ class ValidationUtility {
         createdByUserId: String,
         gymWebsite: String
     ) -> (isValid: Bool, errorMessage: String) {
+        Logger.logCreatedByIdEvent(createdByUserId: createdByUserId, fileName: "ValidationUtility", functionName: "validateIslandForm")
         var errorMessage = ""
         
         if islandName.isEmpty {

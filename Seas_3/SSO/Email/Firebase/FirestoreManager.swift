@@ -39,6 +39,7 @@ class FirestoreManager {
     
 
     func saveIslandToFirestore(island: PirateIsland) async throws {
+        Logger.logCreatedByIdEvent(createdByUserId: island.createdByUserId ?? "Unknown User", fileName: "FirestoreManager", functionName: "saveIslandToFirestore")
         print("Saving island to Firestore: \(island.safeIslandName)")
         
         // Add some debug prints here

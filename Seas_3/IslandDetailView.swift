@@ -99,6 +99,9 @@ struct IslandDetailContent: View {
             Text("Entered By: \(island.createdByUserId ?? "Unknown")")
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.bottom, 10)
+                .onChange(of: island.createdByUserId!) { newValue in
+                    Logger.logCreatedByIdEvent(createdByUserId: newValue, fileName: "IslandDetailView", functionName: "body")
+                }
 
             Text("Added Date: \(formattedDate(island.createdTimestamp) ?? "Unknown")")
                 .frame(maxWidth: .infinity, alignment: .leading)

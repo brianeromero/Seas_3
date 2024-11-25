@@ -29,6 +29,7 @@ struct EditExistingIsland: View {
         self.islandViewModel = islandViewModel
         _islandName = State(initialValue: island.islandName ?? "")
         _islandLocation = State(initialValue: island.islandLocation ?? "")
+        Logger.logCreatedByIdEvent(createdByUserId: island.createdByUserId ?? "", fileName: "EditExistingIsland", functionName: "init")
         _createdByUserId = State(initialValue: island.createdByUserId ?? "")
         _gymWebsite = State(initialValue: island.gymWebsite?.absoluteString ?? "")
         _lastModifiedByUserId = State(initialValue: island.lastModifiedByUserId ?? "")

@@ -308,7 +308,7 @@ struct CreateAccountView: View {
 
                 // Prepare for creating the Pirate Island, only if name and location are not empty
                 if !islandName.isEmpty && !location.isEmpty {
-                    // Attempt to create the Pirate Island asynchronously
+                    Logger.logCreatedByIdEvent(createdByUserId: formState.userName, fileName: "CreateAccountView", functionName: "createPirateIslandAsync")
                     let result = await islandViewModel.createPirateIslandAsync(
                         islandDetails: islandDetails,
                         createdByUserId: formState.userName,

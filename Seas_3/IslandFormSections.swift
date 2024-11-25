@@ -251,6 +251,8 @@ struct IslandFormSections: View {
     }
 
     func updateIslandLocation() async {
+        Logger.logCreatedByIdEvent(createdByUserId: profileViewModel.name, fileName: "IslandFormSections", functionName: "updateIslandLocation")
+
         // Update island location data in view model
         do {
             try await viewModel.saveIslandData(
@@ -342,6 +344,7 @@ struct IslandFormSections: View {
     }
     
     func saveButtonAction() async {
+        Logger.logCreatedByIdEvent(createdByUserId: "userId", fileName: "IslandFormSections", functionName: "saveButtonAction")
         if !validateGymNameAndAddress() {
             showError = true
             return

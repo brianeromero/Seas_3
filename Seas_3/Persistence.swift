@@ -131,6 +131,7 @@ class PersistenceController: ObservableObject {
             existingIsland.islandName = name
             existingIsland.islandLocation = location
             existingIsland.country = country
+            Logger.logCreatedByIdEvent(createdByUserId: createdByUserId, fileName: "PersistenceController", functionName: "createOrUpdatePirateIsland")
             existingIsland.createdByUserId = createdByUserId
             existingIsland.latitude = latitude
             existingIsland.longitude = longitude
@@ -143,6 +144,7 @@ class PersistenceController: ObservableObject {
             pirateIsland.islandName = name
             pirateIsland.islandLocation = location
             pirateIsland.country = country
+            Logger.logCreatedByIdEvent(createdByUserId: createdByUserId, fileName: "PersistenceController", functionName: "createOrUpdatePirateIsland")
             pirateIsland.createdByUserId = createdByUserId
             pirateIsland.latitude = latitude
             pirateIsland.longitude = longitude
@@ -168,11 +170,12 @@ class PersistenceController: ObservableObject {
             let location = document.get("location") as? String ?? ""
             let country = document.get("country") as? String ?? ""
             let createdByUserId = document.get("createdByUserId") as? String ?? ""
+            Logger.logCreatedByIdEvent(createdByUserId: createdByUserId, fileName: "PersistenceController", functionName: "cachePirateIslandsFromFirestore")
             let latitude = document.get("latitude") as? Double ?? 0
             let longitude = document.get("longitude") as? Double ?? 0
             let gymWebsiteURL = URL(string: document.get("gymWebsiteURL") as? String ?? "")
 
-            let pirateIsland = try await createOrUpdatePirateIsland(
+            _ = try await createOrUpdatePirateIsland(
                 islandID: islandID,
                 name: name,
                 location: location,
