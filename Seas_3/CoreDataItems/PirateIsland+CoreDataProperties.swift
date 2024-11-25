@@ -1,3 +1,4 @@
+//
 // PirateIsland+CoreDataProperties.swift
 // Seas_3
 //
@@ -23,13 +24,12 @@ extension PirateIsland {
     @NSManaged public var gymWebsite: URL?
     @NSManaged public var islandID: UUID?
     @NSManaged public var islandLocation: String?
-    @NSManaged public var country: String?
+    @NSManaged public var country: String?  // NEW ATTRIBUTE
     @NSManaged public var islandName: String?
     @NSManaged public var lastModifiedByUserId: String?
     @NSManaged public var lastModifiedTimestamp: Date?
     @NSManaged public var latitude: Double
     @NSManaged public var longitude: Double
-    @NSManaged public var name: String?
 
     // MARK: - Relationships
 
@@ -59,8 +59,13 @@ extension PirateIsland {
         islandLocation ?? "Unknown Location"
     }
 
-    public var safeName: String {
-        name ?? "Unnamed Gym"
+    public var safeIslandName: String {
+        islandName ?? "Unnamed Gym"
+    }
+
+    // NEW COMPUTED PROPERTY
+    public var safeCountry: String {
+        country ?? "Unknown Country"
     }
 
     // Convert the NSSet of appDayOfWeeks to an array of AppDayOfWeek

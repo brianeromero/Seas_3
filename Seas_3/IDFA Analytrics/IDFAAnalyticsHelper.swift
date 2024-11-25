@@ -8,6 +8,7 @@
 import Foundation
 import AppTrackingTransparency
 import AdSupport
+import AdServices
 import FirebaseAnalytics
 import GoogleMobileAds
 import FBSDKCoreKit

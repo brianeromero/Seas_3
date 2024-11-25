@@ -390,8 +390,9 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
     }
     
     // MARK: - Load Schedules
+    @MainActor
     func loadSchedules(for island: PirateIsland) async {
-        _ = NSPredicate(format: "pIsland == %@", island)
+        let predicate = NSPredicate(format: "pIsland == %@", island)
         let appDayOfWeeks = await repository.fetchSchedules(for: island)
         var schedulesDict: [DayOfWeek: [AppDayOfWeek]] = [:]
         
@@ -413,7 +414,8 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
             }
         }
         
-        schedules = schedulesDict
+        // Update published property on main thread
+        self.schedules = schedulesDict
         print("Loaded schedules: \(schedules)")
     }
     
@@ -428,7 +430,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
                     do {
                         let islandSchedulesForDay = try await self.repository.fetchAllIslands(forDay: day.rawValue)
                             .map { island, matTimes in
-                                print("Gym: \(island.name ?? ""), MatTimes: \(matTimes)")
+                                print("Gym: \(island.islandName ?? ""), MatTimes: \(matTimes)")
                                 return (island, matTimes)
                             }
                         print("Gym schedules for day: \(islandSchedulesForDay)")

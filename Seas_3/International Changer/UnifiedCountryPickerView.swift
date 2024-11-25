@@ -71,8 +71,12 @@ struct UnifiedCountryPickerView: View {
                 print("Fetched countries: \(fetchedCountries.map { $0.name.common })") // Log the fetched country names
                 DispatchQueue.main.async {
                     self.countries = fetchedCountries.sorted { $0.name.common < $1.name.common }
-                    if let firstCountry = self.countries.first {
-                        print("First country selected: \(firstCountry.name.common)") // Log the first country selection
+                    
+                    // Set the selected country to "US" if available
+                    if let usCountry = self.countries.first(where: { $0.cca2 == "US" }) {
+                        self.selectedCountry = usCountry
+                    } else if let firstCountry = self.countries.first {
+                        // Fallback to the first country in the list
                         self.selectedCountry = firstCountry
                     }
                 }

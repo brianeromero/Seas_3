@@ -158,6 +158,7 @@ struct GymMatReviewView: View {
         newReview.review = reviewText
         newReview.createdTimestamp = Date()
         newReview.island = island
+        newReview.reviewID = UUID()
 
         let reviewsFetchRequest: NSFetchRequest<Review> = Review.fetchRequest()
         reviewsFetchRequest.predicate = NSPredicate(format: "%K == %@", "island", island)

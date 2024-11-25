@@ -55,7 +55,11 @@ struct UserInformationView: View {
                     isValid: $formState.isUserNameValid,
                     errorMessage: $formState.userNameErrorMessage,
                     validateField: { value in
-                        return ValidationUtility.validateField(value, type: .userName)?.rawValue
+                        if let error = ValidationUtility.validateUserName(value) {
+                            return (false, error.rawValue)
+                        } else {
+                            return (true, "")
+                        }
                     }
                 )
 
@@ -65,7 +69,11 @@ struct UserInformationView: View {
                     isValid: $formState.isEmailValid,
                     errorMessage: $formState.emailErrorMessage,
                     validateField: { value in
-                        return ValidationUtility.validateField(value, type: .email)?.rawValue
+                        if let error = ValidationUtility.validateEmail(value) {
+                            return (false, error.rawValue)
+                        } else {
+                            return (true, "")
+                        }
                     }
                 )
             case .name:
@@ -74,7 +82,11 @@ struct UserInformationView: View {
                     isValid: $formState.isNameValid,
                     errorMessage: $formState.nameErrorMessage,
                     validateField: { value in
-                        return ValidationUtility.validateField(value, type: .name)?.rawValue
+                        if let error = ValidationUtility.validateName(value) {
+                            return (false, error.rawValue)
+                        } else {
+                            return (true, "")
+                        }
                     }
                 )
             default:
@@ -87,7 +99,6 @@ struct UserInformationView: View {
     }
     
     private func validateField(_ value: String, type: ValidationType) {
-        // Ensure that validateField returns a consistent type
         if let error = ValidationUtility.validateField(value, type: type) {
             handleValidationError(error, for: type)
         } else {

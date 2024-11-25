@@ -13,6 +13,7 @@ struct AddNewIsland: View {
     // MARK: - Environment Variables
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.presentationMode) private var presentationMode
+    
 
     // MARK: - Observed Objects
     @ObservedObject var islandViewModel: PirateIslandViewModel
@@ -48,12 +49,38 @@ struct AddNewIsland: View {
                 Alert(title: Text("Error"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
             }
             .onAppear {
-                validateFields()
-            }
-            .overlay(toastOverlay)
-        }
-    }
+                let (isValid, errorMessage) = ValidationUtility.validateIslandForm(
+                    islandName: islandDetails.islandName,
+                    street: islandDetails.street,
+                    city: islandDetails.city,
+                    state: islandDetails.state,
+                    zip: islandDetails.zip,
+                    neighborhood: islandDetails.neighborhood,
+                    complement: islandDetails.complement,
+                    province: islandDetails.province,
+                    region: islandDetails.region,
+                    district: islandDetails.district,
+                    department: islandDetails.department,
+                    governorate: islandDetails.governorate,
+                    emirate: islandDetails.emirate,
+                    apartment: islandDetails.apartment,
+                    additionalInfo: islandDetails.additionalInfo,
+                    selectedCountry: Country(name: .init(common: islandDetails.country ?? ""), cca2: ""),
+                    createdByUserId: profileViewModel.name,
+                    gymWebsite: islandDetails.gymWebsite
+                )
 
+                if !isValid {
+                    alertMessage = errorMessage
+                    showAlert = true
+                } else {
+                    isSaveEnabled = true
+                }
+            }
+        }
+        .overlay(toastOverlay)
+    }
+    
     // MARK: - Extracted Views
     private var islandFormSection: some View {
         IslandFormSections(
@@ -65,15 +92,30 @@ struct AddNewIsland: View {
             zip: $islandDetails.zip,
             province: $islandDetails.province,
             postalCode: $islandDetails.postalCode,
+            neighborhood: $islandDetails.neighborhood,
+            complement: $islandDetails.complement,
+            apartment: $islandDetails.apartment,
+            region: $islandDetails.region,
+            county: $islandDetails.county,
+            governorate: $islandDetails.governorate,
+            additionalInfo: $islandDetails.additionalInfo,
             gymWebsite: $islandDetails.gymWebsite,
             gymWebsiteURL: $islandDetails.gymWebsiteURL,
-            selectedCountry: $islandDetails.country, // Selected country binding
             showAlert: $showAlert,
             alertMessage: $alertMessage,
-            islandDetails: $islandDetails
+            selectedCountry: Binding<Country?>(
+                get: {
+                    guard let countryName = self.islandDetails.country else { return nil }
+                    return Country(name: .init(common: countryName), cca2: "")
+                },
+                set: {
+                    self.islandDetails.country = $0?.countryName
+                }
+            ),
+            islandDetails: $islandDetails,
+            profileViewModel: ProfileViewModel(viewContext: viewContext)
         )
     }
-
 
     private var enteredBySection: some View {
         Section(header: Text("Entered By")) {
@@ -85,7 +127,6 @@ struct AddNewIsland: View {
 
     private var countrySpecificFieldsSection: some View {
         Section(header: Text("Gym Information")) {
-            // Use AddressFormView for country-specific dynamic fields
             AddressFormView()
         }
     }
@@ -93,7 +134,7 @@ struct AddNewIsland: View {
     private var saveButton: some View {
         Button("Save") {
             Task {
-                await saveIsland()
+                saveIsland()
             }
         }
         .disabled(!isSaveEnabled)
@@ -124,84 +165,38 @@ struct AddNewIsland: View {
     }
 
     // MARK: - Private Methods
-    private func saveIsland() async {
-        guard !islandDetails.islandName.isEmpty,
-              !islandDetails.street.isEmpty,
-              !islandDetails.city.isEmpty,
-              !islandDetails.state.isEmpty,
-              !islandDetails.zip.isEmpty else {
-            showToast = true
-            toastMessage = "Please fill in all fields."
-            return
-        }
-
-        // First, save the island to Core Data
-        let result = await islandViewModel.createPirateIslandAsync(
-            islandDetails: islandDetails,
-            createdByUserId: profileViewModel.name,
-            gymWebsiteURL: islandDetails.gymWebsiteURL
-        )
-
-        switch result {
-        case .success:
-            // After successfully saving to Core Data, save the island to Firestore
-            await saveIslandToFirestore()
-            clearFields()
-        case .failure(let error):
-            showToast = true
-            toastMessage = error.localizedDescription
-        }
-    }
-
-    private func saveIslandToFirestore() async {
-        // Prepare the data for Firestore
-        let islandData: [String: Any] = [
-            "islandName": islandDetails.islandName,
-            "street": islandDetails.street,
-            "city": islandDetails.city,
-            "state": islandDetails.state,
-            "zip": islandDetails.zip,
-            "website": islandDetails.gymWebsite,
-            "createdBy": profileViewModel.name
-        ]
         
-        do {
-            // Save to Firestore
-            let documentRef = try await islandViewModel.firestore.collection("islands").addDocument(data: islandData)
+    private func saveIsland() {
+        guard !profileViewModel.name.isEmpty else { return }
             
-            // Store the Firestore document ID in the ViewModel
-            islandViewModel.firestoreDocumentID = documentRef.documentID
-            
-            // Save the island data to Core Data as a local cache
-            let newIsland = PirateIsland(context: viewContext) // Using viewContext directly from @Environment
-            newIsland.islandName = islandDetails.islandName
-            newIsland.islandLocation = "\(islandDetails.street), \(islandDetails.city), \(islandDetails.state) \(islandDetails.zip)"
-            
-            // Convert the gymWebsite string to a URL
-            newIsland.gymWebsite = URL(string: islandDetails.gymWebsite)
-            
-            newIsland.createdByUserId = profileViewModel.name
-            newIsland.islandID = UUID()
-            newIsland.createdTimestamp = Date()
-            newIsland.lastModifiedTimestamp = Date()
-            
-            // Save to Core Data
-            try viewContext.save()
-            
-            toastMessage = "Island saved successfully!"
-            showToast = true
-        } catch {
-            toastMessage = "Error saving to Firestore: \(error.localizedDescription)"
+        Task {
+            do {
+                try await islandViewModel.saveIslandData(
+                    islandDetails.islandName,
+                    islandDetails.street,
+                    islandDetails.city,
+                    islandDetails.state,
+                    islandDetails.zip,
+                    islandDetails.province,
+                    islandDetails.postalCode,
+                    islandDetails.neighborhood,
+                    islandDetails.complement,
+                    islandDetails.apartment,
+                    islandDetails.region,
+                    islandDetails.county,
+                    islandDetails.governorate,
+                    islandDetails.additionalInfo,
+                    islandDetails.country!,
+                    createdByUserId: profileViewModel.name,
+                    website: islandDetails.gymWebsiteURL
+                )
+                toastMessage = "Island saved successfully!"
+                clearFields()
+            } catch {
+                toastMessage = "Error saving island: \(error.localizedDescription)"
+            }
             showToast = true
         }
-    }
-
-    private func validateFields() {
-        isSaveEnabled = !islandDetails.islandName.isEmpty &&
-                        !islandDetails.street.isEmpty &&
-                        !islandDetails.city.isEmpty &&
-                        !islandDetails.state.isEmpty &&
-                        !islandDetails.zip.isEmpty
     }
 
     private func clearFields() {

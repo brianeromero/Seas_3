@@ -154,6 +154,8 @@ struct FormState {
             case .password:
                 isPasswordValid = false
                 passwordErrorMessage = error.rawValue
+            default:
+                break
             }
         } else {
             switch type {
@@ -192,10 +194,12 @@ struct FormState {
             case .password:
                 isPasswordValid = true
                 passwordErrorMessage = ""
+            default:
+                break
             }
         }
     }
-
+    
     mutating func validateConfirmPassword() {
         isConfirmPasswordValid = confirmPassword == password
         confirmPasswordErrorMessage = isConfirmPasswordValid ? "" : "Passwords do not match."

@@ -97,7 +97,7 @@ struct AccountAuthView: View {
                     }
                 } else if isSelected == .createAccount {
                     CreateAccountView(
-                        islandViewModel: islandViewModel,
+                        islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.preview),
                         isUserProfileActive: $isUserProfileActive,
                         persistenceController: PersistenceController.preview,
                         selectedTabIndex: $selectedTabIndex,

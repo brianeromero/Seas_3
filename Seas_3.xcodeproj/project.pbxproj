@@ -73,6 +73,7 @@
 		0C524E932C308DB9008D6623 /* AllEnteredLocationsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C524E922C308DB9008D6623 /* AllEnteredLocationsViewModel.swift */; };
 		0C524E952C308E4A008D6623 /* EnterZipCodeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C524E942C308E4A008D6623 /* EnterZipCodeViewModel.swift */; };
 		0C524E972C30E859008D6623 /* AppDayOfWeek+Extensions..swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C524E962C30E859008D6623 /* AppDayOfWeek+Extensions..swift */; };
+		0C6CA7AE2CEFCFCE004FF120 /* AdServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C6CA7AD2CEFCFCE004FF120 /* AdServices.framework */; };
 		0C6F7BD92C79193B00072237 /* Review+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCA11C52C79105F003CAB7C /* Review+CoreDataClass.swift */; };
 		0C6F7BDA2C79194500072237 /* Review+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCA11C62C79105F003CAB7C /* Review+CoreDataProperties.swift */; };
 		0C6F7BDC2C7931E600072237 /* GymMatReviewSelect.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C6F7BDB2C7931E600072237 /* GymMatReviewSelect.swift */; };
@@ -246,6 +247,7 @@
 		0C524E922C308DB9008D6623 /* AllEnteredLocationsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AllEnteredLocationsViewModel.swift; sourceTree = "<group>"; };
 		0C524E942C308E4A008D6623 /* EnterZipCodeViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnterZipCodeViewModel.swift; sourceTree = "<group>"; };
 		0C524E962C30E859008D6623 /* AppDayOfWeek+Extensions..swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppDayOfWeek+Extensions..swift"; sourceTree = "<group>"; };
+		0C6CA7AD2CEFCFCE004FF120 /* AdServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AdServices.framework; path = System/Library/Frameworks/AdServices.framework; sourceTree = SDKROOT; };
 		0C6F7BDB2C7931E600072237 /* GymMatReviewSelect.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GymMatReviewSelect.swift; sourceTree = "<group>"; };
 		0C6F7BDD2C7B146200072237 /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
 		0C84B04D2CD1977600A5092C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -439,6 +441,7 @@
 				0CBA130E2CC19BFA00A74C2A /* FacebookBasics in Frameworks */,
 				0CBA13102CC19C0500A74C2A /* FacebookCore in Frameworks */,
 				0CBA13142CC19C1400A74C2A /* FacebookShare in Frameworks */,
+				0C6CA7AE2CEFCFCE004FF120 /* AdServices.framework in Frameworks */,
 				0CBA13222CC19C8E00A74C2A /* FirebaseFirestore in Frameworks */,
 				0CBA130C2CC19BF100A74C2A /* FacebookAEM in Frameworks */,
 				0CBA13202CC19C8600A74C2A /* FirebaseDynamicLinks in Frameworks */,
@@ -574,6 +577,7 @@
 		0CB5070B2CB7055A007D9173 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				0C6CA7AD2CEFCFCE004FF120 /* AdServices.framework */,
 				0CBA132F2CC19D5400A74C2A /* CoreML.framework */,
 				0CBA132D2CC19D4100A74C2A /* SwiftUI.framework */,
 				0CBA132B2CC19D1600A74C2A /* CoreData.framework */,

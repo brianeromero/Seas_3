@@ -9,7 +9,8 @@ import os
 enum PirateIslandError: Error {
     case invalidInput
     case islandExists
-    case geocodingError(String) // Now includes error message for better detail
+    case islandNameMissing
+    case geocodingError(String)
     case savingError
     
     var localizedDescription: String {
@@ -18,6 +19,8 @@ enum PirateIslandError: Error {
             return "Invalid input"
         case .islandExists:
             return "Island already exists"
+        case .islandNameMissing:
+            return "Island name is missing"
         case .geocodingError(let message):
             return "Geocoding error: \(message)"
         case .savingError:
@@ -168,19 +171,30 @@ public class PirateIslandViewModel: ObservableObject {
     
     // MARK: - Saving Island Data
     func saveIslandData(
-        _ name: String,
+        _ islandName: String,
         _ street: String,
         _ city: String,
         _ state: String,
         _ zip: String,
+        _ province: String,
+        _ postalCode: String,
+        _ neighborhood: String,
+        _ complement: String,
+        _ apartment: String,
+        _ region: String,
+        _ county: String,
+        _ governorate: String,
+        _ additionalInfo: String,
+        _ country: String,
+        createdByUserId: String,
         website: URL?
     ) async throws {
-        guard validateIslandData(name, street, city) else {
+        guard validateIslandData(islandName, street, city) else {
             throw PirateIslandError.invalidInput
         }
         
         let fetchRequest = PirateIsland.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "islandName == %@", name)
+        fetchRequest.predicate = NSPredicate(format: "islandName == %@", islandName)
         let existingIsland = (try? persistenceController.viewContext.fetch(fetchRequest).first) ?? nil
         var newIsland: PirateIsland? = existingIsland
         
@@ -188,9 +202,9 @@ public class PirateIslandViewModel: ObservableObject {
         self.coordinates = CLLocationCoordinate2D(latitude: coordinates.latitude, longitude: coordinates.longitude)
         
         // Save to Firestore
-        let firestoreDocument = firestore.collection("pirateIslands").document(name)
+        let firestoreDocument = firestore.collection("pirateIslands").document(islandName)
         try await firestoreDocument.setData([
-            "name": name,
+            "name": islandName,
             "location": "\(street), \(city), \(state) \(zip)",
             "gymWebsiteURL": website?.absoluteString as Any,
             "latitude": coordinates.latitude,
@@ -203,7 +217,7 @@ public class PirateIslandViewModel: ObservableObject {
             existingIsland.gymWebsite = website
         } else {
             newIsland = PirateIsland(context: persistenceController.viewContext)
-            newIsland?.islandName = name
+            newIsland?.islandName = islandName
             newIsland?.islandLocation = "\(street), \(city), \(state) \(zip)"
             newIsland?.gymWebsite = website
             newIsland?.islandID = UUID()
@@ -295,8 +309,12 @@ public class PirateIslandViewModel: ObservableObject {
         longitude: Double,
         island: PirateIsland
     ) async throws {
+        guard let islandName = island.islandName else {
+            throw PirateIslandError.islandNameMissing
+        }
+        
         // Save to Firestore
-        let firestoreDocument = firestore.collection("pirateIslands").document(island.islandName ?? "")
+        let firestoreDocument = firestore.collection("pirateIslands").document(islandName)
         try await firestoreDocument.updateData([
             "latitude": latitude,
             "longitude": longitude,

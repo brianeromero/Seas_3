@@ -45,7 +45,13 @@ struct CreateAccountView: View {
     @State private var showValidationMessage = false
 
     let beltOptions = ["White", "Blue", "Purple", "Brown", "Black"]
+    @State private var neighborhood: String = ""
+    @State private var complement: String = ""
+    @State private var apartment: String = ""
+    @State private var additionalInfo: String = ""
     @ObservedObject var islandViewModel: PirateIslandViewModel
+    @StateObject var profileViewModel: ProfileViewModel
+
     @State private var islandName = ""
     @State private var street = ""
     @State private var city = ""
@@ -78,6 +84,7 @@ struct CreateAccountView: View {
         self._isUserProfileActive = isUserProfileActive
         self._selectedTabIndex = selectedTabIndex
         self.emailManager = emailManager
+        _profileViewModel = StateObject(wrappedValue: ProfileViewModel(viewContext: persistenceController.container.viewContext))
     }
 
     var body: some View {
@@ -101,8 +108,11 @@ struct CreateAccountView: View {
                     errorMessage: $formState.passwordErrorMessage,
                     bypassValidation: $bypassValidation,
                     validateField: { password in
-                        let validationMessage = ValidationUtility.validateField(password, type: .password)
-                        return validationMessage?.rawValue ?? ""
+                        if let validationMessage = ValidationUtility.validateField(password, type: .password) {
+                            return (false, validationMessage.rawValue)
+                        } else {
+                            return (true, "")
+                        }
                     }
                 )
                 
@@ -130,12 +140,20 @@ struct CreateAccountView: View {
                         zip: $zip,
                         province: $province,
                         postalCode: $postalCode,
+                        neighborhood: $neighborhood,
+                        complement: $complement,
+                        apartment: $apartment,
+                        region: $region,
+                        county: $county,
+                        governorate: $governorate,
+                        additionalInfo: $additionalInfo,
                         gymWebsite: $gymWebsite,
                         gymWebsiteURL: $gymWebsiteURL,
-                        selectedCountry: $selectedCountry,
                         showAlert: .constant(false),
                         alertMessage: .constant(""),
-                        islandDetails: $islandDetails // Corrected line
+                        selectedCountry: $selectedCountry,
+                        islandDetails: $islandDetails,
+                        profileViewModel: profileViewModel
                     )
                     
                     if let country = selectedCountry,
@@ -280,7 +298,7 @@ struct CreateAccountView: View {
                     withEmail: formState.email,
                     password: formState.password,
                     userName: formState.userName,
-                    name: formState.name
+                    name: formState.name, belt: belt
                 )
                 successMessage = "Account created successfully"
                 showErrorAlert = true
@@ -397,6 +415,8 @@ struct CreateAccountView: View {
                 return "Geocoding error"
             case .savingError:
                 return "Saving error"
+            case .islandNameMissing:
+                return "Island name is missing"
             }
         } else {
             let errorCode = (error as NSError).code
@@ -467,7 +487,8 @@ struct CreateAccountView_Previews: PreviewProvider {
             islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.shared),
             isUserProfileActive: .constant(true),
             persistenceController: PersistenceController.shared,
-            selectedTabIndex: $selectedTabIndex
+            selectedTabIndex: $selectedTabIndex,
+            emailManager: UnifiedEmailManager.shared
         )
         .environmentObject(AuthenticationState())
         .environment(\.managedObjectContext, PersistenceController.shared.container.viewContext)

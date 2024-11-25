@@ -31,6 +31,8 @@ enum AddressField: String, CaseIterable {
     case complement
     case block
     case apartment
+    case additionalInfo
+    case multilineAddress
     
     // Country field
     case country
@@ -55,6 +57,8 @@ enum AddressField: String, CaseIterable {
         case .complement: return \.complement
         case .block: return \.block
         case .apartment: return \.apartment
+        case .additionalInfo: return \.additionalInfo
+        case .multilineAddress: return \.multilineAddress
         case .country: return \.region // Map country to region
         }
     }

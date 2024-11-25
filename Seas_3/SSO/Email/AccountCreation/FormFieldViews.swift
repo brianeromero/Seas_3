@@ -14,8 +14,8 @@ struct UserNameField: View {
     @Binding var userName: String
     @Binding var isValid: Bool
     @Binding var errorMessage: String
-    var validateField: (String) -> String?
-
+    var validateField: (String) -> (Bool, String)
+    
     var body: some View {
         VStack(alignment: .leading) {
             HStack {
@@ -24,34 +24,28 @@ struct UserNameField: View {
             }
             TextField("Enter your username", text: $userName)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
-                .onChange(of: userName) { newValue in validateField(newValue) }
-            validationMessage
+                .onChange(of: userName) { newValue in
+                    let (newIsValid, newErrorMessage) = validateField(newValue)
+                    self.isValid = newIsValid
+                    self.errorMessage = newErrorMessage
+                }
+            
+            if !isValid {
+                Text(errorMessage)
+                    .foregroundColor(.red)
+                    .font(.caption)
+            }
         }
-    }
-
-    var validationMessage: some View {
-        if !isValid {
-            Text(errorMessage)
-                .foregroundColor(.red)
-                .font(.caption)
-        } else {
-            Text("")
-        }
-    }
-
-    private func validateField(_ userName: String) {
-        let validationMessage = ValidationUtility.validateField(userName, type: .userName)
-        isValid = validationMessage == nil
-        errorMessage = validationMessage?.rawValue ?? ""
     }
 }
+        
 
 struct NameField: View {
     @Binding var name: String
     @Binding var isValid: Bool
     @Binding var errorMessage: String
-    var validateField: (String) -> String?
-
+    var validateField: (String) -> (Bool, String)
+    
     var body: some View {
         VStack(alignment: .leading) {
             HStack {
@@ -60,36 +54,24 @@ struct NameField: View {
             }
             TextField("Enter your name", text: $name)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
-                .onChange(of: name) { newValue in validateField(newValue) }
-            validationMessage
-            hintMessage
+                .onChange(of: name) { newValue in
+                    let (newIsValid, newErrorMessage) = validateField(newValue)
+                    self.isValid = newIsValid
+                    self.errorMessage = newErrorMessage
+                }
+            
+            if !isValid {
+                Text(errorMessage)
+                    .foregroundColor(.red)
+                    .font(.caption)
+            }
+            
+            if isValid {
+                Text("Name can contain any characters.")
+                    .foregroundColor(.gray)
+                    .font(.caption)
+            }
         }
-    }
-
-    var validationMessage: some View {
-        if !isValid {
-            Text(errorMessage)
-                .foregroundColor(.red)
-                .font(.caption)
-        } else {
-            Text("")
-        }
-    }
-
-    var hintMessage: some View {
-        if isValid {
-            Text("Name can contain any characters.")
-                .foregroundColor(.gray)
-                .font(.caption)
-        } else {
-            Text("")
-        }
-    }
-
-    private func validateField(_ name: String) {
-        let validationMessage = ValidationUtility.validateField(name, type: .name)
-        isValid = validationMessage == nil
-        errorMessage = validationMessage?.rawValue ?? ""
     }
 }
 
@@ -97,8 +79,8 @@ struct EmailField: View {
     @Binding var email: String
     @Binding var isValid: Bool
     @Binding var errorMessage: String
-    var validateField: (String) -> String?
-
+    var validateField: (String) -> (Bool, String)
+    
     var body: some View {
         VStack(alignment: .leading) {
             HStack {
@@ -107,25 +89,18 @@ struct EmailField: View {
             }
             TextField("Enter your email", text: $email)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
-                .onChange(of: email) { newValue in validateField(newValue) }
-            validationMessage
+                .onChange(of: email) { newValue in
+                    let (newIsValid, newErrorMessage) = validateField(newValue)
+                    self.isValid = newIsValid
+                    self.errorMessage = newErrorMessage
+                }
+            
+            if !isValid {
+                Text(errorMessage)
+                    .foregroundColor(.red)
+                    .font(.caption)
+            }
         }
-    }
-
-    var validationMessage: some View {
-        if !isValid {
-            Text(errorMessage)
-                .foregroundColor(.red)
-                .font(.caption)
-        } else {
-            Text("")
-        }
-    }
-
-    private func validateField(_ email: String) {
-        let validationMessage = ValidationUtility.validateField(email, type: .email)
-        isValid = validationMessage == nil
-        errorMessage = validationMessage?.rawValue ?? ""
     }
 }
 
@@ -134,7 +109,7 @@ struct PasswordField: View {
     @Binding var isValid: Bool
     @Binding var errorMessage: String
     @Binding var bypassValidation: Bool
-    var validateField: (String) -> String?
+    var validateField: (String) -> (Bool, String)
     
     var body: some View {
         VStack(alignment: .leading) {
@@ -144,43 +119,34 @@ struct PasswordField: View {
             }
             SecureField("Enter your password", text: $password)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
-                .onChange(of: password) { newValue in updatePasswordValidation(newValue) }
-            validationMessage
-            hintMessage
+                .onChange(of: password) { newValue in
+                    let (newIsValid, newErrorMessage) = validateField(newValue)
+                    self.isValid = newIsValid
+                    self.errorMessage = newErrorMessage
+                }
+            
+            if !isValid {
+                Text(errorMessage)
+                    .foregroundColor(.red)
+                    .font(.caption)
+            }
+            
+            if !bypassValidation {
+                Text("Password must be at least 8 characters, contain uppercase, lowercase, and digits.")
+                    .foregroundColor(.gray)
+                    .font(.caption)
+            }
+            
             Toggle("Bypass password validation", isOn: $bypassValidation)
                 .toggleStyle(SwitchToggleStyle())
-                .onChange(of: bypassValidation) { _ in updatePasswordValidation(password) }
+                .onChange(of: bypassValidation) { _ in
+                    let (newIsValid, newErrorMessage) = validateField(password)
+                    self.isValid = newIsValid
+                    self.errorMessage = newErrorMessage
+                }
             Text("Use at your own risk")
                 .foregroundColor(.gray)
                 .font(.caption)
-        }
-    }
-    
-    var validationMessage: some View {
-        if !isValid {
-            Text(errorMessage)
-                .foregroundColor(.red)
-                .font(.caption)
-        } else {
-            Text("")
-        }
-    }
-    
-    var hintMessage: some View {
-        if !bypassValidation {
-            Text("Password must be at least 8 characters, contain uppercase, lowercase, and digits.")
-                .foregroundColor(.gray)
-                .font(.caption)
-        } else {
-            Text("")
-        }
-    }
-    
-    private func updatePasswordValidation(_ password: String) {
-        if !bypassValidation {
-            let validationMessage = ValidationUtility.validateField(password, type: .password)
-            isValid = validationMessage == nil
-            errorMessage = validationMessage?.rawValue ?? ""
         }
     }
 }
@@ -206,6 +172,7 @@ struct ConfirmPasswordField: View {
     }
 }
 
+
 struct GymInformationSection: View {
     @Binding var islandName: String
     @Binding var street: String
@@ -219,9 +186,17 @@ struct GymInformationSection: View {
     @Binding var postalCode: String
     @Binding var selectedCountry: Country?
     @ObservedObject var islandViewModel: PirateIslandViewModel
+    @ObservedObject var profileViewModel: ProfileViewModel // Add this
     
     // Define islandDetails, assuming it's a structure with necessary fields
     @State private var islandDetails: IslandDetails // Example type, replace with your actual model
+    @State private var neighborhood: String = ""
+    @State private var complement: String = ""
+    @State private var apartment: String = ""
+    @State private var region: String = ""
+    @State private var county: String = ""
+    @State private var governorate: String = ""
+    @State private var additionalInfo: String = ""
     
     var body: some View {
         Section(header: HStack {
@@ -240,12 +215,20 @@ struct GymInformationSection: View {
                 zip: $zip,
                 province: $province,
                 postalCode: $postalCode,
+                neighborhood: $neighborhood,
+                complement: $complement,
+                apartment: $apartment,
+                region: $region,
+                county: $county,
+                governorate: $governorate,
+                additionalInfo: $additionalInfo,
                 gymWebsite: $gymWebsite,
                 gymWebsiteURL: $gymWebsiteURL,
-                selectedCountry: $selectedCountry,
                 showAlert: .constant(false),
                 alertMessage: .constant(""),
-                islandDetails: $islandDetails // Pass the islandDetails binding
+                selectedCountry: $selectedCountry,
+                islandDetails: $islandDetails,
+                profileViewModel: profileViewModel
             )
         }
     }

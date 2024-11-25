@@ -113,8 +113,7 @@ struct EditExistingIsland: View {
                     name: islandName,
                     location: islandLocation,
                     lastModifiedByUserId: lastModifiedByUserId,
-                    gymWebsiteURL: gymWebsiteURL,
-                    completion: { result in
+                    gymWebsiteURL: gymWebsiteURL) { result in
                         switch result {
                         case .success:
                             print("Gym updated successfully")
@@ -122,8 +121,6 @@ struct EditExistingIsland: View {
                             print("Error updating gym: \(error.localizedDescription)")
                         }
                     }
-                )
-                
                 // Dismiss the view
                 presentationMode.wrappedValue.dismiss()
                 

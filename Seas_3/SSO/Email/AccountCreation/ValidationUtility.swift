@@ -5,9 +5,8 @@
 //  Created by Brian Romero on 10/19/24.
 //
 
-//  ValidationUtility.swift
-
 import Foundation
+
 // MARK: - Validation Error
 
 enum ValidationError: String, Error, Equatable {
@@ -26,24 +25,82 @@ enum ValidationError: String, Error, Equatable {
 
 // MARK: - Validation Type
 
-enum ValidationType {
+enum ValidationType: String {
     case userName
     case email
     case name
     case password
+    case islandName
+    case url
+    case location
 }
 
 // MARK: - Validation Utility
 
 class ValidationUtility {
     // MARK: - Regex Constants
-    
+
     private static let emailRegex = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
     private static let passwordRegex = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).{8,}$"
     private static let urlRegex = "^(https?:\\/\\/)?([\\da-z\\.-]+)\\.([a-z\\.]{2,6})([\\/\\w \\.-]*)*\\/?$"
     private static let userNameRegex = "^[a-zA-Z0-9_]{7,}$"
     private static let zipRegex = "^[0-9]{5}(?:-[0-9]{4})?$"
+    internal static let zipRegexPatterns: [String: String] = [
+        // Americas
+        "US": "^\\d{5}(-\\d{4})?$", // United States (12345 or 12345-6789)
+        "CA": "^([ABCEGHJKLMNPRSTVXY]\\d[ABCEGHJKLMNPRSTVWXYZ] {0,1}\\d[ABCEGHJKLMNPRSTVWXYZ]\\d)$", // Canada (A1A 1A1)
+        "BR": "^\\d{8}$", // Brazil (12345678)
+        "MX": "^\\d{5}$", // Mexico (12345)
+        
+        // Europe
+        "GB": "^([Gg][Ii][Rr] 0[Aa]{2})|((([A-Za-z][0-9]{1,2})|(([A-Za-z][A-Ha-hJ-Yj-y][0-9]{1,2})|(([A-Za-z][0-9][A-Za-z])|([A-Za-z][A-Ha-hJ-Yj-y][0-9]?[A-Za-z]))))\\s?[0-9][A-Za-z]{2})$", // United Kingdom (Postcode)
+        "FR": "^\\d{5}$", // France (12345)
+        "DE": "^\\d{5}$", // Germany (12345)
+        "ES": "^\\d{5}$", // Spain (12345)
+        "IT": "^\\d{5}$", // Italy (12345)
+        
+        // Asia
+        "CN": "^\\d{6}$", // China (123456)
+        "JP": "^\\d{3}-\\d{4}$", // Japan (123-4567)
+        "IN": "^\\d{6}$", // India (123456)
+        "KR": "^\\d{5}-\\d{4}$", // South Korea (12345-6789)
+        
+        // Africa
+        "EG": "^\\d{5}$", // Egypt (12345)
+        "ZA": "^\\d{4}$", // South Africa (1234)
+        "NG": "^\\d{6}$", // Nigeria (123456)
+        
+        // Oceania
+        "AU": "^\\d{4}$", // Australia (1234)
+        
+        // Additional countries
+        "AE": "^\\d{5}$", // United Arab Emirates (12345)
+        "IL": "^\\d{5}$", // Israel (12345)
+        "CL": "^\\d{7}$", // Chile (1234567)
+        "CO": "^\\d{6}$", // Colombia (123456)
+        "TR": "^\\d{5}$", // Turkey (12345)
+        "TH": "^\\d{5}$", // Thailand (12345)
+        "SA": "^\\d{5}$", // Saudi Arabia (12345)
+        "PK": "^\\d{5}$", // Pakistan (12345)
+        "VN": "^\\d{6}$", // Vietnam (123456)
+        "PH": "^\\d{4}$", // Philippines (1234)
+        "ID": "^\\d{5}$", // Indonesia (12345)
+        "AR": "^\\d{8}$", // Argentina (12345678)
+        "RU": "^\\d{6}$" // Russia (123456)
+    ]
 
+     static func validateZipCode(_ zipCode: String, for country: String) -> ValidationError? {
+         guard let regexPattern = zipRegexPatterns[country] else {
+             return .invalidLocation
+         }
+
+         let zipPredicate = NSPredicate(format: "SELF MATCHES %@", regexPattern)
+         if !zipPredicate.evaluate(with: zipCode) {
+             return .invalidLocation
+         }
+         return nil
+     }
+    
     // MARK: Username Existence Check
 
     static func userNameIsTaken(_ userName: String) -> Bool {
@@ -51,12 +108,9 @@ class ValidationUtility {
         // Replace with actual implementation
         return false
     }
-}
-
-extension ValidationUtility {
-    // Single Field Validations
     
-    /// Validate email address.
+    // MARK: - Validation Functions
+
     static func validateEmail(_ email: String) -> ValidationError? {
         let emailPredicate = NSPredicate(format: "SELF MATCHES[c] %@", emailRegex)
         if !emailPredicate.evaluate(with: email) {
@@ -65,7 +119,6 @@ extension ValidationUtility {
         return nil
     }
     
-    /// Validate username.
     static func validateUserName(_ userName: String) -> ValidationError? {
         if userName.count < 7 || userName.range(of: userNameRegex, options: .regularExpression) == nil {
             return .invalidUsername
@@ -75,7 +128,6 @@ extension ValidationUtility {
         return nil
     }
     
-    /// Validate name.
     static func validateName(_ name: String) -> ValidationError? {
         if name.isEmpty {
             return .emptyName
@@ -83,7 +135,6 @@ extension ValidationUtility {
         return nil
     }
     
-    /// Validate password.
     static func isValidPassword(_ password: String) -> ValidationError? {
         if password.count < 8 {
             return .tooShort
@@ -94,7 +145,6 @@ extension ValidationUtility {
         return nil
     }
     
-    /// Validate island name.
     static func validateIslandName(_ name: String) -> ValidationError? {
         if name.isEmpty {
             return .invalidIslandName
@@ -102,7 +152,6 @@ extension ValidationUtility {
         return nil
     }
     
-    /// Validate URL.
     static func validateURL(_ urlString: String) -> ValidationError? {
         let urlPredicate = NSPredicate(format: "SELF MATCHES %@", urlRegex)
         if !urlPredicate.evaluate(with: urlString) {
@@ -111,50 +160,134 @@ extension ValidationUtility {
         return nil
     }
     
-    /// Validate location.
-    static func validateLocation(_ street: String, _ city: String, _ state: String, _ zip: String) -> ValidationError? {
+
+    static func validateLocation(_ street: String, _ city: String, _ state: String, _ zip: String, for country: String) -> ValidationError? {
         if [street, city, state, zip].contains(where: \.isEmpty) {
             return .invalidLocation
         }
-        let zipPredicate = NSPredicate(format: "SELF MATCHES %@", zipRegex)
-        if !zipPredicate.evaluate(with: zip) {
-            return .invalidLocation
+
+        if let error = validateZipCode(zip, for: country) {
+            return error
         }
+
         return nil
     }
-}
-
-extension ValidationUtility {
-    // Ensure ValidationError is defined appropriately
-    static func validateField(_ field: String, type: ValidationType) -> ValidationError? {
+    
+    static func validateField(_ value: String, type: ValidationType) -> ValidationError? {
         switch type {
-        case .userName:
-            return validateUserName(field) // Ensure these methods return ValidationError?
         case .email:
-            return validateEmail(field)
+            return validateEmail(value)
+        case .userName:
+            return validateUserName(value)
         case .name:
-            return validateName(field)
+            return validateName(value)
         case .password:
-            return isValidPassword(field)
+            return isValidPassword(value)
+        case .islandName:
+            return validateIslandName(value)
+        case .url:
+            return validateURL(value)
+        case .location:
+            // Location validation requires multiple fields, so we can't validate it here
+            return nil
         }
     }
     
-    /// Validate multiple fields.
-    static func validateFields(_ islandName: String, _ street: String, _ city: String, _ state: String, _ zip: String, _ gymWebsite: String) -> [ValidationError] {
-        var errors: [ValidationError] = []
+    static func validateIslandForm(
+        islandName: String,
+        street: String,
+        city: String,
+        state: String,
+        zip: String,
+        neighborhood: String? = nil,  // For Brazil
+        complement: String? = nil,    // For Brazil
+        province: String? = nil,      // For Canada and China
+        region: String? = nil,         // For Russia
+        district: String? = nil,       // For Israel
+        department: String? = nil,     // For Colombia
+        governorate: String? = nil,    // For Egypt
+        emirate: String? = nil,        // For United Arab Emirates
+        apartment: String? = nil,      // For Russia
+        additionalInfo: String? = nil, // For Saudi Arabia
+        selectedCountry: Country?,
+        createdByUserId: String,
+        gymWebsite: String
+    ) -> (isValid: Bool, errorMessage: String) {
+        var errorMessage = ""
         
-        if let error = validateIslandName(islandName) {
-            errors.append(error)
+        if islandName.isEmpty {
+            errorMessage = "Island name is required."
+        } else {
+            guard let selectedCountry = selectedCountry else {
+                errorMessage = "Please select a country."
+                return (false, errorMessage)
+            }
+            
+            let requiredFields = getAddressFields(for: selectedCountry.name.common)
+            
+            if requiredFields.contains(.street) && street.isEmpty {
+                errorMessage = "Street is required."
+            }
+            
+            if requiredFields.contains(.city) && city.isEmpty {
+                errorMessage = "City is required."
+            }
+            
+            if requiredFields.contains(.state) && state.isEmpty {
+                errorMessage = "State is required."
+            }
+            
+            if requiredFields.contains(.province) && province?.isEmpty ?? true {
+                errorMessage = "Province is required."
+            }
+            
+            if requiredFields.contains(.region) && region?.isEmpty ?? true {
+                errorMessage = "Region is required."
+            }
+            
+            if requiredFields.contains(.district) && district?.isEmpty ?? true {
+                errorMessage = "District is required."
+            }
+            
+            if requiredFields.contains(.department) && department?.isEmpty ?? true {
+                errorMessage = "Department is required."
+            }
+            
+            if requiredFields.contains(.governorate) && governorate?.isEmpty ?? true {
+                errorMessage = "Governorate is required."
+            }
+            
+            if requiredFields.contains(.emirate) && emirate?.isEmpty ?? true {
+                errorMessage = "Emirate is required."
+            }
+            
+            if requiredFields.contains(.apartment) && apartment?.isEmpty ?? true {
+                errorMessage = "Apartment is required."
+            }
+            
+            if requiredFields.contains(.additionalInfo) && additionalInfo?.isEmpty ?? true {
+                errorMessage = "Additional info is required."
+            }
+            
+            if requiredFields.contains(.neighborhood) && neighborhood?.isEmpty ?? true {
+                errorMessage = "Neighborhood is required."
+            }
+            
+            if requiredFields.contains(.complement) && complement?.isEmpty ?? true {
+                errorMessage = "Complement is required."
+            }
+            
+            if requiredFields.contains(.postalCode) && zip.isEmpty {
+                errorMessage = "Postal code is required."
+            }
+            
+            if !createdByUserId.isEmpty && gymWebsite.isEmpty {
+                errorMessage = "Website URL is invalid."
+            } else if !gymWebsite.isEmpty && validateURL(gymWebsite) != nil {
+                errorMessage = "Invalid website URL."
+            }
         }
         
-        if let error = validateLocation(street, city, state, zip) {
-            errors.append(error)
-        }
-        
-        if !gymWebsite.isEmpty, let error = validateURL(gymWebsite) {
-            errors.append(error)
-        }
-        
-        return errors
+        return (errorMessage.isEmpty, errorMessage)
     }
 }

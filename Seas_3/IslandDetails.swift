@@ -12,9 +12,12 @@ class IslandDetails: ObservableObject {
     @Published var city: String = ""
     @Published var state: String = ""
     @Published var zip: String = ""
+    @Published var latitude: Double?
+    @Published var longitude: Double?
     @Published var gymWebsite: String = ""
     @Published var gymWebsiteURL: URL?
-    @Published var country: Country?
+    @Published var country: String?
+    @Published var multilineAddress: String = ""
 
     // New address-related fields
     @Published var neighborhood: String = ""
@@ -25,8 +28,37 @@ class IslandDetails: ObservableObject {
     @Published var county: String = ""
     @Published var governorate: String = ""
     @Published var province: String = ""
-    @Published var postalCode: String = ""
-    @Published var pincode: String = ""
+    @Published var district: String = ""
+    @Published var department: String = ""
+    @Published var emirate: String = ""
+    @Published var additionalInfo: String = ""
+
+    @Published var postalCode: String = "" {
+        didSet {
+            // Ensure trimming is done correctly without causing issues
+            if postalCode != oldValue {
+                postalCode = postalCode.trimmingCharacters(in: .whitespaces)
+            }
+        }
+    }
+    
+    @Published var pincode: String = "" {
+        didSet {
+            // Ensure trimming is done correctly without causing issues
+            if pincode != oldValue {
+                pincode = pincode.trimmingCharacters(in: .whitespaces)
+            }
+        }
+    }
+
+    // Computed property for full address
+    var fullAddress: String {
+        """
+        \(street)\(neighborhood.isEmpty ? "" : ", \(neighborhood)")\(block.isEmpty ? "" : ", \(block)")\(apartment.isEmpty ? "" : ", Apt \(apartment)")
+        \(city)\(region.isEmpty ? "" : ", \(region)")\(state.isEmpty ? "" : ", \(state)")
+        \(country ?? "")\(postalCode.isEmpty ? "" : ", \(postalCode)")
+        """
+    }
 
     // Optional Initializer
     init(islandName: String = "",
@@ -36,7 +68,17 @@ class IslandDetails: ObservableObject {
          zip: String = "",
          gymWebsite: String = "",
          gymWebsiteURL: URL? = nil,
-         country: Country? = nil) {
+         country: String? = nil,
+         neighborhood: String = "",
+         complement: String = "",
+         block: String = "",
+         apartment: String = "",
+         region: String = "",
+         county: String = "",
+         governorate: String = "",
+         province: String = "",
+         postalCode: String = "",
+         pincode: String = "") {
         self.islandName = islandName
         self.street = street
         self.city = city
@@ -45,5 +87,15 @@ class IslandDetails: ObservableObject {
         self.gymWebsite = gymWebsite
         self.gymWebsiteURL = gymWebsiteURL
         self.country = country
+        self.neighborhood = neighborhood
+        self.complement = complement
+        self.block = block
+        self.apartment = apartment
+        self.region = region
+        self.county = county
+        self.governorate = governorate
+        self.province = province
+        self.postalCode = postalCode
+        self.pincode = pincode
     }
 }

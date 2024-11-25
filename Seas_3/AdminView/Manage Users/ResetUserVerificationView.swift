@@ -76,7 +76,7 @@ struct ResetUserVerificationView: View {
         isLoading = true
 
         // Validate email address
-        if let error = ValidationUtility.validateField(user.email, type: .email) {
+        if let error = ValidationUtility.validateEmail(user.email) {
             os_log("Invalid email: %@", log: logger, error.rawValue)
             errorMessage = error.rawValue
             isLoading = false
@@ -176,7 +176,7 @@ struct ResetUserVerificationView: View {
         let trimmedUserId = userId.trimmingCharacters(in: .whitespaces)
         os_log("Trimmed user ID: %@", log: logger, trimmedUserId)
 
-        if let error = ValidationUtility.validateField(trimmedUserId, type: .email) {
+        if let error = ValidationUtility.validateEmail(trimmedUserId) {
             handleError(NSError(domain: "", code: 0, userInfo: [NSLocalizedDescriptionKey: error.rawValue]),
                         context: "Invalid email",
                         presentation: .user,

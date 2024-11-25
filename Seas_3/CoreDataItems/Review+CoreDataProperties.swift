@@ -18,10 +18,11 @@ extension Review: Identifiable {
     @NSManaged public var review: String
     @NSManaged public var createdTimestamp: Date
     @NSManaged public var averageStar: Int16
+    @NSManaged public var reviewID: UUID
 
     // MARK: - Relationships
     @NSManaged public var island: PirateIsland?
-    
+
     // Identifiable conformance
     public var id: NSManagedObjectID {
         return self.objectID

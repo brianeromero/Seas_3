@@ -98,14 +98,13 @@ let defaultAddressFieldRequirements: [AddressFieldType] = [.street, .city, .stat
 
 // Function to get address field requirements for a country
 func getAddressFields(for country: String) -> [AddressFieldType] {
-    let fields = addressFieldRequirements[country] ?? defaultAddressFieldRequirements
+    guard let fields = addressFieldRequirements[country] else {
+        print("No address field requirements found for country: \(country). Using default fields.")
+        return defaultAddressFieldRequirements
+    }
     
     // Log the country and the corresponding fields
-    if addressFieldRequirements[country] != nil {
-        print("Country: \(country), Custom Fields: \(fields.map { $0.rawValue })") // Log custom fields for known countries
-    } else {
-        print("Country: \(country), Using Default Fields: \(fields.map { $0.rawValue })") // Log default fields
-    }
+    print("Country: \(country), Custom Fields: \(fields.map { $0.rawValue })") // Log custom fields for known countries
     
     return fields
 }

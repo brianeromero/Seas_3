@@ -15,7 +15,7 @@ struct CountryPicker: View {
     var body: some View {
         Picker("Select Country", selection: $selectedCountry) {
             ForEach(countries, id: \.cca2) { country in
-                Text(country.name.common).tag(country as Country?)
+                Text(country.countryName).tag(country as Country?)
             }
         }
     }

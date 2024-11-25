@@ -28,6 +28,8 @@ struct AddressFormView: View {
     @State private var neighborhood: String = ""
     @State private var complement: String = ""
     @State private var apartment: String = ""
+    @State private var islandDetails: IslandDetails = IslandDetails()
+
 
     // Fetch required address fields based on the selected country
     var requiredFields: [AddressFieldType] {
@@ -65,15 +67,7 @@ struct AddressFormView: View {
 
     // Function to display the appropriate address field
     func addressField(for field: AddressFieldType) -> some View {
-        VStack(alignment: .leading) {
-            Text(field.rawValue.capitalized)
-            TextField("Enter \(field.rawValue.capitalized)", text: binding(for: field))
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding()
-                .onChange(of: binding(for: field).wrappedValue) { newValue in
-                    print("Field \(field.rawValue) updated to: \(newValue)")  // Log field changes
-                }
-        }
+        AddressFieldView(field: AddressField(rawValue: field.rawValue)!, islandDetails: $islandDetails)
     }
 
     // Return the correct Binding for each field

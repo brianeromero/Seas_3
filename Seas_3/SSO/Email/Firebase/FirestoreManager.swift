@@ -8,172 +8,151 @@ import Firebase
 import FirebaseFirestore
 
 class FirestoreManager {
+    static let shared = FirestoreManager()
+    
+    private init() { }
+
     let db = Firestore.firestore()
+
+    // MARK: - User Management
+    func createUser(userName: String, name: String) async throws {
+        print("Creating user with username: \(userName) and name: \(name)")
+        try await setDocument(in: .userInfos, id: userName, data: [
+            "userName": userName,
+            "name": name
+        ])
+        print("User created successfully")
+    }
     
-    // MARK: - Collection-specific functions
+    func createFirestoreUser(userName: String, name: String) async throws {
+        print("Creating Firestore user with username: \(userName) and name: \(name)")
+        // Implementation to add user details to Firestore
+        let db = Firestore.firestore()
+        let userRef = db.collection("users").document("user-\(userName)")
+        try await userRef.setData([
+            "name": name,
+            "userName": userName,
+            "createdAt": FieldValue.serverTimestamp()
+        ])
+        print("Firestore user created successfully")
+    }
+    
+
+    func saveIslandToFirestore(island: PirateIsland) async throws {
+        print("Saving island to Firestore: \(island.safeIslandName)")
+        
+        // Add some debug prints here
+        print("Island name: \(island.islandName ?? "")")
+        print("Island location: \(island.islandLocation ?? "")")
+        print("Gym website URL: \(island.gymWebsite?.absoluteString ?? "")")
+        print("Latitude: \(island.latitude)")
+        print("Longitude: \(island.longitude)")
+        // Use the correct property names from PirateIsland
+        let islandRef = db.collection("pirateIslands").document(island.islandID?.uuidString ?? UUID().uuidString)
+        try await islandRef.setData([
+            "name": island.safeIslandName,
+            "location": island.safeIslandLocation,
+            "createdByUserId": island.createdByUserId ?? "Unknown User"
+        ])
+        print("Island saved successfully to Firestore")
+    }
+
+    // MARK: - Collection Management
     enum Collection: String {
-        case appDayOfWeeks
-        case matTimes
-        case pirateIslands
-        case reviews
-        case userInfos
-    }
-    
-    // appDayOfWeeks
-    func createAppDayOfWeek(data: [String: Any], completion: @escaping (Error?) -> Void) {
-        createDocument(collection: Collection.appDayOfWeeks.rawValue, data: data, completion: completion)
+        case appDayOfWeeks, matTimes, pirateIslands, reviews, userInfos
     }
 
-    func getAppDayOfWeeks(completion: @escaping ([QueryDocumentSnapshot]?, Error?) -> Void) {
-        getDocuments(collection: Collection.appDayOfWeeks.rawValue, completion: completion)
+    func updatePirateIsland(id: String, data: [String: Any]) async throws {
+        print("Updating pirate island with id: \(id)")
+        try await updateDocument(in: .pirateIslands, id: id, data: data)
+        print("Pirate island updated successfully")
     }
+
+    func createAppDayOfWeek(data: [String: Any]) async throws {
+        print("Creating app day of week")
+        try await createDocument(in: .appDayOfWeeks, data: data)
+        print("App day of week created successfully")
+    }
+
     // MARK: - Generic Firestore Operations
-    func createDocument(collection: String, data: [String: Any], completion: @escaping (Error?) -> Void) {
-        db.collection(collection).document().setData(data) { error in
-            if let error = error {
-                print("Error creating document: \(error.localizedDescription)")
-                completion(error)
-            } else {
-                completion(nil)
-            }
-        }
+    private func setDocument(in collection: Collection, id: String, data: [String: Any]) async throws {
+        print("Setting document in collection: \(collection.rawValue) with id: \(id)")
+        try await db.collection(collection.rawValue).document(id).setData(data)
+        print("Document set successfully")
+    }
+
+    private func createDocument(in collection: Collection, data: [String: Any]) async throws {
+        print("Creating document in collection: \(collection.rawValue)")
+        try await db.collection(collection.rawValue).document().setData(data)
+        print("Document created successfully")
+    }
+
+    private func updateDocument(in collection: Collection, id: String, data: [String: Any]) async throws {
+        print("Updating document in collection: \(collection.rawValue) with id: \(id)")
+        try await db.collection(collection.rawValue).document(id).updateData(data)
+        print("Document updated successfully")
+    }
+
+    private func getDocuments(in collection: Collection) async throws -> [QueryDocumentSnapshot] {
+        print("Getting documents in collection: \(collection.rawValue)")
+        let snapshot = try await db.collection(collection.rawValue).getDocuments()
+        print("Documents retrieved successfully")
+        return snapshot.documents
+    }
+
+    // MARK: - Specific Functions for Collections
+    func getAppDayOfWeeks() async throws -> [QueryDocumentSnapshot] {
+        print("Getting app day of weeks")
+        return try await getDocuments(in: .appDayOfWeeks)
+    }
+
+    func getPirateIsland(for id: String) async throws -> QueryDocumentSnapshot? {
+        print("Getting pirate island with id: \(id)")
+        let documents = try await getDocuments(in: .pirateIslands)
+        print("Pirate island retrieved successfully")
+        return documents.first { $0.documentID == id }
     }
     
-    func getDocuments(collection: String, completion: @escaping ([QueryDocumentSnapshot]?, Error?) -> Void) {
-        db.collection(collection).getDocuments { snapshot, error in
-            if let error = error {
-                print("Error fetching documents: \(error.localizedDescription)")
-                completion(nil, error)
-            } else if let snapshot = snapshot {
-                completion(snapshot.documents, nil)
-            }
-        }
+    func getReviews(for pirateIslandID: String) async throws -> [QueryDocumentSnapshot] {
+        print("Getting reviews for pirate island with id: \(pirateIslandID)")
+        let documents = try await getDocuments(in: .reviews)
+        print("Reviews retrieved successfully")
+        return documents.filter { $0.get("pirateIslandID") as? String == pirateIslandID }
     }
 
-    func updateDocument(collection: String, id: String, data: [String: Any], completion: @escaping (Error?) -> Void) {
-        db.collection(collection).document(id).updateData(data) { error in
-            completion(error)
-        }
-    }
-
-    func deleteDocument(collection: String, id: String, completion: @escaping (Error?) -> Void) {
-        db.collection(collection).document(id).delete { error in
-            completion(error)
-        }
-    }
-
-    // MARK: - Error Handling
+    // MARK: - Firestore Error Handling
     enum FirestoreError: Error {
-        case documentNotFound
-        case invalidData
-        case unknownError
+        case documentNotFound, invalidData, unknownError
         
         var localizedDescription: String {
             switch self {
-            case .documentNotFound:
-                return "Document not found"
-            case .invalidData:
-                return "Invalid data"
-            case .unknownError:
-                return "Unknown error"
+            case .documentNotFound: return "Document not found"
+            case .invalidData: return "Invalid data"
+            case .unknownError: return "Unknown error"
             }
-        }
-    }
-    
-    // Usage of error handling with completion blocks
-    func createAppDayOfWeek(data: [String: Any]) {
-        createDocument(collection: Collection.appDayOfWeeks.rawValue, data: data) { error in
-            if let error = error {
-                print("Failed to create AppDayOfWeek: \(error.localizedDescription)")
-            } else {
-                print("AppDayOfWeek created successfully")
-            }
-        }
-    }
-    
-    // MARK: - Additional Functions
-    func getAppDayOfWeek(for day: String, completion: @escaping (QueryDocumentSnapshot?) -> Void) {
-        getDocuments(collection: Collection.appDayOfWeeks.rawValue) { documents, error in
-            if let error = error {
-                print("Error fetching documents: \(error.localizedDescription)")
-                completion(nil)
-                return
-            }
-            
-            let filteredDocument = documents?.first { $0.get("day") as? String == day }
-            completion(filteredDocument)
-        }
-    }
-    
-    func getMatTimes(for appDayOfWeekID: String, completion: @escaping ([QueryDocumentSnapshot]) -> Void) {
-        getDocuments(collection: Collection.matTimes.rawValue) { documents, error in
-            if let error = error {
-                print("Error fetching documents: \(error.localizedDescription)")
-                completion([])
-                return
-            }
-            
-            let filteredDocuments = documents?.filter { $0.get("appDayOfWeekID") as? String == appDayOfWeekID } ?? []
-            completion(filteredDocuments)
         }
     }
 
-    // MARK: - Additional Functions for other collections
-    func getPirateIsland(for id: String, completion: @escaping (QueryDocumentSnapshot?) -> Void) {
-        getDocuments(collection: Collection.pirateIslands.rawValue) { documents, error in
-            if let error = error {
-                print("Error fetching PirateIsland: \(error.localizedDescription)")
-                completion(nil)
-                return
-            }
-            
-            let filteredDocument = documents?.first { $0.documentID == id }
-            completion(filteredDocument)
-        }
-    }
-    
-    func getReviews(for pirateIslandID: String, completion: @escaping ([QueryDocumentSnapshot]) -> Void) {
-        getDocuments(collection: Collection.reviews.rawValue) { documents, error in
-            if let error = error {
-                print("Error fetching reviews: \(error.localizedDescription)")
-                completion([])
-                return
-            }
-            
-            let filteredDocuments = documents?.filter { $0.get("pirateIslandID") as? String == pirateIslandID } ?? []
-            completion(filteredDocuments)
-        }
-    }
-    
-    
-    func listenForChanges(collection: String, completion: @escaping ([QueryDocumentSnapshot]?) -> Void) {
-        db.collection(collection).addSnapshotListener { snapshot, error in
+    // MARK: - Real-Time Updates
+    func listenForChanges(in collection: Collection, completion: @escaping ([QueryDocumentSnapshot]?) -> Void) {
+        print("Listening for changes in collection: \(collection.rawValue)")
+        db.collection(collection.rawValue).addSnapshotListener { snapshot, error in
             if let error = error {
                 print("Error listening for changes: \(error.localizedDescription)")
                 completion(nil)
             } else {
+                print("Changes detected in collection: \(collection.rawValue)")
                 completion(snapshot?.documents)
             }
         }
     }
-    
-    
-    func getDocumentById(collection: String, documentId: String, completion: @escaping (DocumentSnapshot?) -> Void) {
-        db.collection(collection).document(documentId).getDocument { document, error in
-            if let error = error {
-                print("Error getting document: \(error.localizedDescription)")
-                completion(nil)
-            } else {
-                completion(document)
-            }
-        }
-    }
-    
-    
-    func performBatchOperations(operations: [(operation: FirestoreBatchOperation, collection: String, data: [String: Any])], completion: @escaping (Error?) -> Void) {
+
+    // MARK: - Advanced Operations
+    func performBatchOperations(operations: [(operation: FirestoreBatchOperation, collection: Collection, data: [String: Any])], completion: @escaping (Error?) -> Void) {
+        print("Performing batch operations")
         let batch = db.batch()
         for operation in operations {
-            let documentRef = db.collection(operation.collection).document()
+            let documentRef = db.collection(operation.collection.rawValue).document()
             switch operation.operation {
             case .create:
                 batch.setData(operation.data, forDocument: documentRef)
@@ -184,71 +163,91 @@ class FirestoreManager {
             }
         }
         batch.commit { error in
+            if let error = error {
+                print("Error performing batch operations: \(error.localizedDescription)")
+            } else {
+                print("Batch operations performed successfully")
+            }
             completion(error)
         }
     }
 
     enum FirestoreBatchOperation {
-        case create
-        case update
-        case delete
+        case create, update, delete
     }
 
-    func getPaginatedDocuments(collection: String, lastDocument: QueryDocumentSnapshot?, limit: Int, completion: @escaping ([QueryDocumentSnapshot]?, Error?) -> Void) {
-        var query: Query = db.collection(collection).limit(to: limit)
+    func getPaginatedDocuments(in collection: Collection, lastDocument: QueryDocumentSnapshot?, limit: Int, completion: @escaping ([QueryDocumentSnapshot]?, Error?) -> Void) {
+        print("Getting paginated documents in collection: \(collection.rawValue)")
+        var query: Query = db.collection(collection.rawValue).limit(to: limit)
         if let lastDocument = lastDocument {
             query = query.start(afterDocument: lastDocument)
         }
-        
+
         query.getDocuments { snapshot, error in
             if let error = error {
-                print("Error fetching documents: \(error.localizedDescription)")
+                print("Error fetching paginated documents: \(error.localizedDescription)")
                 completion(nil, error)
-            } else if let snapshot = snapshot {
-                completion(snapshot.documents, nil)
+            } else {
+                print("Paginated documents retrieved successfully")
+                completion(snapshot?.documents, nil)
             }
         }
     }
-    func countDocuments(collection: String, completion: @escaping (Int?, Error?) -> Void) {
-        db.collection(collection).getDocuments { snapshot, error in
+
+    func countDocuments(in collection: Collection, completion: @escaping (Int?, Error?) -> Void) {
+        print("Counting documents in collection: \(collection.rawValue)")
+        db.collection(collection.rawValue).getDocuments { snapshot, error in
             if let error = error {
                 print("Error counting documents: \(error.localizedDescription)")
                 completion(nil, error)
             } else {
+                print("Documents counted successfully")
                 completion(snapshot?.documents.count, nil)
             }
         }
     }
 
-    func searchDocuments(collection: String, field: String, value: String, completion: @escaping ([QueryDocumentSnapshot]?, Error?) -> Void) {
-        db.collection(collection)
+    func searchDocuments(in collection: Collection, field: String, value: String, completion: @escaping ([QueryDocumentSnapshot]?, Error?) -> Void) {
+        print("Searching documents in collection: \(collection.rawValue) with field: \(field) and value: \(value)")
+        db.collection(collection.rawValue)
           .whereField(field, isEqualTo: value)
           .getDocuments { snapshot, error in
               if let error = error {
                   print("Error searching documents: \(error.localizedDescription)")
                   completion(nil, error)
               } else {
+                  print("Documents searched successfully")
                   completion(snapshot?.documents, nil)
               }
           }
     }
 
-    func createOrUpdateDocument(collection: String, documentId: String, data: [String: Any], completion: @escaping (Error?) -> Void) {
-        db.collection(collection).document(documentId).setData(data, merge: true) { error in
+    func createOrUpdateDocument(in collection: Collection, documentId: String, data: [String: Any], completion: @escaping (Error?) -> Void) {
+        print("Creating or updating document in collection: \(collection.rawValue) with id: \(documentId)")
+        db.collection(collection.rawValue).document(documentId).setData(data, merge: true) { error in
+            if let error = error {
+                print("Error creating or updating document: \(error.localizedDescription)")
+            } else {
+                print("Document created or updated successfully")
+            }
             completion(error)
         }
     }
-    
-    func performTransaction(collection: String, documentId: String, data: [String: Any], completion: @escaping (Error?) -> Void) {
-        let documentRef = db.collection(collection).document(documentId)
-        
-        db.runTransaction({ (transaction, errorPointer) -> Any? in
+
+    func performTransaction(in collection: Collection, documentId: String, data: [String: Any], completion: @escaping (Error?) -> Void) {
+        print("Performing transaction in collection: \(collection.rawValue) with id: \(documentId)")
+        let documentRef = db.collection(collection.rawValue).document(documentId)
+
+        db.runTransaction { (transaction, errorPointer) -> Any? in
             transaction.updateData(data, forDocument: documentRef)
             return nil
-        }) { (object, error) in
+        } completion: { _, error in
+            if let error = error {
+                print("Error performing transaction: \(error.localizedDescription)")
+            } else {
+                print("Transaction performed successfully")
+            }
             completion(error)
         }
     }
-
-
 }

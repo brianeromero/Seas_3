@@ -10,18 +10,20 @@ import SwiftUI
 
 struct RegionSelect: View {
     @State private var countries: [Country] = []
-    @State private var selectedCountry: String = "US"
-    
+    @State private var selectedCountry: Country? = nil  // Change to Country?
+
     var body: some View {
         Picker("Select Country", selection: $selectedCountry) {
-            ForEach(countries, id: \.name.common) {
-                Text($0.name.common)
+            ForEach(countries, id: \.cca2) { country in
+                Text(country.countryName).tag(country as Country?)
             }
         }
         .pickerStyle(SegmentedPickerStyle())
         .padding()
         .onChange(of: selectedCountry) { newValue in
-            print("Selected Country: \(newValue)")
+            if let country = newValue {
+                print("Selected Country: \(country.countryName)")
+            }
         }
         .onAppear {
             fetchCountries()
@@ -52,7 +54,6 @@ struct RegionSelect_Previews: PreviewProvider {
     static var previews: some View {
         RegionSelect()
             .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
-            // or simply:
             .previewLayout(.sizeThatFits)
             .padding()
     }

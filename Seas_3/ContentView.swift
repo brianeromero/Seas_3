@@ -17,6 +17,7 @@ struct ContentView: View {
     @State private var createdByUserId = ""
     @State private var gymWebsite = ""
     @State private var gymWebsiteURL: URL?
+    @State private var islandLocation = ""  // Add this state property for islandLocation
     
     @State private var selectedIsland: PirateIsland? = nil // Add this property
     
@@ -25,6 +26,8 @@ struct ContentView: View {
     @State private var city = ""
     @State private var state = ""
     @State private var zip = ""
+    @State private var selectedCountry: Country?
+
     
     // State variable to control the display of StoryboardViewController
     @State private var showStoryboardViewController = true
@@ -74,15 +77,13 @@ struct ContentView: View {
                 }
                 .sheet(isPresented: $showAddIslandForm) {
                     AddIslandFormView(
+                        currentIsland: PirateIsland(),  // Provide an empty or initialized PirateIsland object
                         islandName: $islandName,
-                        street: $street,
-                        city: $city,
-                        state: $state,
-                        zip: $zip,
+                        islandLocation: $islandLocation,  // Bind islandLocation here
                         createdByUserId: $createdByUserId,
                         gymWebsite: $gymWebsite,
                         gymWebsiteURL: $gymWebsiteURL,
-                        pirateIslandViewModel: viewModel
+                        selectedCountry: $selectedCountry  // Pass the Binding for selectedCountry
                     )
                     .environment(\.managedObjectContext, persistenceController.viewContext)
                 }

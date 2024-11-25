@@ -81,6 +81,13 @@ struct ForgotYourPasswordView: View {
     }
 }
 
+extension String {
+    var isValidEmail: Bool {
+        return ValidationUtility.validateEmail(self) == nil
+    }
+}
+
+
 struct ForgotYourPasswordView_Previews: PreviewProvider {
     static var previews: some View {
         let context = PersistenceController.preview.container.viewContext
@@ -88,8 +95,3 @@ struct ForgotYourPasswordView_Previews: PreviewProvider {
     }
 }
 
-extension String {
-    var isValidEmail: Bool {
-        return ValidationUtility.validateField(self, type: .email) == nil
-    }
-}

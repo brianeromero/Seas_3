@@ -95,7 +95,7 @@ struct EnterZipCodeView: View {
                     let marker = CustomMapMarker(
                         id: UUID(),
                         coordinate: CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude),
-                        title: $0.name ?? "",
+                        title: $0.islandName ?? "",
                         pirateIsland: $0
                     )
                     return marker.distance(from: location) <= self.selectedRadius * 1609.34

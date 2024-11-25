@@ -91,7 +91,7 @@ class AuthViewModel: ObservableObject {
 
     // MARK: Create Firebase user with email/password
     @MainActor
-    func createUser(withEmail email: String, password: String, userName: String, name: String) async throws {
+    func createUser(withEmail email: String, password: String, userName: String, name: String, belt: String?) async throws {
         guard !email.isEmpty, !password.isEmpty, !userName.isEmpty, !name.isEmpty else {
             throw AuthError.invalidInput
         }
@@ -104,16 +104,19 @@ class AuthViewModel: ObservableObject {
             switch result {
             case .success(let existingUser):
                 if let existingUser = existingUser {
-                    try updateUser(existingUser, with: userName, name: name) // Removed await
+                    try updateUser(existingUser, with: userName, name: name)
                 } else {
-                    try addUserToCoreData(with: authResult.user.uid, email: email, userName: userName, name: name)
+                    // Pass nil if belt is empty
+                    let beltToSave = belt?.isEmpty == true ? nil : belt
+                    try addUserToCoreData(with: authResult.user.uid, email: email, userName: userName, name: name, belt: beltToSave)
                 }
             case .failure(let error):
                 throw error
             }
             
-            // Create Firestore document
-            try await createFirestoreDocument(for: authResult.user.uid, email: email, userName: userName, name: name)
+            // Create Firestore document, pass nil if belt is empty
+            let beltToFirestore = belt?.isEmpty == true ? nil : belt
+            try await createFirestoreDocument(for: authResult.user.uid, email: email, userName: userName, name: name, belt: beltToFirestore)
             
             // Send Firebase verification email
             try await sendVerificationEmail(to: email)
@@ -124,6 +127,7 @@ class AuthViewModel: ObservableObject {
             throw AuthError.firebaseError(error)
         }
     }
+
     
     
     
@@ -170,7 +174,7 @@ class AuthViewModel: ObservableObject {
     private func fetchUserByUsername(_ username: String) async -> Result<UserInfo?, Error> {
         let firestore = Firestore.firestore()
         let query = firestore.collection("users").whereField("userName", isEqualTo: username)
-        
+
         do {
             let querySnapshot = try await query.getDocuments()
             if let document = querySnapshot.documents.first {
@@ -198,9 +202,8 @@ class AuthViewModel: ObservableObject {
         try context.save()
     }
 
-    private func createFirestoreDocument(for userID: String, email: String, userName: String, name: String) async throws {
-        let userRef = Firestore.firestore().collection("users").document(userID)
-        try await userRef.setData([
+    private func createFirestoreDocument(for userID: String, email: String, userName: String, name: String, belt: String?) async throws {
+        var userData: [String: Any] = [
             "email": email,
             "userName": userName,
             "name": name,
@@ -208,8 +211,17 @@ class AuthViewModel: ObservableObject {
             "isVerified": false,
             "createdAt": Timestamp(),
             "lastLogin": Timestamp()
-        ], merge: true)
+        ]
+        
+        if let belt = belt {
+            userData["belt"] = belt
+        }
+        
+        let userRef = Firestore.firestore().collection("users").document(userID)
+        try await userRef.setData(userData, merge: true)
     }
+
+
 
     private func sendVerificationEmail(to email: String) async throws {
         guard let user = Auth.auth().currentUser else {
@@ -242,13 +254,18 @@ class AuthViewModel: ObservableObject {
 
 
     // New method to add user to Core Data
-    private func addUserToCoreData(with userID: String, email: String, userName: String, name: String) throws {
+    private func addUserToCoreData(with userID: String, email: String, userName: String, name: String, belt: String?) throws {
         let newUser = UserInfo(context: context)
         newUser.userID = userID
         newUser.userName = userName
         newUser.email = email
         newUser.name = name
         newUser.isVerified = false
+
+        // Assign the optional belt if provided
+        if let belt = belt {
+            newUser.belt = belt
+        }
 
         let hashedPassword = try hashPasswordPbkdf(password)
 
@@ -270,6 +287,8 @@ class AuthViewModel: ObservableObject {
             throw error // Rethrow or handle error accordingly
         }
     }
+
+
 
     // Handle email verification response
     func handleEmailVerificationResponse() async {

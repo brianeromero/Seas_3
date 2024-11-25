@@ -360,11 +360,11 @@ class AppDayOfWeekRepository: ObservableObject {
                 guard let appDayOfWeeks = island.appDayOfWeeks as? Set<AppDayOfWeek>,
                       let selectedDayAppDayOfWeek = appDayOfWeeks.first(where: { $0.day.lowercased() == day.lowercased() }),
                       let matTimes = selectedDayAppDayOfWeek.matTimes?.allObjects as? [MatTime] else {
-                    print("Invalid relationship or no mat times found for island: \(island.name ?? "") on \(day.capitalized)")
+                    print("Invalid relationship or no mat times found for island: \(island.islandName ?? "") on \(day.capitalized)")
                     return nil
                 }
                 
-                print("Island: \(island.name ?? ""), MatTimes: \(matTimes)")
+                print("Island: \(island.islandName ?? ""), MatTimes: \(matTimes)")
                 return (island, matTimes)
             }
 

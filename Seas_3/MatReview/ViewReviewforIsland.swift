@@ -170,7 +170,7 @@ struct ReviewList: View {
         VStack {
             if !filteredReviews.isEmpty {
                 List {
-                    ForEach(filteredReviews, id: \.objectID) { review in
+                    ForEach(filteredReviews, id: \.reviewID) { review in
                         NavigationLink(destination: FullReviewView(review: review)) {
                             VStack(alignment: .leading) {
                                 // Displaying review text with a character limit

@@ -80,19 +80,19 @@
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
+            argument = "-FIRAnalyticsVerboseLoggingEnabled"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "-com.apple.CoreData.PersistencyDebug 1 "
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "FIRDebugEnabled"
-            isEnabled = "YES">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "-com.apple.CoreData.ThreadingDebug 1"
-            isEnabled = "YES">
-         </CommandLineArgument>
-         <CommandLineArgument
             argument = "-com.apple.CoreData.QueryPlanDebug 1"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-FIRAnalyticsDebugEnabled"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
@@ -138,12 +138,12 @@
          </EnvironmentVariable>
          <EnvironmentVariable
             key = "FIRAAppCheckDebugToken"
-            value = "826C9858-9C08-4410-AB8A-38180B55ADA1"
+            value = "BB0724A0-E70B-42CA-AFBA-05BE1B79130F"
             isEnabled = "YES">
          </EnvironmentVariable>
          <EnvironmentVariable
-            key = "MF_InderDEBUGTOKEN"
-            value = "826C9858-9C08-4410-AB8A-38180B55ADA1"
+            key = "Debug asof112024"
+            value = "BB0724A0-E70B-42CA-AFBA-05BE1B79130F"
             isEnabled = "YES">
          </EnvironmentVariable>
       </EnvironmentVariables>

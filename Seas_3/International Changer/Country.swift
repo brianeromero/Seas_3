@@ -15,4 +15,9 @@ struct Country: Codable, Hashable {
     struct Name: Codable, Hashable {
         let common: String
     }
+
+    // You can add a computed property if needed to access the country name easily
+    var countryName: String {
+        return name.common
+    }
 }

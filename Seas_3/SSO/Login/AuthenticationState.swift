@@ -67,7 +67,7 @@ public class AuthenticationState: ObservableObject {
     /// - Parameter email: Email address to validate.
     /// - Returns: True if the email is valid, false otherwise.
     private func isValidEmail(_ email: String) -> Bool {
-        return ValidationUtility.validateField(email, type: .email) == nil
+        return ValidationUtility.validateEmail(email) == nil
     }
 
     /// Checks if a password is valid.
@@ -75,9 +75,9 @@ public class AuthenticationState: ObservableObject {
     /// - Parameter password: Password to validate.
     /// - Returns: True if the password is valid, false otherwise, along with an optional error message.
     private func isValidPassword(_ password: String) -> (Bool, String?) {
-        let isValid = ValidationUtility.isValidPassword(password) == nil
-        let feedback = ValidationUtility.isValidPassword(password)?.localizedDescription
-        return (isValid, feedback ?? "Invalid password")
+        let validationMessage = ValidationUtility.isValidPassword(password)
+        let isValid = validationMessage == nil
+        return (isValid, validationMessage?.rawValue)
     }
 
     /// Updates the social user with the provided information.
