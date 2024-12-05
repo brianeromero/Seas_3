@@ -343,7 +343,6 @@
 				Email/AccountCreation/AccountAuthView.swift,
 				Email/AccountCreation/AuthenticationHelper.swift,
 				Email/AccountCreation/CreateAccountView.swift,
-				Email/AccountCreation/File.txt,
 				Email/AccountCreation/FormFieldViews.swift,
 				Email/AccountCreation/FormState.swift,
 				Email/AccountCreation/UserInformationView.swift,

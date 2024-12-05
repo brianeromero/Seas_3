@@ -235,11 +235,11 @@ class PersistenceController: ObservableObject {
     func fetchLocalRecords(forCollection collectionName: String) async throws -> [String]? {
         switch collectionName {
         case "pirateIslands":
-            return try await fetchLocalRecords(forEntity: PirateIsland.self, keyPath: \.islandID!) as [String]
+            return try await fetchLocalRecords(forEntity: PirateIsland.self, keyPath: \.islandID)
         case "reviews":
             return try await fetchLocalRecords(forEntity: Review.self, keyPath: \.reviewID)
         case "matTimes":
-            return try await fetchLocalRecords(forEntity: MatTime.self, keyPath: \.id!) as [String]
+            return try await fetchLocalRecords(forEntity: MatTime.self, keyPath: \.id)
         default:
             throw PersistenceError.invalidCollectionName(collectionName)
         }
@@ -249,12 +249,23 @@ class PersistenceController: ObservableObject {
         do {
             let fetchRequest = entity.fetchRequest()
             let records = try viewContext.fetch(fetchRequest) as? [T] ?? []
-            return records.compactMap { $0[keyPath: keyPath].uuidString }
+            return records.map { $0[keyPath: keyPath].uuidString }
         } catch {
             throw PersistenceError.fetchError(error)
         }
     }
 
+    func fetchLocalRecords<T: NSManagedObject>(forEntity entity: T.Type, keyPath: KeyPath<T, UUID?>) async throws -> [String] {
+        do {
+            let fetchRequest = entity.fetchRequest()
+            let records = try viewContext.fetch(fetchRequest) as? [T] ?? []
+            return records.compactMap { $0[keyPath: keyPath]?.uuidString }
+        } catch {
+            throw PersistenceError.fetchError(error)
+        }
+    }
+    
+    
     // Custom error enum
     enum PersistenceError: Error, CustomStringConvertible {
         case fetchError(Error)

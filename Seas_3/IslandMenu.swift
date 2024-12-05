@@ -55,7 +55,7 @@ struct IslandMenu: View {
     enum IslandMenuOption: String, CaseIterable {
         case allLocations = "All Locations"
         case currentLocation = "Current Location"
-        case zipCode = "Zip Code"
+        case postalCode = "Postal Code"
         case dayOfWeek = "Day of the Week"
         case addNewGym = "Add New Gym"
         case updateExistingGyms = "Update Existing Gyms"
@@ -69,7 +69,7 @@ struct IslandMenu: View {
         .init(title: "Search Gym Entries By", subMenuItems: [
             IslandMenuOption.allLocations.rawValue,
             IslandMenuOption.currentLocation.rawValue,
-            IslandMenuOption.zipCode.rawValue,
+            IslandMenuOption.postalCode.rawValue,
             IslandMenuOption.dayOfWeek.rawValue
         ], padding: 20),
         .init(title: "Manage Gyms Entries", subMenuItems: [
@@ -196,8 +196,7 @@ struct IslandMenu: View {
             // Use the shared persistence controller in the view model
             AddNewIsland(
                 viewModel: PirateIslandViewModel(persistenceController: PersistenceController.shared),
-                profileViewModel: profileViewModel,
-                islandDetails: IslandDetails()
+                profileViewModel: profileViewModel
             )
             
         case .updateExistingGyms:
@@ -215,7 +214,7 @@ struct IslandMenu: View {
                 )
             )
             
-        case .zipCode:
+        case .postalCode:
             EnterZipCodeView(
                 appDayOfWeekViewModel: appDayOfWeekViewModel,
                 allEnteredLocationsViewModel: AllEnteredLocationsViewModel(
@@ -230,7 +229,7 @@ struct IslandMenu: View {
                 handleInvalidZipCode()
             }
             .onAppear {
-                if appDayOfWeekViewModel.enterZipCodeViewModel.zipCode.isEmpty || !appDayOfWeekViewModel.enterZipCodeViewModel.isValidZipCode() {
+                if appDayOfWeekViewModel.enterZipCodeViewModel.postalCode.isEmpty || !appDayOfWeekViewModel.enterZipCodeViewModel.isValidPostalCode() {
                     os_log("Invalid zip code", log: IslandMenulogger)
                 }
             }

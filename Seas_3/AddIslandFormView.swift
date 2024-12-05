@@ -8,267 +8,275 @@
 import SwiftUI
 import CoreData
 import Combine
-import CoreLocation
 import Foundation
 
 struct AddIslandFormView: View {
+    // MARK: - Environment Variables
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.presentationMode) private var presentationMode
-
-    @Binding var islandName: String
-    @Binding var islandLocation: String
-    @State private var street: String = ""
-    @State private var city: String = ""
-    @State private var state: String = ""
-    @State private var zip: String = ""
-    @State private var neighborhood: String = ""
-    @State private var complement: String = ""
-    @State private var apartment: String = ""
-    @State private var additionalInfo: String = ""
-    @Binding var createdByUserId: String
-    @Binding var gymWebsite: String
-    @Binding var selectedCountry: Country?
-    @Binding var gymWebsiteURL: URL?
-
+    
+    // MARK: - Observed Objects
+    @ObservedObject var islandViewModel: PirateIslandViewModel
+    @ObservedObject var profileViewModel: ProfileViewModel
+    @State var islandDetails: IslandDetails
+    
+    // MARK: - State Variables
     @State private var isSaveEnabled = false
     @State private var showAlert = false
     @State private var alertMessage = ""
+    @State private var showToast = false
+    @State private var toastMessage = ""
     @State private var isGeocoding = false
 
-    @StateObject var pirateIslandViewModel = PirateIslandViewModel(persistenceController: PersistenceController.shared)
-    @State private var currentIsland: PirateIsland
-
+    // MARK: - Initialization
     init(
-        currentIsland: PirateIsland,
-        islandName: Binding<String>,
-        islandLocation: Binding<String>,
-        createdByUserId: Binding<String>,
-        gymWebsite: Binding<String>,
-        gymWebsiteURL: Binding<URL?>,
-        selectedCountry: Binding<Country?>
+        islandViewModel: PirateIslandViewModel,
+        profileViewModel: ProfileViewModel,
+        islandDetails: IslandDetails
     ) {
-        self._currentIsland = State(wrappedValue: currentIsland)
-        self._islandName = islandName
-        self._islandLocation = islandLocation
-        self._createdByUserId = createdByUserId
-        self._gymWebsite = gymWebsite
-        self._gymWebsiteURL = gymWebsiteURL
-        self._selectedCountry = selectedCountry
+        self.islandViewModel = islandViewModel
+        self.profileViewModel = profileViewModel
+        self.islandDetails = islandDetails
     }
-
+    
+    // MARK: - Body
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Gym Details")) {
-                    TextField("Gym Name", text: $islandName)
-                        .onChange(of: islandName) { _ in validateFields() }
-                    
-                    UnifiedCountryPickerView(selectedCountry: $selectedCountry)
-
-                    AddressFieldsView(
-                        selectedCountry: $selectedCountry,
-                        street: $street,
-                        city: $city,
-                        state: $state,
-                        zip: $zip,
-                        neighborhood: $neighborhood,
-                        complement: $complement,
-                        apartment: $apartment,
-                        additionalInfo: $additionalInfo
-                    )
-                    
-                    TextField("Full Address", text: $islandLocation)
-                        .onChange(of: islandLocation) { _ in validateFields() }
-                }
-
-                Section(header: Text("Entered By")) {
-                    TextField("Your Name", text: $createdByUserId)
-                        .onChange(of: createdByUserId) { newValue in
-                            Logger.logCreatedByIdEvent(createdByUserId: newValue, fileName: "AddIslandFormView", functionName: "TextField.onChange")
-                            validateFields()
-                        }
-                }
-
-                Section(header: Text("Website (if applicable)")) {
-                    TextField("Website", text: $gymWebsite)
-                        .onChange(of: gymWebsite) { newValue in
-                            gymWebsiteURL = URL(string: newValue)
-                            validateFields()
-                        }
-                }
+                gymDetailsSection
+                countrySpecificFieldsSection
+                enteredBySection
+                instagramOrWebsiteSection
+                saveButton
+                cancelButton
             }
-            .navigationTitle("Add Gym")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        presentationMode.wrappedValue.dismiss()
-                    }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        if isSaveEnabled {
-                            Task {
-                                try await saveIslandData()
-                            }
-                        } else {
-                            alertMessage = "Required fields are empty or invalid"
-                            showAlert.toggle()
-                        }
-                    }
-                    .disabled(!isSaveEnabled)
-                }
-            }
+            .navigationBarTitle(islandDetails.islandName.isEmpty ? "Add New Gym" : "Edit Gym", displayMode: .inline)
             .alert(isPresented: $showAlert) {
-                Alert(
-                    title: Text("Invalid Input"),
-                    message: Text(alertMessage),
-                    dismissButton: .default(Text("OK"))
-                )
+                Alert(title: Text("Error"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
             }
-            .onAppear {
-                validateFields()
+            .onAppear(perform: validateForm)
+            .overlay(toastOverlay)
+        }
+    }
+    
+    // MARK: - Extracted Sections
+    private var gymDetailsSection: some View {
+        Section(header: Text("Gym Details")) {
+            TextField("Gym Name", text: $islandDetails.islandName)
+            TextField("Gym Location", text: $islandDetails.street)
+            TextField("City", text: $islandDetails.city)
+            TextField("State", text: $islandDetails.state)
+            TextField("Postal Code", text: $islandDetails.postalCode)
+        }
+    }
+    
+    private var countrySpecificFieldsSection: some View {
+        Section(header: Text("Country Specific Fields")) {
+            if let selectedCountry = islandDetails.selectedCountry {
+                let requiredFields = getAddressFields(for: selectedCountry.cca2)
+                
+                ForEach(requiredFields, id: \.self) { field in
+                    self.addressField(for: AddressField(rawValue: field.rawValue)!)
+                }
+                
+                // County field specifically for countries like Ireland
+                if selectedCountry.cca2 == "IE" {
+                    TextField("County", text: $islandDetails.county)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                }
+            } else {
+                Text("Please select a country")
+            }
+        }
+    }
+
+    // MARK: - Address Fields
+    private func addressField(for field: AddressField) -> some View {
+        switch field {
+        case .street:
+            return AnyView(TextField("Street", text: $islandDetails.street).textFieldStyle(RoundedBorderTextFieldStyle()))
+        case .city:
+            return AnyView(TextField("City", text: $islandDetails.city).textFieldStyle(RoundedBorderTextFieldStyle()))
+        case .state:
+            return AnyView(TextField("State", text: $islandDetails.state).textFieldStyle(RoundedBorderTextFieldStyle()))
+        case .postalCode:
+            return AnyView(TextField("Postal Code", text: $islandDetails.postalCode).textFieldStyle(RoundedBorderTextFieldStyle()))
+        case .province:
+            return AnyView(TextField("Province", text: $islandDetails.province).textFieldStyle(RoundedBorderTextFieldStyle()))
+        case .neighborhood:
+            return AnyView(TextField("Neighborhood", text: $islandDetails.neighborhood).textFieldStyle(RoundedBorderTextFieldStyle()))
+        case .district:
+            return AnyView(TextField("District", text: $islandDetails.district).textFieldStyle(RoundedBorderTextFieldStyle()))
+        case .department:
+            return AnyView(TextField("Department", text: $islandDetails.department).textFieldStyle(RoundedBorderTextFieldStyle()))
+        case .governorate:
+            return AnyView(TextField("Governorate", text: $islandDetails.governorate).textFieldStyle(RoundedBorderTextFieldStyle()))
+        case .emirate:
+            return AnyView(TextField("Emirate", text: $islandDetails.emirate).textFieldStyle(RoundedBorderTextFieldStyle()))
+        case .apartment:
+            return AnyView(TextField("Apartment", text: $islandDetails.apartment).textFieldStyle(RoundedBorderTextFieldStyle()))
+        case .additionalInfo:
+            return AnyView(TextField("Additional Info", text: $islandDetails.additionalInfo).textFieldStyle(RoundedBorderTextFieldStyle()))
+        default:
+            return AnyView(EmptyView())
+        }
+    }
+    
+    private var enteredBySection: some View {
+        Section(header: Text("Entered By")) {
+            Text(profileViewModel.name)
+                .foregroundColor(.primary)
+                .padding()
+        }
+    }
+
+    private var instagramOrWebsiteSection: some View {
+        Section(header: Text("Instagram/Facebook/Website")) {
+            TextField("Gym Website", text: $islandDetails.gymWebsite)
+                .keyboardType(.URL)
+                .onChange(of: islandDetails.gymWebsite) { newValue in
+                    if !newValue.isEmpty {
+                        let validatedURL = validateAndFormatURL(newValue)
+                        if let url = validatedURL {
+                            islandDetails.gymWebsiteURL = url
+                        } else {
+                            showAlert = true
+                            alertMessage = "Invalid website URL."
+                        }
+                    } else {
+                        islandDetails.gymWebsiteURL = nil
+                    }
+                }
+        }
+    }
+
+
+    private var saveButton: some View {
+        Button("Save") {
+            saveIsland()
+        }
+        .disabled(!isSaveEnabled)
+        .padding()
+    }
+
+    private var cancelButton: some View {
+        Button("Cancel") {
+            presentationMode.wrappedValue.dismiss()
+        }
+        .padding()
+    }
+
+    private var toastOverlay: some View {
+        Group {
+            if showToast {
+                withAnimation {
+                    ToastView(showToast: $showToast, message: toastMessage)
+                        .transition(.move(edge: .bottom))
+                        .onAppear {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                showToast = false
+                            }
+                        }
+                }
             }
         }
     }
     
-    private func validateURL(_ urlString: String) -> Bool {
-        guard let url = URL(string: urlString) else { return false }
-        return UIApplication.shared.canOpenURL(url)
-    }
-
-    private func getAddressFields(for country: String) -> [AddressFieldType] {
-        // Retrieve the address fields for the selected country from the addressFieldRequirements dictionary
-        let fields = addressFieldRequirements[country] ?? defaultAddressFieldRequirements
+    // MARK: - Private Methods
+    private func saveIsland() {
+        guard !profileViewModel.name.isEmpty else { return }
         
-        // Log the country and the corresponding fields
-        if addressFieldRequirements[country] != nil {
-            print("Country: \(country), Custom Fields: \(fields.map { $0.rawValue })") // Log custom fields for known countries
-        } else {
-            print("Country: \(country), Using Default Fields: \(fields.map { $0.rawValue })") // Log default fields
-        }
-        
-        return fields
-    }
-
-    func updateIslandLocation() {
-        isGeocoding = true
         Task {
             do {
-                // Construct the address string dynamically based on selected country
-                var addressComponents = [String]()
-                
-                // Get the address fields for the selected country
-                let requiredFields = getAddressFields(for: selectedCountry?.name.common ?? "US")
-                
-                // Append the relevant address components
-                if requiredFields.contains(.street) {
-                    addressComponents.append(street)
-                }
-                if requiredFields.contains(.city) {
-                    addressComponents.append(city)
-                }
-                if requiredFields.contains(.state) || requiredFields.contains(.province) {
-                    addressComponents.append(state)
-                }
-                if requiredFields.contains(.postalCode) || requiredFields.contains(.pincode) || requiredFields.contains(.zip) {
-                    addressComponents.append(zip)
-                }
-                if requiredFields.contains(.neighborhood) {
-                    addressComponents.append(neighborhood)
-                }
-                if requiredFields.contains(.complement) {
-                    addressComponents.append(complement)
-                }
-                if requiredFields.contains(.apartment) {
-                    addressComponents.append(apartment)
-                }
-                if requiredFields.contains(.additionalInfo) {
-                    addressComponents.append(additionalInfo)
-                }
-                
-                // Create the full address string
-                let location = addressComponents.joined(separator: ", ")
-                
-                // Attempt to geocode the location
-                let coordinates = try await pirateIslandViewModel.geocodeAddress(location)
-                
-                // Update the island's coordinates
-                currentIsland.latitude = coordinates.latitude
-                currentIsland.longitude = coordinates.longitude
-                
-                // Save changes to Core Data
-                try await viewContext.save()
-                
-                islandLocation = location  // Update the island location field
-                validateFields()  // Validate after updating the location
+                _ = try await islandViewModel.createPirateIsland(islandDetails: islandDetails, createdByUserId: profileViewModel.name)
+                toastMessage = "Island saved successfully!"
+                clearFields()
             } catch {
-                alertMessage = "Error with geocoding: \(error.localizedDescription)"
-                showAlert.toggle()
+                toastMessage = "Error saving island: \(error.localizedDescription)"
             }
-            isGeocoding = false
+            showToast = true
         }
     }
+    
+    private func clearFields() {
+        islandDetails.islandName = ""
+        islandDetails.street = ""
+        islandDetails.city = ""
+        islandDetails.state = ""
+        islandDetails.postalCode = ""
+        islandDetails.gymWebsite = ""
+        islandDetails.gymWebsiteURL = nil
+    }
 
-    private func validateFields() {
-        Logger.logCreatedByIdEvent(createdByUserId: createdByUserId, fileName: "AddIslandFormView", functionName: "validateFields")
-        let (isSaveEnabled, alertMessage) = ValidationUtility.validateIslandForm(
-            islandName: islandName,
-            street: street,
-            city: city,
-            state: state,
-            zip: zip,
-            selectedCountry: selectedCountry,
-            createdByUserId: createdByUserId,
-            gymWebsite: gymWebsite
+    private func validateForm() {
+        let (isValid, errorMessage) = ValidationUtility.validateIslandForm(
+            islandName: islandDetails.islandName,
+            street: islandDetails.street,
+            city: islandDetails.city,
+            state: islandDetails.state,
+            postalCode: islandDetails.postalCode,
+            selectedCountry: Country(name: .init(common: islandDetails.selectedCountry?.name.common ?? ""), cca2: "", flag: ""),
+            createdByUserId: profileViewModel.name,
+            gymWebsite: islandDetails.gymWebsite
         )
-        self.alertMessage = alertMessage
-        self.isSaveEnabled = isSaveEnabled
-    }
-    
-    
-    private func saveIslandData() async throws {
-        do {
-            // Save the single `islandLocation` field along with other data
-            currentIsland.islandName = islandName
-            currentIsland.islandLocation = islandLocation
-            Logger.logCreatedByIdEvent(createdByUserId: createdByUserId, fileName: "AddIslandFormView", functionName: "saveIslandData")
-            currentIsland.createdByUserId = createdByUserId
-            currentIsland.gymWebsite = gymWebsiteURL
-
-            // Save changes to Core Data
-            try viewContext.save()
-
-            // Dismiss the view after successful save
-            presentationMode.wrappedValue.dismiss()
-        } catch {
-            alertMessage = "Error saving island data: \(error.localizedDescription)"
-            showAlert.toggle()
+        
+        if !isValid {
+            alertMessage = errorMessage
+            showAlert = true
+        } else {
+            isSaveEnabled = true
         }
     }
-
+    
+    private func binding(for field: AddressFieldType) -> Binding<String> {
+        switch field {
+        case .street: return $islandDetails.street
+        case .city: return $islandDetails.city
+        case .state: return $islandDetails.state
+        case .postalCode: return $islandDetails.postalCode
+        default: return .constant("")
+        }
+    }
+    
+    private func getAddressFields(for country: String) -> [AddressFieldType] {
+        // Replace with your country-specific logic
+        return defaultAddressFieldRequirements
+    }
+    
+    private func validateAndFormatURL(_ urlString: String) -> URL? {
+        guard let url = URL(string: urlString), UIApplication.shared.canOpenURL(url) else {
+            return nil
+        }
+        return url
+    }
 }
 
+// MARK: - Preview
 struct AddIslandFormView_Previews: PreviewProvider {
     static var previews: some View {
-        let persistenceController = PersistenceController.preview
-        let context = persistenceController.container.viewContext
+        let profileViewModel = ProfileViewModel(
+            viewContext: PersistenceController.preview.viewContext,
+            authViewModel: AuthViewModel.shared
+        )
+        profileViewModel.name = "Brian Romero"
 
-        let mockIsland = PirateIsland(context: context)
-        mockIsland.islandName = "Mock Gym"
-        mockIsland.islandLocation = "123 Mock Street, Mock City, Mock State, 12345"
-        mockIsland.createdByUserId = "Admin"
-        mockIsland.gymWebsite = URL(string: "https://mockgym.com")
-        mockIsland.country = "Mock Country"
+        // Adjust IslandDetails initialization based on available initializer
+        let islandDetails = IslandDetails(
+            islandName: "Example Gym",
+            street: "123 Main St",
+            city: "Anytown",
+            state: "CA",
+            postalCode: "90210",
+            selectedCountry: Country(name: .init(common: "USA"), cca2: "US", flag: "")
+        )
+
+        // Create an instance of PirateIslandViewModel
+        let islandViewModel = PirateIslandViewModel(persistenceController: PersistenceController.preview)
 
         return AddIslandFormView(
-            currentIsland: mockIsland,
-            islandName: .constant("Mock Gym"),
-            islandLocation: .constant("123 Mock Street, Mock City, Mock State, 12345"),
-            createdByUserId: .constant("Admin"),
-            gymWebsite: .constant("https://mockgym.com"),
-            gymWebsiteURL: .constant(URL(string: "https://mockgym.com")),
-            selectedCountry: .constant(nil)
+            islandViewModel: islandViewModel,
+            profileViewModel: profileViewModel,
+            islandDetails: islandDetails
         )
-        .environment(\.managedObjectContext, context)
     }
 }

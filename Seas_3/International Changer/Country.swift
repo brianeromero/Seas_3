@@ -11,6 +11,8 @@ import SwiftUI
 struct Country: Codable, Hashable {
     let name: Name
     let cca2: String
+    let flag: String // Add this property
+
 
     struct Name: Codable, Hashable {
         let common: String

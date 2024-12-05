@@ -131,8 +131,8 @@ func geocode(address: String, apiKey: String) async throws -> (latitude: Double,
 }
 
 // Geocode Island Location
-func geocodeIslandLocation(street: String, city: String, state: String, zip: String, showAlert: Binding<Bool>, alertMessage: Binding<String>) async {
-    let fullAddress = "\(street), \(city), \(state) \(zip)"
+func geocodeIslandLocation(street: String, city: String, state: String, postalCode: String, showAlert: Binding<Bool>, alertMessage: Binding<String>) async {
+    let fullAddress = "\(street), \(city), \(state) \(postalCode)"
     print("Geocoding Island Location: \(fullAddress)")
     
     do {

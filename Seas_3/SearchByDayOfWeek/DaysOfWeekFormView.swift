@@ -49,7 +49,7 @@ struct DaysOfWeekFormView: View {
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Search by: gym name, zip code, or address/location")
+                Section(header: Text("Search by: gym name, postal code, or address/location")
                             .font(.headline)
                             .foregroundColor(.gray)) {
                     SearchBar(text: $searchQuery)

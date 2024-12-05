@@ -392,7 +392,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
     // MARK: - Load Schedules
     @MainActor
     func loadSchedules(for island: PirateIsland) async {
-        let predicate = NSPredicate(format: "pIsland == %@", island)
+        _ = NSPredicate(format: "pIsland == %@", island)
         let appDayOfWeeks = await repository.fetchSchedules(for: island)
         var schedulesDict: [DayOfWeek: [AppDayOfWeek]] = [:]
         

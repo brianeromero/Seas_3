@@ -12,27 +12,42 @@ struct ToastView: View {
     var message: String
     
     var body: some View {
-        VStack {
-            Spacer()
-            HStack {
-                Spacer()
-                Text(message)
-                    .padding()
-                    .background(Color.black.opacity(0.7))
-                    .foregroundColor(.white)
-                    .cornerRadius(10)
-                    .padding()
+        ZStack {
+            if showToast {
+                Color.clear
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(
+                        Color.black.opacity(0.7)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .edgesIgnoringSafeArea(.all)
+                    )
+                    .overlay(
+                        VStack {
+                            Spacer()
+                            HStack {
+                                Spacer()
+                                Text(message)
+                                    .padding()
+                                    .background(Color.black.opacity(0.7))
+                                    .foregroundColor(.white)
+                                    .cornerRadius(10)
+                                    .padding()
+                            }
+                        }
+                    )
+            } else {
+                EmptyView()
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.clear)
-        .transition(.move(edge: .bottom))
         .onAppear {
+            print("ToastView appeared with message: \(message)")
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                 withAnimation {
                     showToast = false
+                    print("ToastView dismissed")
                 }
             }
         }
+
     }
 }

@@ -16,7 +16,8 @@ class EnterZipCodeViewModel: ObservableObject {
     @Published var region: MKCoordinateRegion
     private var repository: AppDayOfWeekRepository
     private var context: NSManagedObjectContext
-    @Published var zipCode: String = ""
+    @Published var postalCode: String = ""
+
 
 
     @Published var enteredLocation: CustomMapMarker?
@@ -46,8 +47,8 @@ class EnterZipCodeViewModel: ObservableObject {
         locationManager.startLocationServices()
     }
 
-    func isValidZipCode() -> Bool {
-        zipCode.count == 5 && zipCode.allSatisfy(\.isNumber)
+    func isValidPostalCode() -> Bool {
+        postalCode.count == 5 && postalCode.allSatisfy(\.isNumber)
     }
     
     func fetchLocation(for address: String) {

@@ -17,7 +17,7 @@ enum ValidationError: String, Error, Equatable {
     case tooShort = "Password is too short."
     case missingUppercase = "Password must contain at least one uppercase letter."
     case invalidIslandName = "Island name is required."
-    case invalidLocation = "Street, city, state, and zip are required."
+    case invalidLocation = "Street, city, state, and postal code are required."
     case invalidURL = "Invalid URL format."
     case usernameTaken = "Username already exists."
     case emptyName = "Name cannot be empty."
@@ -39,13 +39,14 @@ enum ValidationType: String {
 
 class ValidationUtility {
     // MARK: - Regex Constants
-
+    
     private static let emailRegex = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
     private static let passwordRegex = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).{8,}$"
     private static let urlRegex = "^(https?:\\/\\/)?([\\da-z\\.-]+)\\.([a-z\\.]{2,6})([\\/\\w \\.-]*)*\\/?$"
     private static let userNameRegex = "^[a-zA-Z0-9_]{7,}$"
     private static let zipRegex = "^[0-9]{5}(?:-[0-9]{4})?$"
-    internal static let zipRegexPatterns: [String: String] = [
+    private static let postalCode = "^[0-9]{5}(?:-[0-9]{4})?$"
+    internal static let postalCodeRegexPatterns: [String: String] = [
         // Americas
         "US": "^\\d{5}(-\\d{4})?$", // United States (12345 or 12345-6789)
         "CA": "^([ABCEGHJKLMNPRSTVXY]\\d[ABCEGHJKLMNPRSTVWXYZ] {0,1}\\d[ABCEGHJKLMNPRSTVWXYZ]\\d)$", // Canada (A1A 1A1)
@@ -88,21 +89,21 @@ class ValidationUtility {
         "AR": "^\\d{8}$", // Argentina (12345678)
         "RU": "^\\d{6}$" // Russia (123456)
     ]
-
-     static func validateZipCode(_ zipCode: String, for country: String) -> ValidationError? {
-         guard let regexPattern = zipRegexPatterns[country] else {
-             return .invalidLocation
-         }
-
-         let zipPredicate = NSPredicate(format: "SELF MATCHES %@", regexPattern)
-         if !zipPredicate.evaluate(with: zipCode) {
-             return .invalidLocation
-         }
-         return nil
-     }
+    
+    static func validatePostalCode(_ postalCode: String, for country: String) -> ValidationError? {
+        guard let regexPattern = postalCodeRegexPatterns[country] else {
+            return .invalidLocation
+        }
+        
+        let postalCodePredicate = NSPredicate(format: "SELF MATCHES %@", regexPattern)
+        if !postalCodePredicate.evaluate(with: postalCode) {
+            return .invalidLocation
+        }
+        return nil
+    }
     
     // MARK: Username Existence Check
-
+    
     static func userNameIsTaken(_ userName: String) -> Bool {
         // Logic to check if username is taken in your database or storage system
         // Replace with actual implementation
@@ -110,7 +111,7 @@ class ValidationUtility {
     }
     
     // MARK: - Validation Functions
-
+    
     static func validateEmail(_ email: String) -> ValidationError? {
         let emailPredicate = NSPredicate(format: "SELF MATCHES[c] %@", emailRegex)
         if !emailPredicate.evaluate(with: email) {
@@ -160,16 +161,16 @@ class ValidationUtility {
         return nil
     }
     
-
-    static func validateLocation(_ street: String, _ city: String, _ state: String, _ zip: String, for country: String) -> ValidationError? {
-        if [street, city, state, zip].contains(where: \.isEmpty) {
+    
+    static func validateLocation(_ street: String, _ city: String, _ state: String, _ postalCode: String, for country: String) -> ValidationError? {
+        if [street, city, state, postalCode].contains(where: \.isEmpty) {
             return .invalidLocation
         }
-
-        if let error = validateZipCode(zip, for: country) {
+        
+        if let error = validatePostalCode(postalCode, for: country) {
             return error
         }
-
+        
         return nil
     }
     
@@ -193,12 +194,14 @@ class ValidationUtility {
         }
     }
     
+    
+    
     static func validateIslandForm(
         islandName: String,
         street: String,
         city: String,
         state: String,
-        zip: String,
+        postalCode: String,
         neighborhood: String? = nil,  // For Brazil
         complement: String? = nil,    // For Brazil
         province: String? = nil,      // For Canada and China
@@ -278,7 +281,7 @@ class ValidationUtility {
                 errorMessage = "Complement is required."
             }
             
-            if requiredFields.contains(.postalCode) && zip.isEmpty {
+            if requiredFields.contains(.postalCode) && postalCode.isEmpty {
                 errorMessage = "Postal code is required."
             }
             

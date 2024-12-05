@@ -101,7 +101,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
             "pirateIslands",
             "reviews",
             "matTimes",
+            "appDayOfWeek" // Added AppDayOfWeek to the collections to check
         ]
+
         
         collectionsToCheck.forEach { collectionName in
             Firestore.firestore().collection(collectionName).getDocuments { querySnapshot, error in
@@ -111,29 +113,47 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
                 }
                 
                 Task {
-                    await self.checkLocalRecordsAndCreateFirestoreRecords(collectionName: collectionName, querySnapshot: querySnapshot)
+                    await self.checkLocalRecordsAndCreateFirestoreRecordsIfNecessary(collectionName: collectionName, querySnapshot: querySnapshot)
                 }
             }
         }
     }
 
-    private func checkLocalRecordsAndCreateFirestoreRecords(collectionName: String, querySnapshot: QuerySnapshot?) async {
-        guard let querySnapshot = querySnapshot else { return }
+    private func checkLocalRecordsAndCreateFirestoreRecordsIfNecessary(collectionName: String, querySnapshot: QuerySnapshot?) async {
+        print("Checking local records for collection: \(collectionName)")
+        
+        guard let querySnapshot = querySnapshot else {
+            print("Error: Query snapshot is nil for collection \(collectionName)")
+            return
+        }
+        
+        print("Query snapshot received for collection: \(collectionName)")
         
         let firestoreRecords = querySnapshot.documents.compactMap { $0.documentID }
+        print("Firestore records for \(collectionName): \(firestoreRecords)")
         
         do {
             if let localRecords = try await PersistenceController.shared.fetchLocalRecords(forCollection: collectionName) {
-                localRecords.forEach { localRecord in
-                    if !firestoreRecords.contains(localRecord) {
-                        Firestore.firestore().collection(collectionName).addDocument(data: ["record": localRecord]) { error in
-                            if let error = error {
-                                print("Error creating record in Firestore: \(error)")
-                            } else {
-                                print("Record created successfully in Firestore")
-                            }
-                        }
+                print("Local records for \(collectionName): \(localRecords)")
+                
+                let localRecordsNotInFirestore = localRecords.filter { !firestoreRecords.contains($0) }
+                print("Local records not in Firestore for \(collectionName): \(localRecordsNotInFirestore)")
+                
+                let firestoreRecordsNotInLocal = firestoreRecords.filter { !localRecords.contains($0) }
+                print("Firestore records not in local for \(collectionName): \(firestoreRecordsNotInLocal)")
+                
+                if !localRecordsNotInFirestore.isEmpty || !firestoreRecordsNotInLocal.isEmpty {
+                    print("Records are out of sync for collection: \(collectionName)")
+                    
+                    // Log before posting to notification center
+                    print("Posting ShowToast notification for collection: \(collectionName) with message: You need to sync your records.")
+                    
+                    // Introduce a small delay before posting the notification
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+                        NotificationCenter.default.post(name: Notification.Name("ShowToast"), object: nil, userInfo: ["message": "You need to sync your records."])
                     }
+                } else {
+                    print("Records are in sync for collection: \(collectionName)")
                 }
             } else {
                 print("No local records found for collection: \(collectionName)")
@@ -141,8 +161,27 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         } catch {
             print("Error fetching local records: \(error)")
         }
+        
+        print("Finished checking local records for collection: \(collectionName)")
     }
-    
+
+
+
+
+    private func uploadLocalRecordsToFirestore(collectionName: String, records: [String]) async {
+        // Implement logic to upload local records to Firestore
+        // ...
+    }
+
+
+
+/*    private func shouldCreateRecord(_ localRecord: String, collectionName: String) -> Bool {
+        // Add logic to determine if the record should be created
+        // For example, you can check if the record is new or has been updated
+        // For now, return false to prevent unnecessary records from being created
+        return false
+    }
+*/
     func configureFirebase() {
         guard !isFirebaseConfigured else { return }
         

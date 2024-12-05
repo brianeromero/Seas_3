@@ -35,17 +35,24 @@ struct EditExistingIsland: View {
         _createdByUserId = State(initialValue: island.createdByUserId ?? "")
         _gymWebsite = State(initialValue: island.gymWebsite?.absoluteString ?? "")
         _lastModifiedByUserId = State(initialValue: island.lastModifiedByUserId ?? "")
+        
+        // Update the initialization of IslandDetails
         _islandDetails = State(initialValue: IslandDetails(
             islandName: island.islandName ?? "",
             street: island.islandLocation ?? "",
-            city: "",
-            state: "",
-            zip: "",
-            gymWebsite: island.gymWebsite?.absoluteString ?? "",
-            gymWebsiteURL: island.gymWebsite,
-            country: ""
+            city: "", // Replace with actual value if available
+            state: "", // Replace with actual value if available
+            postalCode: "", // Replace with actual value if available
+            latitude: nil, // Replace with actual latitude if available
+            longitude: nil, // Replace with actual longitude if available
+            selectedCountry: nil, // Replace with actual country if available
+            additionalInfo: "", // Replace with actual value if available
+            requiredAddressFields: [], // Replace with actual fields if available
+            gymWebsite: island.gymWebsite?.absoluteString ?? "" // Add gymWebsite here
         ))
     }
+
+
     
     var body: some View {
         Form {

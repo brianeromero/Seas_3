@@ -1,136 +1,164 @@
-// IslandDetails.swift
-// Seas_3
 //
-// Created by Brian Romero on 11/18/24.
+//  IslandDetails.swift
+//  Seas_3
+//
 
 import Foundation
 import Combine
+import Foundation
+import Combine
 
-class IslandDetails: ObservableObject {
-    @Published var islandName: String = "" {
+class IslandDetails: ObservableObject, Equatable {
+    // MARK: - Published Properties
+    @Published var islandName: String = "" { didSet { validateForm() } }
+    @Published var street: String = "" { didSet { validateForm() } }
+    @Published var city: String = "" { didSet { validateForm() } }
+    @Published var state: String = "" { didSet { validateForm() } }
+    @Published var postalCode: String = "" { didSet { validateForm() } }
+    @Published var requiredAddressFields: [AddressFieldType] = []
+    
+    @Published var selectedCountry: Country? {
         didSet {
-            debounceValidation()
+            updateRequiredAddressFields()
         }
     }
-    @Published var isIslandNameValid: Bool = true
-    @Published var islandNameErrorMessage: String = ""
-
-    @Published var street: String = ""
-    @Published var city: String = ""
-    @Published var state: String = ""
-    @Published var zip: String = ""
-    @Published var latitude: Double?
-    @Published var longitude: Double?
-    @Published var gymWebsite: String = ""
+    
+    @Published var gymWebsite: String = "" { didSet { validateForm() } }
     @Published var gymWebsiteURL: URL?
-    @Published var country: String?
-    @Published var multilineAddress: String = ""
 
-    // New address-related fields
     @Published var neighborhood: String = ""
     @Published var complement: String = ""
     @Published var block: String = ""
     @Published var apartment: String = ""
     @Published var region: String = ""
+    @Published var country: String = ""
     @Published var county: String = ""
     @Published var governorate: String = ""
     @Published var province: String = ""
+    @Published var pincode: String = ""
     @Published var district: String = ""
     @Published var department: String = ""
     @Published var emirate: String = ""
+    @Published var postcode: String = ""
+
+
+    // MARK: - Validation Properties
+    @Published var isIslandNameValid: Bool = true
+    @Published var islandNameErrorMessage: String = ""
+    @Published var isFormValid: Bool = false
+
+    // Callback to notify parent views of validation state
+    var onValidationChange: ((Bool) -> Void)?
+
+    // MARK: - Other Properties
+    @Published var latitude: Double?
+    @Published var longitude: Double?
+    @Published var multilineAddress: String = ""
     @Published var additionalInfo: String = ""
 
-    @Published var postalCode: String = "" {
-        didSet {
-            // Ensure trimming is done correctly without causing issues
-            if postalCode != oldValue {
-                postalCode = postalCode.trimmingCharacters(in: .whitespaces)
+
+    // MARK: - Computed Properties
+    var islandLocation: String {
+        let locationComponents = requiredAddressFields.compactMap { field -> String? in
+            switch field {
+            case .street: return street
+            case .city: return city
+            case .state: return state
+            case .postalCode: return postalCode
+            case .county: return county
+            default: return nil
             }
         }
-    }
-    
-    @Published var pincode: String = "" {
-        didSet {
-            // Ensure trimming is done correctly without causing issues
-            if pincode != oldValue {
-                pincode = pincode.trimmingCharacters(in: .whitespaces)
-            }
-        }
-    }
-    
-    private var validationCancellable: AnyCancellable?
-    private let debounceDelay = 0.5 // Delay in seconds
-
-    // Debounce logic for islandName validation
-    private func debounceValidation() {
-        validationCancellable?.cancel()
-        validationCancellable = $islandName
-            .debounce(for: .seconds(debounceDelay), scheduler: RunLoop.main)
-            .sink { [weak self] value in
-                self?.validateIslandName(value)
-            }
+        return locationComponents.filter { !$0.isEmpty }.joined(separator: ", ")
     }
 
-    private func validateIslandName(_ name: String) {
-        if name.isEmpty {
-            isIslandNameValid = false
-            islandNameErrorMessage = "Island name cannot be empty."
-        } else {
-            isIslandNameValid = true
-            islandNameErrorMessage = ""
-        }
-    }
-
-    // Computed property for full address
     var fullAddress: String {
-        """
-        \(street)\(neighborhood.isEmpty ? "" : ", \(neighborhood)")\(block.isEmpty ? "" : ", \(block)")\(apartment.isEmpty ? "" : ", Apt \(apartment)")
-        \(city)\(region.isEmpty ? "" : ", \(region)")\(state.isEmpty ? "" : ", \(state)") \(zip)
-        \(country ?? "")\(postalCode.isEmpty ? "" : ", \(postalCode)")
-        """
+        var address = [islandLocation]
+        if !country.isEmpty {
+            address.append(country)
+        }
+        if let selectedCountry = selectedCountry, !selectedCountry.name.common.isEmpty {
+            address.append(selectedCountry.name.common)
+        }
+        return address.filter { !$0.isEmpty }.joined(separator: "\n")
     }
 
-    // Optional Initializer
+    // MARK: - Initializer
     init(islandName: String = "",
          street: String = "",
          city: String = "",
          state: String = "",
-         zip: String = "",
-         gymWebsite: String = "",
-         gymWebsiteURL: URL? = nil,
-         country: String? = nil,
-         neighborhood: String = "",
-         complement: String = "",
-         block: String = "",
-         apartment: String = "",
-         region: String = "",
-         county: String = "",
-         governorate: String = "",
-         province: String = "",
          postalCode: String = "",
-         pincode: String = "") {
+         latitude: Double? = nil,
+         longitude: Double? = nil,
+         selectedCountry: Country? = nil,
+         country: String = "",
+         county: String = "",
+         additionalInfo: String = "",
+         requiredAddressFields: [AddressFieldType] = [],
+         gymWebsite: String = "",
+         gymWebsiteURL: URL? = nil) {
         self.islandName = islandName
         self.street = street
         self.city = city
         self.state = state
-        self.zip = zip
+        self.postalCode = postalCode
+        self.latitude = latitude
+        self.longitude = longitude
+        self.selectedCountry = selectedCountry
+        self.country = country
+        self.county = county
+        self.additionalInfo = additionalInfo
+        self.requiredAddressFields = requiredAddressFields
         self.gymWebsite = gymWebsite
         self.gymWebsiteURL = gymWebsiteURL
-        self.country = country
-        self.neighborhood = neighborhood
-        self.complement = complement
-        self.block = block
-        self.apartment = apartment
-        self.region = region
-        self.county = county
-        self.governorate = governorate
-        self.province = province
-        self.postalCode = postalCode
-        self.pincode = pincode
+        validateForm()
     }
 
-    // Deinitializer to clean up resources
-    deinit {
-        validationCancellable?.cancel()
+    // MARK: - Validation Logic
+    private func validateForm() {
+        let fieldsValid = requiredAddressFields.allSatisfy { field in
+            switch field {
+            case .street: return !street.isEmpty
+            case .city: return !city.isEmpty
+            case .state: return !state.isEmpty
+            case .postalCode: return !postalCode.isEmpty
+            case .county: return !county.isEmpty
+            default: return true
+            }
+        }
+        let islandNameValid = !islandName.isEmpty
+        isIslandNameValid = islandNameValid
+        islandNameErrorMessage = islandNameValid ? "" : "Island name cannot be empty."
+
+        let formValid = fieldsValid && islandNameValid
+        isFormValid = formValid
+        onValidationChange?(formValid)
+    }
+
+    // MARK: - Update Required Address
+    func updateRequiredAddressFields() {
+        guard let countryName = selectedCountry?.name.common else {
+            requiredAddressFields = defaultAddressFieldRequirements
+            return
+        }
+        
+        requiredAddressFields = getAddressFields(for: countryName)
+        validateForm()
+    }
+
+    // MARK: - Equatable Protocol
+    static func == (lhs: IslandDetails, rhs: IslandDetails) -> Bool {
+        lhs.islandName == rhs.islandName &&
+        lhs.street == rhs.street &&
+        lhs.city == rhs.city &&
+        lhs.state == rhs.state &&
+        lhs.postalCode == rhs.postalCode &&
+        lhs.selectedCountry?.cca2 == rhs.selectedCountry?.cca2 &&
+        lhs.latitude == rhs.latitude &&
+        lhs.longitude == rhs.longitude &&
+        lhs.additionalInfo == rhs.additionalInfo &&
+        lhs.country == rhs.country &&
+        lhs.county == rhs.county
     }
 }

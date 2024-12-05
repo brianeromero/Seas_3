@@ -39,7 +39,6 @@ class FirestoreManager {
     
 
     func saveIslandToFirestore(island: PirateIsland) async throws {
-        Logger.logCreatedByIdEvent(createdByUserId: island.createdByUserId ?? "Unknown User", fileName: "FirestoreManager", functionName: "saveIslandToFirestore")
         print("Saving island to Firestore: \(island.safeIslandName)")
         
         // Add some debug prints here
@@ -48,6 +47,14 @@ class FirestoreManager {
         print("Gym website URL: \(island.gymWebsite?.absoluteString ?? "")")
         print("Latitude: \(island.latitude)")
         print("Longitude: \(island.longitude)")
+        
+        // Validate data
+        guard let islandName = island.islandName, !islandName.isEmpty,
+              island.islandLocation != nil else {
+            print("Invalid data: Island name or location is missing")
+            return
+        }
+        
         // Use the correct property names from PirateIsland
         let islandRef = db.collection("pirateIslands").document(island.islandID?.uuidString ?? UUID().uuidString)
         try await islandRef.setData([

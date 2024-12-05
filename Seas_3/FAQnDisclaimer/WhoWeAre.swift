@@ -77,7 +77,7 @@ struct WhoWeAreView: View {
                 DisclosureGroup(
                     content: {
                         Text("""
-                            The answer is no. Currently, and I hope to change this, there is no existing API database I can link up to gather this data. If there were, the app would have been either easier to build or probably unnecessary. BJJ gyms often change their open mat schedules on a whim. What might be a Saturday at 9am could change for the summer to Sunday at 10am, or a new open mat might be added. If it were easy to scrub the data, we wouldn’t need this app. Thus, I rely on the BJJ community to enter their gym’s open mats, or any open mats they know of in the area. Using your current location or the area you are visiting, you can enter an address or zip code to find an open mat near you.
+                            The answer is no. Currently, and I hope to change this, there is no existing API database I can link up to gather this data. If there were, the app would have been either easier to build or probably unnecessary. BJJ gyms often change their open mat schedules on a whim. What might be a Saturday at 9am could change for the summer to Sunday at 10am, or a new open mat might be added. If it were easy to scrub the data, we wouldn’t need this app. Thus, I rely on the BJJ community to enter their gym’s open mats, or any open mats they know of in the area. Using your current location or the area you are visiting, you can enter an address or postal code to find an open mat near you.
                             """)
                             .font(.body)
                             .padding(.horizontal)

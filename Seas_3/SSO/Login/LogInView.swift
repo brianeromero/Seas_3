@@ -6,11 +6,12 @@ import GoogleSignIn
 import FBSDKLoginKit
 import Security
 import CryptoSwift
+import Combine
 
 public enum LoginViewSelection: Int {
     case login = 0
     case createAccount = 1
-    
+
     public init?(rawValue: Int) {
         switch rawValue {
         case 0:
@@ -44,6 +45,7 @@ struct LoginForm: View {
     @State private var isPasswordVisible = false
     @Binding var isLoggedIn: Bool
     @Binding var navigateToAdminMenu: Bool
+    @State private var showToastMessage: String = ""
 
     var body: some View {
         VStack(spacing: 10) {
@@ -51,9 +53,8 @@ struct LoginForm: View {
                 .resizable()
                 .scaledToFit()
                 .frame(width: 300, height: 300)
-                .padding(.bottom, -40) // Reduce bottom padding
+                .padding(.bottom, -40)
 
-            // Left-aligned fields: Username or Email & Password
             VStack(alignment: .leading, spacing: 20) {
                 Text("Username or Email")
                     .font(.headline)
@@ -67,20 +68,18 @@ struct LoginForm: View {
                     .font(.headline)
                 HStack {
                     if isPasswordVisible {
-                        // Show password in plain text
                         TextField("Password", text: $password)
                             .accessibilityLabel("Password field")
-                            .textFieldStyle(RoundedBorderTextFieldStyle())                            .disableAutocorrection(true)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .disableAutocorrection(true)
                             .textContentType(.password)
                     } else {
-                        // Show password as dots
                         SecureField("Password", text: $password)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .disableAutocorrection(true)
                             .textContentType(.password)
                     }
 
-                    // Button to toggle visibility of the password
                     Button(action: {
                         isPasswordVisible.toggle()
                     }) {
@@ -94,10 +93,9 @@ struct LoginForm: View {
                     isSignInEnabled = !usernameOrEmail.isEmpty && !newValue.isEmpty
                 }
             }
-            .padding(.top, -20) // Reduce top padding
-            .frame(maxWidth: .infinity, alignment: .leading) // Left-align these fields
+            .padding(.top, -20)
+            .frame(maxWidth: .infinity, alignment: .leading)
 
-            // Centered Sign In Button, Text, and Admin Login
             VStack(spacing: 20) {
                 Button(action: {
                     Task {
@@ -149,9 +147,8 @@ struct LoginForm: View {
                             .padding()
                             .fixedSize(horizontal: false, vertical: true)
                     }
-                    .padding(.top, -10) // Reduce top padding
+                    .padding(.top, -10)
 
-                    // Link to AdminLoginView
                     NavigationLink(destination: AdminLoginView(isPresented: .constant(false))) {
                         Text("Admin Login")
                             .font(.footnote)
@@ -160,15 +157,14 @@ struct LoginForm: View {
                     }
                 }
             }
+            .onAppear {
+                print("Login form loaded (LoginForm)")
+            }
+            .onDisappear {
+                print("Login form has finished loading LOGIN FORM")
+            }
         }
     }
-
-
-    // MARK: - Facebook Sign In Logic
-    private func facebookSignIn() {
-        FacebookHelper.handleFacebookLogin()
-    }
-
 
     // MARK: - Sign In Logic
     private func signIn() async {
@@ -179,20 +175,19 @@ struct LoginForm: View {
 
         do {
             if ValidationUtility.validateEmail(usernameOrEmail) != nil {
-                let user = try fetchUser(usernameOrEmail)  // This should now throw if it fails
+                let user = try fetchUser(usernameOrEmail)
                 let email = user.email
                 try await signInWithEmail(email: email, password: password)
             } else {
-                // Handle username login
                 try await authViewModel.signInUser(with: usernameOrEmail, password: password)
             }
         } catch let error {
-            showAlert(with: error.localizedDescription)
+            DispatchQueue.main.async {
+                NotificationCenter.default.post(name: .showToast, object: nil, userInfo: ["message": error.localizedDescription])
+            }
         }
     }
 
-
-    // Example of signInWithEmail for simplification
     private func signInWithEmail(email: String, password: String) async throws {
         do {
             _ = try await Auth.auth().signIn(withEmail: email, password: password)
@@ -203,14 +198,8 @@ struct LoginForm: View {
             }
         } catch let error {
             showAlert(with: error.localizedDescription)
-            throw error // Rethrow the error if needed
+            throw error
         }
-    }
-
-    // MARK: - Fetch User
-    enum UserFetchError: Error {
-        case userNotFound
-        case emailNotFound
     }
 
     private func fetchUser(_ usernameOrEmail: String) throws -> UserInfo {
@@ -223,12 +212,12 @@ struct LoginForm: View {
         return user
     }
 
-
-    // MARK: - Alert Helper
     private func showAlert(with message: String) {
         errorMessage = message
     }
 }
+
+
 
 public struct LoginView: View {
     @EnvironmentObject var authenticationState: AuthenticationState
@@ -250,6 +239,8 @@ public struct LoginView: View {
     @State private var isSignInEnabled: Bool = false
     @StateObject private var authViewModel = AuthViewModel.shared
     @Binding private var isLoggedIn: Bool
+    @State private var showToastMessage: String = ""
+    @State private var isToastShown: Bool = false
 
     public init(
         islandViewModel: PirateIslandViewModel,
@@ -264,68 +255,26 @@ public struct LoginView: View {
     }
 
     public var body: some View {
+        ZStack {
+            navigationContent
+            toastContent
+        }
+        .setupListeners(showToastMessage: $showToastMessage, isToastShown: $isToastShown)
+        .onAppear {
+            print("Login screen loaded (LoginView)")
+        }
+        .onDisappear {
+            isToastShown = false
+            showToastMessage = ""
+            print("Login screen has finished loading (LoginView)")
+        }
+    }
+
+    private var navigationContent: some View {
         NavigationStack {
             VStack(spacing: 20) {
-                // Admin Menu Navigation
-                NavigationLink(destination: AdminMenu(), isActive: $navigateToAdminMenu) {
-                    EmptyView()
-                }
-
-                // Conditional Content Based on Selection
-                VStack {
-                    if isSelected == .createAccount {
-                        CreateAccountView(
-                            islandViewModel: islandViewModel,
-                            isUserProfileActive: $isUserProfileActive,
-                            persistenceController: PersistenceController.shared,
-                            selectedTabIndex: $selectedTabIndex,
-                            emailManager: UnifiedEmailManager.shared
-                        )
-                    } else if authenticationState.isAuthenticated && showMainContent {
-                        IslandMenu(
-                            isLoggedIn: $authenticationState.isLoggedIn
-                        )
-                    } else if isSelected == .login {
-                        VStack(spacing: 20) {
-                            HStack(alignment: .center, spacing: 10) {
-                                Text("Log In OR")
-                                
-                                // Create Account Navigation Link
-                                NavigationLink(destination: CreateAccountView(
-                                    islandViewModel: islandViewModel,
-                                    isUserProfileActive: $isUserProfileActive,
-                                    persistenceController: PersistenceController.shared,
-                                    selectedTabIndex: $selectedTabIndex,
-                                    emailManager: UnifiedEmailManager.shared
-                                )) {
-                                    Text("Create an Account")
-                                        .font(.body)
-                                        .foregroundColor(.blue)
-                                        .underline()
-                                }
-                            }
-                            
-                            // Login Form
-                            LoginForm(
-                                usernameOrEmail: $usernameOrEmail,
-                                password: $password,
-                                isSignInEnabled: $isSignInEnabled,
-                                errorMessage: $errorMessage,
-                                authenticationState: _authenticationState,
-                                islandViewModel: islandViewModel,
-                                showMainContent: $showMainContent,
-                                isLoggedIn: $isLoggedIn,
-                                navigateToAdminMenu: $navigateToAdminMenu
-                            )
-                            .frame(maxWidth: .infinity)
-                            .padding()
-
-                            Spacer()
-                        }
-                    } else {
-                        EmptyView() // Fallback case
-                    }
-                }
+                navigationLinks
+                mainContent
             }
             .alert(isPresented: $showAlert) {
                 Alert(title: Text("Error"), message: Text(errorMessage), dismissButton: .default(Text("OK")))
@@ -336,23 +285,109 @@ public struct LoginView: View {
             }
         }
     }
+
+    private var toastContent: some View {
+        Group {
+            if isToastShown {
+                ToastView(showToast: $isToastShown, message: showToastMessage)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .zIndex(1)
+            }
+        }
+    }
+
+
+    private var navigationLinks: some View {
+        NavigationLink(destination: AdminMenu(), isActive: $navigateToAdminMenu) {
+            EmptyView()
+        }
+    }
+
+    private var mainContent: some View {
+        VStack {
+            if isSelected == .createAccount {
+                CreateAccountView(
+                    islandViewModel: islandViewModel,
+                    isUserProfileActive: $isUserProfileActive,
+                    persistenceController: PersistenceController.shared,
+                    selectedTabIndex: $selectedTabIndex,
+                    emailManager: UnifiedEmailManager.shared
+                )
+            } else if authenticationState.isAuthenticated && showMainContent {
+                IslandMenu(isLoggedIn: $authenticationState.isLoggedIn)
+            } else if isSelected == .login {
+                VStack(spacing: 20) {
+                    loginOrCreateAccount
+                    LoginForm(
+                        usernameOrEmail: $usernameOrEmail,
+                        password: $password,
+                        isSignInEnabled: $isSignInEnabled,
+                        errorMessage: $errorMessage,
+                        authenticationState: _authenticationState,
+                        islandViewModel: islandViewModel,
+                        showMainContent: $showMainContent,
+                        isLoggedIn: $isLoggedIn,
+                        navigateToAdminMenu: $navigateToAdminMenu
+                    )
+                    .frame(maxWidth: .infinity)
+                    .padding()
+
+                    Spacer()
+                }
+            } else {
+                EmptyView()
+            }
+        }
+    }
+
+    private var loginOrCreateAccount: some View {
+        HStack(alignment: .center, spacing: 10) {
+            Text("Log In OR")
+            NavigationLink(destination: CreateAccountView(
+                islandViewModel: islandViewModel,
+                isUserProfileActive: $isUserProfileActive,
+                persistenceController: PersistenceController.shared,
+                selectedTabIndex: $selectedTabIndex,
+                emailManager: UnifiedEmailManager.shared
+            )) {
+                Text("Create an Account")
+                    .font(.body)
+                    .foregroundColor(.blue)
+                    .underline()
+            }
+        }
+    }
 }
 
+// Extension for Notification Name
+extension Notification.Name {
+    static let showToast = Notification.Name("ShowToast")
+}
 
-
+// Modifier for Notification Listeners
+extension View {
+    func setupListeners(showToastMessage: Binding<String>, isToastShown: Binding<Bool>) -> some View {
+        self.onReceive(NotificationCenter.default.publisher(for: .showToast)) { notification in
+            print("ShowToast notification triggered.")
+            if let message = notification.userInfo?["message"] as? String {
+                print("Toast requested with message: \(message)")
+                showToastMessage.wrappedValue = message
+                isToastShown.wrappedValue = true
+            } else {
+                print("No message found in notification. Skipping toast.")
+            }
+        }
+    }
+}
 
 // Preview with mock data
 struct LoginView_Previews: PreviewProvider {
     static var previews: some View {
-        LoginForm(
-            usernameOrEmail: .constant("test@example.com"),
-            password: .constant("password123"),
-            isSignInEnabled: .constant(true),
-            errorMessage: .constant(""),
+        LoginView(
             islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.shared),
-            showMainContent: .constant(false),
-            isLoggedIn: .constant(false),
-            navigateToAdminMenu: .constant(false)
+            isSelected: .constant(.login),
+            navigateToAdminMenu: .constant(false),
+            isLoggedIn: .constant(false)
         )
         .environmentObject(AuthenticationState())
         .environment(\.managedObjectContext, PersistenceController.shared.container.viewContext)

@@ -66,11 +66,11 @@ struct FormState {
     var isStateValid: Bool = false
     var stateErrorMessage: String = ""
 
-    var zip: String = "" {
-        didSet { validateField(zip, type: .name) }
+    var postalCode: String = "" {
+        didSet { validateField(postalCode, type: .name) }
     }
-    var isZipValid: Bool = false
-    var zipErrorMessage: String = ""
+    var isPostalCodeValid: Bool = false
+    var postalCodeErrorMessage: String = ""
 
     var gymWebsite: String = "" {
         didSet { validateField(gymWebsite, type: .name) }
@@ -102,7 +102,7 @@ struct FormState {
             isStreetValid,
             isCityValid,
             isStateValid,
-            isZipValid
+            isPostalCodeValid
         ].allSatisfy { $0 } : true)
 
         // Gym website fields can be validated, but aren't required
@@ -138,9 +138,9 @@ struct FormState {
                 } else if field == state {
                     isStateValid = false
                     stateErrorMessage = error.rawValue
-                } else if field == zip {
-                    isZipValid = false
-                    zipErrorMessage = error.rawValue
+                } else if field == postalCode {
+                    isPostalCodeValid = false
+                    postalCodeErrorMessage = error.rawValue
                 } else if field == gymWebsite {
                     isGymWebsiteValid = false
                     gymWebsiteErrorMessage = error.rawValue
@@ -178,9 +178,9 @@ struct FormState {
                 } else if field == state {
                     isStateValid = true
                     stateErrorMessage = ""
-                } else if field == zip {
-                    isZipValid = true
-                    zipErrorMessage = ""
+                } else if field == postalCode {
+                    isPostalCodeValid = true
+                    postalCodeErrorMessage = ""
                 } else if field == gymWebsite {
                     isGymWebsiteValid = true
                     gymWebsiteErrorMessage = ""

@@ -56,14 +56,13 @@ struct CreateAccountView: View {
     @State private var street = ""
     @State private var city = ""
     @State private var state = ""
-    @State private var zip = ""
+    @State private var postalCode = ""
     @State private var gymWebsite = ""
     @State private var gymWebsiteURL: URL?
     @State private var selectedProtocol = "http://"
     @State private var showLoginReset = false
     @State private var province = ""
-    @State private var postalCode = ""
-    @State private var selectedCountry: Country? = Country(name: Country.Name(common: "United States"), cca2: "US")
+    @State private var selectedCountry: Country? = Country(name: Country.Name(common: "United States"), cca2: "US", flag: "")
     @State private var governorate = ""
     @State private var postcode = ""
     @State private var countries: [Country] = []
@@ -132,51 +131,43 @@ struct CreateAccountView: View {
                         .opacity(0.7)
                 }) {
                     IslandFormSections(
-                        viewModel: islandViewModel,
-                        islandName: $islandName,
-                        street: $street,
-                        city: $city,
-                        state: $state,
-                        zip: $zip,
-                        province: $province,
-                        postalCode: $postalCode,
-                        neighborhood: $neighborhood,
-                        complement: $complement,
-                        apartment: $apartment,
-                        region: $region,
-                        county: $county,
-                        governorate: $governorate,
-                        additionalInfo: $additionalInfo,
-                        gymWebsite: $gymWebsite,
-                        gymWebsiteURL: $gymWebsiteURL,
-                        showAlert: .constant(false),
-                        alertMessage: .constant(""),
-                        selectedCountry: $selectedCountry,
-                        islandDetails: $islandDetails,
-                        profileViewModel: profileViewModel
-                    )
+                         viewModel: islandViewModel,
+                         islandName: $islandName,
+                         street: $street,
+                         city: $city,
+                         state: $state,
+                         postalCode: $postalCode,
+                         province: $province,
+                         neighborhood: $neighborhood,
+                         complement: $complement,
+                         apartment: $apartment,
+                         region: $region,
+                         county: $county,
+                         governorate: $governorate,
+                         additionalInfo: $additionalInfo,
+                         gymWebsite: $gymWebsite,
+                         gymWebsiteURL: $gymWebsiteURL,
+                         showAlert: .constant(false),
+                         alertMessage: .constant(""),
+                         selectedCountry: $selectedCountry,
+                         islandDetails: $islandDetails,
+                         profileViewModel: profileViewModel
+                     )
                     
                     if let country = selectedCountry,
                        let format = countryAddressFormats.first(where: { $0.key == country.name.common })?.value {
-                        
-                        // Unwrap requiredFields directly (if it’s non-optional)
-                        let requiredFields = format.requiredFields
 
-                        // Address fields
-                        ForEach(requiredFields, id: \.self) { field in
-                            Text("Rendering field: \(field.rawValue)") // Display field name as part of the UI for debugging
-                                .onAppear {
-                                    print("Rendering field: \(field.rawValue)") // Debug print when the field appears
-                                }
-                            addressField(for: field)
-                        }
-                        
-                        // Validation message
+                        // Convert AddressField to AddressFieldType
+                        let requiredFields = format.requiredFields.compactMap { AddressFieldType(rawValue: $0.rawValue) }
+
+                        AddressFieldsView(requiredFields: requiredFields, islandDetails: $islandDetails)
+
                         if showValidationMessage {
                             Text("Required fields for \(country.name.common) are missing.")
                                 .foregroundColor(.red)
                         }
                     }
+
                 }
                 
 
@@ -248,8 +239,6 @@ struct CreateAccountView: View {
             TextField("Enter street", text: binding)
         case .city:
             TextField("Enter city", text: binding)
-        case .zip:
-            TextField("Enter zip code", text: binding)
         case .postalCode:
             TextField("Enter postal code", text: binding)
         case .county:
@@ -259,7 +248,7 @@ struct CreateAccountView: View {
                 TextField("Enter country", text: Binding(
                     get: { country.name.common },
                     set: { newValue in
-                        selectedCountry = Country(name: Country.Name(common: newValue), cca2: country.cca2)
+                        selectedCountry = Country(name: Country.Name(common: newValue), cca2: country.cca2, flag: "")
                     }
                 ))
             } else {
@@ -308,8 +297,10 @@ struct CreateAccountView: View {
                 islandDetails.street = street
                 islandDetails.city = city
                 islandDetails.state = state
-                islandDetails.zip = zip
-                islandDetails.country = selectedCountry?.name.common ?? ""
+                islandDetails.postalCode = postalCode
+
+                // Update the selected country directly (since there is no 'country' property)
+                islandDetails.selectedCountry = selectedCountry
 
                 // Use fullAddress indirectly through its computed value after fields are set
                 let location = islandDetails.fullAddress
@@ -338,6 +329,8 @@ struct CreateAccountView: View {
             }
         }
     }
+
+
 
     private func updateIslandCoordinates(_ island: PirateIsland, _ location: String) async {
         do {
@@ -419,8 +412,8 @@ struct CreateAccountView: View {
                 return "City is missing"
             case .stateMissing:
                 return "State is missing"
-            case .zipMissing:
-                return "Zip code is missing"
+            case .postalCodeMissing:
+                return "postal code is missing"
             case .fieldMissing(_):
                 return "Some OTHER field is missing"
             }

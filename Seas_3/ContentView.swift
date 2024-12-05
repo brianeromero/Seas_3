@@ -11,33 +11,31 @@ import CoreData
 struct ContentView: View {
     @EnvironmentObject var persistenceController: PersistenceController
     @StateObject var viewModel: PirateIslandViewModel
+    @StateObject var profileViewModel = ProfileViewModel(
+        viewContext: PersistenceController.shared.viewContext,
+        authViewModel: AuthViewModel.shared
+    )
 
     @State private var showAddIslandForm = false
     @State private var islandName = ""
     @State private var createdByUserId = ""
     @State private var gymWebsite = ""
     @State private var gymWebsiteURL: URL?
-    @State private var islandLocation = ""  // Add this state property for islandLocation
-    
-    @State private var selectedIsland: PirateIsland? = nil // Add this property
-    
-    // Define state variables for address components
+    @State private var islandLocation = ""
     @State private var street = ""
     @State private var city = ""
     @State private var state = ""
     @State private var zip = ""
     @State private var selectedCountry: Country?
 
-    
-    // State variable to control the display of StoryboardViewController
     @State private var showStoryboardViewController = true
+    private let storyboardDisplayDuration: Double = 3.0
 
     @FetchRequest(
         entity: PirateIsland.entity(),
         sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.createdTimestamp, ascending: true)]
     ) private var pirateIslands: FetchedResults<PirateIsland>
 
-    // Updated init method
     init(persistenceController: PersistenceController) {
         self._viewModel = StateObject(wrappedValue: PirateIslandViewModel(persistenceController: persistenceController))
     }
@@ -48,7 +46,7 @@ struct ContentView: View {
                 StoryboardViewControllerRepresentable(storyboardName: "MainStoryboard")
                     .ignoresSafeArea()
                     .onAppear {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + storyboardDisplayDuration) {
                             withAnimation {
                                 showStoryboardViewController = false
                             }
@@ -76,17 +74,23 @@ struct ContentView: View {
                     }
                 }
                 .sheet(isPresented: $showAddIslandForm) {
+                    let islandDetails = IslandDetails(
+                        islandName: islandName,
+                        street: street,
+                        city: city,
+                        state: state,
+                        postalCode: zip,  // Use postalCode instead of zip
+                        selectedCountry: selectedCountry, country: selectedCountry?.name.common ?? "US"  // Pass selectedCountry as the Country object
+                    )
                     AddIslandFormView(
-                        currentIsland: PirateIsland(),  // Provide an empty or initialized PirateIsland object
-                        islandName: $islandName,
-                        islandLocation: $islandLocation,  // Bind islandLocation here
-                        createdByUserId: $createdByUserId,
-                        gymWebsite: $gymWebsite,
-                        gymWebsiteURL: $gymWebsiteURL,
-                        selectedCountry: $selectedCountry  // Pass the Binding for selectedCountry
+                        islandViewModel: viewModel,
+                        profileViewModel: profileViewModel,
+                        islandDetails: islandDetails
                     )
                     .environment(\.managedObjectContext, persistenceController.viewContext)
                 }
+
+
             }
         }
     }
@@ -111,7 +115,6 @@ struct ContentView: View {
                 try persistenceController.viewContext.save()
             } catch {
                 print("Error deleting gym: \(error.localizedDescription)")
-                // Handle error or display error message
             }
         }
     }
@@ -120,7 +123,8 @@ struct ContentView: View {
 #if DEBUG
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        ContentView(persistenceController: PersistenceController.preview) // Inject preview instance for previews
+        ContentView(persistenceController: PersistenceController.preview)
+            .environmentObject(PersistenceController.preview)
     }
 }
 #endif

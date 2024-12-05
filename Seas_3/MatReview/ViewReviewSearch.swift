@@ -86,6 +86,7 @@ class ViewReviewSearchViewModel: ObservableObject {
             }
         }
     }
+    
     private func filterIslands(_ pirateIslands: FetchedResults<PirateIsland>, query: String) -> [PirateIsland] {
         pirateIslands.compactMap { island -> PirateIsland? in
             guard let islandName = island.islandName?.lowercased(),
@@ -95,10 +96,8 @@ class ViewReviewSearchViewModel: ObservableObject {
 
             let nameMatch = islandName.contains(query)
             let locationMatch = islandLocation.contains(query)
-            let zipCodeMatch = island.latitude != 0 && island.longitude != 0 ?
-            island.formattedCoordinates.contains(query) : false
 
-            return nameMatch || locationMatch || zipCodeMatch ? island : nil
+            return nameMatch || locationMatch ? island : nil
         }
     }
 }

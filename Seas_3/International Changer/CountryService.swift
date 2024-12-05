@@ -6,28 +6,40 @@
 //
 
 import Foundation
+import Combine
 
-class CountryService {
+class CountryService: ObservableObject {
     static let shared = CountryService()
+    
+    @Published var countries: [Country] = []
+    @Published var isLoading: Bool = false
+    @Published var error: Error?
 
-    func fetchCountries(completion: @escaping ([Country]?) -> Void) {
+    func fetchCountries() async {
+        await MainActor.run { [weak self] in
+            self?.isLoading = true
+        }
+        
         guard let url = URL(string: "https://restcountries.com/v3.1/all") else {
-            completion(nil)
+            await MainActor.run { [weak self] in
+                self?.error = URLError(.badURL)
+                self?.isLoading = false
+            }
             return
         }
 
-        URLSession.shared.dataTask(with: url) { data, _, error in
-            if let data = data {
-                do {
-                    let countries = try JSONDecoder().decode([Country].self, from: data)
-                    completion(countries)
-                } catch {
-                    print("Error decoding countries: \(error)")
-                    completion(nil)
-                }
-            } else {
-                completion(nil)
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            let fetchedCountries = try JSONDecoder().decode([Country].self, from: data)
+            await MainActor.run { [weak self] in
+                self?.countries = fetchedCountries.sorted { $0.name.common < $1.name.common }
+                self?.isLoading = false
             }
-        }.resume()
+        } catch {
+            await MainActor.run { [weak self] in
+                self?.error = error
+                self?.isLoading = false
+            }
+        }
     }
 }

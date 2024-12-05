@@ -17,14 +17,13 @@ struct AddressFormView: View {
     @State private var postalCode: String = ""
     @State private var postcode: String = ""
     @State private var governorate: String = ""
-    @State private var zip: String = "" // Added `zip` field
-    @State private var region: String = "" // Added `region` field
-    @State private var district: String = "" // Added `district` field
-    @State private var department: String = "" // Added `department` field
-    @State private var emirate: String = "" // Added `emirate` field
-    @State private var pincode: String = "" // Added `pincode` field
-    @State private var block: String = "" // Added `block` field
-    @State private var county: String = "" // Added `county` field
+    @State private var region: String = ""
+    @State private var district: String = ""
+    @State private var department: String = ""
+    @State private var emirate: String = ""
+    @State private var pincode: String = ""
+    @State private var block: String = ""
+    @State private var county: String = ""
     @State private var neighborhood: String = ""
     @State private var complement: String = ""
     @State private var apartment: String = ""
@@ -77,22 +76,19 @@ struct AddressFormView: View {
         case .city: return $city
         case .state: return $state
         case .province: return $province
-        case .postalCode: return $postalCode
-        case .postcode: return $postcode
+        case .postalCode, .postcode, .pincode: return $postalCode
         case .governorate: return $governorate
-        case .zip: return $zip
         case .region: return $region
         case .district: return $district
         case .department: return $department
         case .emirate: return $emirate
-        case .pincode: return $pincode
         case .block: return $block
         case .county: return $county
         case .neighborhood: return $neighborhood
         case .complement: return $complement
         case .apartment: return $apartment
-        case .additionalInfo: return .constant("") // Placeholder for future fields
-        case .multilineAddress: return .constant("") // Placeholder for future fields
+        case .additionalInfo: return .constant("")
+        case .multilineAddress: return .constant("")
         }
     }
 }

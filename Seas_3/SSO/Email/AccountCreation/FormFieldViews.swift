@@ -178,12 +178,11 @@ struct GymInformationSection: View {
     @Binding var street: String
     @Binding var city: String
     @Binding var state: String
-    @Binding var zip: String
+    @Binding var postalCode: String
     @Binding var gymWebsite: String
     @Binding var gymWebsiteURL: URL?
     @Binding var selectedProtocol: String
     @Binding var province: String
-    @Binding var postalCode: String
     @Binding var selectedCountry: Country?
     @ObservedObject var islandViewModel: PirateIslandViewModel
     @ObservedObject var profileViewModel: ProfileViewModel // Add this
@@ -212,9 +211,8 @@ struct GymInformationSection: View {
                 street: $street,
                 city: $city,
                 state: $state,
-                zip: $zip,
-                province: $province,
                 postalCode: $postalCode,
+                province: $province,
                 neighborhood: $neighborhood,
                 complement: $complement,
                 apartment: $apartment,

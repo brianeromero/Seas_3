@@ -21,14 +21,12 @@ enum AddressFieldType: String {
     case pincode
     case block
     case county
-    case zip
-    case neighborhood  // For Brazil
-    case complement    // For Brazil
-    case apartment     // For Russia and other countries with unit-level addresses
-    case additionalInfo // For Saudi Arabia's Additional Number
-    case multilineAddress // General field for multiline formatting
+    case neighborhood
+    case complement
+    case apartment
+    case additionalInfo
+    case multilineAddress
 }
-
 
 // Define address field requirements for each region/country
 let addressFieldRequirements: [String: [AddressFieldType]] = [
@@ -41,7 +39,7 @@ let addressFieldRequirements: [String: [AddressFieldType]] = [
     
     // Europe
     "GB": [.street, .city, .postcode],  // United Kingdom
-    "IE": [.street, .city, .county, .postalCode],  // Ireland (Republic of Ireland)
+    
     "FR": [.street, .city, .postalCode],  // France
     "DE": [.street, .city, .postalCode],  // Germany
     "ES": [.street, .city, .postalCode],  // Spain

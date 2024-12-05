@@ -16,7 +16,6 @@ enum AddressField: String, CaseIterable {
     case postalCode
     case postcode
     case pincode
-    case zip
     
     // Regional fields
     case region
@@ -43,10 +42,7 @@ enum AddressField: String, CaseIterable {
         case .city: return \.city
         case .state: return \.state
         case .province: return \.province
-        case .postalCode: return \.postalCode
-        case .postcode: return \.postalCode
-        case .pincode: return \.pincode
-        case .zip: return \.zip
+        case .postalCode, .postcode, .pincode: return \.postalCode
         case .region: return \.region
         case .district: return \.region
         case .department: return \.region
@@ -59,7 +55,7 @@ enum AddressField: String, CaseIterable {
         case .apartment: return \.apartment
         case .additionalInfo: return \.additionalInfo
         case .multilineAddress: return \.multilineAddress
-        case .country: return \.region // Map country to region
+        case .country: return \.region
         }
     }
 }

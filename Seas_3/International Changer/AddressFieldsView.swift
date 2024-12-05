@@ -9,91 +9,73 @@ import Foundation
 import SwiftUI
 
 struct AddressFieldsView: View {
-    @Binding var selectedCountry: Country?
-    @Binding var street: String
-    @Binding var city: String
-    @Binding var state: String
-    @Binding var zip: String
-    @Binding var neighborhood: String
-    @Binding var complement: String
-    @Binding var apartment: String
-    @Binding var additionalInfo: String
+    let requiredFields: [AddressFieldType]
+    @Binding var islandDetails: IslandDetails
 
     var body: some View {
-        ForEach(getAddressFields(for: selectedCountry?.name.common ?? "US"), id: \.self) { field in
-            VStack(alignment: .leading, spacing: 8) {
-                Text(getFieldName(for: field))
-                TextField("Enter \(getFieldName(for: field))", text: getBinding(for: field))
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
+        VStack {
+            ForEach(requiredFields, id: \.self) { field in
+                getTextField(for: field)
             }
         }
     }
 
-    private func getFieldName(for field: AddressFieldType) -> String {
+    @ViewBuilder
+    private func getTextField(for field: AddressFieldType) -> some View {
         switch field {
         case .street:
-            return "Street"
+            TextField("Street", text: $islandDetails.street)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
         case .city:
-            return "City"
+            TextField("City", text: $islandDetails.city)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
         case .state:
-            return "State"
+            TextField("State", text: $islandDetails.state)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+        case .province:
+            TextField("Province", text: $islandDetails.province)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
         case .postalCode:
-            return "Postal Code"
+            TextField("Postal Code", text: $islandDetails.postalCode)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+        case .region:
+            TextField("Region", text: $islandDetails.region)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+        case .district:
+            TextField("District", text: $islandDetails.district)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+        case .department:
+            TextField("Department", text: $islandDetails.department)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+        case .governorate:
+            TextField("Governorate", text: $islandDetails.governorate)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+        case .emirate:
+            TextField("Emirate", text: $islandDetails.emirate)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
         case .neighborhood:
-            return "Neighborhood"
+            TextField("Neighborhood", text: $islandDetails.neighborhood)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
         case .complement:
-            return "Complement"
+            TextField("Complement", text: $islandDetails.complement)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
         case .apartment:
-            return "Apartment"
+            TextField("Apartment", text: $islandDetails.apartment)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
         case .additionalInfo:
-            return "Additional Info"
+            TextField("Additional Info", text: $islandDetails.additionalInfo)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
         default:
-            return ""
+            EmptyView() // Handle unimplemented cases like .multilineAddress or .block
         }
-    }
-
-    private func getBinding(for field: AddressFieldType) -> Binding<String> {
-        switch field {
-        case .street:
-            return $street
-        case .city:
-            return $city
-        case .state:
-            return $state
-        case .postalCode:
-            return $zip
-        case .neighborhood:
-            return $neighborhood
-        case .complement:
-            return $complement
-        case .apartment:
-            return $apartment
-        case .additionalInfo:
-            return $additionalInfo
-        default:
-            return .constant("")
-        }
-    }
-
-    private func getAddressFields(for country: String) -> [AddressFieldType] {
-        let fields = addressFieldRequirements[country] ?? defaultAddressFieldRequirements
-        return fields
     }
 }
-
 
 struct AddressFieldsView_Previews: PreviewProvider {
     static var previews: some View {
         AddressFieldsView(
-            selectedCountry: .constant(Country(name: Country.Name(common: "United States"), cca2: "US")),
-            street: .constant(""),
-            city: .constant(""),
-            state: .constant(""),
-            zip: .constant(""),
-            neighborhood: .constant(""),
-            complement: .constant(""),
-            apartment: .constant(""),
-            additionalInfo: .constant("")
+            requiredFields: [.street, .city, .state, .postalCode],
+            islandDetails: .constant(IslandDetails())
         )
         .previewLayout(.sizeThatFits)
     }

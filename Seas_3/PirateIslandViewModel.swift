@@ -17,7 +17,7 @@ enum PirateIslandError: Error {
     case streetMissing
     case cityMissing
     case stateMissing
-    case zipMissing
+    case postalCodeMissing // Update to postalCodeMissing
 
     var localizedDescription: String {
         switch self {
@@ -39,8 +39,8 @@ enum PirateIslandError: Error {
             return "City is missing"
         case .stateMissing:
             return "State is missing"
-        case .zipMissing:
-            return "Zip code is missing"
+        case .postalCodeMissing:
+            return "Postal code is missing" // Update to postal code
         }
     }
 }
@@ -65,6 +65,7 @@ public class PirateIslandViewModel: ObservableObject {
     // MARK: - Create Pirate Island
     func createPirateIsland(islandDetails: IslandDetails, createdByUserId: String) async throws -> PirateIsland {
         // Log values before validation
+        os_log("Creating new PirateIsland...", log: logger, type: .info)
         print("Island Name before validation: \(islandDetails.islandName)")
         print("Full Address before validation: \(islandDetails.fullAddress)")
         
@@ -96,7 +97,7 @@ public class PirateIslandViewModel: ObservableObject {
         let newIsland = PirateIsland(context: persistenceController.viewContext)
         newIsland.islandName = islandDetails.islandName
         newIsland.islandLocation = islandDetails.fullAddress
-        newIsland.country = islandDetails.country
+        newIsland.country = islandDetails.selectedCountry?.name.common
         newIsland.createdTimestamp = Date()
         newIsland.createdByUserId = createdByUserId
         newIsland.lastModifiedByUserId = createdByUserId
@@ -106,7 +107,10 @@ public class PirateIslandViewModel: ObservableObject {
         newIsland.latitude = coordinates.latitude
         newIsland.longitude = coordinates.longitude
         
-        // Step 5: Save the new island object to Core Data
+        // Save to Firestore first
+        try await savePirateIslandToFirestore(island: newIsland)
+        
+        // Then save to Core Data
         do {
             // Log before saving
             let islandName = newIsland.islandName ?? "Unknown Island Name" // Default value if nil
@@ -114,15 +118,56 @@ public class PirateIslandViewModel: ObservableObject {
 
             print("Saving Island: \(islandName), Location: \(islandLocation)")
 
-            try await persistenceController.saveContext()  // Ensure the context is saved
+            // Ensure persistenceController.saveContext() is async if needed or use the correct method
+            try await persistenceController.saveContext()  // If saveContext() is synchronous, remove the 'await'
             os_log("Successfully saved PirateIsland: %@", log: logger, islandName)
         } catch {
             os_log("Error saving PirateIsland: %@", log: logger, error.localizedDescription)
             throw PirateIslandError.savingError(error.localizedDescription)  // Handle save error
         }
 
+        os_log("PirateIsland created successfully: %@", log: logger, type: .info, newIsland.islandName ?? "Unknown Island Name")
         return newIsland  // Return the saved island
     }
+
+
+    // Add this code below the createPirateIsland function
+    func savePirateIslandToFirestore(island: PirateIsland) async throws {
+        print("Saving island to Firestore: \(island.safeIslandName)")
+        
+        // Add some debug prints here
+        print("Island name: \(island.islandName ?? "")")
+        print("Island location: \(island.islandLocation ?? "")")
+        print("Gym website URL: \(island.gymWebsite?.absoluteString ?? "")")
+        print("Latitude: \(island.latitude)")
+        print("Longitude: \(island.longitude)")
+        
+        // Validate data
+        guard let islandName = island.islandName, !islandName.isEmpty,
+              let islandLocation = island.islandLocation, !islandLocation.isEmpty else {
+            print("Invalid data: Island name or location is missing")
+            return
+        }
+        
+        do {
+            try await FirestoreManager.shared.saveIslandToFirestore(island: island)
+        } catch {
+            os_log("Error saving island to Firestore: %@", log: logger, error.localizedDescription)
+            throw error
+        }
+    }
+    
+    // MARK: - Create and Save Pirate Island
+    func createAndSavePirateIsland(islandDetails: IslandDetails, createdByUserId: String) async throws {
+        // Capture the returned PirateIsland object from createPirateIsland
+        let newIsland = try await createPirateIsland(islandDetails: islandDetails, createdByUserId: createdByUserId)
+        
+        // Optional: You can log or use the created PirateIsland object (newIsland)
+        os_log("Successfully created PirateIsland with name: %@", log: logger, newIsland.islandName ?? "Unknown Island Name")
+        
+        // Additional logic can be added here if needed, e.g., updating UI, triggering notifications, etc.
+    }
+
 
     
     // MARK: - Validation
@@ -132,7 +177,7 @@ public class PirateIslandViewModel: ObservableObject {
             ("Street", details.street),
             ("City", details.city),
             ("State", details.state),
-            ("Zip", details.zip),
+            ("Postal Code", details.postalCode), // Update to Postal Code
             ("Created By User ID", createdByUserId)
         ]
         

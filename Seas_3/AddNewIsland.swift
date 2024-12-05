@@ -1,24 +1,28 @@
-// AddNewIsland.swift
-// Seas_3
 //
-// Created by Brian Romero on 6/26/24.
+//  AddNewIsland.swift
+//  Seas_3
+//
+//  Created by Brian Romero on 6/26/24.
 //
 
+import Foundation
 import SwiftUI
 import CoreData
 import Combine
 import FirebaseFirestore
+import os
 
 struct AddNewIsland: View {
     // MARK: - Environment Variables
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.presentationMode) private var presentationMode
-    
 
     // MARK: - Observed Objects
     @ObservedObject var islandViewModel: PirateIslandViewModel
     @ObservedObject var profileViewModel: ProfileViewModel
-    @State var islandDetails: IslandDetails
+    @StateObject var islandDetails = IslandDetails()
+    @StateObject var countryService = CountryService()
+    @State private var isCountryPickerPresented = false
 
     // MARK: - State Variables
     @State private var isSaveEnabled = false
@@ -26,187 +30,275 @@ struct AddNewIsland: View {
     @State private var alertMessage = ""
     @State private var showToast = false
     @State private var toastMessage = ""
+    @State private var isLoadingCountries = true
+    @State private var gymWebsite = ""
 
     // MARK: - Initialization
-    init(viewModel: PirateIslandViewModel, profileViewModel: ProfileViewModel, islandDetails: IslandDetails) {
+    init(viewModel: PirateIslandViewModel, profileViewModel: ProfileViewModel) {
         self.islandViewModel = viewModel
         self.profileViewModel = profileViewModel
-        self.islandDetails = islandDetails  // Initialize IslandDetails
     }
 
     // MARK: - Body
     var body: some View {
         NavigationView {
             Form {
-                islandFormSection
-                enteredBySection
-                countrySpecificFieldsSection
-                saveButton
-                cancelButton
+                Section(header: Text("Gym Details")) {
+                    TextField("Gym Name", text: $islandDetails.islandName)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+
+                    if isLoadingCountries {
+                        ProgressView("Loading countries...")
+                            .progressViewStyle(CircularProgressViewStyle())
+                            .padding()
+                    } else if !countryService.countries.isEmpty {
+                        UnifiedCountryPickerView(
+                            countryService: countryService,
+                            selectedCountry: $islandDetails.selectedCountry,
+                            isPickerPresented: $isCountryPickerPresented
+                        )
+                        .onChange(of: islandDetails.selectedCountry) { newCountry in
+                            if let newCountry {
+                                islandDetails.requiredAddressFields = getAddressFields(for: newCountry.cca2)
+                            } else {
+                                islandDetails.requiredAddressFields = defaultAddressFieldRequirements
+                            }
+                        }
+                    } else {
+                        Text("No countries found.")
+                    }
+                }
+
+                Section(header: Text("Address")) {
+                    ForEach(islandDetails.requiredAddressFields, id: \.self) { field in
+                        addressField(for: field)
+                    }
+                }
+                
+                Section(header: Text("Website (optional)")) {
+                    TextField("Gym Website", text: $gymWebsite)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .keyboardType(.URL)
+                        .onChange(of: gymWebsite) { newValue in
+                            // Optional validation for URL format
+                            if !newValue.isEmpty && !validateURL(newValue) {
+                                alertMessage = "Invalid website URL"
+                                showAlert = true
+                            }
+                        }
+                }
+
+                Section(header: Text("Entered By")) {
+                    Text(profileViewModel.name)
+                        .foregroundColor(.primary)
+                }
+
+                VStack {
+                    Button("Save") {
+                        os_log("Save button clicked", log: OSLog.default, type: .info)
+                        Task { await saveIsland() }
+                    }
+                    .disabled(!isSaveEnabled)
+                }
+                Spacer()
+                VStack {
+                    Button("Cancel") {
+                        os_log("Cancel button clicked", log: OSLog.default, type: .info)
+                        clearFields()
+                        presentationMode.wrappedValue.dismiss()
+                    }
+                }
             }
             .navigationBarTitle("Add New Gym", displayMode: .inline)
             .alert(isPresented: $showAlert) {
                 Alert(title: Text("Error"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
             }
             .onAppear {
-                Logger.logCreatedByIdEvent(createdByUserId: profileViewModel.name, fileName: "AddNewIsland", functionName: "onAppear")
+                islandDetails.onValidationChange = { isValid in
+                    isSaveEnabled = isValid
+                }
 
-                let (isValid, errorMessage) = ValidationUtility.validateIslandForm(
-                    islandName: islandDetails.islandName,
-                    street: islandDetails.street,
-                    city: islandDetails.city,
-                    state: islandDetails.state,
-                    zip: islandDetails.zip,
-                    neighborhood: islandDetails.neighborhood,
-                    complement: islandDetails.complement,
-                    province: islandDetails.province,
-                    region: islandDetails.region,
-                    district: islandDetails.district,
-                    department: islandDetails.department,
-                    governorate: islandDetails.governorate,
-                    emirate: islandDetails.emirate,
-                    apartment: islandDetails.apartment,
-                    additionalInfo: islandDetails.additionalInfo,
-                    selectedCountry: Country(name: .init(common: islandDetails.country ?? ""), cca2: ""),
-                    createdByUserId: profileViewModel.name,
-                    gymWebsite: islandDetails.gymWebsite
-                )
+                Task {
+                    isLoadingCountries = true
+                    await countryService.fetchCountries()
+                    isLoadingCountries = false
+                    if let usa = countryService.countries.first(where: { $0.cca2 == "US" }) {
+                        islandDetails.selectedCountry = usa
+                    }
+                    updateAddressFields()
+                    os_log("Countries loaded successfully", log: OSLog.default, type: .info)
 
-                if !isValid {
-                    alertMessage = errorMessage
-                    showAlert = true
-                } else {
-                    isSaveEnabled = true
                 }
             }
+
+            .overlay(toastOverlay)
+            .onChange(of: islandDetails) { _ in validateForm() }
+            .onChange(of: islandDetails.islandName) { _ in validateForm() }
+            .onChange(of: islandDetails.requiredAddressFields) { _ in validateForm() }
+
         }
-        .overlay(toastOverlay)
     }
-    
-    // MARK: - Extracted Views
-    private var islandFormSection: some View {
-        IslandFormSections(
-            viewModel: islandViewModel,
-            islandName: $islandDetails.islandName,
-            street: $islandDetails.street,
-            city: $islandDetails.city,
-            state: $islandDetails.state,
-            zip: $islandDetails.zip,
-            province: $islandDetails.province,
-            postalCode: $islandDetails.postalCode,
-            neighborhood: $islandDetails.neighborhood,
-            complement: $islandDetails.complement,
-            apartment: $islandDetails.apartment,
-            region: $islandDetails.region,
-            county: $islandDetails.county,
-            governorate: $islandDetails.governorate,
-            additionalInfo: $islandDetails.additionalInfo,
-            gymWebsite: $islandDetails.gymWebsite,
-            gymWebsiteURL: $islandDetails.gymWebsiteURL,
-            showAlert: $showAlert,
-            alertMessage: $alertMessage,
-            selectedCountry: Binding<Country?>(
-                get: {
-                    guard let countryName = self.islandDetails.country else { return nil }
-                    return Country(name: .init(common: countryName), cca2: "")
-                },
-                set: {
-                    self.islandDetails.country = $0?.countryName
-                }
-            ),
-            islandDetails: $islandDetails,
-            profileViewModel: ProfileViewModel(viewContext: viewContext)
+
+    // MARK: - Helper Methods
+    private func updateAddressFields() {
+        guard let selectedCountry = islandDetails.selectedCountry else {
+            islandDetails.requiredAddressFields = defaultAddressFieldRequirements
+            return
+        }
+        islandDetails.requiredAddressFields = getAddressFields(for: selectedCountry.cca2)
+        print("Country: \(selectedCountry.name.common), Custom Fields: \(islandDetails.requiredAddressFields.map { $0.rawValue })")
+        os_log("Updated address fields for country: %@", log: OSLog.default, type: .info, selectedCountry.name.common)
+    }
+
+    private let fieldValues: [PartialKeyPath<IslandDetails>: AddressFieldType] = [
+        \.street: .street,
+        \.city: .city,
+        \.state: .state,
+        \.province: .province,
+        \.postalCode: .postalCode,
+        \.region: .region,
+        \.district: .district,
+        \.department: .department,
+        \.governorate: .governorate,
+        \.emirate: .emirate,
+        \.postcode: .postcode,
+        \.pincode: .pincode,
+        \.block: .block,
+        \.county: .county,
+        \.neighborhood: .neighborhood,
+        \.complement: .complement,
+        \.apartment: .apartment,
+        \.additionalInfo: .additionalInfo,
+        \.multilineAddress: .multilineAddress
+    ]
+
+    private func addressField(for field: AddressFieldType) -> some View {
+        guard let keyPath = fieldValues.first(where: { $1 == field })?.0 else {
+            return AnyView(EmptyView())
+        }
+        return AnyView(
+            TextField(field.rawValue, text: Binding(
+                get: { islandDetails[keyPath: keyPath] as? String ?? "" },
+                set: { setValue(value: $0, forKeyPath: keyPath as! ReferenceWritableKeyPath<IslandDetails, String>) }
+            ))
+            .textFieldStyle(RoundedBorderTextFieldStyle())
         )
     }
 
-    private var enteredBySection: some View {
-        Section(header: Text("Entered By")) {
-            Text(profileViewModel.name)
-                .foregroundColor(.primary)
-                .padding()
-        }
+    private func setValue(value: String, forKeyPath keyPath: ReferenceWritableKeyPath<IslandDetails, String>) {
+        islandDetails[keyPath: keyPath] = value
     }
 
-    private var countrySpecificFieldsSection: some View {
-        Section(header: Text("Gym Information")) {
-            AddressFormView()
+    private func validateForm() {
+        print("Validating form...")
+        let requiredFields = islandDetails.requiredAddressFields
+        print("Required fields: \(requiredFields.map { $0.rawValue })")
+        for field in requiredFields {
+            print("Checking field \(field.rawValue): \(isValidField(field))")
         }
-    }
-
-    private var saveButton: some View {
-        Button("Save") {
-            Task {
-                saveIsland()
-            }
-        }
-        .disabled(!isSaveEnabled)
-        .padding()
-    }
-
-    private var cancelButton: some View {
-        Button("Cancel") {
-            presentationMode.wrappedValue.dismiss()
-        }
-        .padding()
-    }
-
-    private var toastOverlay: some View {
-        Group {
-            if showToast {
-                withAnimation {
-                    ToastView(showToast: $showToast, message: toastMessage)
-                        .transition(.move(edge: .bottom))
-                        .onAppear {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                showToast = false
-                            }
-                        }
-                }
-            }
-        }
-    }
-
-    // MARK: - Private Methods
+        let isValid = requiredFields.allSatisfy { isValidField($0) }
+        print("Validation result for fields: \(isValid)")
+        let finalIsValid = isValid && !islandDetails.islandName.isEmpty
+        print("Final validation result: \(finalIsValid)")
         
-    private func saveIsland() {
-        Logger.logCreatedByIdEvent(createdByUserId: profileViewModel.name, fileName: "AddNewIsland", functionName: "saveIsland")
-        guard !profileViewModel.name.isEmpty else { return }
-            
-        Task {
+        // Update the state without returning a value
+        isSaveEnabled = finalIsValid
+    }
+
+
+    
+    private func validateURL(_ urlString: String) -> Bool {
+        guard let url = URL(string: urlString), UIApplication.shared.canOpenURL(url) else {
+            return false
+        }
+        return true
+    }
+
+
+    private func isValidField(_ field: AddressFieldType) -> Bool {
+        guard let keyPath = fieldValues.first(where: { $1 == field })?.0 else {
+            return false
+        }
+        let value = islandDetails[keyPath: keyPath] as? String ?? ""
+        return !value.isEmpty
+    }
+
+    private func saveIsland() async {
+        if isSaveEnabled {
             do {
-                _ = try await islandViewModel.createPirateIsland(islandDetails: islandDetails, createdByUserId: profileViewModel.name)
-                toastMessage = "Island saved successfully!"
+                let newIsland = try await islandViewModel.createPirateIsland(islandDetails: islandDetails, createdByUserId: profileViewModel.name)
+                
+                // Store the country and gym website URL in the new island
+                newIsland.country = islandDetails.selectedCountry?.name.common
+                if let url = URL(string: gymWebsite) {
+                    newIsland.gymWebsite = url
+                } else {
+                    // Handle invalid URL
+                    toastMessage = "Invalid gym website URL"
+                    showToast = true
+                    return
+                }
+                
+                try viewContext.save()
+                
+                toastMessage = "Island saved successfully: \(newIsland.islandName ?? "Unknown Name")"
                 clearFields()
             } catch {
                 toastMessage = "Error saving island: \(error.localizedDescription)"
+                showToast = true
             }
+        } else {
+            toastMessage = "Please fill in all required fields"
             showToast = true
         }
     }
+
 
     private func clearFields() {
         islandDetails.islandName = ""
         islandDetails.street = ""
         islandDetails.city = ""
         islandDetails.state = ""
-        islandDetails.zip = ""
-        islandDetails.gymWebsite = ""
-        islandDetails.gymWebsiteURL = nil
+        islandDetails.postalCode = ""
+        islandDetails.selectedCountry = nil
+        islandDetails.neighborhood = ""
+        islandDetails.complement = ""
+        islandDetails.block = ""
+        islandDetails.apartment = ""
+        islandDetails.region = ""
+        islandDetails.county = ""
+        islandDetails.governorate = ""
+        islandDetails.province = ""
+        islandDetails.pincode = ""
+        islandDetails.additionalInfo = ""
+        gymWebsite = "" // Clear gymWebsite when cancelling
+
+    }
+
+    private var toastOverlay: some View {
+        Group {
+            if showToast {
+                ToastView(showToast: $showToast, message: toastMessage)
+                    .transition(.move(edge: .bottom))
+                    .onAppear {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                            showToast = false
+                        }
+                    }
+            }
+        }
     }
 }
 
+// MARK: - Preview
 struct AddNewIsland_Previews: PreviewProvider {
     static var previews: some View {
         let persistenceController = PersistenceController.preview
-        let profileViewModel = ProfileViewModel(
-            viewContext: PersistenceController.preview.container.viewContext,
-            authViewModel: AuthViewModel.shared
-        )
-        profileViewModel.name = "Brian Romero" // Example name for preview
-        return AddNewIsland(
-            viewModel: PirateIslandViewModel(persistenceController: persistenceController),
-            profileViewModel: profileViewModel,
-            islandDetails: IslandDetails() // Pass IslandDetails here
-        )
+        let profileViewModel = ProfileViewModel(viewContext: persistenceController.viewContext, authViewModel: AuthViewModel.shared)
+        profileViewModel.name = "Brian Romero"
+
+        let islandViewModel = PirateIslandViewModel(persistenceController: persistenceController)
+
+        return AddNewIsland(viewModel: islandViewModel, profileViewModel: profileViewModel)
     }
 }
