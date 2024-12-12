@@ -10,9 +10,11 @@ import FirebaseFirestore
 class FirestoreManager {
     static let shared = FirestoreManager()
     
-    private init() { }
-
-    let db = Firestore.firestore()
+    private let db: Firestore
+    
+    private init() {
+        self.db = Firestore.firestore()
+    }
 
     // MARK: - User Management
     func createUser(userName: String, name: String) async throws {
@@ -27,7 +29,6 @@ class FirestoreManager {
     func createFirestoreUser(userName: String, name: String) async throws {
         print("Creating Firestore user with username: \(userName) and name: \(name)")
         // Implementation to add user details to Firestore
-        let db = Firestore.firestore()
         let userRef = db.collection("users").document("user-\(userName)")
         try await userRef.setData([
             "name": name,
@@ -50,7 +51,7 @@ class FirestoreManager {
         
         // Validate data
         guard let islandName = island.islandName, !islandName.isEmpty,
-              island.islandLocation != nil else {
+              let islandLocation = island.islandLocation, !islandLocation.isEmpty else {
             print("Invalid data: Island name or location is missing")
             return
         }
@@ -58,9 +59,17 @@ class FirestoreManager {
         // Use the correct property names from PirateIsland
         let islandRef = db.collection("pirateIslands").document(island.islandID?.uuidString ?? UUID().uuidString)
         try await islandRef.setData([
+            "id": island.islandID?.uuidString ?? UUID().uuidString,
             "name": island.safeIslandName,
             "location": island.safeIslandLocation,
-            "createdByUserId": island.createdByUserId ?? "Unknown User"
+            "country": island.country ?? "",
+            "createdByUserId": island.createdByUserId ?? "Unknown User",
+            "createdTimestamp": island.createdTimestamp ?? Date(),
+            "lastModifiedByUserId": island.lastModifiedByUserId ?? "",
+            "lastModifiedTimestamp": island.lastModifiedTimestamp ?? Date(),
+            "latitude": island.latitude,
+            "longitude": island.longitude,
+            "gymWebsite": island.gymWebsite?.absoluteString ?? ""
         ])
         print("Island saved successfully to Firestore")
     }
@@ -89,19 +98,25 @@ class FirestoreManager {
         print("Document set successfully")
     }
 
-    private func createDocument(in collection: Collection, data: [String: Any]) async throws {
+    internal func createDocument(in collection: Collection, data: [String: Any]) async throws {
         print("Creating document in collection: \(collection.rawValue)")
         try await db.collection(collection.rawValue).document().setData(data)
         print("Document created successfully")
     }
 
-    private func updateDocument(in collection: Collection, id: String, data: [String: Any]) async throws {
+    internal func updateDocument(in collection: Collection, id: String, data: [String: Any]) async throws {
         print("Updating document in collection: \(collection.rawValue) with id: \(id)")
-        try await db.collection(collection.rawValue).document(id).updateData(data)
+        try await db.collection(collection.rawValue).document(id).setData(data, merge: false)
         print("Document updated successfully")
     }
+    
+    internal func deleteDocument(in collection: Collection, id: String) async throws {
+        print("Deleting document in collection: \(collection.rawValue) with id: \(id)")
+        try await db.collection(collection.rawValue).document(id).delete()
+        print("Document deleted successfully")
+    }
 
-    private func getDocuments(in collection: Collection) async throws -> [QueryDocumentSnapshot] {
+    internal func getDocuments(in collection: Collection) async throws -> [QueryDocumentSnapshot] {
         print("Getting documents in collection: \(collection.rawValue)")
         let snapshot = try await db.collection(collection.rawValue).getDocuments()
         print("Documents retrieved successfully")

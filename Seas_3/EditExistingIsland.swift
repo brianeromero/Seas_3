@@ -119,9 +119,12 @@ struct EditExistingIsland: View {
                 // Geocode the address
                 let coordinates = try await geocode(address: islandLocation, apiKey: GeocodingConfig.apiKey)
                 
-                // Update latitude and longitude
-                island.latitude = coordinates.latitude
-                island.longitude = coordinates.longitude
+                // Update islandDetails object
+                islandDetails.islandName = islandName
+                islandDetails.street = islandLocation
+                islandDetails.latitude = coordinates.latitude
+                islandDetails.longitude = coordinates.longitude
+                islandDetails.gymWebsite = gymWebsiteURL?.absoluteString ?? ""
                 
                 // Update the pirate island details
                 try await islandViewModel.updatePirateIsland(

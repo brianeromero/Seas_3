@@ -122,9 +122,22 @@ class IslandDetails: ObservableObject, Equatable {
             case .street: return !street.isEmpty
             case .city: return !city.isEmpty
             case .state: return !state.isEmpty
+            case .province: return !province.isEmpty
             case .postalCode: return !postalCode.isEmpty
+            case .region: return !region.isEmpty
+            case .district: return !district.isEmpty
+            case .department: return !department.isEmpty
+            case .governorate: return !governorate.isEmpty
+            case .emirate: return !emirate.isEmpty
+            case .postcode: return !postcode.isEmpty
+            case .pincode: return !pincode.isEmpty
+            case .block: return !block.isEmpty
             case .county: return !county.isEmpty
-            default: return true
+            case .neighborhood: return !neighborhood.isEmpty
+            case .complement: return !complement.isEmpty
+            case .apartment: return !apartment.isEmpty
+            case .additionalInfo: return !additionalInfo.isEmpty
+            case .multilineAddress: return !multilineAddress.isEmpty
             }
         }
         let islandNameValid = !islandName.isEmpty

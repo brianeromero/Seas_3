@@ -129,6 +129,7 @@
 		0CD930B12C33D4FB0051E923 /* YOu are HEre2.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C07B0C72C2D022C00D0BFB2 /* YOu are HEre2.png */; };
 		0CD930B22C33D4FE0051E923 /* MF_little_trans .png in Resources */ = {isa = PBXBuildFile; fileRef = 0C07B0CA2C2D022D00D0BFB2 /* MF_little_trans .png */; };
 		0CD930B32C33D5020051E923 /* YOu are HEre.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C07B0C82C2D022C00D0BFB2 /* YOu are HEre.png */; };
+		0CDBEA302D024CA500559B6A /* MatTimesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CDBEA2F2D024CA500559B6A /* MatTimesViewModel.swift */; };
 		0CDF61CF2C3C9BE900A8A0BF /* IslandScheduleAsCal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CDF61CE2C3C9BE900A8A0BF /* IslandScheduleAsCal.swift */; };
 		0CDF61D12C3CA0F400A8A0BF /* ScheduleDetailModal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CDF61D02C3CA0F400A8A0BF /* ScheduleDetailModal.swift */; };
 		0CEB03962C2B9B73007CA3CC /* PirateIslandViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CEB03952C2B9B73007CA3CC /* PirateIslandViewModel.swift */; };
@@ -275,6 +276,7 @@
 		0CD376DF2CED4C7200491DD8 /* AdSettings+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AdSettings+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		0CD4E2BE2C7CDA0C005082AC /* ScheduledMatTimesSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduledMatTimesSection.swift; sourceTree = "<group>"; };
 		0CD9014F2CB655B40097D71F /* DoNotStorePasswords.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoNotStorePasswords.swift; sourceTree = "<group>"; };
+		0CDBEA2F2D024CA500559B6A /* MatTimesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatTimesViewModel.swift; sourceTree = "<group>"; };
 		0CDF61CE2C3C9BE900A8A0BF /* IslandScheduleAsCal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandScheduleAsCal.swift; sourceTree = "<group>"; };
 		0CDF61D02C3CA0F400A8A0BF /* ScheduleDetailModal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleDetailModal.swift; sourceTree = "<group>"; };
 		0CEB03952C2B9B73007CA3CC /* PirateIslandViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PirateIslandViewModel.swift; sourceTree = "<group>"; };
@@ -613,6 +615,7 @@
 				0C8AEC282C5C246800D38635 /* AddNewMatTimeSection.swift */,
 				0CD4E2BE2C7CDA0C005082AC /* ScheduledMatTimesSection.swift */,
 				0C1893D42C7F9621007BFADB /* ViewScheduleforIsland.swift */,
+				0CDBEA2F2D024CA500559B6A /* MatTimesViewModel.swift */,
 			);
 			path = SchedulesView;
 			sourceTree = "<group>";
@@ -728,10 +731,10 @@
 				0CF13E4F2C2A326A00D714C0 /* Seas_3.xcdatamodeld */,
 				0CF13E752C2A36B500D714C0 /* PirateIsland+CoreDataClass.swift */,
 				0CF13E762C2A36B500D714C0 /* PirateIsland+CoreDataProperties.swift */,
-				0CF13E732C2A36B500D714C0 /* AppDayOfWeek+CoreDataClass.swift */,
 				0CF13E742C2A36B500D714C0 /* AppDayOfWeek+CoreDataProperties.swift */,
 				0CC1120D2C45F7D80066CF80 /* MatTime+CoreDataClass.swift */,
 				0CC1120E2C45F7D80066CF80 /* MatTime+CoreDataProperties.swift */,
+				0CF13E732C2A36B500D714C0 /* AppDayOfWeek+CoreDataClass.swift */,
 				0CF13E772C2A36B500D714C0 /* UserInfo+CoreDataClass.swift */,
 				0CF13E782C2A36B500D714C0 /* UserInfo+CoreDataProperties.swift */,
 				0CCA11C52C79105F003CAB7C /* Review+CoreDataClass.swift */,
@@ -1015,6 +1018,7 @@
 				0C33DC152CC09E7C002C4835 /* PrivacyPolicy.swift in Sources */,
 				0C07B0B92C2D017500D0BFB2 /* WhoWeAre.swift in Sources */,
 				0C6F7BDC2C7931E600072237 /* GymMatReviewSelect.swift in Sources */,
+				0CDBEA302D024CA500559B6A /* MatTimesViewModel.swift in Sources */,
 				0C07B0A42C2D002000D0BFB2 /* EnterZipCodeView.swift in Sources */,
 				0C524E8F2C2F8592008D6623 /* LocationManager.swift in Sources */,
 				0C07B0992C2CFF8500D0BFB2 /* GymMatReviewView.swift in Sources */,

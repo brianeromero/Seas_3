@@ -11,6 +11,7 @@ struct AddNewMatTimeSection: View {
     @Binding var selectedIsland: PirateIsland?
     @Binding var selectedAppDayOfWeek: AppDayOfWeek?
     @Binding var selectedDay: DayOfWeek
+    @StateObject var matTimesViewModel = MatTimesViewModel()
     @Binding var daySelected: Bool
     @State var matTime: MatTime?
     @State private var isMatTimeSet: Bool = false
@@ -63,7 +64,9 @@ struct AddNewMatTimeSection: View {
 
                 Button(action: {
                     if validateInput() {
-                        saveMatTime()
+                        Task {
+                            await saveMatTime()
+                        }
                     }
                 }) {
                     Text("Add New Mat Time")
@@ -115,25 +118,35 @@ struct AddNewMatTimeSection: View {
         return true
     }
 
-    func saveMatTime() {
-        guard let appDayOfWeek = selectedAppDayOfWeek else { return }
+    func saveMatTime() async {
+        guard let appDayOfWeek = selectedAppDayOfWeek,
+              let selectedIsland = selectedIsland else { return }
         
         let time = formatDateToString(selectedTime)
-        let matTimeType = determineMatTimeType() // Implement determineMatTimeType function
+        let matTimeType = determineMatTimeType()
         let restrictionDescription = restrictions ? restrictionDescriptionInput : ""
         
         do {
-            try viewModel.updateOrCreateMatTime(nil,
-                                                time: time,
-                                                type: matTimeType,
-                                                gi: gi,
-                                                noGi: noGi,
-                                                openMat: openMat,
-                                                restrictions: restrictions,
-                                                restrictionDescription: restrictionDescription,
-                                                goodForBeginners: goodForBeginners,
-                                                kids: kids,
-                                                for: appDayOfWeek)
+            let matTime = try viewModel.updateOrCreateMatTime(
+                nil,
+                time: time,
+                type: matTimeType,
+                gi: gi,
+                noGi: noGi,
+                openMat: openMat,
+                restrictions: restrictions,
+                restrictionDescription: restrictionDescription,
+                goodForBeginners: goodForBeginners,
+                kids: kids,
+                for: appDayOfWeek
+            )
+            
+            // Save to Firestore
+            try await matTimesViewModel.saveMatTimeToFirestore(
+                matTime: matTime,
+                selectedAppDayOfWeek: appDayOfWeek,
+                selectedIsland: selectedIsland
+            )
             
             // Reset state variables after saving
             resetStateVariables()
@@ -144,6 +157,8 @@ struct AddNewMatTimeSection: View {
             showAlert = true
         }
     }
+
+
 
     func resetStateVariables() {
         selectedTime = Date()

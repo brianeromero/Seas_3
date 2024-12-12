@@ -8,7 +8,6 @@
 import Foundation
 import CoreData
 
-// Ensure PirateIsland conforms to Identifiable
 extension PirateIsland: Identifiable {}
 
 extension PirateIsland {
@@ -17,8 +16,8 @@ extension PirateIsland {
         return NSFetchRequest<PirateIsland>(entityName: "PirateIsland")
     }
 
-    // MARK: - Attributes
 
+    // MARK: - Attributes
     @NSManaged public var createdByUserId: String?
     @NSManaged public var createdTimestamp: Date?
     @NSManaged public var gymWebsite: URL?
@@ -32,12 +31,10 @@ extension PirateIsland {
     @NSManaged public var longitude: Double
 
     // MARK: - Relationships
-
     @NSManaged public var appDayOfWeeks: NSSet?
     @NSManaged public var reviews: NSOrderedSet?  // Make sure this is NSOrderedSet for ordered relationships
 
     // MARK: - Computed Properties
-
     public var formattedCoordinates: String {
         String(format: "%.6f, %.6f", latitude, longitude)
     }
@@ -54,7 +51,6 @@ extension PirateIsland {
         DateFormat.full.string(from: lastModifiedTimestamp ?? Date())
     }
 
-    // Ensure you have appropriate default values or handling for optional properties
     public var safeIslandLocation: String {
         islandLocation ?? "Unknown Location"
     }
@@ -75,7 +71,6 @@ extension PirateIsland {
     }
 
     // MARK: - Custom Methods
-
     static func logFetch(in context: NSManagedObjectContext) {
         let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
         do {

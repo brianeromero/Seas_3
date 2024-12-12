@@ -136,7 +136,11 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
             "day": dayOfWeek.rawValue,
             "name": appDayOfWeek.name ?? "",
             "appDayOfWeekID": appDayOfWeek.appDayOfWeekID ?? "",
-            "pIsland": island.islandID ?? ""
+            "pIsland": island.islandID ?? "",
+            "createdByUserId": "Unknown User",
+            "createdTimestamp": Date(),
+            "lastModifiedByUserId": "Unknown User",
+            "lastModifiedTimestamp": Date()
         ]
         
         firestore.collection("appDayOfWeek").document(appDayOfWeek.appDayOfWeekID ?? "").setData(data) { error in
@@ -267,9 +271,10 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
         goodForBeginners: Bool,
         kids: Bool,
         for appDayOfWeek: AppDayOfWeek
-    ) throws {
-        print("Using updateOrCreateMatTime, updating/creating MatTime for AppDayOfWeek with day:  \(appDayOfWeek.day)")
+    ) throws -> MatTime {
+        print("Using updateOrCreateMatTime, updating/creating MatTime for AppDayOfWeek with day: \(appDayOfWeek.day)")
         
+        // Create or reuse the MatTime object
         let matTime = existingMatTime ?? MatTime(context: viewContext)
         matTime.configure(
             time: time,
@@ -283,6 +288,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
             kids: kids
         )
         
+        // Add to AppDayOfWeek if it's a new MatTime
         if existingMatTime == nil {
             appDayOfWeek.addToMatTimes(matTime)
         }
@@ -293,12 +299,17 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
             print("Context saved successfully.")
         } catch {
             print("Failed to save context: \(error)")
+            throw error
         }
         
         // Refresh mat times
         refreshMatTimes()
         print("MatTimes refreshed.")
+        
+        // Return the created or updated MatTime
+        return matTime
     }
+
     // MARK: - Refresh MatTimes -     // Assuming you have a property to store the selected day
     func refreshMatTimes() {
         print("Refreshing MatTimes")

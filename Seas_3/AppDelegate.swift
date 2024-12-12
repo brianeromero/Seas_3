@@ -37,7 +37,6 @@ extension NSNotification.Name {
 class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUserNotificationCenterDelegate {
 
     var window: UIWindow?
-    let persistenceController = PersistenceController.shared
     let appConfig = AppConfig.shared
 
     var facebookSecret: String?
@@ -58,31 +57,40 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         configureApplicationAppearance()
         
+        // Firebase configuration
+        configureFirebase()
+                            
+        // Check if Firebase has been configured successfully
+        if FirebaseApp.app() != nil {
+            // No need to initialize FirestoreManager or PersistenceController here
+        } else {
+            print("Firebase configuration failed.")
+        }
+        
         // Third-party SDK initializations
         ApplicationDelegate.shared.application(application, didFinishLaunchingWithOptions: launchOptions)
 
-        // Firebase configuration
-        configureFirebase()
-        
-        // Initialize PersistenceController after Firebase configuration
-        // Configure PersistenceController with Firestore
-        PersistenceController.shared.configure(db: Firestore.firestore())
-
         // App Check setup
         setupAppCheck()
-        
+                
         // Firestore collection creation
-        createFirestoreCollection()
+        Task {
+            do {
+                try await createFirestoreCollection()
+            } catch {
+                print("Error creating Firestore collection: \(error.localizedDescription)")
+            }
+        }
 
         // Google Ads configuration
         configureGoogleAds()
-        
+                
         // Request IDFA permission
         IDFAHelper.requestIDFAPermission()
-        
+                
         // Load configuration values
         loadConfigValues()
-        
+                
         // Register for push notifications
         registerForPushNotifications {}
 
@@ -96,25 +104,21 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
     }
 
 
-    private func createFirestoreCollection() {
+    private func createFirestoreCollection() async throws {
         let collectionsToCheck = [
             "pirateIslands",
             "reviews",
             "matTimes",
-            "appDayOfWeek" // Added AppDayOfWeek to the collections to check
+            "appDayOfWeeks"
         ]
 
-        
-        collectionsToCheck.forEach { collectionName in
-            Firestore.firestore().collection(collectionName).getDocuments { querySnapshot, error in
-                if let error = error {
-                    print("Error checking Firestore records: \(error)")
-                    return
-                }
-                
-                Task {
-                    await self.checkLocalRecordsAndCreateFirestoreRecordsIfNecessary(collectionName: collectionName, querySnapshot: querySnapshot)
-                }
+        for collectionName in collectionsToCheck {
+            do {
+                let querySnapshot = try await Firestore.firestore().collection(collectionName).getDocuments()
+                await self.checkLocalRecordsAndCreateFirestoreRecordsIfNecessary(collectionName: collectionName, querySnapshot: querySnapshot)
+            } catch {
+                print("Error checking Firestore records: \(error)")
+                throw error
             }
         }
     }
@@ -132,56 +136,202 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         let firestoreRecords = querySnapshot.documents.compactMap { $0.documentID }
         print("Firestore records for \(collectionName): \(firestoreRecords)")
         
-        do {
-            if let localRecords = try await PersistenceController.shared.fetchLocalRecords(forCollection: collectionName) {
-                print("Local records for \(collectionName): \(localRecords)")
-                
-                let localRecordsNotInFirestore = localRecords.filter { !firestoreRecords.contains($0) }
-                print("Local records not in Firestore for \(collectionName): \(localRecordsNotInFirestore)")
-                
-                let firestoreRecordsNotInLocal = firestoreRecords.filter { !localRecords.contains($0) }
-                print("Firestore records not in local for \(collectionName): \(firestoreRecordsNotInLocal)")
-                
-                if !localRecordsNotInFirestore.isEmpty || !firestoreRecordsNotInLocal.isEmpty {
-                    print("Records are out of sync for collection: \(collectionName)")
-                    
-                    // Log before posting to notification center
-                    print("Posting ShowToast notification for collection: \(collectionName) with message: You need to sync your records.")
-                    
-                    // Introduce a small delay before posting the notification
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
-                        NotificationCenter.default.post(name: Notification.Name("ShowToast"), object: nil, userInfo: ["message": "You need to sync your records."])
+        if let localRecords = try? await PersistenceController.shared.fetchLocalRecords(forCollection: collectionName) {
+            print("Local records for \(collectionName): \(localRecords)")
+            
+            // Query records using both hyphenated and non-hyphenated IDs
+            var localRecordsNotInFirestore: [String] = []
+            for record in localRecords {
+                let recordId = record
+                let nonHyphenatedId = recordId.replacingOccurrences(of: "-", with: "")
+                let query = Firestore.firestore().collection(collectionName).whereField("id", in: [recordId, nonHyphenatedId])
+                do {
+                    let querySnapshot = try await query.getDocuments()
+                    if querySnapshot.documents.isEmpty {
+                        localRecordsNotInFirestore.append(record)
                     }
-                } else {
-                    print("Records are in sync for collection: \(collectionName)")
+                } catch {
+                    print("Error querying records: \(error)")
+                }
+            }
+            
+            print("Local records not in Firestore for \(collectionName):")
+            for record in localRecordsNotInFirestore {
+                print("Record ID: \(record) (contains hyphens: \(record.contains("-")))")
+            }
+            
+            let firestoreRecordsNotInLocal = firestoreRecords.filter { !localRecords.contains($0) && !localRecords.map { $0.replacingOccurrences(of: "-", with: "") }.contains($0) }
+            
+            await syncRecords(localRecords: localRecords, firestoreRecords: firestoreRecords, collectionName: collectionName)
+
+            if !localRecordsNotInFirestore.isEmpty || !firestoreRecordsNotInLocal.isEmpty {
+                print("Records are out of sync for collection: \(collectionName)")
+                
+                // Log before posting to notification center
+                print("Posting ShowToast notification for collection: \(collectionName) with message: You need to sync your records.")
+                
+                // Introduce a small delay before posting the notification
+                DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+                    NotificationCenter.default.post(name: Notification.Name("ShowToast"), object: nil, userInfo: ["message": "You need to sync your records."])
                 }
             } else {
-                print("No local records found for collection: \(collectionName)")
+                print("Records are in sync for collection: \(collectionName)")
+                
+                // Post a new notification when syncing is completed
+                DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+                    NotificationCenter.default.post(name: Notification.Name("ShowToast"), object: nil, userInfo: ["message": "Records have been synced successfully."])
+                }
             }
-        } catch {
-            print("Error fetching local records: \(error)")
+        } else {
+            print("No local records found for collection: \(collectionName)")
         }
         
         print("Finished checking local records for collection: \(collectionName)")
     }
 
-
-
-
     private func uploadLocalRecordsToFirestore(collectionName: String, records: [String]) async {
-        // Implement logic to upload local records to Firestore
-        // ...
+        // Get a reference to the Firestore collection
+        let db = Firestore.firestore()
+        let collectionRef = db.collection(collectionName)
+
+        // Loop through each local record
+        for record in records {
+            // Fetch the entire record from Core Data
+            guard let localRecord = try? await PersistenceController.shared.fetchLocalRecord(forCollection: collectionName, recordId: UUID(uuidString: record) ?? UUID()) else {
+                print("Error fetching local record \(record) from Core Data (FROM APPDELEGATE-uploadLocalRecordsToFirestore)")
+                continue
+            }
+
+            // Create a dictionary to hold the record's fields
+            var recordData: [String: Any] = [:]
+
+            // Populate the dictionary with the record's fields
+            switch collectionName {
+            case "pirateIslands":
+                guard let pirateIsland = localRecord as? PirateIsland else { continue }
+                recordData = [
+                    "id": pirateIsland.islandID?.uuidString ?? "", // Convert UUID to string
+                    "name": pirateIsland.islandName ?? "",
+                    "location": pirateIsland.islandLocation ?? "",
+                    "country": pirateIsland.country ?? "",
+                    "createdByUserId": pirateIsland.createdByUserId ?? "",
+                    "createdTimestamp": pirateIsland.createdTimestamp ?? Date(),
+                    "gymWebsite": pirateIsland.gymWebsite?.absoluteString ?? "",
+                    "latitude": pirateIsland.latitude,
+                    "longitude": pirateIsland.longitude,
+                    "lastModifiedByUserId": pirateIsland.lastModifiedByUserId ?? "",
+                    "lastModifiedTimestamp": pirateIsland.lastModifiedTimestamp ?? Date()
+                ]
+            case "reviews":
+                guard let review = localRecord as? Review else { continue }
+                recordData = [
+                    "id": review.reviewID,
+                    "stars": review.stars,
+                    "review": review.review,
+                    "createdTimestamp": review.createdTimestamp,
+                    "averageStar": review.averageStar
+                ]
+            case "matTimes":
+                guard let matTime = localRecord as? MatTime else { continue }
+                recordData = [
+                    "id": matTime.id ?? "",
+                    "type": matTime.type ?? "",
+                    "time": matTime.time ?? "",
+                    "gi": matTime.gi,
+                    "noGi": matTime.noGi,
+                    "openMat": matTime.openMat,
+                    "restrictions": matTime.restrictions,
+                    "restrictionDescription": matTime.restrictionDescription ?? "",
+                    "goodForBeginners": matTime.goodForBeginners,
+                    "kids": matTime.kids,
+                    "createdTimestamp": matTime.createdTimestamp ?? Date()
+                ]
+            case "appDayOfWeeks":
+                guard let appDayOfWeek = localRecord as? AppDayOfWeek else { continue }
+                recordData = [
+                    "id": appDayOfWeek.id ?? "",
+                    "day": appDayOfWeek.day,
+                    "name": appDayOfWeek.name ?? "",
+                    "appDayOfWeekID": appDayOfWeek.appDayOfWeekID ?? "",
+                    "createdTimestamp": appDayOfWeek.createdTimestamp ?? Date()
+                ]
+            // Add other collection types as needed
+            default:
+                print("Unknown collection name: \(collectionName)")
+                continue
+            }
+
+            // Get a reference to the Firestore document
+            let docRef = collectionRef.document(record)
+
+            // Upload the record to Firestore
+            do {
+                try await docRef.setData(recordData)
+                print("Uploaded local record \(record) to Firestore")
+            } catch {
+                print("Error uploading local record (FROM APPDELEGATE: uploadLocalRecordsToFirestore) \(record) to Firestore:")
+                print("Record ID: \(record)")
+                print("Error: \(error.localizedDescription)")
+                print("Error type: \(type(of: error))")
+            }
+        }
     }
 
 
+    private func syncRecords(localRecords: [String], firestoreRecords: [String], collectionName: String) async {
+        // Identify records that exist in Core Data but not in Firestore
+        let localRecordsNotInFirestore = localRecords.filter { !firestoreRecords.contains($0) && !firestoreRecords.map { $0.replacingOccurrences(of: "-", with: "") }.contains($0) }
 
-/*    private func shouldCreateRecord(_ localRecord: String, collectionName: String) -> Bool {
-        // Add logic to determine if the record should be created
-        // For example, you can check if the record is new or has been updated
-        // For now, return false to prevent unnecessary records from being created
-        return false
+        // Identify records that exist in Firestore but not in Core Data
+        let firestoreRecordsNotInLocal = firestoreRecords.filter { !localRecords.contains($0) && !localRecords.map { $0.replacingOccurrences(of: "-", with: "") }.contains($0) }
+
+        // Upload local records to Firestore if they don't exist
+        await uploadLocalRecordsToFirestore(collectionName: collectionName, records: localRecordsNotInFirestore)
+
+        // Download Firestore records to Core Data if they don't exist locally
+        await downloadFirestoreRecordsToLocal(collectionName: collectionName, records: firestoreRecordsNotInLocal)
     }
-*/
+
+    // New function to download Firestore records to Core Data
+    private func downloadFirestoreRecordsToLocal(collectionName: String, records: [String]) async {
+        // Get a reference to the Core Data context
+        let context = PersistenceController.shared.container.viewContext
+
+        // Loop through each Firestore record
+        for record in records {
+            // Create a new Core Data object based on the collection name
+            var newRecord: NSManagedObject!
+            switch collectionName {
+            case "pirateIslands":
+                newRecord = PirateIsland(context: context)
+            case "reviews":
+                newRecord = Review(context: context)
+            case "matTimes":
+                newRecord = MatTime(context: context)
+            case "appDayOfWeeks":
+                newRecord = AppDayOfWeek(context: context)
+            default:
+                print("Unknown collection name: \(collectionName)")
+                return
+            }
+            
+            // Convert the String value to a UUID
+            if let uuid = UUID(uuidString: record) {
+                newRecord.setValue(uuid, forKey: "id")
+            } else {
+                print("Invalid UUID string: \(record)")
+            }
+
+            // Save the new record to Core Data
+            do {
+                try context.save()
+                print("Downloaded Firestore record \(record) to Core Data")
+            } catch {
+                print("Error downloading Firestore record \(record) to Core Data: \(error.localizedDescription)")
+            }
+        }
+    }
+    
     func configureFirebase() {
         guard !isFirebaseConfigured else { return }
         
@@ -203,7 +353,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         configureFirestore()
     }
 
-
     private func configureFirebaseLogger() {
         FirebaseConfiguration.shared.setLoggerLevel(.debug)
     }
@@ -216,6 +365,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
     private func configureFirestore() {
         Firestore.firestore().settings = FirestoreSettings()
     }
+
 
     private func setupAppCheck() {
         #if DEBUG
@@ -301,7 +451,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         // Log or handle valid token
         print("Valid APNS token received: \(token)")
     }
-
+    
     func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
         print("Failed to register for remote notifications: \(error.localizedDescription)")
         printError(error)

@@ -30,8 +30,7 @@ enum AddressFieldType: String {
 
 // Define address field requirements for each region/country
 let addressFieldRequirements: [String: [AddressFieldType]] = [
-    
-    // Americas
+        // Americas
     "US": [.street, .city, .state, .postalCode],
     "CA": [.street, .city, .province, .postalCode],
     "BR": [.street, .neighborhood, .complement, .city, .state, .postalCode], // For Brazil

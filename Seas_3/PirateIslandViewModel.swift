@@ -64,37 +64,36 @@ public class PirateIslandViewModel: ObservableObject {
     
     // MARK: - Create Pirate Island
     func createPirateIsland(islandDetails: IslandDetails, createdByUserId: String) async throws -> PirateIsland {
-        // Log values before validation
-        os_log("Creating new PirateIsland...", log: logger, type: .info)
-        print("Island Name before validation: \(islandDetails.islandName)")
-        print("Full Address before validation: \(islandDetails.fullAddress)")
-        
+        // Generate a new UUID
+        let newIslandID = UUID()
+
         // Step 1: Validate the island details
         guard validateIslandDetails(islandDetails, createdByUserId) else {
             throw PirateIslandError.invalidInput
         }
 
-        os_log("Validation succeeded for Island Name: %@, Full Address: %@", log: logger, islandDetails.islandName, islandDetails.fullAddress)
-        
-        // Step 2: Check if island already exists
+        os_log("Validation succeeded for Island Name: %@, Full Address: %@", log: logger, type: .info, islandDetails.islandName, islandDetails.fullAddress)
+
+        // Step 2: Check if the island already exists
         guard !pirateIslandExists(name: islandDetails.islandName) else {
             throw PirateIslandError.islandExists
         }
 
-        // Step 3: Geocode the address
-        os_log("Attempting geocoding for address: %@", log: logger, islandDetails.fullAddress)
+        // Step 3: Geocode the address to get coordinates
+        os_log("Attempting geocoding for address: %@", log: logger, type: .info, islandDetails.fullAddress)
         let coordinates: (latitude: Double, longitude: Double)
-        
+
         do {
             coordinates = try await geocodeAddress(islandDetails.fullAddress)
             os_log("Geocoding successful: Lat: %@, Long: %@", log: logger, "\(coordinates.latitude)", "\(coordinates.longitude)")
         } catch {
-            os_log("Geocoding failed: %@", log: logger, error.localizedDescription)
+            os_log("Geocoding failed: %@", log: logger, type: .error, error.localizedDescription)
             throw PirateIslandError.geocodingError(error.localizedDescription)
         }
 
         // Step 4: Create the new PirateIsland object
         let newIsland = PirateIsland(context: persistenceController.viewContext)
+        newIsland.islandID = newIslandID  // Assign new UUID
         newIsland.islandName = islandDetails.islandName
         newIsland.islandLocation = islandDetails.fullAddress
         newIsland.country = islandDetails.selectedCountry?.name.common
@@ -103,32 +102,33 @@ public class PirateIslandViewModel: ObservableObject {
         newIsland.lastModifiedByUserId = createdByUserId
         newIsland.lastModifiedTimestamp = Date()
         newIsland.gymWebsite = islandDetails.gymWebsiteURL
-        newIsland.islandID = UUID()
         newIsland.latitude = coordinates.latitude
         newIsland.longitude = coordinates.longitude
-        
+
         // Save to Firestore first
         try await savePirateIslandToFirestore(island: newIsland)
-        
+
         // Then save to Core Data
         do {
             // Log before saving
-            let islandName = newIsland.islandName ?? "Unknown Island Name" // Default value if nil
-            let islandLocation = newIsland.islandLocation ?? "Unknown Location" // Default value if nil
+            let islandName = newIsland.islandName ?? "Unknown Island Name"  // Default value if nil
+            let islandLocation = newIsland.islandLocation ?? "Unknown Location"  // Default value if nil
 
             print("Saving Island: \(islandName), Location: \(islandLocation)")
 
             // Ensure persistenceController.saveContext() is async if needed or use the correct method
             try await persistenceController.saveContext()  // If saveContext() is synchronous, remove the 'await'
-            os_log("Successfully saved PirateIsland: %@", log: logger, islandName)
+            os_log("Successfully saved PirateIsland: %@", log: logger, type: .info, islandName)
         } catch {
-            os_log("Error saving PirateIsland: %@", log: logger, error.localizedDescription)
+            os_log("Error saving PirateIsland: %@", log: logger, type: .error, error.localizedDescription)
             throw PirateIslandError.savingError(error.localizedDescription)  // Handle save error
         }
 
         os_log("PirateIsland created successfully: %@", log: logger, type: .info, newIsland.islandName ?? "Unknown Island Name")
         return newIsland  // Return the saved island
     }
+
+
 
 
     // Add this code below the createPirateIsland function

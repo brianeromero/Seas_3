@@ -75,7 +75,11 @@ struct AppDayOfWeekFormView: View {
             "day": day,
             "name": name,
             "appDayOfWeekID": appDayOfWeekID,
-            "pIsland": island.islandID ?? ""
+            "pIsland": island.islandID ?? "",
+            "createdByUserId": "Unknown User",
+            "createdTimestamp": Date(),
+            "lastModifiedByUserId": "Unknown User",
+            "lastModifiedTimestamp": Date()
         ]
         
         Firestore.firestore().collection("appDayOfWeek").document(appDayOfWeekID).setData(data) { error in

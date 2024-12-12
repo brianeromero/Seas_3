@@ -21,7 +21,7 @@ struct AddNewIsland: View {
     @ObservedObject var islandViewModel: PirateIslandViewModel
     @ObservedObject var profileViewModel: ProfileViewModel
     @StateObject var islandDetails = IslandDetails()
-    @StateObject var countryService = CountryService()
+    @ObservedObject var countryService = CountryService.shared
     @State private var isCountryPickerPresented = false
 
     // MARK: - State Variables
@@ -47,7 +47,7 @@ struct AddNewIsland: View {
                     TextField("Gym Name", text: $islandDetails.islandName)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
 
-                    if isLoadingCountries {
+                    if countryService.isLoading {
                         ProgressView("Loading countries...")
                             .progressViewStyle(CircularProgressViewStyle())
                             .padding()
@@ -58,12 +58,14 @@ struct AddNewIsland: View {
                             isPickerPresented: $isCountryPickerPresented
                         )
                         .onChange(of: islandDetails.selectedCountry) { newCountry in
-                            if let newCountry {
+                            if let newCountry = newCountry {
                                 islandDetails.requiredAddressFields = getAddressFields(for: newCountry.cca2)
                             } else {
                                 islandDetails.requiredAddressFields = defaultAddressFieldRequirements
                             }
                         }
+
+
                     } else {
                         Text("No countries found.")
                     }
@@ -119,15 +121,12 @@ struct AddNewIsland: View {
                 }
 
                 Task {
-                    isLoadingCountries = true
                     await countryService.fetchCountries()
-                    isLoadingCountries = false
                     if let usa = countryService.countries.first(where: { $0.cca2 == "US" }) {
                         islandDetails.selectedCountry = usa
                     }
                     updateAddressFields()
                     os_log("Countries loaded successfully", log: OSLog.default, type: .info)
-
                 }
             }
 
@@ -154,7 +153,7 @@ struct AddNewIsland: View {
         \.street: .street,
         \.city: .city,
         \.state: .state,
-        \.province: .province,
+        \.province: .province, // Update this line
         \.postalCode: .postalCode,
         \.region: .region,
         \.district: .district,
@@ -177,13 +176,18 @@ struct AddNewIsland: View {
             return AnyView(EmptyView())
         }
         return AnyView(
-            TextField(field.rawValue, text: Binding(
+            TextField(field.rawValue.capitalized, text: Binding(
                 get: { islandDetails[keyPath: keyPath] as? String ?? "" },
-                set: { setValue(value: $0, forKeyPath: keyPath as! ReferenceWritableKeyPath<IslandDetails, String>) }
+                set: { newValue in
+                    if let writableKeyPath = keyPath as? ReferenceWritableKeyPath<IslandDetails, String> {
+                        islandDetails[keyPath: writableKeyPath] = newValue
+                    }
+                }
             ))
             .textFieldStyle(RoundedBorderTextFieldStyle())
         )
     }
+
 
     private func setValue(value: String, forKeyPath keyPath: ReferenceWritableKeyPath<IslandDetails, String>) {
         islandDetails[keyPath: keyPath] = value
@@ -195,10 +199,13 @@ struct AddNewIsland: View {
         print("Required fields: \(requiredFields.map { $0.rawValue })")
         for field in requiredFields {
             print("Checking field \(field.rawValue): \(isValidField(field))")
+            if !isValidField(field) {
+                toastMessage = "Please fill in \(field.rawValue)"
+                showToast = true
+                return
+            }
         }
-        let isValid = requiredFields.allSatisfy { isValidField($0) }
-        print("Validation result for fields: \(isValid)")
-        let finalIsValid = isValid && !islandDetails.islandName.isEmpty
+        let finalIsValid = !islandDetails.islandName.isEmpty
         print("Final validation result: \(finalIsValid)")
         
         // Update the state without returning a value
