@@ -38,7 +38,7 @@ struct AddNewIsland: View {
         self.islandViewModel = viewModel
         self.profileViewModel = profileViewModel
     }
-
+    
     // MARK: - Body
     var body: some View {
         NavigationView {
@@ -64,8 +64,6 @@ struct AddNewIsland: View {
                                 islandDetails.requiredAddressFields = defaultAddressFieldRequirements
                             }
                         }
-
-
                     } else {
                         Text("No countries found.")
                     }
@@ -82,7 +80,6 @@ struct AddNewIsland: View {
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .keyboardType(.URL)
                         .onChange(of: gymWebsite) { newValue in
-                            // Optional validation for URL format
                             if !newValue.isEmpty && !validateURL(newValue) {
                                 alertMessage = "Invalid website URL"
                                 showAlert = true
@@ -149,19 +146,18 @@ struct AddNewIsland: View {
         os_log("Updated address fields for country: %@", log: OSLog.default, type: .info, selectedCountry.name.common)
     }
 
+
     private let fieldValues: [PartialKeyPath<IslandDetails>: AddressFieldType] = [
         \.street: .street,
         \.city: .city,
         \.state: .state,
-        \.province: .province, // Update this line
+        \.province: .province,
         \.postalCode: .postalCode,
-        \.region: .region,
+        \.region: .region, // Added region case here
         \.district: .district,
         \.department: .department,
         \.governorate: .governorate,
         \.emirate: .emirate,
-        \.postcode: .postcode,
-        \.pincode: .pincode,
         \.block: .block,
         \.county: .county,
         \.neighborhood: .neighborhood,
@@ -188,11 +184,10 @@ struct AddNewIsland: View {
         )
     }
 
-
     private func setValue(value: String, forKeyPath keyPath: ReferenceWritableKeyPath<IslandDetails, String>) {
         islandDetails[keyPath: keyPath] = value
     }
-
+    
     private func validateForm() {
         print("Validating form...")
         let requiredFields = islandDetails.requiredAddressFields
@@ -212,7 +207,6 @@ struct AddNewIsland: View {
         isSaveEnabled = finalIsValid
     }
 
-
     
     private func validateURL(_ urlString: String) -> Bool {
         guard let url = URL(string: urlString), UIApplication.shared.canOpenURL(url) else {
@@ -229,6 +223,7 @@ struct AddNewIsland: View {
         let value = islandDetails[keyPath: keyPath] as? String ?? ""
         return !value.isEmpty
     }
+
 
     private func saveIsland() async {
         if isSaveEnabled {
@@ -254,12 +249,8 @@ struct AddNewIsland: View {
                 toastMessage = "Error saving island: \(error.localizedDescription)"
                 showToast = true
             }
-        } else {
-            toastMessage = "Please fill in all required fields"
-            showToast = true
         }
     }
-
 
     private func clearFields() {
         islandDetails.islandName = ""
@@ -276,11 +267,10 @@ struct AddNewIsland: View {
         islandDetails.county = ""
         islandDetails.governorate = ""
         islandDetails.province = ""
-        islandDetails.pincode = ""
         islandDetails.additionalInfo = ""
         gymWebsite = "" // Clear gymWebsite when cancelling
-
     }
+
 
     private var toastOverlay: some View {
         Group {

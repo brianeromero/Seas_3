@@ -53,6 +53,21 @@ struct AddressFieldsView: View {
         case .emirate:
             TextField("Emirate", text: $islandDetails.emirate)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
+        case .parish:
+            TextField("Parish", text: $islandDetails.region) // Assuming 'region' can represent parish
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+        case .entity:
+            TextField("Entity", text: $islandDetails.region) // Assuming 'region' can represent entity
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+        case .municipality:
+            TextField("Municipality", text: $islandDetails.region) // Assuming 'region' can represent municipality
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+        case .division:
+            TextField("Division", text: $islandDetails.region) // Assuming 'region' can represent division
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+        case .zone:
+            TextField("Zone", text: $islandDetails.region) // Assuming 'region' can represent zone
+                .textFieldStyle(RoundedBorderTextFieldStyle())
         case .neighborhood:
             TextField("Neighborhood", text: $islandDetails.neighborhood)
                 .textFieldStyle(RoundedBorderTextFieldStyle())

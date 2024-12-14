@@ -111,7 +111,7 @@ struct GrayPlaceholderTextField: View {
 }
 
 class IslandListViewModel: ObservableObject {
-    static let shared = IslandListViewModel(persistenceController: PersistenceController.preview)
+    static let shared = IslandListViewModel(persistenceController: PersistenceController.shared)
     
     let repository: AppDayOfWeekRepository
     let enterZipCodeViewModel: EnterZipCodeViewModel

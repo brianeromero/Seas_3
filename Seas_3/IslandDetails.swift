@@ -35,12 +35,14 @@ class IslandDetails: ObservableObject, Equatable {
     @Published var county: String = ""
     @Published var governorate: String = ""
     @Published var province: String = ""
-    @Published var pincode: String = ""
     @Published var district: String = ""
     @Published var department: String = ""
     @Published var emirate: String = ""
-    @Published var postcode: String = ""
-
+    @Published var parish: String = ""
+    @Published var entity: String = ""
+    @Published var municipality: String = ""
+    @Published var division: String = ""
+    @Published var zone: String = ""
 
     // MARK: - Validation Properties
     @Published var isIslandNameValid: Bool = true
@@ -66,6 +68,11 @@ class IslandDetails: ObservableObject, Equatable {
             case .state: return state
             case .postalCode: return postalCode
             case .county: return county
+            case .parish: return parish
+            case .entity: return entity
+            case .municipality: return municipality
+            case .division: return division
+            case .zone: return zone
             default: return nil
             }
         }
@@ -129,8 +136,6 @@ class IslandDetails: ObservableObject, Equatable {
             case .department: return !department.isEmpty
             case .governorate: return !governorate.isEmpty
             case .emirate: return !emirate.isEmpty
-            case .postcode: return !postcode.isEmpty
-            case .pincode: return !pincode.isEmpty
             case .block: return !block.isEmpty
             case .county: return !county.isEmpty
             case .neighborhood: return !neighborhood.isEmpty
@@ -138,11 +143,16 @@ class IslandDetails: ObservableObject, Equatable {
             case .apartment: return !apartment.isEmpty
             case .additionalInfo: return !additionalInfo.isEmpty
             case .multilineAddress: return !multilineAddress.isEmpty
+            case .parish: return !islandName.isEmpty
+            case .entity: return !islandName.isEmpty
+            case .municipality: return !islandName.isEmpty
+            case .division: return !islandName.isEmpty
+            case .zone: return !islandName.isEmpty
             }
         }
         let islandNameValid = !islandName.isEmpty
         isIslandNameValid = islandNameValid
-        islandNameErrorMessage = islandNameValid ? "" : "Island name cannot be empty."
+        islandNameErrorMessage = islandNameValid ? "" : "Gym name cannot be empty."
 
         let formValid = fieldsValid && islandNameValid
         isFormValid = formValid

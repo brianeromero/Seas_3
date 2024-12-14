@@ -68,7 +68,7 @@ public class PirateIslandViewModel: ObservableObject {
         let newIslandID = UUID()
 
         // Step 1: Validate the island details
-        guard validateIslandDetails(islandDetails, createdByUserId) else {
+        guard validateIslandDetails(islandDetails, createdByUserId, islandDetails.selectedCountry?.cca2 ?? "") else {
             throw PirateIslandError.invalidInput
         }
 
@@ -171,21 +171,31 @@ public class PirateIslandViewModel: ObservableObject {
 
     
     // MARK: - Validation
-    private func validateIslandDetails(_ details: IslandDetails, _ createdByUserId: String) -> Bool {
-        let requiredFields = [
-            ("Island Name", details.islandName),
-            ("Street", details.street),
-            ("City", details.city),
-            ("State", details.state),
-            ("Postal Code", details.postalCode), // Update to Postal Code
-            ("Created By User ID", createdByUserId)
+    private func validateIslandDetails(_ details: IslandDetails, _ createdByUserId: String, _ country: String) -> Bool {
+        let requiredFields = getAddressFields(for: country)
+        
+        var fieldValues: [String: String] = [
+            "Island Name": details.islandName,
+            "Street": details.street,
+            "City": details.city,
+            "Created By User ID": createdByUserId
         ]
         
-        for (fieldName, value) in requiredFields {
-            // Debug logging for all values
+        // Add postal code to field values
+        fieldValues["Postal Code"] = details.postalCode
+        
+        // Add other fields based on the country's requirements
+        if requiredFields.contains(.state) {
+            fieldValues["State"] = details.state
+        } else if requiredFields.contains(.province) {
+            fieldValues["Province"] = details.province
+        }
+        
+        // Add other fields as needed
+        
+        for (fieldName, value) in fieldValues {
             os_log("Validating %@: %@", log: logger, fieldName, value)
             
-            // Check trimmed value
             if value.trimmingCharacters(in: .whitespaces).isEmpty {
                 os_log("Validation failed: %@ is missing (%@)", log: logger, fieldName, value)
                 return false
@@ -194,7 +204,6 @@ public class PirateIslandViewModel: ObservableObject {
         
         return true
     }
-
     
     // MARK: - Check Existing Islands
     private func pirateIslandExists(name: String) -> Bool {

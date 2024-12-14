@@ -10,20 +10,21 @@ import SwiftUI
 import CoreData
 
 struct EditExistingIslandList: View {
+    @StateObject private var persistenceController = PersistenceController.shared
+
     var body: some View {
-        NavigationStack {  // Move NavigationStack to the top-level view
-            EditExistingIslandListContent()
-                .padding()
-        }
+        EditExistingIslandListContent(viewContext: persistenceController.viewContext)
+            .padding()
     }
 }
 
 struct EditExistingIslandListContent: View {
-    @Environment(\.managedObjectContext) private var viewContext
+    let viewContext: NSManagedObjectContext
     @FetchRequest(
         entity: PirateIsland.entity(),
         sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.createdTimestamp, ascending: true)]
-    ) private var islands: FetchedResults<PirateIsland>
+    )
+    private var islands: FetchedResults<PirateIsland>
     
     @State private var searchQuery: String = ""
     @State private var showNoMatchAlert: Bool = false
@@ -93,12 +94,10 @@ struct EditExistingIslandListContent: View {
 }
 
 
-
-// MARK: - Previews
-struct EditExistingIslandList_Previews: PreviewProvider {
+// MARK: - Previews with sample data
+struct EditExistingIslandList_PreviewsWithSampleData: PreviewProvider {
     static var previews: some View {
-        let persistenceController = PersistenceController.preview
-        let context = persistenceController.viewContext
+        let context = PersistenceController.shared.viewContext
         
         // Sample islands for preview
         let island1 = PirateIsland(context: context)
@@ -118,6 +117,6 @@ struct EditExistingIslandList_Previews: PreviewProvider {
 
         return EditExistingIslandList()
             .environment(\.managedObjectContext, context)
-            .previewDisplayName("Edit Existing Gyms List")
+            .previewDisplayName("Edit Existing Gyms List with sample data")
     }
 }

@@ -64,7 +64,6 @@ struct CreateAccountView: View {
     @State private var province = ""
     @State private var selectedCountry: Country? = Country(name: Country.Name(common: "United States"), cca2: "US", flag: "")
     @State private var governorate = ""
-    @State private var postcode = ""
     @State private var countries: [Country] = []
     @State private var region = ""
     @State private var county = ""
@@ -261,8 +260,6 @@ struct CreateAccountView: View {
             }
         case .governorate:
             TextField("Enter governorate", text: binding)
-        case .postcode:
-            TextField("Enter postcode", text: binding)
         case .region:
             TextField("Enter region", text: binding)
         default:

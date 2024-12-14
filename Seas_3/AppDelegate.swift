@@ -296,7 +296,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
     private func downloadFirestoreRecordsToLocal(collectionName: String, records: [String]) async {
         // Get a reference to the Core Data context
         let context = PersistenceController.shared.container.viewContext
-
+        
         // Loop through each Firestore record
         for record in records {
             // Create a new Core Data object based on the collection name
@@ -317,17 +317,25 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
             
             // Convert the String value to a UUID
             if let uuid = UUID(uuidString: record) {
-                newRecord.setValue(uuid, forKey: "id")
+                switch collectionName {
+                case "pirateIslands":
+                    newRecord.setValue(uuid, forKey: "islandID")
+                default:
+                    print("Unknown collection name: \(collectionName)")
+                    return
+                }
             } else {
                 print("Invalid UUID string: \(record)")
             }
-
+            
             // Save the new record to Core Data
-            do {
-                try context.save()
-                print("Downloaded Firestore record \(record) to Core Data")
-            } catch {
-                print("Error downloading Firestore record \(record) to Core Data: \(error.localizedDescription)")
+            await context.perform {
+                do {
+                    try context.save()
+                    print("Downloaded Firestore record \(record) to Core Data")
+                } catch {
+                    print("Error downloading Firestore record \(record) to Core Data: \(error.localizedDescription)")
+                }
             }
         }
     }

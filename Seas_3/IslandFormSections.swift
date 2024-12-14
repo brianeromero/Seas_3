@@ -96,7 +96,7 @@ struct IslandFormSections: View {
         case .street: return AnyView(TextField("Street", text: $islandDetails.street))
         case .city: return AnyView(TextField("City", text: $islandDetails.city))
         case .state: return AnyView(TextField("State", text: $islandDetails.state))
-        case .postalCode, .pincode: return AnyView(TextField("Postal Code", text: $islandDetails.postalCode))
+        case .postalCode: return AnyView(TextField("Postal Code", text: $islandDetails.postalCode))
         case .province: return AnyView(TextField("Province", text: $islandDetails.province))
         case .neighborhood: return AnyView(TextField("Neighborhood", text: $islandDetails.neighborhood))
         case .complement: return AnyView(TextField("Complement", text: $islandDetails.complement))
@@ -176,12 +176,16 @@ struct IslandFormSections: View {
             case .district: return !islandDetails.district.isEmpty
             case .department: return !islandDetails.department.isEmpty
             case .emirate: return !islandDetails.emirate.isEmpty
-            case .postcode: return !islandDetails.postcode.isEmpty
-            case .pincode: return !islandDetails.pincode.isEmpty
             case .block: return !islandDetails.block.isEmpty
             case .multilineAddress: return !islandDetails.multilineAddress.isEmpty
+            case .parish: return !islandDetails.parish.isEmpty  // Validate 'parish' field
+            case .entity: return !islandDetails.entity.isEmpty  // Validate 'entity' field
+            case .municipality: return !islandDetails.municipality.isEmpty  // Validate 'municipality' field
+            case .division: return !islandDetails.division.isEmpty  // Validate 'division' field
+            case .zone: return !islandDetails.zone.isEmpty  // Validate 'zone' field
             }
         }
+
         
         // Get the postal code validation regex for the country
         guard let postalCodeValidationRegex = countryAddressFormats[selectedCountry.cca2]?.postalCodeValidationRegex else {
@@ -304,7 +308,7 @@ struct IslandFormSections: View {
              return $islandDetails.street
          case .city:
              return $islandDetails.city
-         case .postalCode, .pincode:
+         case .postalCode:
              return $islandDetails.postalCode
          case .state:
              return $islandDetails.state
@@ -351,7 +355,7 @@ extension Binding where Value == String? {
 extension View {
     func modifierForField(_ field: AddressField) -> some View {
         switch field {
-        case .postalCode, .postcode, .pincode:
+        case .postalCode:
             return self.keyboardType(.numberPad)
         case .city, .state, .street:
             return self.keyboardType(.default)

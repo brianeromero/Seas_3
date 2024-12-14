@@ -54,7 +54,7 @@ class ValidationUtility {
         "MX": "^\\d{5}$", // Mexico (12345)
         
         // Europe
-        "GB": "^([Gg][Ii][Rr] 0[Aa]{2})|((([A-Za-z][0-9]{1,2})|(([A-Za-z][A-Ha-hJ-Yj-y][0-9]{1,2})|(([A-Za-z][0-9][A-Za-z])|([A-Za-z][A-Ha-hJ-Yj-y][0-9]?[A-Za-z]))))\\s?[0-9][A-Za-z]{2})$", // United Kingdom (Postcode)
+        "GB": "^([Gg][Ii][Rr] 0[Aa]{2})|((([A-Za-z][0-9]{1,2})|(([A-Za-z][A-Ha-hJ-Yj-y][0-9]{1,2})|(([A-Za-z][0-9][A-Za-z])|([A-Za-z][A-Ha-hJ-Yj-y][0-9]?[A-Za-z]))))\\s?[0-9][A-Za-z]{2})$", // United Kingdom (Postalcode)
         "FR": "^\\d{5}$", // France (12345)
         "DE": "^\\d{5}$", // Germany (12345)
         "ES": "^\\d{5}$", // Spain (12345)

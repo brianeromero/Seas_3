@@ -1,9 +1,9 @@
+//
 // AddressFormView.swift
 // Seas_3
 //
 // Created by Brian Romero on 11/18/24.
 //
-
 
 import SwiftUI
 import Foundation
@@ -15,13 +15,11 @@ struct AddressFormView: View {
     @State private var state: String = ""
     @State private var province: String = ""
     @State private var postalCode: String = ""
-    @State private var postcode: String = ""
     @State private var governorate: String = ""
     @State private var region: String = ""
     @State private var district: String = ""
     @State private var department: String = ""
     @State private var emirate: String = ""
-    @State private var pincode: String = ""
     @State private var block: String = ""
     @State private var county: String = ""
     @State private var neighborhood: String = ""
@@ -76,7 +74,7 @@ struct AddressFormView: View {
         case .city: return $city
         case .state: return $state
         case .province: return $province
-        case .postalCode, .postcode, .pincode: return $postalCode
+        case .postalCode: return $postalCode
         case .governorate: return $governorate
         case .region: return $region
         case .district: return $district
@@ -89,6 +87,11 @@ struct AddressFormView: View {
         case .apartment: return $apartment
         case .additionalInfo: return .constant("")
         case .multilineAddress: return .constant("")
+        case .parish: return $region // Assuming 'region' can represent parish
+        case .entity: return $region // Assuming 'region' can represent entity
+        case .municipality: return $region // Assuming 'region' can represent municipality
+        case .division: return $region // Assuming 'region' can represent division
+        case .zone: return $region // Assuming 'region' can represent zone
         }
     }
 }
