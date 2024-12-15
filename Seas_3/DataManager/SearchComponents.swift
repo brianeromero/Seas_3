@@ -16,6 +16,8 @@ let logger = OSLog(subsystem: "MF-inder.Seas-3", category: "SearchComponents")
 
 enum NavigationDestination {
     case review
+    case editExistingIsland
+    case viewReviewForIsland
 }
 
 struct SearchHeader: View {
@@ -143,53 +145,75 @@ struct IslandListItem: View {
     }
 }
 
+
 struct IslandList: View {
     let islands: [PirateIsland]
     @Binding var selectedIsland: PirateIsland?
-    @Binding var showReview: Bool
-    var title: String
-    @StateObject private var viewModel: IslandListViewModel
+    let navigationDestination: NavigationDestination
+    let title: String
+    @State private var showNavigationDestination = false
 
-    init(islands: [PirateIsland], selectedIsland: Binding<PirateIsland?>, showReview: Binding<Bool>, title: String, viewModel: IslandListViewModel = IslandListViewModel(persistenceController: PersistenceController.shared)) {
+    init(
+        islands: [PirateIsland],
+        selectedIsland: Binding<PirateIsland?>,
+        navigationDestination: NavigationDestination,
+        title: String
+    ) {
         self.islands = islands
         self._selectedIsland = selectedIsland
-        self._showReview = showReview
+        self.navigationDestination = navigationDestination
         self.title = title
-        self._viewModel = StateObject(wrappedValue: viewModel)
     }
 
     var body: some View {
-        os_log("Rendering IslandList", log: logger)
-        return NavigationStack {
+        NavigationStack {
             List {
                 ForEach(islands, id: \.self) { island in
-                    IslandListItem(island: island)
-                        .onTapGesture {
-                            os_log("Island selected: %@", log: logger, island.islandName ?? "Unknown")
-                            selectedIsland = island
-                            showReview = true
-                            os_log("Setting showReview to true", log: logger)
+                    Button(action: {
+                        selectedIsland = island
+                        showNavigationDestination = true
+                    }) {
+                        IslandListItem(island: island)
+                    }
+                    .navigationDestination(
+                        isPresented: $showNavigationDestination
+                    ) {
+                        if let island = selectedIsland {
+                            switch self.navigationDestination {
+                            case .editExistingIsland:
+                                EditExistingIsland(
+                                    island: island,
+                                    islandViewModel: PirateIslandViewModel(
+                                        persistenceController: PersistenceController.shared
+                                    )
+                                )
+                            case .viewReviewForIsland:
+                                ViewReviewforIsland(
+                                    selectedIsland: $selectedIsland,
+                                    showReview: .constant(true),
+                                    enterZipCodeViewModel: EnterZipCodeViewModel(
+                                        repository: AppDayOfWeekRepository(
+                                            persistenceController: PersistenceController.shared
+                                        ),
+                                        persistenceController: PersistenceController.shared
+                                    )
+                                )
+                            case .review:
+                                ReviewDestinationView(
+                                    viewModel: IslandListViewModel.shared,
+                                    selectedIsland: island
+                                )
+                            }
+                        } else {
+                            EmptyView()
                         }
+                    }
                 }
             }
             .navigationTitle(title)
-            .navigationDestination(isPresented: $showReview) {
-                destinationView
-            }
-        }
-    }
-
-    private var destinationView: some View {
-        os_log("Rendering destination view", log: logger)
-        if let selectedIsland = selectedIsland {
-            return AnyView(ReviewDestinationView(viewModel: viewModel, selectedIsland: selectedIsland))
-        } else {
-            return AnyView(EmptyView())
         }
     }
 }
-
-
 
 struct ReviewDestinationView: View {
     @ObservedObject var viewModel: IslandListViewModel
@@ -218,7 +242,6 @@ struct ReviewDestinationView: View {
     }
 }
 
-
 struct IslandList_Previews: PreviewProvider {
     static var previews: some View {
         os_log("Creating test island", log: logger)
@@ -228,19 +251,29 @@ struct IslandList_Previews: PreviewProvider {
         island.islandLocation = "Test Location"
 
         return Group {
-            IslandList(islands: [island], selectedIsland: .constant(nil), showReview: .constant(false), title: "Preview Title")
-                .previewLayout(.sizeThatFits)
-                .previewDisplayName("Default")
-                .onAppear {
-                    os_log("Preview appeared", log: logger)
-                }
+            IslandList(
+                islands: [island],
+                selectedIsland: .constant(nil),
+                navigationDestination: .editExistingIsland,
+                title: "Preview Title"
+            )
+            .previewLayout(.sizeThatFits)
+            .previewDisplayName("Default")
+            .onAppear {
+                os_log("Preview appeared", log: logger)
+            }
 
-            IslandList(islands: [island], selectedIsland: .constant(nil), showReview: .constant(false), title: "Canvas Preview Title")
-                .previewLayout(.fixed(width: 400, height: 600))
-                .previewDisplayName("Canvas Preview")
-                .onAppear {
-                    os_log("Canvas preview appeared", log: logger)
-                }
+            IslandList(
+                islands: [island],
+                selectedIsland: .constant(nil),
+                navigationDestination: .viewReviewForIsland,
+                title: "Canvas Preview Title"
+            )
+            .previewLayout(.fixed(width: 400, height: 600))
+            .previewDisplayName("Canvas Preview")
+            .onAppear {
+                os_log("Canvas preview appeared", log: logger)
+            }
         }
     }
 }

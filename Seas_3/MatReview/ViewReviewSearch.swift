@@ -27,7 +27,7 @@ struct ViewReviewSearch: View {
                 IslandList(
                     islands: viewModel.filteredIslands,
                     selectedIsland: $selectedIsland,
-                    showReview: $viewModel.showReview,
+                    navigationDestination: .review,
                     title: titleString
                 )
             }
@@ -53,7 +53,6 @@ struct ViewReviewSearch: View {
         }
     }
 }
-
 
 class ViewReviewSearchViewModel: ObservableObject {
     @Published var searchQuery: String = ""

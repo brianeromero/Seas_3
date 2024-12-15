@@ -11,9 +11,10 @@ import CoreData
 
 struct EditExistingIslandList: View {
     @StateObject private var persistenceController = PersistenceController.shared
+    @State private var selectedIsland: PirateIsland? = nil
 
     var body: some View {
-        EditExistingIslandListContent(viewContext: persistenceController.viewContext)
+        EditExistingIslandListContent(viewContext: persistenceController.viewContext, selectedIsland: $selectedIsland)
             .padding()
     }
 }
@@ -30,10 +31,8 @@ struct EditExistingIslandListContent: View {
     @State private var showNoMatchAlert: Bool = false
     @State private var filteredIslands: [PirateIsland] = []
     @State private var debounceTimer: Timer? = nil
-    @State private var selectedIsland: PirateIsland? = nil
-    @State private var showReview: Bool = false
-
-    @StateObject private var viewModel = IslandListViewModel.shared  // Add the viewModel here
+    @Binding var selectedIsland: PirateIsland?
+    @State private var showEdit: Bool = false
 
     var body: some View {
         VStack(alignment: .leading) {
@@ -42,27 +41,28 @@ struct EditExistingIslandListContent: View {
                 .onChange(of: searchQuery) { _ in
                     updateSearchResults()
                 }
+            let newIsland = PirateIsland(context: viewContext)
             IslandList(
                 islands: filteredIslands,
                 selectedIsland: $selectedIsland,
-                showReview: $showReview,
-                title: "Edit Gyms",
-                viewModel: viewModel // Pass the viewModel to IslandList
+                navigationDestination: .editExistingIsland,
+                title: "Edit Gyms"
             )
-        }
-        .alert(isPresented: $showNoMatchAlert) {
-            Alert(
-                title: Text("No Match Found"),
-                message: Text("No gyms match your search criteria."),
-                dismissButton: .default(Text("OK"))
-            )
-        }
-        .onAppear {
-            updateFilteredIslands()
-            logFetch()
+            .alert(isPresented: $showNoMatchAlert) {
+                Alert(
+                    title: Text("No Match Found"),
+                    message: Text("No gyms match your search criteria."),
+                    dismissButton: .default(Text("OK"))
+                )
+            }
+            .onAppear {
+                updateFilteredIslands()
+                logFetch()
+            }
         }
     }
 
+    
     private func updateSearchResults() {
         debounceTimer?.invalidate()
         debounceTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { _ in
@@ -92,7 +92,6 @@ struct EditExistingIslandListContent: View {
         print("Fetched \(islands.count) Gym objects.")
     }
 }
-
 
 // MARK: - Previews with sample data
 struct EditExistingIslandList_PreviewsWithSampleData: PreviewProvider {
