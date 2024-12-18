@@ -7,17 +7,20 @@ import Foundation
 import Firebase
 import FirebaseFirestore
 
-class FirestoreManager {
-    static let shared = FirestoreManager()
+public class FirestoreManager {
+    public static let shared = FirestoreManager()
+
+    var disabled: Bool = false
     
     private let db: Firestore
     
     private init() {
         self.db = Firestore.firestore()
     }
-
+    
     // MARK: - User Management
     func createUser(userName: String, name: String) async throws {
+        if disabled { return }
         print("Creating user with username: \(userName) and name: \(name)")
         try await setDocument(in: .userInfos, id: userName, data: [
             "userName": userName,
@@ -25,10 +28,11 @@ class FirestoreManager {
         ])
         print("User created successfully")
     }
+
     
     func createFirestoreUser(userName: String, name: String) async throws {
+        if disabled { return }
         print("Creating Firestore user with username: \(userName) and name: \(name)")
-        // Implementation to add user details to Firestore
         let userRef = db.collection("users").document("user-\(userName)")
         try await userRef.setData([
             "name": name,
@@ -39,24 +43,17 @@ class FirestoreManager {
     }
     
 
+    // Also add the disabled check in other methods that interact with Firestore
     func saveIslandToFirestore(island: PirateIsland) async throws {
+        if disabled { return }
         print("Saving island to Firestore: \(island.safeIslandName)")
         
-        // Add some debug prints here
-        print("Island name: \(island.islandName ?? "")")
-        print("Island location: \(island.islandLocation ?? "")")
-        print("Gym website URL: \(island.gymWebsite?.absoluteString ?? "")")
-        print("Latitude: \(island.latitude)")
-        print("Longitude: \(island.longitude)")
-        
-        // Validate data
         guard let islandName = island.islandName, !islandName.isEmpty,
               let islandLocation = island.islandLocation, !islandLocation.isEmpty else {
             print("Invalid data: Island name or location is missing")
             return
         }
         
-        // Use the correct property names from PirateIsland
         let islandRef = db.collection("pirateIslands").document(island.islandID?.uuidString ?? UUID().uuidString)
         try await islandRef.setData([
             "id": island.islandID?.uuidString ?? UUID().uuidString,
@@ -78,14 +75,16 @@ class FirestoreManager {
     enum Collection: String {
         case appDayOfWeeks, matTimes, pirateIslands, reviews, userInfos
     }
-
+    
     func updatePirateIsland(id: String, data: [String: Any]) async throws {
+        if disabled { return }
         print("Updating pirate island with id: \(id)")
         try await updateDocument(in: .pirateIslands, id: id, data: data)
         print("Pirate island updated successfully")
     }
 
     func createAppDayOfWeek(data: [String: Any]) async throws {
+        if disabled { return }
         print("Creating app day of week")
         try await createDocument(in: .appDayOfWeeks, data: data)
         print("App day of week created successfully")
@@ -99,29 +98,34 @@ class FirestoreManager {
     }
 
     internal func createDocument(in collection: Collection, data: [String: Any]) async throws {
+        if disabled { return }
         print("Creating document in collection: \(collection.rawValue)")
         try await db.collection(collection.rawValue).document().setData(data)
         print("Document created successfully")
     }
 
     internal func updateDocument(in collection: Collection, id: String, data: [String: Any]) async throws {
+        if disabled { return }
         print("Updating document in collection: \(collection.rawValue) with id: \(id)")
         try await db.collection(collection.rawValue).document(id).setData(data, merge: false)
         print("Document updated successfully")
     }
     
     internal func deleteDocument(in collection: Collection, id: String) async throws {
+        if disabled { return }
         print("Deleting document in collection: \(collection.rawValue) with id: \(id)")
         try await db.collection(collection.rawValue).document(id).delete()
         print("Document deleted successfully")
     }
 
     internal func getDocuments(in collection: Collection) async throws -> [QueryDocumentSnapshot] {
+        if disabled { return [] }
         print("Getting documents in collection: \(collection.rawValue)")
         let snapshot = try await db.collection(collection.rawValue).getDocuments()
         print("Documents retrieved successfully")
         return snapshot.documents
     }
+
 
     // MARK: - Specific Functions for Collections
     func getAppDayOfWeeks() async throws -> [QueryDocumentSnapshot] {
@@ -142,7 +146,7 @@ class FirestoreManager {
         print("Reviews retrieved successfully")
         return documents.filter { $0.get("pirateIslandID") as? String == pirateIslandID }
     }
-
+    
     // MARK: - Firestore Error Handling
     enum FirestoreError: Error {
         case documentNotFound, invalidData, unknownError
@@ -155,9 +159,10 @@ class FirestoreManager {
             }
         }
     }
-
+    
     // MARK: - Real-Time Updates
     func listenForChanges(in collection: Collection, completion: @escaping ([QueryDocumentSnapshot]?) -> Void) {
+        if disabled { return }
         print("Listening for changes in collection: \(collection.rawValue)")
         db.collection(collection.rawValue).addSnapshotListener { snapshot, error in
             if let error = error {
@@ -200,6 +205,7 @@ class FirestoreManager {
     }
 
     func getPaginatedDocuments(in collection: Collection, lastDocument: QueryDocumentSnapshot?, limit: Int, completion: @escaping ([QueryDocumentSnapshot]?, Error?) -> Void) {
+        if disabled { completion([], nil); return }
         print("Getting paginated documents in collection: \(collection.rawValue)")
         var query: Query = db.collection(collection.rawValue).limit(to: limit)
         if let lastDocument = lastDocument {
@@ -218,6 +224,7 @@ class FirestoreManager {
     }
 
     func countDocuments(in collection: Collection, completion: @escaping (Int?, Error?) -> Void) {
+        if disabled { completion(0, nil); return }
         print("Counting documents in collection: \(collection.rawValue)")
         db.collection(collection.rawValue).getDocuments { snapshot, error in
             if let error = error {
@@ -231,21 +238,26 @@ class FirestoreManager {
     }
 
     func searchDocuments(in collection: Collection, field: String, value: String, completion: @escaping ([QueryDocumentSnapshot]?, Error?) -> Void) {
+        if disabled { completion([], nil); return }
         print("Searching documents in collection: \(collection.rawValue) with field: \(field) and value: \(value)")
-        db.collection(collection.rawValue)
-          .whereField(field, isEqualTo: value)
-          .getDocuments { snapshot, error in
-              if let error = error {
-                  print("Error searching documents: \(error.localizedDescription)")
-                  completion(nil, error)
-              } else {
-                  print("Documents searched successfully")
-                  completion(snapshot?.documents, nil)
-              }
-          }
+        db.collection(collection.rawValue).whereField(field, isEqualTo: value).getDocuments { snapshot, error in
+            if let error = error {
+                print("Error searching documents: \(error.localizedDescription)")
+                completion(nil, error)
+            } else {
+                print("Documents searched successfully")
+                completion(snapshot?.documents, nil)
+            }
+        }
     }
 
+
     func createOrUpdateDocument(in collection: Collection, documentId: String, data: [String: Any], completion: @escaping (Error?) -> Void) {
+        if disabled {
+            // Don't create or update document when disabled
+            completion(nil)
+            return
+        }
         print("Creating or updating document in collection: \(collection.rawValue) with id: \(documentId)")
         db.collection(collection.rawValue).document(documentId).setData(data, merge: true) { error in
             if let error = error {
@@ -258,6 +270,11 @@ class FirestoreManager {
     }
 
     func performTransaction(in collection: Collection, documentId: String, data: [String: Any], completion: @escaping (Error?) -> Void) {
+        if disabled {
+            // Don't perform transaction when disabled
+            completion(nil)
+            return
+        }
         print("Performing transaction in collection: \(collection.rawValue) with id: \(documentId)")
         let documentRef = db.collection(collection.rawValue).document(documentId)
 

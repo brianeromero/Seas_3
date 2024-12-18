@@ -160,7 +160,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
                 print("Record ID: \(record) (contains hyphens: \(record.contains("-")))")
             }
             
-            let firestoreRecordsNotInLocal = firestoreRecords.filter { !localRecords.contains($0) && !localRecords.map { $0.replacingOccurrences(of: "-", with: "") }.contains($0) }
+            let localRecordsWithoutHyphens = Set(localRecords.map { $0.replacingOccurrences(of: "-", with: "") })
+            _ = firestoreRecords.map { $0.replacingOccurrences(of: "-", with: "") }
+            let firestoreRecordsNotInLocal = firestoreRecords.filter { !localRecordsWithoutHyphens.contains($0.replacingOccurrences(of: "-", with: "")) }
+            
             
             await syncRecords(localRecords: localRecords, firestoreRecords: firestoreRecords, collectionName: collectionName)
 
@@ -283,8 +286,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         let localRecordsNotInFirestore = localRecords.filter { !firestoreRecords.contains($0) && !firestoreRecords.map { $0.replacingOccurrences(of: "-", with: "") }.contains($0) }
 
         // Identify records that exist in Firestore but not in Core Data
-        let firestoreRecordsNotInLocal = firestoreRecords.filter { !localRecords.contains($0) && !localRecords.map { $0.replacingOccurrences(of: "-", with: "") }.contains($0) }
-
+        let localRecordsWithoutHyphens = Set(localRecords.map { $0.replacingOccurrences(of: "-", with: "") })
+        _ = firestoreRecords.map { $0.replacingOccurrences(of: "-", with: "") }
+        let firestoreRecordsNotInLocal = firestoreRecords.filter { !localRecordsWithoutHyphens.contains($0.replacingOccurrences(of: "-", with: "")) }
+        
+        
         // Upload local records to Firestore if they don't exist
         await uploadLocalRecordsToFirestore(collectionName: collectionName, records: localRecordsNotInFirestore)
 
@@ -296,46 +302,93 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
     private func downloadFirestoreRecordsToLocal(collectionName: String, records: [String]) async {
         // Get a reference to the Core Data context
         let context = PersistenceController.shared.container.viewContext
+        let db = Firestore.firestore()
+        let collectionRef = db.collection(collectionName)
         
         // Loop through each Firestore record
         for record in records {
-            // Create a new Core Data object based on the collection name
-            var newRecord: NSManagedObject!
-            switch collectionName {
-            case "pirateIslands":
-                newRecord = PirateIsland(context: context)
-            case "reviews":
-                newRecord = Review(context: context)
-            case "matTimes":
-                newRecord = MatTime(context: context)
-            case "appDayOfWeeks":
-                newRecord = AppDayOfWeek(context: context)
-            default:
-                print("Unknown collection name: \(collectionName)")
-                return
-            }
+            // Get a reference to the Firestore document
+            let docRef = collectionRef.document(record)
             
-            // Convert the String value to a UUID
-            if let uuid = UUID(uuidString: record) {
-                switch collectionName {
-                case "pirateIslands":
-                    newRecord.setValue(uuid, forKey: "islandID")
-                default:
-                    print("Unknown collection name: \(collectionName)")
-                    return
+            // Fetch the Firestore document
+            do {
+                let docSnapshot = try await docRef.getDocument()
+                
+                // Check if the document exists
+                if docSnapshot.exists {
+                    // Create a new Core Data object based on the collection name
+                    var newRecord: NSManagedObject!
+                    switch collectionName {
+                    case "pirateIslands":
+                        newRecord = PirateIsland(context: context)
+                        if let pirateIsland = newRecord as? PirateIsland {
+                            pirateIsland.islandID = UUID(uuidString: record)
+                            pirateIsland.islandName = docSnapshot.get("name") as? String
+                            pirateIsland.islandLocation = docSnapshot.get("location") as? String
+                            pirateIsland.country = docSnapshot.get("country") as? String
+                            pirateIsland.createdByUserId = docSnapshot.get("createdByUserId") as? String
+                            pirateIsland.createdTimestamp = docSnapshot.get("createdTimestamp") as? Date
+                            pirateIsland.gymWebsite = docSnapshot.get("gymWebsite") as? URL
+                            pirateIsland.latitude = docSnapshot.get("latitude") as? Double ?? 0.0
+                            pirateIsland.longitude = docSnapshot.get("longitude") as? Double ?? 0.0
+                            pirateIsland.lastModifiedByUserId = docSnapshot.get("lastModifiedByUserId") as? String
+                            pirateIsland.lastModifiedTimestamp = docSnapshot.get("lastModifiedTimestamp") as? Date
+                        }
+                        
+                    case "reviews":
+                        newRecord = Review(context: context)
+                        if let review = newRecord as? Review {
+                            review.reviewID = UUID(uuidString: record)!
+                            review.stars = (docSnapshot.get("stars") as? Int16)!
+                            review.review = (docSnapshot.get("review") as? String)!
+                            review.createdTimestamp = (docSnapshot.get("createdTimestamp") as? Date)!
+                            review.averageStar = (docSnapshot.get("averageStar") as? Int16)!
+                        }
+                        
+                    case "matTimes":
+                        newRecord = MatTime(context: context)
+                        if let matTime = newRecord as? MatTime {
+                            matTime.id = UUID(uuidString: record)
+                            matTime.type = docSnapshot.get("type") as? String
+                            matTime.time = docSnapshot.get("time") as? String
+                            matTime.gi = docSnapshot.get("gi") as? Bool ?? false
+                            matTime.noGi = docSnapshot.get("noGi") as? Bool ?? false
+                            matTime.openMat = docSnapshot.get("openMat") as? Bool ?? false
+                            matTime.restrictions = docSnapshot.get("restrictions") as? Bool ?? false
+                            matTime.restrictionDescription = docSnapshot.get("restrictionDescription") as? String
+                            matTime.goodForBeginners = docSnapshot.get("goodForBeginners") as? Bool ?? false
+                            matTime.kids = docSnapshot.get("kids") as? Bool ?? false
+                            matTime.createdTimestamp = docSnapshot.get("createdTimestamp") as? Date
+                        }
+
+                    case "appDayOfWeeks":
+                        newRecord = AppDayOfWeek(context: context)
+                        if let appDayOfWeek = newRecord as? AppDayOfWeek {
+                            appDayOfWeek.appDayOfWeekID = UUID(uuidString: record)?.uuidString
+                            appDayOfWeek.day = docSnapshot.get("day") as? String ?? ""
+                            appDayOfWeek.name = docSnapshot.get("name") as? String
+                            appDayOfWeek.createdTimestamp = docSnapshot.get("createdTimestamp") as? Date
+                        }
+                        
+                    default:
+                        print("Unknown collection name: \(collectionName)")
+                        return
+                    }
+                    
+                    // Save the new record to Core Data
+                    await context.perform {
+                        do {
+                            try context.save()
+                            print("Downloaded Firestore record \(record) to Core Data")
+                        } catch {
+                            print("Error downloading Firestore record \(record) to Core Data: \(error.localizedDescription)")
+                        }
+                    }
+                } else {
+                    print("Firestore document does not exist for record: \(record)")
                 }
-            } else {
-                print("Invalid UUID string: \(record)")
-            }
-            
-            // Save the new record to Core Data
-            await context.perform {
-                do {
-                    try context.save()
-                    print("Downloaded Firestore record \(record) to Core Data")
-                } catch {
-                    print("Error downloading Firestore record \(record) to Core Data: \(error.localizedDescription)")
-                }
+            } catch {
+                print("Error fetching Firestore document for record: \(record)")
             }
         }
     }

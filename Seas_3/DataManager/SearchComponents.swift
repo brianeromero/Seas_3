@@ -185,8 +185,10 @@ struct IslandList: View {
                                     island: island,
                                     islandViewModel: PirateIslandViewModel(
                                         persistenceController: PersistenceController.shared
-                                    )
+                                    ),
+                                    profileViewModel: ProfileViewModel(viewContext: PersistenceController.shared.container.viewContext)
                                 )
+                                
                             case .viewReviewForIsland:
                                 ViewReviewforIsland(
                                     selectedIsland: $selectedIsland,

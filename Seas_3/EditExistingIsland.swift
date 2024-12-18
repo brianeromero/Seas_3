@@ -1,4 +1,3 @@
-//
 //  EditExistingIsland.swift
 //  Seas_3
 //
@@ -8,6 +7,7 @@
 import Foundation
 import SwiftUI
 import CoreData
+import os
 
 struct EditExistingIsland: View {
     @ObservedObject var island: PirateIsland
@@ -15,7 +15,12 @@ struct EditExistingIsland: View {
     @Environment(\.presentationMode) var presentationMode
     @State var islandDetails: IslandDetails
 
-    
+    @StateObject private var countryService = CountryService()
+    @State private var selectedCountry: Country? = nil
+    @State private var isCountryPickerPresented = false
+    @State private var requiredAddressFields: [AddressFieldType] = defaultAddressFieldRequirements
+    @ObservedObject var profileViewModel: ProfileViewModel
+
     @State private var islandName: String
     @State private var islandLocation: String
     @State private var createdByUserId: String
@@ -25,18 +30,19 @@ struct EditExistingIsland: View {
     @State private var alertMessage = ""
     @State private var gymWebsiteURL: URL?
     @State private var lastModifiedByUserId: String
+    @State private var isSaveEnabled: Bool = true
+    @State private var toastMessage: String = ""
+    @State private var showToast: Bool = false
 
-    init(island: PirateIsland, islandViewModel: PirateIslandViewModel) {
+    init(island: PirateIsland, islandViewModel: PirateIslandViewModel, profileViewModel: ProfileViewModel) {
         self.island = island
         self.islandViewModel = islandViewModel
+        self.profileViewModel = profileViewModel
         _islandName = State(initialValue: island.islandName ?? "")
         _islandLocation = State(initialValue: island.islandLocation ?? "")
-        Logger.logCreatedByIdEvent(createdByUserId: island.createdByUserId ?? "", fileName: "EditExistingIsland", functionName: "init")
         _createdByUserId = State(initialValue: island.createdByUserId ?? "")
         _gymWebsite = State(initialValue: island.gymWebsite?.absoluteString ?? "")
         _lastModifiedByUserId = State(initialValue: island.lastModifiedByUserId ?? "")
-        
-        // Update the initialization of IslandDetails
         _islandDetails = State(initialValue: IslandDetails(
             islandName: island.islandName ?? "",
             street: island.islandLocation ?? "",
@@ -48,139 +54,239 @@ struct EditExistingIsland: View {
             selectedCountry: nil, // Replace with actual country if available
             additionalInfo: "", // Replace with actual value if available
             requiredAddressFields: [], // Replace with actual fields if available
-            gymWebsite: island.gymWebsite?.absoluteString ?? "" // Add gymWebsite here
+            gymWebsite: island.gymWebsite?.absoluteString ?? ""
         ))
     }
 
-
-    
     var body: some View {
-        Form {
-            Section(header: Text("Gym Details")) {
-                TextField("Gym Name", text: $islandName)
-                TextField("Gym Location", text: $islandLocation)
-                TextField("Last Modified By", text: $lastModifiedByUserId)
-                TextField("Entered By", text: $createdByUserId)
-                    .disabled(true)
-                    .foregroundColor(.gray)
-            }
+        NavigationView {
+            Form {
+                Section(header: Text("Gym Details")) {
+                    TextField("Gym Name", text: $islandName)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
 
-            Section(header: Text("Instagram link/Facebook/Website (if applicable)")) {
-                Picker("Protocol", selection: $selectedProtocol) {
-                    Text("http://").tag("http://")
-                    Text("https://").tag("https://")
-                    Text("ftp://").tag("ftp://")
-                }
-                .pickerStyle(SegmentedPickerStyle())
-
-                TextField("Links", text: $gymWebsite, onEditingChanged: { _ in
-                    DispatchQueue.main.async {
-                        if !gymWebsite.isEmpty {
-                            let strippedURL = stripProtocol(from: gymWebsite)
-                            let fullURLString = selectedProtocol + strippedURL
-
-                            if validateURL(fullURLString) {
-                                gymWebsiteURL = URL(string: fullURLString)
+                    if countryService.isLoading {
+                        ProgressView("Loading countries...")
+                            .progressViewStyle(CircularProgressViewStyle())
+                            .padding()
+                    } else if !countryService.countries.isEmpty {
+                        UnifiedCountryPickerView(
+                            countryService: countryService,
+                            selectedCountry: $selectedCountry,
+                            isPickerPresented: $isCountryPickerPresented
+                        )
+                        .onChange(of: selectedCountry) { newCountry in
+                            if let newCountry = newCountry {
+                                requiredAddressFields = getAddressFields(for: newCountry.cca2)
                             } else {
-                                showAlert = true
-                                alertMessage = "Invalid link entry"
-                                gymWebsite = ""
-                                gymWebsiteURL = nil
+                                requiredAddressFields = defaultAddressFieldRequirements
                             }
-                        } else {
-                            gymWebsiteURL = nil
                         }
+                    } else {
+                        Text("No countries found.")
                     }
-                })
-                .keyboardType(.URL)
+                }
+
+                Section(header: Text("Address")) {
+                    ForEach(requiredAddressFields, id: \.self) { field in
+                        addressField(for: field)
+                    }
+                }
+
+                Section(header: Text("Website (optional)")) {
+                    TextField("Gym Website", text: $gymWebsite)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .keyboardType(.URL)
+                        .onChange(of: gymWebsite) { newValue in
+                            if !newValue.isEmpty && !validateURL(newValue) {
+                                alertMessage = "Invalid website URL"
+                                showAlert = true
+                            }
+                        }
+                }
+
+                Section(header: Text("Entered By")) {
+                    Text(profileViewModel.name)
+                        .foregroundColor(.primary)
+                }
+
+                VStack {
+                    Button("Save") {
+                        os_log("Save button clicked", log: OSLog.default, type: .info)
+                        Task { saveIsland() }
+                    }
+                    .disabled(!isSaveEnabled)
+
+                    Button("Cancel") {
+                        os_log("Cancel button clicked", log: OSLog.default, type: .info)
+                        clearFields()
+                        presentationMode.wrappedValue.dismiss()
+                    }
+                }
             }
+            .navigationBarTitle("Edit Gym", displayMode: .inline)
+            .alert(isPresented: $showAlert) {
+                Alert(title: Text("Error"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
+            }
+            .onAppear {
+                updateAddressFields()
+                Task {
+                    await countryService.fetchCountries()
+                    if let countryName = island.country,
+                       let country = countryService.getCountry(by: countryName) {
+                        selectedCountry = country
+                        requiredAddressFields = getAddressFields(for: country.cca2)
+                    }
+                }
+                parseIslandLocation(island.islandLocation ?? "")
+            }
+            .onChange(of: islandName) { _ in validateForm() }
+            .onChange(of: requiredAddressFields) { _ in validateForm() }
         }
-        .navigationTitle("Edit Gym")
-        .navigationBarItems(trailing:
-            Button("Save") {
-                saveIsland()
-                presentationMode.wrappedValue.dismiss()
-            }
+    }
+
+    // MARK: - Helper Methods
+    private func parseIslandLocation(_ location: String) {
+        let components = location.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+        
+        if components.count > 0 { islandDetails.street = components[0] }
+        if components.count > 1 { islandDetails.city = components[1] }
+        if components.count > 2 { islandDetails.state = components[2] }
+        if components.count > 3 { islandDetails.postalCode = components[3] }
+        if components.count > 4 { islandDetails.selectedCountry = countryService.getCountry(by: components[4]) }
+    }
+    
+    private func updateAddressFields() {
+        guard let selectedCountry = selectedCountry else {
+            requiredAddressFields = defaultAddressFieldRequirements
+            return
+        }
+        requiredAddressFields = getAddressFields(for: selectedCountry.cca2)
+        os_log("Updated address fields for country: %@", log: OSLog.default, type: .info, selectedCountry.name.common)
+    }
+
+    private func addressField(for field: AddressFieldType) -> some View {
+        guard let keyPath = fieldValues.first(where: { $1 == field })?.0 else {
+            return AnyView(EmptyView())
+        }
+        return AnyView(
+            TextField(field.rawValue.capitalized, text: Binding(
+                get: { islandDetails[keyPath: keyPath] as? String ?? "" },
+                set: { newValue in
+                    if let writableKeyPath = keyPath as? ReferenceWritableKeyPath<IslandDetails, String> {
+                        islandDetails[keyPath: writableKeyPath] = newValue
+                    }
+                }
+            ))
+            .textFieldStyle(RoundedBorderTextFieldStyle())
         )
-        .alert(isPresented: $showAlert) {
-            Alert(title: Text("Alert"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
+    }
+
+    private func validateForm() {
+        isSaveEnabled = requiredAddressFields.allSatisfy { isValidField($0) } && !islandName.isEmpty
+        if !isSaveEnabled {
+            toastMessage = "Please fill in all required fields"
+            showToast = true
         }
     }
     
+    private func validateURL(_ urlString: String) -> Bool {
+        guard let url = URL(string: urlString) else { return false }
+        return UIApplication.shared.canOpenURL(url)
+    }
+
     private func saveIsland() {
         guard !islandName.isEmpty, !islandLocation.isEmpty, !lastModifiedByUserId.isEmpty else {
             showAlert = true
             alertMessage = "Please fill in all required fields"
             return
         }
-        
+
         Task {
             do {
-                // Geocode the address
-                let coordinates = try await geocode(address: islandLocation, apiKey: GeocodingConfig.apiKey)
-                
-                // Update islandDetails object
-                islandDetails.islandName = islandName
-                islandDetails.street = islandLocation
-                islandDetails.latitude = coordinates.latitude
-                islandDetails.longitude = coordinates.longitude
-                islandDetails.gymWebsite = gymWebsiteURL?.absoluteString ?? ""
-                
-                // Update the pirate island details
+                islandDetails.street = islandDetails.street.trimmingCharacters(in: .whitespacesAndNewlines)
+                let formattedLocation = [
+                    islandDetails.street,
+                    islandDetails.city,
+                    islandDetails.state,
+                    islandDetails.postalCode,
+                    islandDetails.selectedCountry?.name.common
+                ].compactMap { $0 }.joined(separator: ", ")
+
+                island.islandLocation = formattedLocation
+                island.islandName = islandName
+                island.lastModifiedByUserId = lastModifiedByUserId
+
                 try await islandViewModel.updatePirateIsland(
                     island: island,
                     islandDetails: islandDetails,
                     lastModifiedByUserId: lastModifiedByUserId
                 )
-                
-                // Dismiss the view
                 presentationMode.wrappedValue.dismiss()
-                
             } catch {
-                // Handle errors
                 showAlert = true
-                alertMessage = "Error: \(error.localizedDescription)"
+                alertMessage = "Error saving island: \(error.localizedDescription)"
             }
         }
     }
-    
-    private func stripProtocol(from urlString: String) -> String {
-        let protocols = ["http://", "https://", "ftp://"]
-        var strippedURL = urlString
-        for proto in protocols {
-            if strippedURL.starts(with: proto) {
-                strippedURL = String(strippedURL.dropFirst(proto.count))
-                break
-            }
-        }
-        return strippedURL
+
+    private func clearFields() {
+        islandName = island.islandName ?? ""
+        islandLocation = island.islandLocation ?? ""
+        gymWebsite = island.gymWebsite?.absoluteString ?? ""
+        selectedCountry = nil
+        requiredAddressFields = defaultAddressFieldRequirements
     }
+
+    private let fieldValues: [PartialKeyPath<IslandDetails>: AddressFieldType] = [
+        \.street: .street,
+        \.city: .city,
+        \.state: .state,
+        \.province: .province,
+        \.postalCode: .postalCode,
+        \.region: .region, // Added region case here
+        \.district: .district,
+        \.department: .department,
+        \.governorate: .governorate,
+        \.emirate: .emirate,
+        \.block: .block,
+        \.county: .county,
+        \.neighborhood: .neighborhood,
+        \.complement: .complement,
+        \.apartment: .apartment,
+        \.additionalInfo: .additionalInfo,
+        \.multilineAddress: .multilineAddress
+    ]
     
-    private func validateURL(_ urlString: String) -> Bool {
-        if let url = URL(string: urlString) {
-            return UIApplication.shared.canOpenURL(url)
+    
+    private func isValidField(_ field: AddressFieldType) -> Bool {
+        guard let keyPath = fieldValues.first(where: { $1 == field })?.0 else {
+            return false // This should never happen unless there's an issue with the fieldValues
         }
-        return false
+        let value = islandDetails[keyPath: keyPath] as? String ?? ""
+        return !value.trimmingCharacters(in: .whitespaces).isEmpty
     }
 }
 
-// EditExistingIsland_Previews definition
 struct EditExistingIsland_Previews: PreviewProvider {
     static var previews: some View {
-        let context = PersistenceController.shared.container.viewContext
-        
+        let persistenceController = PersistenceController.shared
+        let context = persistenceController.container.viewContext
+
+        // Create a sample PirateIsland for the preview
         let island = PirateIsland(context: context)
         island.islandName = "Sample Gym"
         island.islandLocation = "123 Main St, City, State, 12345"
         island.createdByUserId = "UserCreated"
-        island.lastModifiedByUserId = "" // Set lastModifiedByUserId for preview
+        island.lastModifiedByUserId = "UserModified"
         island.gymWebsite = URL(string: "https://www.example.com")
-        
-        let viewModel = PirateIslandViewModel(persistenceController: PersistenceController.shared)
-        
-        return NavigationView {
-            EditExistingIsland(island: island, islandViewModel: viewModel)
-                .environment(\.managedObjectContext, context)
-        }
+
+        // Create the view using the proper initializers
+        return EditExistingIsland(
+            island: island,
+            islandViewModel: PirateIslandViewModel(persistenceController: persistenceController),
+            profileViewModel: ProfileViewModel(viewContext: context)
+        )
+        .environment(\.managedObjectContext, context)
     }
 }

@@ -1,4 +1,3 @@
-
 // Persistence.swift
 // Seas_3
 // Created by Brian Romero on 6/24/24.
@@ -55,6 +54,7 @@ class PersistenceController: ObservableObject {
         self.init()
         if inMemory {
             container.persistentStoreDescriptions.first?.url = URL(fileURLWithPath: "/dev/null")
+            FirestoreManager.shared.disabled = true // Disable Firestore operations for in-memory previews
         }
     }
     
@@ -68,6 +68,7 @@ class PersistenceController: ObservableObject {
         }
         viewContext.automaticallyMergesChangesFromParent = true
     }
+
     
     // Core Data methods
     func fetch<T: NSManagedObject>(_ request: NSFetchRequest<T>) async throws -> [T] {

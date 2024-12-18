@@ -296,9 +296,8 @@ public struct LoginView: View {
         }
     }
 
-
     private var navigationLinks: some View {
-        NavigationLink(destination: AdminMenu(), isActive: $navigateToAdminMenu) {
+        NavigationLink(value: navigateToAdminMenu) {
             EmptyView()
         }
     }

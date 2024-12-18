@@ -5,13 +5,15 @@
 //  Created by Brian Romero on 10/26/24.
 //
 
-import Foundation
 import SwiftUI
 import GoogleMobileAds
 
 struct AdminMenu: View {
     @Environment(\.persistenceController) private var persistenceController
     private var appDayOfWeekRepository: AppDayOfWeekRepository
+    let firestoreManager = FirestoreManager.shared
+
+    
     @StateObject private var enterZipCodeViewModel: EnterZipCodeViewModel
     @StateObject private var appDayOfWeekViewModel: AppDayOfWeekViewModel
     
@@ -19,7 +21,7 @@ struct AdminMenu: View {
         let persistenceController = PersistenceController.shared
         let repository = AppDayOfWeekRepository(persistenceController: persistenceController)
         let enterZipCodeVM = EnterZipCodeViewModel(repository: repository, persistenceController: persistenceController)
-        
+
         self.appDayOfWeekRepository = repository
         self._enterZipCodeViewModel = StateObject(wrappedValue: enterZipCodeVM)
         self._appDayOfWeekViewModel = StateObject(wrappedValue: AppDayOfWeekViewModel(repository: repository, enterZipCodeViewModel: enterZipCodeVM))
@@ -28,7 +30,8 @@ struct AdminMenu: View {
     let menuItems: [MenuItem] = [
         MenuItem(title: "Manage Users", subMenuItems: ["Reset User Verification", "Edit User", "Remove User", "Manual User Verification"], padding: 20),
         MenuItem(title: "Manage Gyms", subMenuItems: ["All Gyms", "ALL Gym Schedules", "ALL Mat Schedules"], padding: 15),
-        MenuItem(title: "Manage Reviews", subMenuItems: ["View All Reviews", "Moderate Reviews"], padding: 20)
+        MenuItem(title: "Manage Reviews", subMenuItems: ["View All Reviews", "Moderate Reviews"], padding: 20),
+        MenuItem(title: "Delete Record", subMenuItems: ["Delete Record"], padding: 20)
     ]
     
     var body: some View {
@@ -51,7 +54,7 @@ struct AdminMenu: View {
                 
                 Spacer()
                 
-                // Add the Sign Out button
+                // Sign Out Button
                 NavigationLink(destination: LoginView(
                     islandViewModel: PirateIslandViewModel(persistenceController: persistenceController),
                     isSelected: .constant(.login),
@@ -66,8 +69,7 @@ struct AdminMenu: View {
                         .cornerRadius(8)
                 }
 
-                BannerView() // Use BannerView
-
+                BannerView() // Ad banner
             }
             .padding()
             .navigationTitle("Admin Control Panel")
@@ -78,9 +80,9 @@ struct AdminMenu: View {
     private func destinationView(for option: String) -> some View {
         switch option {
         case IslandMenuOption.allLocations.rawValue:
-            EmptyView() // Placeholder until implemented
+            EmptyView() // Placeholder
         case IslandMenuOption.currentLocation.rawValue:
-            EmptyView() // Placeholder until implemented
+            EmptyView() // Placeholder
         case "Reset User Verification":
             ResetUserVerificationView()
         case "Manual User Verification":
@@ -92,6 +94,8 @@ struct AdminMenu: View {
         case "ALL Mat Schedules":
             AllpIslandScheduleView(viewModel: appDayOfWeekViewModel, enterZipCodeViewModel: enterZipCodeViewModel)
                 .environment(\.persistenceController, PersistenceController.shared)
+        case "Delete Record":
+            DeleteRecordView(coreDataContext: persistenceController.container.viewContext, firestoreManager: firestoreManager)
         default:
             EmptyView()
         }
@@ -107,7 +111,6 @@ class MockAppDayOfWeekViewModel: AppDayOfWeekViewModel {
             persistenceController: PersistenceController.shared
         )
         self.init(repository: mockRepository, enterZipCodeViewModel: mockEnterZipCodeViewModel)
-        // Mock initialization
     }
 }
 

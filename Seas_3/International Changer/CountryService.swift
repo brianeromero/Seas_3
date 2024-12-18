@@ -42,4 +42,9 @@ class CountryService: ObservableObject {
             }
         }
     }
+    
+    func getCountry(by name: String) -> Country? {
+        return countries.first { $0.name.common == name }
+    }
+    
 }

@@ -192,19 +192,19 @@ struct AddNewIsland: View {
         print("Validating form...")
         let requiredFields = islandDetails.requiredAddressFields
         print("Required fields: \(requiredFields.map { $0.rawValue })")
+        isSaveEnabled = true // Assume the form is valid initially
         for field in requiredFields {
             print("Checking field \(field.rawValue): \(isValidField(field))")
             if !isValidField(field) {
                 toastMessage = "Please fill in \(field.rawValue)"
                 showToast = true
+                isSaveEnabled = false // Update isSaveEnabled to false
                 return
             }
         }
         let finalIsValid = !islandDetails.islandName.isEmpty
         print("Final validation result: \(finalIsValid)")
-        
-        // Update the state without returning a value
-        isSaveEnabled = finalIsValid
+        isSaveEnabled = isSaveEnabled && finalIsValid // Update isSaveEnabled
     }
 
     
@@ -232,13 +232,16 @@ struct AddNewIsland: View {
                 
                 // Store the country and gym website URL in the new island
                 newIsland.country = islandDetails.selectedCountry?.name.common
-                if let url = URL(string: gymWebsite) {
-                    newIsland.gymWebsite = url
-                } else {
-                    // Handle invalid URL
-                    toastMessage = "Invalid gym website URL"
-                    showToast = true
-                    return
+                
+                if !gymWebsite.isEmpty {
+                    if let url = URL(string: gymWebsite) {
+                        newIsland.gymWebsite = url
+                    } else {
+                        // Handle invalid URL
+                        toastMessage = "Invalid gym website URL"
+                        showToast = true
+                        return
+                    }
                 }
                 
                 try viewContext.save()
@@ -246,9 +249,17 @@ struct AddNewIsland: View {
                 toastMessage = "Island saved successfully: \(newIsland.islandName ?? "Unknown Name")"
                 clearFields()
             } catch {
-                toastMessage = "Error saving island: \(error.localizedDescription)"
-                showToast = true
+                if let error = error as? PirateIslandError {
+                    toastMessage = "Error saving island: \(error.localizedDescription)"
+                    showToast = true
+                } else {
+                    toastMessage = "An unexpected error occurred: \(error.localizedDescription)"
+                    showToast = true
+                }
             }
+        } else {
+            toastMessage = "Please fill in all required fields"
+            showToast = true
         }
     }
 
