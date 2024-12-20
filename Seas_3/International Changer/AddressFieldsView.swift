@@ -32,6 +32,9 @@ struct AddressFieldsView: View {
         case .state:
             TextField("State", text: $islandDetails.state)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
+        case .county:
+            TextField("County", text: $islandDetails.county)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
         case .province:
             TextField("Province", text: $islandDetails.province)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -80,8 +83,17 @@ struct AddressFieldsView: View {
         case .additionalInfo:
             TextField("Additional Info", text: $islandDetails.additionalInfo)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
-        default:
-            EmptyView() // Handle unimplemented cases like .multilineAddress or .block
+        case .island:
+            TextField("Island", text: $islandDetails.island)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+        case .block:
+            TextField("Block", text: $islandDetails.block)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+        case .multilineAddress:
+            // You may want to use a TextEditor instead of a TextField for multiline addresses
+            TextEditor(text: $islandDetails.multilineAddress)
+                .frame(height: 100)
+                .border(Color.gray)
         }
     }
 }

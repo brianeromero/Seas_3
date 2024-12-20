@@ -154,19 +154,7 @@ struct CreateAccountView: View {
                          islandDetails: $islandDetails,
                          profileViewModel: profileViewModel
                      )
-                    
-                    if let format = countryAddressFormats.first(where: { $0.key == selectedCountry?.name.common })?.value {
 
-                        // Convert AddressField to AddressFieldType
-                        let requiredFields = format.requiredFields.compactMap { AddressFieldType(rawValue: $0.rawValue) }
-
-                        AddressFieldsView(requiredFields: requiredFields, islandDetails: $islandDetails)
-
-                        if showValidationMessage {
-                            Text("Required fields for \(selectedCountry?.name.common ?? "") are missing.")
-                                .foregroundColor(.red)
-                        }
-                    }
                 }
                 
 
