@@ -17,7 +17,8 @@ enum PirateIslandError: Error {
     case streetMissing
     case cityMissing
     case stateMissing
-    case postalCodeMissing // Update to postalCodeMissing
+    case postalCodeMissing
+    case invalidGymWebsite
 
     var localizedDescription: String {
         switch self {
@@ -41,6 +42,8 @@ enum PirateIslandError: Error {
             return "State is missing"
         case .postalCodeMissing:
             return "Postal code is missing" // Update to postal code
+        case .invalidGymWebsite:
+            return "Confirm website validity" // Update to postal code
         }
     }
 }
@@ -63,7 +66,7 @@ public class PirateIslandViewModel: ObservableObject {
     }
     
     // MARK: - Create Pirate Island
-    func createPirateIsland(islandDetails: IslandDetails, createdByUserId: String) async throws -> PirateIsland {
+    func createPirateIsland(islandDetails: IslandDetails, createdByUserId: String, gymWebsite: String?) async throws -> PirateIsland {
         // Generate a new UUID
         let newIslandID = UUID()
 
@@ -101,7 +104,16 @@ public class PirateIslandViewModel: ObservableObject {
         newIsland.createdByUserId = createdByUserId
         newIsland.lastModifiedByUserId = createdByUserId
         newIsland.lastModifiedTimestamp = Date()
-        newIsland.gymWebsite = islandDetails.gymWebsiteURL
+
+        // Convert the gymWebsite string to a URL
+        if let website = gymWebsite, !website.isEmpty {
+            if let url = URL(string: website) {
+                newIsland.gymWebsite = url
+            } else {
+                throw PirateIslandError.invalidGymWebsite
+            }
+        }
+
         newIsland.latitude = coordinates.latitude
         newIsland.longitude = coordinates.longitude
 
@@ -127,8 +139,6 @@ public class PirateIslandViewModel: ObservableObject {
         os_log("PirateIsland created successfully: %@", log: logger, type: .info, newIsland.islandName ?? "Unknown Island Name")
         return newIsland  // Return the saved island
     }
-
-
 
 
     // Add this code below the createPirateIsland function
@@ -158,51 +168,55 @@ public class PirateIslandViewModel: ObservableObject {
     }
     
     // MARK: - Create and Save Pirate Island
-    func createAndSavePirateIsland(islandDetails: IslandDetails, createdByUserId: String) async throws {
+    func createAndSavePirateIsland(islandDetails: IslandDetails, createdByUserId: String, gymWebsite: String?) async throws {
         // Capture the returned PirateIsland object from createPirateIsland
-        let newIsland = try await createPirateIsland(islandDetails: islandDetails, createdByUserId: createdByUserId)
+        let newIsland = try await createPirateIsland(islandDetails: islandDetails, createdByUserId: createdByUserId, gymWebsite: gymWebsite)
         
         // Optional: You can log or use the created PirateIsland object (newIsland)
         os_log("Successfully created PirateIsland with name: %@", log: logger, newIsland.islandName ?? "Unknown Island Name")
         
         // Additional logic can be added here if needed, e.g., updating UI, triggering notifications, etc.
     }
-
-
     
     // MARK: - Validation
-    private func validateIslandDetails(_ details: IslandDetails, _ createdByUserId: String, _ country: String) -> Bool {
-        let requiredFields = getAddressFields(for: country)
-        
-        var fieldValues: [String: String] = [
+    func validateIslandDetails(_ details: IslandDetails, _ createdByUserId: String, _ countryCode: String) -> Bool {
+        let requiredFields = getAddressFields(for: countryCode)
+        var isValid = true
+
+        // Prepare field values for logging and validation
+        let fieldValues: [String: String?] = [
             "Island Name": details.islandName,
-            "Street": details.street,
-            "City": details.city,
-            "Created By User ID": createdByUserId
+            "Created By User ID": createdByUserId,
+            "Street": requiredFields.contains(.street) ? details.street : nil,
+            "City": requiredFields.contains(.city) ? details.city : nil,
+            "State": requiredFields.contains(.state) ? details.state : nil,
+            "Province": requiredFields.contains(.province) ? details.province : nil,
+            "Postal Code": requiredFields.contains(.postalCode) ? details.postalCode : nil,
+            "Department": requiredFields.contains(.department) ? details.department : nil,
+            "County": requiredFields.contains(.county) ? details.county : nil,
+            "Neighborhood": requiredFields.contains(.neighborhood) ? details.neighborhood : nil,
+            "Complement": requiredFields.contains(.complement) ? details.complement : nil,
+            "Block": requiredFields.contains(.block) ? details.block : nil,
+            "Apartment": requiredFields.contains(.apartment) ? details.apartment : nil,
+            "Region": requiredFields.contains(.region) ? details.region : nil,
+            "District": requiredFields.contains(.district) ? details.district : nil,
+            "Governorate": requiredFields.contains(.governorate) ? details.governorate : nil,
+            "Emirate": requiredFields.contains(.emirate) ? details.emirate : nil,
+            "Island": requiredFields.contains(.island) ? details.island : nil,
+            "Division": requiredFields.contains(.division) ? details.division : nil,
+            "Zone": requiredFields.contains(.zone) ? details.zone : nil
         ]
-        
-        // Add postal code to field values
-        fieldValues["Postal Code"] = details.postalCode
-        
-        // Add other fields based on the country's requirements
-        if requiredFields.contains(.state) {
-            fieldValues["State"] = details.state
-        } else if requiredFields.contains(.province) {
-            fieldValues["Province"] = details.province
-        }
-        
-        // Add other fields as needed
-        
+
+        // Validate each field and log the process
         for (fieldName, value) in fieldValues {
-            os_log("Validating %@: %@", log: logger, fieldName, value)
-            
-            if value.trimmingCharacters(in: .whitespaces).isEmpty {
+            os_log("Validating %@: %@", log: logger, fieldName, value ?? "nil")
+            if let value = value, value.trimmingCharacters(in: .whitespaces).isEmpty {
                 os_log("Validation failed: %@ is missing (%@)", log: logger, fieldName, value)
-                return false
+                isValid = false
             }
         }
-        
-        return true
+
+        return isValid
     }
     
     // MARK: - Check Existing Islands

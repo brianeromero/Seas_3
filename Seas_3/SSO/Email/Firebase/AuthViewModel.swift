@@ -5,7 +5,7 @@
 
 import Foundation
 import Firebase
-import FirebaseAuth
+@preconcurrency import FirebaseAuth
 import CryptoSwift
 import CoreData
 import Combine

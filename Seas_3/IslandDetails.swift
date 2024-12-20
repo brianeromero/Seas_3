@@ -43,6 +43,8 @@ class IslandDetails: ObservableObject, Equatable {
     @Published var municipality: String = ""
     @Published var division: String = ""
     @Published var zone: String = ""
+    @Published var island: String = ""
+
 
     // MARK: - Validation Properties
     @Published var isIslandNameValid: Bool = true
@@ -73,6 +75,7 @@ class IslandDetails: ObservableObject, Equatable {
             case .municipality: return municipality
             case .division: return division
             case .zone: return zone
+            case .island: return island
             default: return nil
             }
         }
@@ -148,12 +151,13 @@ class IslandDetails: ObservableObject, Equatable {
             case .municipality: return !islandName.isEmpty
             case .division: return !islandName.isEmpty
             case .zone: return !islandName.isEmpty
+            case .island: return !island.isEmpty
             }
         }
         let islandNameValid = !islandName.isEmpty
         isIslandNameValid = islandNameValid
         islandNameErrorMessage = islandNameValid ? "" : "Gym name cannot be empty."
-
+        
         let formValid = fieldsValid && islandNameValid
         isFormValid = formValid
         onValidationChange?(formValid)
@@ -182,6 +186,8 @@ class IslandDetails: ObservableObject, Equatable {
         lhs.longitude == rhs.longitude &&
         lhs.additionalInfo == rhs.additionalInfo &&
         lhs.country == rhs.country &&
-        lhs.county == rhs.county
+        lhs.county == rhs.county &&
+        lhs.island == rhs.island
     }
 }
+

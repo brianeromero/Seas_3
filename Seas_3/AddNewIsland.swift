@@ -16,23 +16,26 @@ struct AddNewIsland: View {
     // MARK: - Environment Variables
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.presentationMode) private var presentationMode
-
+    
     // MARK: - Observed Objects
     @ObservedObject var islandViewModel: PirateIslandViewModel
     @ObservedObject var profileViewModel: ProfileViewModel
     @StateObject var islandDetails = IslandDetails()
     @ObservedObject var countryService = CountryService.shared
     @State private var isCountryPickerPresented = false
-
+    
     // MARK: - State Variables
     @State private var isSaveEnabled = false
     @State private var showAlert = false
+    @State private var showIslandMenu = false
+    @State private var navigationPath: [String] = []
+
     @State private var alertMessage = ""
     @State private var showToast = false
     @State private var toastMessage = ""
     @State private var isLoadingCountries = true
     @State private var gymWebsite = ""
-
+    
     // MARK: - Initialization
     init(viewModel: PirateIslandViewModel, profileViewModel: ProfileViewModel) {
         self.islandViewModel = viewModel
@@ -41,12 +44,12 @@ struct AddNewIsland: View {
     
     // MARK: - Body
     var body: some View {
-        NavigationView {
+        NavigationStack(path: $navigationPath) {
             Form {
                 Section(header: Text("Gym Details")) {
                     TextField("Gym Name", text: $islandDetails.islandName)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
-
+                    
                     if countryService.isLoading {
                         ProgressView("Loading countries...")
                             .progressViewStyle(CircularProgressViewStyle())
@@ -68,7 +71,7 @@ struct AddNewIsland: View {
                         Text("No countries found.")
                     }
                 }
-
+                
                 Section(header: Text("Address")) {
                     ForEach(islandDetails.requiredAddressFields, id: \.self) { field in
                         addressField(for: field)
@@ -86,16 +89,20 @@ struct AddNewIsland: View {
                             }
                         }
                 }
-
+                
                 Section(header: Text("Entered By")) {
                     Text(profileViewModel.name)
                         .foregroundColor(.primary)
                 }
-
+                
                 VStack {
                     Button("Save") {
                         os_log("Save button clicked", log: OSLog.default, type: .info)
-                        Task { await saveIsland() }
+                        Task {
+                            await saveIsland {
+                                navigationPath.append("IslandMenu")
+                            }
+                        }
                     }
                     .disabled(!isSaveEnabled)
                 }
@@ -108,6 +115,9 @@ struct AddNewIsland: View {
                     }
                 }
             }
+            .navigationDestination(for: String.self) { islandMenuPath in
+                IslandMenu(isLoggedIn: Binding.constant(true))
+            }
             .navigationBarTitle("Add New Gym", displayMode: .inline)
             .alert(isPresented: $showAlert) {
                 Alert(title: Text("Error"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
@@ -116,7 +126,7 @@ struct AddNewIsland: View {
                 islandDetails.onValidationChange = { isValid in
                     isSaveEnabled = isValid
                 }
-
+                
                 Task {
                     await countryService.fetchCountries()
                     if let usa = countryService.countries.first(where: { $0.cca2 == "US" }) {
@@ -126,14 +136,14 @@ struct AddNewIsland: View {
                     os_log("Countries loaded successfully", log: OSLog.default, type: .info)
                 }
             }
-
+            
             .overlay(toastOverlay)
             .onChange(of: islandDetails) { _ in validateForm() }
             .onChange(of: islandDetails.islandName) { _ in validateForm() }
             .onChange(of: islandDetails.requiredAddressFields) { _ in validateForm() }
-
         }
     }
+
 
     // MARK: - Helper Methods
     private func updateAddressFields() {
@@ -225,11 +235,11 @@ struct AddNewIsland: View {
     }
 
 
-    private func saveIsland() async {
+    private func saveIsland(onSave: @escaping () -> Void) async {
         if isSaveEnabled {
             do {
-                let newIsland = try await islandViewModel.createPirateIsland(islandDetails: islandDetails, createdByUserId: profileViewModel.name)
-                
+                let newIsland = try await islandViewModel.createPirateIsland(islandDetails: islandDetails, createdByUserId: profileViewModel.name, gymWebsite: gymWebsite)
+
                 // Store the country and gym website URL in the new island
                 newIsland.country = islandDetails.selectedCountry?.name.common
                 
@@ -248,6 +258,9 @@ struct AddNewIsland: View {
                 
                 toastMessage = "Island saved successfully: \(newIsland.islandName ?? "Unknown Name")"
                 clearFields()
+                
+                // Call the onSave callback
+                onSave()
             } catch {
                 if let error = error as? PirateIslandError {
                     toastMessage = "Error saving island: \(error.localizedDescription)"

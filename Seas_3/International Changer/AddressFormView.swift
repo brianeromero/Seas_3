@@ -92,6 +92,7 @@ struct AddressFormView: View {
         case .municipality: return $region // Assuming 'region' can represent municipality
         case .division: return $region // Assuming 'region' can represent division
         case .zone: return $region // Assuming 'region' can represent zone
+        case .island: return $region // Assuming 'region' can represent island
         }
     }
 }

@@ -68,6 +68,8 @@ struct CreateAccountView: View {
     @State private var region = ""
     @State private var county = ""
     @State private var islandDetails = IslandDetails()
+    @State private var isPickerPresented = false
+    @ObservedObject var countryService = CountryService.shared
 
     let emailManager: UnifiedEmailManager
 
@@ -153,8 +155,7 @@ struct CreateAccountView: View {
                          profileViewModel: profileViewModel
                      )
                     
-                    if let country = selectedCountry,
-                       let format = countryAddressFormats.first(where: { $0.key == country.name.common })?.value {
+                    if let format = countryAddressFormats.first(where: { $0.key == selectedCountry?.name.common })?.value {
 
                         // Convert AddressField to AddressFieldType
                         let requiredFields = format.requiredFields.compactMap { AddressFieldType(rawValue: $0.rawValue) }
@@ -162,11 +163,10 @@ struct CreateAccountView: View {
                         AddressFieldsView(requiredFields: requiredFields, islandDetails: $islandDetails)
 
                         if showValidationMessage {
-                            Text("Required fields for \(country.name.common) are missing.")
+                            Text("Required fields for \(selectedCountry?.name.common ?? "") are missing.")
                                 .foregroundColor(.red)
                         }
                     }
-
                 }
                 
 
@@ -243,21 +243,12 @@ struct CreateAccountView: View {
         case .county:
             TextField("Enter county", text: binding)
         case .country:
-            if let country = selectedCountry {
-                TextField("Enter country", text: Binding(
-                    get: { country.name.common },
-                    set: { newValue in
-                        selectedCountry = Country(name: Country.Name(common: newValue), cca2: country.cca2, flag: "")
-                    }
-                ))
-            } else {
-                TextField("Enter country", text: Binding(
-                    get: { "" },
-                    set: { newValue in
-                        // Handle initialization logic
-                    }
-                ))
-            }
+            TextField("Enter country", text: Binding(
+                get: { selectedCountry!.name.common },
+                set: { newValue in
+                    selectedCountry = Country(name: Country.Name(common: newValue), cca2: selectedCountry!.cca2, flag: selectedCountry!.flag)
+                }
+            ))
         case .governorate:
             TextField("Enter governorate", text: binding)
         case .region:
@@ -308,10 +299,16 @@ struct CreateAccountView: View {
                         fileName: "CreateAccountView",
                         functionName: "createPirateIsland"
                     )
+
+                    // Use the actual gym website URL, or nil if not available
+                    let gymWebsite: String? = formState.gymWebsite
+
                     let newIsland = try await islandViewModel.createPirateIsland(
                         islandDetails: islandDetails,
-                        createdByUserId: formState.userName
+                        createdByUserId: formState.userName,
+                        gymWebsite: gymWebsite
                     )
+            
 
                     print("Pirate island created successfully: \(newIsland.islandName ?? "Unknown")")
                 }
@@ -413,6 +410,8 @@ struct CreateAccountView: View {
                 return "postal code is missing"
             case .fieldMissing(_):
                 return "Some OTHER field is missing"
+            case .invalidGymWebsite:
+                return "Gym Website appears to be invalid"
             }
             
         } else {

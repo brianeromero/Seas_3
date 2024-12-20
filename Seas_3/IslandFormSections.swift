@@ -51,22 +51,46 @@ struct IslandFormSections: View {
     @Binding var islandDetails: IslandDetails
     @ObservedObject var profileViewModel: ProfileViewModel
     @State private var showValidationMessage = false
+    @ObservedObject var countryService = CountryService.shared
+    @State private var isPickerPresented = false
+    
 
     var body: some View {
         VStack(spacing: 10) {
-            UnifiedCountryPickerView(
-                countryService: CountryService(),
-                selectedCountry: $selectedCountry,
-                isPickerPresented: .constant(false)
-            )
+            if countryService.isLoading {
+                ProgressView("Loading countries...")
+                    .progressViewStyle(CircularProgressViewStyle())
+                    .padding()
+            } else if !countryService.countries.isEmpty {
+                UnifiedCountryPickerView(
+                    countryService: countryService,
+                    selectedCountry: $selectedCountry,
+                    isPickerPresented: $isPickerPresented // Updated
+                )
+                .onChange(of: selectedCountry) { newCountry in
+                    if let newCountry = newCountry {
+                        islandDetails.requiredAddressFields = getAddressFields(for: newCountry.cca2)
+                    } else {
+                        islandDetails.requiredAddressFields = defaultAddressFieldRequirements
+                    }
+                }
+            } else {
+                Text("No countries found.")
+            }
             islandDetailsSection
             websiteSection
         }
         .padding()
+        .onAppear {
+            Task {
+                await countryService.fetchCountries()
+            }
+        }
         .alert(isPresented: $showError) {
             Alert(title: Text("Error"), message: Text(errorMessage), dismissButton: .default(Text("OK")))
         }
     }
+
     
     var islandDetailsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -136,12 +160,12 @@ struct IslandFormSections: View {
             return
         }
 
-        guard let selectedCountry = selectedCountry else {
+        guard selectedCountry != Country(name: Country.Name(common: ""), cca2: "", flag: "") else {
             setError("Select a country.")
             return
         }
 
-        if validateAddress(for: selectedCountry.name.common) {
+        if validateAddress(for: selectedCountry!.name.common) {
             await updateIslandLocation()
         } else {
             setError("Please fill in all required fields.")
@@ -183,6 +207,7 @@ struct IslandFormSections: View {
             case .municipality: return !islandDetails.municipality.isEmpty  // Validate 'municipality' field
             case .division: return !islandDetails.division.isEmpty  // Validate 'division' field
             case .zone: return !islandDetails.zone.isEmpty  // Validate 'zone' field
+            case .island: return !islandDetails.islandName.isEmpty  // Validate 'island' field
             }
         }
 
@@ -257,13 +282,13 @@ struct IslandFormSections: View {
         }
 
         // Validate that a country is selected
-        guard let selectedCountry = selectedCountry else {
+        guard selectedCountry != Country(name: Country.Name(common: ""), cca2: "", flag: "") else {
             setError("Select a country.")
             return false
         }
 
         // Pass the country's name to validateAddress
-        guard validateAddress(for: selectedCountry.name.common) else {
+        guard validateAddress(for: selectedCountry!.name.common) else {
             setError("Please fill in all required address fields.")
             return false
         }

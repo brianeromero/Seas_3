@@ -7,45 +7,53 @@
 import Foundation
 import SwiftUI
 import CoreData
+import Combine
+import FirebaseFirestore
 import os
 
 struct EditExistingIsland: View {
+    // MARK: - Environment Variables
+    @Environment(\.managedObjectContext) private var viewContext
+    @Environment(\.presentationMode) var presentationMode
+    
+    // MARK: - Observed Objects
     @ObservedObject var island: PirateIsland
     @ObservedObject var islandViewModel: PirateIslandViewModel
-    @Environment(\.presentationMode) var presentationMode
-    @State var islandDetails: IslandDetails
-
-    @StateObject private var countryService = CountryService()
-    @State private var selectedCountry: Country? = nil
-    @State private var isCountryPickerPresented = false
-    @State private var requiredAddressFields: [AddressFieldType] = defaultAddressFieldRequirements
     @ObservedObject var profileViewModel: ProfileViewModel
+    @StateObject var islandDetails = IslandDetails()
+    @ObservedObject var countryService = CountryService.shared
+    @State private var isCountryPickerPresented = false
 
-    @State private var islandName: String
-    @State private var islandLocation: String
-    @State private var createdByUserId: String
-    @State private var gymWebsite: String
-    @State private var selectedProtocol = "https://"
+    // MARK: - State Variables
+    @State private var isSaveEnabled: Bool = true
     @State private var showAlert = false
     @State private var alertMessage = ""
-    @State private var gymWebsiteURL: URL?
-    @State private var lastModifiedByUserId: String
-    @State private var isSaveEnabled: Bool = true
-    @State private var toastMessage: String = ""
     @State private var showToast: Bool = false
+    @State private var toastMessage: String = ""
+    @State private var gymWebsite: String
+    @State private var islandName: String
+    @State private var islandLocation: String
+    @State private var lastModifiedByUserId: String
+    @State private var selectedCountry: Country? = nil
+    @State private var requiredAddressFields: [AddressFieldType] = defaultAddressFieldRequirements
 
+    @State private var createdByUserId: String
+    @State private var selectedProtocol = "https://"
+    @State private var gymWebsiteURL: URL?
+
+    // MARK: - Initialization
     init(island: PirateIsland, islandViewModel: PirateIslandViewModel, profileViewModel: ProfileViewModel) {
         self.island = island
         self.islandViewModel = islandViewModel
         self.profileViewModel = profileViewModel
         _islandName = State(initialValue: island.islandName ?? "")
         _islandLocation = State(initialValue: island.islandLocation ?? "")
+        _lastModifiedByUserId = State(initialValue: island.lastModifiedByUserId ?? "")
         _createdByUserId = State(initialValue: island.createdByUserId ?? "")
         _gymWebsite = State(initialValue: island.gymWebsite?.absoluteString ?? "")
-        _lastModifiedByUserId = State(initialValue: island.lastModifiedByUserId ?? "")
-        _islandDetails = State(initialValue: IslandDetails(
+        _islandDetails = StateObject(wrappedValue: IslandDetails(
             islandName: island.islandName ?? "",
-            street: island.islandLocation ?? "",
+            street: "", // Replace with actual value if available
             city: "", // Replace with actual value if available
             state: "", // Replace with actual value if available
             postalCode: "", // Replace with actual value if available
@@ -57,7 +65,8 @@ struct EditExistingIsland: View {
             gymWebsite: island.gymWebsite?.absoluteString ?? ""
         ))
     }
-
+    
+    // MARK: - Body
     var body: some View {
         NavigationView {
             Form {
@@ -77,6 +86,7 @@ struct EditExistingIsland: View {
                         )
                         .onChange(of: selectedCountry) { newCountry in
                             if let newCountry = newCountry {
+                                os_log("Selected Country: %@", log: OSLog.default, type: .info, newCountry.name.common)
                                 requiredAddressFields = getAddressFields(for: newCountry.cca2)
                             } else {
                                 requiredAddressFields = defaultAddressFieldRequirements
@@ -116,7 +126,9 @@ struct EditExistingIsland: View {
                         Task { saveIsland() }
                     }
                     .disabled(!isSaveEnabled)
-
+                }
+                Spacer()
+                VStack {
                     Button("Cancel") {
                         os_log("Cancel button clicked", log: OSLog.default, type: .info)
                         clearFields()
@@ -137,8 +149,8 @@ struct EditExistingIsland: View {
                         selectedCountry = country
                         requiredAddressFields = getAddressFields(for: country.cca2)
                     }
+                    parseIslandLocation(island.islandLocation ?? "")
                 }
-                parseIslandLocation(island.islandLocation ?? "")
             }
             .onChange(of: islandName) { _ in validateForm() }
             .onChange(of: requiredAddressFields) { _ in validateForm() }

@@ -188,7 +188,12 @@ struct AddIslandFormView: View {
         
         Task {
             do {
-                _ = try await islandViewModel.createPirateIsland(islandDetails: islandDetails, createdByUserId: profileViewModel.name)
+                // Pass nil for gymWebsite if it's not available
+                _ = try await islandViewModel.createPirateIsland(
+                    islandDetails: islandDetails,
+                    createdByUserId: profileViewModel.name,
+                    gymWebsite: nil
+                )
                 toastMessage = "Island saved successfully!"
                 clearFields()
             } catch {
