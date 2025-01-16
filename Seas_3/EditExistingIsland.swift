@@ -21,7 +21,7 @@ struct EditExistingIsland: View {
     @ObservedObject var islandViewModel: PirateIslandViewModel
     @ObservedObject var profileViewModel: ProfileViewModel
     @StateObject var islandDetails = IslandDetails()
-    @ObservedObject var countryService = CountryService.shared
+    @StateObject private var countryService = CountryService()
     @State private var isCountryPickerPresented = false
 
     // MARK: - State Variables
@@ -104,7 +104,7 @@ struct EditExistingIsland: View {
                 }
 
                 Section(header: Text("Website (optional)")) {
-                    TextField("Gym Website", text: $gymWebsite)
+                    TextField("Gym Website567", text: $gymWebsite)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .keyboardType(.URL)
                         .onChange(of: gymWebsite) { newValue in
@@ -145,7 +145,7 @@ struct EditExistingIsland: View {
                 Task {
                     await countryService.fetchCountries()
                     if let countryName = island.country,
-                       let country = countryService.getCountry(by: countryName) {
+                       let country = countryService.countries.first(where: { $0.name.common == countryName }) {
                         selectedCountry = country
                         requiredAddressFields = getAddressFields(for: country.cca2)
                     }
@@ -165,7 +165,12 @@ struct EditExistingIsland: View {
         if components.count > 1 { islandDetails.city = components[1] }
         if components.count > 2 { islandDetails.state = components[2] }
         if components.count > 3 { islandDetails.postalCode = components[3] }
-        if components.count > 4 { islandDetails.selectedCountry = countryService.getCountry(by: components[4]) }
+        if components.count > 4 {
+            let countryName = components[4]
+            if let country = countryService.countries.first(where: { $0.name.common == countryName }) {
+                islandDetails.selectedCountry = country
+            }
+        }
     }
     
     private func updateAddressFields() {

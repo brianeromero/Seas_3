@@ -79,11 +79,11 @@ struct AddNewIsland: View {
                 }
                 
                 Section(header: Text("Website (optional)")) {
-                    TextField("Gym Website", text: $gymWebsite)
+                    TextField("Gym Website011111", text: $gymWebsite)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .keyboardType(.URL)
                         .onChange(of: gymWebsite) { newValue in
-                            if !newValue.isEmpty && !validateURL(newValue) {
+                            if !newValue.isEmpty && ValidationUtility.validateURL(newValue) != nil {
                                 alertMessage = "Invalid website URL"
                                 showAlert = true
                             }
@@ -216,15 +216,6 @@ struct AddNewIsland: View {
         print("Final validation result: \(finalIsValid)")
         isSaveEnabled = isSaveEnabled && finalIsValid // Update isSaveEnabled
     }
-
-    
-    private func validateURL(_ urlString: String) -> Bool {
-        guard let url = URL(string: urlString), UIApplication.shared.canOpenURL(url) else {
-            return false
-        }
-        return true
-    }
-
 
     private func isValidField(_ field: AddressFieldType) -> Bool {
         guard let keyPath = fieldValues.first(where: { $1 == field })?.0 else {

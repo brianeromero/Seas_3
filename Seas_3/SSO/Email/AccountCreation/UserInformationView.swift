@@ -35,6 +35,7 @@ struct UserInformationView: View {
             )
         }, header: {
             Text("User Information").fontWeight(.bold)
+                .padding(.horizontal, 20)
         })
     }
     

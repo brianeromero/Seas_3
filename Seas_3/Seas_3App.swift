@@ -26,14 +26,12 @@ struct Seas3App: App {
     @StateObject private var persistenceController = PersistenceController.shared
     @StateObject var profileViewModel: ProfileViewModel
 
-
     init() {
         _profileViewModel = StateObject(wrappedValue: ProfileViewModel(
             viewContext: PersistenceController.shared.container.viewContext,
             authViewModel: AuthViewModel.shared
         ))
     }
-
 
     @StateObject var viewModel = AppDayOfWeekViewModel(
         selectedIsland: nil,
@@ -61,25 +59,26 @@ struct Seas3App: App {
                     }
             } else if authenticationState.isAuthenticated && authenticationState.navigateToAdminMenu {
                 AdminMenu()
-                .environment(\.managedObjectContext, persistenceController.container.viewContext)
-                .environmentObject(appState)
-                .environmentObject(viewModel)
-                .onAppear {
-                    setupGlobalErrorHandler()
-                }
+                    .environment(\.managedObjectContext, persistenceController.container.viewContext)
+                    .environmentObject(authenticationState)
+                    .environmentObject(appState)
+                    .environmentObject(viewModel)
+                    .environmentObject(profileViewModel)
+                    .onAppear {
+                        setupGlobalErrorHandler()
+                    }
             } else if authenticationState.isAuthenticated && authenticationState.isLoggedIn {
-                IslandMenu(
-                    isLoggedIn: $authenticationState.isLoggedIn
-                )
-                .environment(\.managedObjectContext, persistenceController.container.viewContext)
-                .environmentObject(appState)
-                .environmentObject(viewModel)
-                .environmentObject(profileViewModel)
-                .onAppear {
-                    let sceneLoader = SceneLoader()
-                    sceneLoader.loadScene()
-                    setupGlobalErrorHandler()
-                }
+                IslandMenu(isLoggedIn: $authenticationState.isLoggedIn)
+                    .environment(\.managedObjectContext, persistenceController.container.viewContext)
+                    .environmentObject(authenticationState)
+                    .environmentObject(appState)
+                    .environmentObject(viewModel)
+                    .environmentObject(profileViewModel)
+                    .onAppear {
+                        let sceneLoader = SceneLoader()
+                        sceneLoader.loadScene()
+                        setupGlobalErrorHandler()
+                    }
             } else {
                 LoginView(
                     islandViewModel: PirateIslandViewModel(persistenceController: persistenceController),
@@ -108,7 +107,6 @@ struct Seas3App: App {
         }
     }
 }
-
 
 // Add this extension
 struct PersistenceControllerKey: EnvironmentKey {

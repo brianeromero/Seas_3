@@ -75,11 +75,12 @@ struct AddIslandFormView: View {
             if let selectedCountry = islandDetails.selectedCountry {
                 let requiredFields = getAddressFields(for: selectedCountry.cca2)
                 
+                // Dynamically create fields based on the country-specific requirements
                 ForEach(requiredFields, id: \.self) { field in
-                    self.addressField(for: AddressField(rawValue: field.rawValue)!)
+                    self.addressField(for: field)
                 }
                 
-                // County field specifically for countries like Ireland
+                // Conditional field specifically for countries like Ireland
                 if selectedCountry.cca2 == "IE" {
                     TextField("County", text: $islandDetails.county)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -91,10 +92,13 @@ struct AddIslandFormView: View {
     }
 
     // MARK: - Address Fields
-    private func addressField(for field: AddressField) -> some View {
+    // Ensure consistency between AddressField and AddressFieldType
+    private func addressField(for field: AddressFieldType) -> some View {
+        // Adjusting to use AddressFieldType
         switch field {
         case .street:
             return AnyView(TextField("Street", text: $islandDetails.street).textFieldStyle(RoundedBorderTextFieldStyle()))
+        // Handle other cases similarly
         case .city:
             return AnyView(TextField("City", text: $islandDetails.city).textFieldStyle(RoundedBorderTextFieldStyle()))
         case .state:
@@ -132,21 +136,22 @@ struct AddIslandFormView: View {
 
     private var instagramOrWebsiteSection: some View {
         Section(header: Text("Instagram/Facebook/Website")) {
-            TextField("Gym Website", text: $islandDetails.gymWebsite)
+            TextField("Gym Website8910", text: $islandDetails.gymWebsite)
                 .keyboardType(.URL)
-                .onChange(of: islandDetails.gymWebsite) { newValue in
-                    if !newValue.isEmpty {
-                        let validatedURL = validateAndFormatURL(newValue)
-                        if let url = validatedURL {
-                            islandDetails.gymWebsiteURL = url
-                        } else {
-                            showAlert = true
-                            alertMessage = "Invalid website URL."
-                        }
+            // Updated onChange signature for iOS 17 and later
+            .onChange(of: islandDetails.gymWebsite) { newValue in
+                if !newValue.isEmpty {
+                    if ValidationUtility.validateURL(newValue) == nil {
+                        islandDetails.gymWebsiteURL = URL(string: newValue)
                     } else {
-                        islandDetails.gymWebsiteURL = nil
+                        showAlert = true
+                        alertMessage = "Invalid website URL."
                     }
+                } else {
+                    islandDetails.gymWebsiteURL = nil
                 }
+            }
+
         }
     }
 
@@ -244,15 +249,8 @@ struct AddIslandFormView: View {
     }
     
     private func getAddressFields(for country: String) -> [AddressFieldType] {
-        // Replace with your country-specific logic
-        return defaultAddressFieldRequirements
-    }
-    
-    private func validateAndFormatURL(_ urlString: String) -> URL? {
-        guard let url = URL(string: urlString), UIApplication.shared.canOpenURL(url) else {
-            return nil
-        }
-        return url
+        // Fetch the address field requirements for the country using the predefined mapping
+        return addressFieldRequirements[country] ?? []
     }
 }
 

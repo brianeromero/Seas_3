@@ -1,36 +1,35 @@
 //
-//  DeleteRecordView.swift
+//  DeleteUserView.swift
 //  Seas_3
 //
-//  Created by Brian Romero on 12/17/24.
+//  Created by Brian Romero on 1/6/25.
 //
 
 import Foundation
 import SwiftUI
-import FirebaseFirestore
 import CoreData
 
-struct DeleteRecordView: View {
-    @State private var recordID: String = ""
+struct DeleteUserView: View {
+    @EnvironmentObject var authenticationState: AuthenticationState
+    @State private var userID: String = ""
     @State private var statusMessage: String = ""
 
     let coreDataContext: NSManagedObjectContext
-    let firestoreManager: FirestoreManager
 
     var body: some View {
         VStack(spacing: 20) {
-            Text("Delete Record")
+            Text("Delete User")
                 .font(.title)
                 .bold()
             
-            TextField("Enter Record ID", text: $recordID)
+            TextField("Enter User ID", text: $userID)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding()
 
             Button(action: {
-                deleteRecordAndHandleCache()
+                deleteUserAndHandleCache()
             }) {
-                Text("Delete Record")
+                Text("Delete User")
                     .font(.headline)
                     .foregroundColor(.white)
                     .padding()
@@ -46,15 +45,11 @@ struct DeleteRecordView: View {
         .padding()
     }
     
-    private func deleteRecord(recordID: String, coreDataContext: NSManagedObjectContext) async -> (Bool, String) {
-        let db = Firestore.firestore()
-
+    private func deleteUser(userID: String, coreDataContext: NSManagedObjectContext) async -> (Bool, String) {
         do {
-            try await db.collection("pirateIslands").document(recordID).delete()
-            print("Record deleted from Firestore.")
-            
-            let fetchRequest: NSFetchRequest<NSFetchRequestResult> = NSFetchRequest(entityName: "PirateIsland")
-            fetchRequest.predicate = NSPredicate(format: "islandID == %@", recordID as NSString)
+            // Delete user from Core Data
+            let fetchRequest: NSFetchRequest<NSFetchRequestResult> = NSFetchRequest(entityName: "UserInfo")
+            fetchRequest.predicate = NSPredicate(format: "userID == %@", userID as NSString)
             
             let results = try await coreDataContext.perform {
                 try coreDataContext.fetch(fetchRequest) as? [NSManagedObject]
@@ -67,26 +62,27 @@ struct DeleteRecordView: View {
                 try await coreDataContext.perform {
                     try coreDataContext.save()
                 }
-                print("Record deleted from Core Data.")
+                print("User deleted from Core Data.")
                 return (true, "")
             } else {
                 return (false, "Failed to delete from Core Data: No results found")
             }
         } catch {
-            return (false, "Failed to delete from Firestore or Core Data: \(error.localizedDescription)")
+            print("Error deleting user: \(error.localizedDescription)")
+            return (false, "Failed to delete from Core Data: \(error.localizedDescription)")
         }
     }
 
-    private func deleteRecordAndHandleCache() {
-        guard !recordID.isEmpty else {
-            statusMessage = "Please enter a valid Record ID."
+    private func deleteUserAndHandleCache() {
+        guard !userID.isEmpty else {
+            statusMessage = "Please enter a valid User ID."
             return
         }
 
         Task {
-            let (success, message) = await deleteRecord(recordID: recordID, coreDataContext: coreDataContext)
+            let (success, message) = await deleteUser(userID: userID, coreDataContext: coreDataContext)
             if success {
-                statusMessage = "Record successfully deleted."
+                statusMessage = "User successfully deleted."
             } else {
                 statusMessage = "Error: \(message)"
             }

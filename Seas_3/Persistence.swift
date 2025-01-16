@@ -20,6 +20,8 @@ class PersistenceController: ObservableObject {
     // Preview instance for SwiftUI previews
     static let preview: PersistenceController = {
         let controller = PersistenceController(inMemory: true)
+        FirestoreManager.shared.disabled = true // Disable Firestore operations for preview
+        
         let viewContext = controller.container.viewContext
         
         for _ in 0..<5 {
@@ -88,6 +90,7 @@ class PersistenceController: ObservableObject {
     
     // Firestore Syncing
     func syncPirateIslandsFromFirestore() async throws {
+        
         let snapshot = try await firestoreManager.getDocuments(in: .pirateIslands)
         
         for document in snapshot {

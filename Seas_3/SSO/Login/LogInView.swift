@@ -7,6 +7,8 @@ import FBSDKLoginKit
 import Security
 import CryptoSwift
 import Combine
+import os
+
 
 public enum LoginViewSelection: Int {
     case login = 0
@@ -241,6 +243,8 @@ public struct LoginView: View {
     @Binding private var isLoggedIn: Bool
     @State private var showToastMessage: String = ""
     @State private var isToastShown: Bool = false
+    @State private var navigateToCreateAccount = false
+
 
     public init(
         islandViewModel: PirateIslandViewModel,
@@ -342,19 +346,28 @@ public struct LoginView: View {
     private var loginOrCreateAccount: some View {
         HStack(alignment: .center, spacing: 10) {
             Text("Log In OR")
-            NavigationLink(destination: CreateAccountView(
-                islandViewModel: islandViewModel,
-                isUserProfileActive: $isUserProfileActive,
-                persistenceController: PersistenceController.shared,
-                selectedTabIndex: $selectedTabIndex,
-                emailManager: UnifiedEmailManager.shared
-            )) {
+            Button(action: {
+                print("Create Account link tapped")
+                os_log("Create Account link tapped", log: OSLog.default, type: .info)
+                navigateToCreateAccount = true
+            }) {
                 Text("Create an Account")
                     .font(.body)
                     .foregroundColor(.blue)
                     .underline()
             }
         }
+        .background(
+            NavigationLink(destination: CreateAccountView(
+                islandViewModel: islandViewModel,
+                isUserProfileActive: $isUserProfileActive,
+                persistenceController: PersistenceController.shared,
+                selectedTabIndex: $selectedTabIndex,
+                emailManager: UnifiedEmailManager.shared
+            ), isActive: $navigateToCreateAccount) {
+                EmptyView()
+            }
+        )
     }
 }
 

@@ -67,6 +67,8 @@ public class PirateIslandViewModel: ObservableObject {
     
     // MARK: - Create Pirate Island
     func createPirateIsland(islandDetails: IslandDetails, createdByUserId: String, gymWebsite: String?) async throws -> PirateIsland {
+        os_log("createPirateIsland called with Island Name: %@, Location: %@", log: logger, type: .info, islandDetails.islandName, islandDetails.fullAddress)
+
         // Generate a new UUID
         let newIslandID = UUID()
 
@@ -79,6 +81,7 @@ public class PirateIslandViewModel: ObservableObject {
 
         // Step 2: Check if the island already exists
         guard !pirateIslandExists(name: islandDetails.islandName) else {
+            os_log("Island already exists: %@", log: logger, type: .error, islandDetails.islandName)
             throw PirateIslandError.islandExists
         }
 
@@ -110,12 +113,15 @@ public class PirateIslandViewModel: ObservableObject {
             if let url = URL(string: website) {
                 newIsland.gymWebsite = url
             } else {
+                os_log("Invalid Gym Website URL: %@", log: logger, type: .error, website)
                 throw PirateIslandError.invalidGymWebsite
             }
         }
 
         newIsland.latitude = coordinates.latitude
         newIsland.longitude = coordinates.longitude
+
+        os_log("Prepared new PirateIsland for saving: %@, %@, Lat: %@, Long: %@", log: logger, newIsland.islandName ?? "Unknown", newIsland.islandLocation ?? "Unknown", "\(newIsland.latitude)", "\(newIsland.longitude)")
 
         // Save to Firestore first
         try await savePirateIslandToFirestore(island: newIsland)
@@ -126,18 +132,17 @@ public class PirateIslandViewModel: ObservableObject {
             let islandName = newIsland.islandName ?? "Unknown Island Name"  // Default value if nil
             let islandLocation = newIsland.islandLocation ?? "Unknown Location"  // Default value if nil
 
-            print("Saving Island: \(islandName), Location: \(islandLocation)")
+            os_log("Saving Island to Core Data: %@, Location: %@", log: logger, type: .info, islandName, islandLocation)
 
             // Ensure persistenceController.saveContext() is async if needed or use the correct method
             try await persistenceController.saveContext()  // If saveContext() is synchronous, remove the 'await'
             os_log("Successfully saved PirateIsland: %@", log: logger, type: .info, islandName)
         } catch {
             os_log("Error saving PirateIsland: %@", log: logger, type: .error, error.localizedDescription)
-            throw PirateIslandError.savingError(error.localizedDescription)  // Handle save error
+            throw error
         }
 
-        os_log("PirateIsland created successfully: %@", log: logger, type: .info, newIsland.islandName ?? "Unknown Island Name")
-        return newIsland  // Return the saved island
+        return newIsland
     }
 
 

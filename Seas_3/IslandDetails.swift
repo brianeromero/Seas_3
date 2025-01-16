@@ -5,8 +5,8 @@
 
 import Foundation
 import Combine
-import Foundation
-import Combine
+import os
+
 
 class IslandDetails: ObservableObject, Equatable {
     // MARK: - Published Properties
@@ -16,36 +16,35 @@ class IslandDetails: ObservableObject, Equatable {
     @Published var state: String = "" { didSet { validateForm() } }
     @Published var postalCode: String = "" { didSet { validateForm() } }
     @Published var requiredAddressFields: [AddressFieldType] = []
-    
+        
     @Published var selectedCountry: Country? {
         didSet {
             updateRequiredAddressFields()
         }
     }
-    
+        
     @Published var gymWebsite: String = "" { didSet { validateForm() } }
     @Published var gymWebsiteURL: URL?
 
-    @Published var neighborhood: String = ""
-    @Published var complement: String = ""
-    @Published var block: String = ""
-    @Published var apartment: String = ""
-    @Published var region: String = ""
-    @Published var country: String = ""
-    @Published var county: String = ""
-    @Published var governorate: String = ""
-    @Published var province: String = ""
-    @Published var district: String = ""
-    @Published var department: String = ""
-    @Published var emirate: String = ""
-    @Published var parish: String = ""
-    @Published var entity: String = ""
-    @Published var municipality: String = ""
-    @Published var division: String = ""
-    @Published var zone: String = ""
-    @Published var island: String = ""
-
-
+    @Published var neighborhood: String = "" { didSet { validateForm() } }
+    @Published var complement: String = "" { didSet { validateForm() } }
+    @Published var block: String = "" { didSet { validateForm() } }
+    @Published var apartment: String = "" { didSet { validateForm() } }
+    @Published var region: String = "" { didSet { validateForm() } }
+    @Published var country: String = "" { didSet { validateForm() } }
+    @Published var county: String = "" { didSet { validateForm() } }
+    @Published var governorate: String = "" { didSet { validateForm() } }
+    @Published var province: String = "" { didSet { validateForm() } }
+    @Published var district: String = "" { didSet { validateForm() } }
+    @Published var department: String = "" { didSet { validateForm() } }
+    @Published var emirate: String = "" { didSet { validateForm() } }
+    @Published var parish: String = "" { didSet { validateForm() } }
+    @Published var entity: String = "" { didSet { validateForm() } }
+    @Published var municipality: String = "" { didSet { validateForm() } }
+    @Published var division: String = "" { didSet { validateForm() } }
+    @Published var zone: String = "" { didSet { validateForm() } }
+    @Published var island: String = "" { didSet { validateForm() } }
+    
     // MARK: - Validation Properties
     @Published var isIslandNameValid: Bool = true
     @Published var islandNameErrorMessage: String = ""
@@ -60,7 +59,7 @@ class IslandDetails: ObservableObject, Equatable {
     @Published var multilineAddress: String = ""
     @Published var additionalInfo: String = ""
 
-
+    
     // MARK: - Computed Properties
     var islandLocation: String {
         let locationComponents = requiredAddressFields.compactMap { field -> String? in
@@ -81,7 +80,7 @@ class IslandDetails: ObservableObject, Equatable {
         }
         return locationComponents.filter { !$0.isEmpty }.joined(separator: ", ")
     }
-
+    
     var fullAddress: String {
         var address = [islandLocation]
         if !country.isEmpty {
@@ -90,9 +89,11 @@ class IslandDetails: ObservableObject, Equatable {
         if let selectedCountry = selectedCountry, !selectedCountry.name.common.isEmpty {
             address.append(selectedCountry.name.common)
         }
-        return address.filter { !$0.isEmpty }.joined(separator: "\n")
+        
+        let computedAddress = address.filter { !$0.isEmpty }.joined(separator: "\n")
+        os_log("Computed fullAddress: %@", log: .default, type: .debug, computedAddress)
+        return computedAddress
     }
-
     // MARK: - Initializer
     init(islandName: String = "",
          street: String = "",
@@ -124,7 +125,7 @@ class IslandDetails: ObservableObject, Equatable {
         self.gymWebsiteURL = gymWebsiteURL
         validateForm()
     }
-
+    
     // MARK: - Validation Logic
     private func validateForm() {
         let fieldsValid = requiredAddressFields.allSatisfy { field in
@@ -162,7 +163,7 @@ class IslandDetails: ObservableObject, Equatable {
         isFormValid = formValid
         onValidationChange?(formValid)
     }
-
+    
     // MARK: - Update Required Address
     func updateRequiredAddressFields() {
         guard let countryName = selectedCountry?.name.common else {
@@ -173,7 +174,7 @@ class IslandDetails: ObservableObject, Equatable {
         requiredAddressFields = getAddressFields(for: countryName)
         validateForm()
     }
-
+    
     // MARK: - Equatable Protocol
     static func == (lhs: IslandDetails, rhs: IslandDetails) -> Bool {
         lhs.islandName == rhs.islandName &&
@@ -190,4 +191,3 @@ class IslandDetails: ObservableObject, Equatable {
         lhs.island == rhs.island
     }
 }
-

@@ -78,6 +78,8 @@ struct IslandFormSections: View {
                 Text("No countries found.")
             }
             islandDetailsSection
+                .padding()
+
             websiteSection
         }
         .padding()
@@ -96,7 +98,10 @@ struct IslandFormSections: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Gym Name")
             TextField("Enter Gym Name", text: $islandDetails.islandName)
-                .onChange(of: islandDetails.islandName) { newValue in validateFields() }
+                .onChange(of: islandDetails.islandName) { newValue in
+                    os_log("Updated islandName: %@", newValue)
+                    validateFields()
+                }
                 .textFieldStyle(RoundedBorderTextFieldStyle())
 
             let requiredFields = requiredFields(for: selectedCountry)
@@ -108,6 +113,7 @@ struct IslandFormSections: View {
             }
         }
     }
+
     
     func requiredFields(for country: Country?) -> [AddressFieldType] {
         guard let countryCode = country?.cca2 else { return defaultAddressFieldRequirements }
@@ -136,7 +142,7 @@ struct IslandFormSections: View {
     func processWebsiteURL() {
         guard !islandDetails.gymWebsite.isEmpty else { islandDetails.gymWebsiteURL = nil; return }
         let fullURLString = "https://" + stripProtocol(from: islandDetails.gymWebsite)
-        if validateURL(fullURLString) {
+        if ValidationUtility.validateURL(fullURLString) == nil {
             islandDetails.gymWebsiteURL = URL(string: fullURLString)
         } else {
             self.showError = true
@@ -267,13 +273,6 @@ struct IslandFormSections: View {
     }
 
     
-    func validateURL(_ urlString: String) -> Bool {
-        guard let url = URL(string: urlString), UIApplication.shared.canOpenURL(url) else {
-            return false
-        }
-        return true
-    }
-    
     func validateGymNameAndAddress() -> Bool {
         // Validate the gym name
         guard !islandDetails.islandName.isEmpty else {
@@ -355,7 +354,7 @@ struct IslandFormSections: View {
      }
     
     var websiteSection: some View {
-        Section(header: Text("Gym Website").fontWeight(.bold)) {
+        Section(content: {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Gym Website/Facebook/Instagram")
                 TextField("Enter Website or Facebook or Instagram URL", text: $islandDetails.gymWebsite)
@@ -364,7 +363,13 @@ struct IslandFormSections: View {
                     .textFieldStyle(RoundedBorderTextFieldStyle())
             }
             .padding()
-        }
+        }, header: {
+            HStack {
+                Text("Gym Website")
+                    .fontWeight(.bold)
+                Spacer()
+            }
+        })
     }
 }
 

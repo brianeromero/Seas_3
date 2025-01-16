@@ -7,16 +7,17 @@
 
 import SwiftUI
 import GoogleMobileAds
+import FirebaseAuth
 
 struct AdminMenu: View {
     @Environment(\.persistenceController) private var persistenceController
+    @EnvironmentObject var authenticationState: AuthenticationState
     private var appDayOfWeekRepository: AppDayOfWeekRepository
     let firestoreManager = FirestoreManager.shared
 
-    
     @StateObject private var enterZipCodeViewModel: EnterZipCodeViewModel
     @StateObject private var appDayOfWeekViewModel: AppDayOfWeekViewModel
-    
+
     init() {
         let persistenceController = PersistenceController.shared
         let repository = AppDayOfWeekRepository(persistenceController: persistenceController)
@@ -26,9 +27,9 @@ struct AdminMenu: View {
         self._enterZipCodeViewModel = StateObject(wrappedValue: enterZipCodeVM)
         self._appDayOfWeekViewModel = StateObject(wrappedValue: AppDayOfWeekViewModel(repository: repository, enterZipCodeViewModel: enterZipCodeVM))
     }
-    
+
     let menuItems: [MenuItem] = [
-        MenuItem(title: "Manage Users", subMenuItems: ["Reset User Verification", "Edit User", "Remove User", "Manual User Verification"], padding: 20),
+        MenuItem(title: "Manage Users", subMenuItems: ["Reset User Verification", "Edit User", "Remove User", "Manual User Verification", "Delete User from Local Database"], padding: 20),
         MenuItem(title: "Manage Gyms", subMenuItems: ["All Gyms", "ALL Gym Schedules", "ALL Mat Schedules"], padding: 15),
         MenuItem(title: "Manage Reviews", subMenuItems: ["View All Reviews", "Moderate Reviews"], padding: 20),
         MenuItem(title: "Delete Record", subMenuItems: ["Delete Record"], padding: 20)
@@ -55,12 +56,7 @@ struct AdminMenu: View {
                 Spacer()
                 
                 // Sign Out Button
-                NavigationLink(destination: LoginView(
-                    islandViewModel: PirateIslandViewModel(persistenceController: persistenceController),
-                    isSelected: .constant(.login),
-                    navigateToAdminMenu: .constant(false),
-                    isLoggedIn: .constant(false)
-                )) {
+                Button(action: signOut) {
                     Text("Sign Out")
                         .font(.headline)
                         .foregroundColor(.blue)
@@ -96,8 +92,17 @@ struct AdminMenu: View {
                 .environment(\.persistenceController, PersistenceController.shared)
         case "Delete Record":
             DeleteRecordView(coreDataContext: persistenceController.container.viewContext, firestoreManager: firestoreManager)
+        case "Delete User from Local Database":
+            DeleteUserView(coreDataContext: persistenceController.container.viewContext)
         default:
             EmptyView()
+        }
+    }
+
+    private func signOut() {
+        authenticationState.logout {
+            // Perform additional cleanup if necessary
+            print("User signed out successfully")
         }
     }
 }
@@ -106,10 +111,8 @@ struct AdminMenu: View {
 class MockAppDayOfWeekViewModel: AppDayOfWeekViewModel {
     convenience init() {
         let mockRepository = MockAppDayOfWeekRepository(persistenceController: PersistenceController.shared)
-        let mockEnterZipCodeViewModel = EnterZipCodeViewModel(
-            repository: mockRepository,
-            persistenceController: PersistenceController.shared
-        )
+        let mockEnterZipCodeViewModel = EnterZipCodeViewModel(repository: mockRepository, persistenceController: PersistenceController.shared)
+        
         self.init(repository: mockRepository, enterZipCodeViewModel: mockEnterZipCodeViewModel)
     }
 }

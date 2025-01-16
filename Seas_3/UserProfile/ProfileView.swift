@@ -11,7 +11,7 @@ struct ProfileView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @ObservedObject var profileViewModel: ProfileViewModel
     
-    private let beltOptions = ["White", "Blue", "Purple", "Brown", "Black"]
+    private let beltOptions = ["", "White", "Blue", "Purple", "Brown", "Black"]
     @State private var isEditing = false
     @State private var originalEmail: String = ""
     @State private var originalUserName: String = ""
