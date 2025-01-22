@@ -19,7 +19,7 @@ struct DeleteRecordView: View {
 
     var body: some View {
         VStack(spacing: 20) {
-            Text("Delete Record")
+            Text("Delete Gym Record")
                 .font(.title)
                 .bold()
             
@@ -30,7 +30,7 @@ struct DeleteRecordView: View {
             Button(action: {
                 deleteRecordAndHandleCache()
             }) {
-                Text("Delete Record")
+                Text("Delete Gym Record")
                     .font(.headline)
                     .foregroundColor(.white)
                     .padding()

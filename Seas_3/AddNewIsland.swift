@@ -229,7 +229,12 @@ struct AddNewIsland: View {
     private func saveIsland(onSave: @escaping () -> Void) async {
         if isSaveEnabled {
             do {
-                let newIsland = try await islandViewModel.createPirateIsland(islandDetails: islandDetails, createdByUserId: profileViewModel.name, gymWebsite: gymWebsite)
+                let newIsland = try await islandViewModel.createPirateIsland(
+                    islandDetails: islandDetails,
+                    createdByUserId: profileViewModel.name,
+                    gymWebsite: gymWebsite,
+                    country: islandDetails.selectedCountry?.cca2 ?? ""
+                )
 
                 // Store the country and gym website URL in the new island
                 newIsland.country = islandDetails.selectedCountry?.name.common

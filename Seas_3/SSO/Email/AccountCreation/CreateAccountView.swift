@@ -45,6 +45,11 @@ struct CreateAccountView: View {
     @State private var bypassValidation = false
     @State private var showValidationMessage = false
     
+    // Form Validation Variables
+    @State private var isIslandNameValid: Bool = true
+    @State private var islandNameErrorMessage: String = ""
+    @State private var isFormValid: Bool = false
+    
     // View Models
     @StateObject var authViewModel = AuthViewModel()
     @ObservedObject var islandViewModel: PirateIslandViewModel
@@ -62,13 +67,31 @@ struct CreateAccountView: View {
     @State private var governorate = ""
     @State private var region = ""
     @State private var county = ""
+    @State private var islandName: String = ""
+    @State private var street: String = ""
+    @State private var city: String = ""
+    @State private var state: String = ""
+    @State private var postalCode: String = ""
     @State private var islandDetails = IslandDetails()
-    
-    // Address and Location
+    @State private var block: String = ""
+    @State private var district: String = ""
+    @State private var department: String = ""
+    @State private var emirate: String = ""
+    @State private var parish: String = ""
+    @State private var entity: String = ""
+    @State private var municipality: String = ""
+    @State private var division: String = ""
+    @State private var zone: String = ""
+    @State private var island: String = ""
+    @State private var latitude: String = ""
+    @State private var longitude: String = ""
+    @State private var additionalInfo: String = ""
     @State private var neighborhood: String = ""
     @State private var complement: String = ""
     @State private var apartment: String = ""
-    @State private var additionalInfo: String = ""
+    @State private var multilineAddress: String = ""
+    @State private var requiredAddressFields: [AddressFieldType] = []
+    @State private var country: String = ""
     
     // Alerts and Toasts
     @State private var errorMessage: String? = nil
@@ -76,6 +99,8 @@ struct CreateAccountView: View {
     @State private var showErrorAlert = false
     @State private var showToast = false
     @State private var toastMessage = ""
+    @State private var showAlert: Bool = false
+    @State private var alertMessage: String = ""
     
     // Picker and Modal States
     @State private var isPickerPresented = false
@@ -98,7 +123,7 @@ struct CreateAccountView: View {
         self.emailManager = emailManager
         _profileViewModel = StateObject(wrappedValue: ProfileViewModel(viewContext: persistenceController.container.viewContext))
     }
-    
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
@@ -147,11 +172,13 @@ struct CreateAccountView: View {
                 .padding(.horizontal, 20)) {
                     IslandFormSections(
                         viewModel: islandViewModel,
+                        profileViewModel: profileViewModel,
+                        countryService: countryService, // Correct binding for countryService
                         islandName: $islandDetails.islandName,
                         street: $islandDetails.street,
                         city: $islandDetails.city,
                         state: $islandDetails.state,
-                        postalCode: $islandDetails.postalCode,
+                        postalCode: $islandDetails.postalCode, // Fixed to correct binding
                         province: $province,
                         neighborhood: $neighborhood,
                         complement: $complement,
@@ -160,13 +187,16 @@ struct CreateAccountView: View {
                         county: $county,
                         governorate: $governorate,
                         additionalInfo: $additionalInfo,
-                        gymWebsite: $gymWebsite,
-                        gymWebsiteURL: $gymWebsiteURL,
-                        showAlert: .constant(false),
-                        alertMessage: .constant(""),
-                        selectedCountry: $selectedCountry,
-                        islandDetails: $islandDetails,
-                        profileViewModel: profileViewModel
+                        islandDetails: $islandDetails, // Correct binding for IslandDetails
+                        selectedCountry: $selectedCountry, // Correct binding for selectedCountry
+                        showAlert: $showAlert, // Correct binding for showAlert
+                        alertMessage: $alertMessage, // Correct binding for alertMessage
+                        gymWebsite: .constant(""), // Correct binding for gymWebsite
+                        gymWebsiteURL: $gymWebsiteURL, // Correct binding for gymWebsiteURL
+                        isIslandNameValid: $isIslandNameValid, // Correct binding for isIslandNameValid
+                        islandNameErrorMessage: $islandNameErrorMessage, // Correct binding for islandNameErrorMessage
+                        isFormValid: $isFormValid, // Correct binding for isFormValid
+                        formState: $formState // Passed correct formState binding
                     )
                 }
                 
@@ -201,7 +231,6 @@ struct CreateAccountView: View {
                 }
                 
                 // Form validity check
-                // Address validation logic
                 var AddressFormIsValid: Bool {
                     // If islandName is empty, address fields are not required
                     if islandDetails.islandName.trimmingCharacters(in: .whitespaces).isEmpty {
@@ -214,23 +243,17 @@ struct CreateAccountView: View {
                 Button(action: {
                     print("Button tapped - calling createPirateIsland")
 
-                    // Ensure currentUserId is defined and valid
-                    guard let currentUserId = Auth.auth().currentUser?.uid else {
-                        print("Error: User is not logged in")
-                        return
-                    }
-                    
-                    // Log the current user ID
-                    print("Current User ID: \(currentUserId)")
-                    
                     // Use async/await for async call
                     Task {
                         do {
                             // Ensure all required parameters are passed
+                            let userId = try await authViewModel.getUserId() // Access getUserId directly
+                            islandDetails.country = selectedCountry?.cca2 ?? ""
                             let result = try await islandViewModel.createPirateIsland(
                                 islandDetails: islandDetails,
-                                createdByUserId: currentUserId, // Pass the current user ID here
-                                gymWebsite: gymWebsiteURL?.absoluteString
+                                createdByUserId: userId,
+                                gymWebsite: gymWebsiteURL?.absoluteString ?? "",
+                                country: islandDetails.country
                             )
 
                             // Handle the result if needed (you can inspect the result here if required)
@@ -353,21 +376,42 @@ struct CreateAccountView: View {
         return !islandDetails.islandName.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
-    
-    func createAccount() {
-        os_log("Create Account button pressed.", type: .info)
+
+    private func createAccount() {
+        print("Create Account button pressed.")
         logFormState()
-        logAddressDetails()
-
+        
         guard isValidForm() else { return }
-        guard !emailAlreadyExists() else { return }
-
+        
+        if emailAlreadyExists() {
+            return
+        }
+        
         Task {
             do {
-                try await createUserAccount()
+                // Attempt to create the user account
+                try await authViewModel.createUser(
+                    withEmail: formState.email,
+                    password: formState.password,
+                    userName: formState.userName,
+                    name: formState.name,
+                    belt: belt
+                )
+                
+                successMessage = "Account created successfully"
+                showErrorAlert = true
+                
+                // Log address details and update fields
+                logAddressDetails()
+                updateIslandDetails()
+                
+                // Create Pirate Island if valid
                 await createPirateIslandIfValid()
+                
+                // Handle overall success (e.g., show a success message or navigate to another view)
                 handleSuccess()
             } catch {
+                // Handle any errors that occurred during the account creation process
                 handleCreateAccountError(error)
             }
         }
@@ -377,15 +421,48 @@ struct CreateAccountView: View {
 
     private func logFormState() {
         os_log("Current form state: %@", type: .info, "\(formState)")
-        os_log("Validation Check: Username Valid: %d, Name Valid: %d, Email Valid: %d, Password Valid: %d", type: .info, formState.isUserNameValid, formState.isNameValid, formState.isEmailValid, formState.isPasswordValid)
+        os_log("Validation Check: Username Valid: %d, Name Valid: %d, Email Valid: %d, Password Valid: %d",
+               type: .info, formState.isUserNameValid, formState.isNameValid, formState.isEmailValid, formState.isPasswordValid)
     }
 
     private func logAddressDetails() {
         os_log("islandName: %@", type: .info, islandDetails.islandName)
-        os_log("Island Name entered: %@", type: .info, islandDetails.islandName)
-        os_log("fullAddress: %@", type: .info, islandDetails.fullAddress)
+        os_log("Full Address: %@", type: .info, islandDetails.fullAddress)
         os_log("Selected Country: %@", type: .info, selectedCountry?.name.common ?? "None")
     }
+
+    private func updateIslandDetails() {
+        islandDetails.islandName = islandName
+        islandDetails.street = street
+        islandDetails.city = city
+        islandDetails.state = state
+        islandDetails.postalCode = postalCode
+        islandDetails.selectedCountry = selectedCountry
+        islandDetails.country = country
+        islandDetails.county = county
+        islandDetails.gymWebsite = gymWebsite
+        islandDetails.gymWebsiteURL = gymWebsiteURL
+        islandDetails.neighborhood = neighborhood
+        islandDetails.complement = complement
+        islandDetails.block = block
+        islandDetails.apartment = apartment
+        islandDetails.region = region
+        islandDetails.governorate = governorate
+        islandDetails.province = province
+        islandDetails.district = district
+        islandDetails.department = department
+        islandDetails.emirate = emirate
+        islandDetails.parish = parish
+        islandDetails.entity = entity
+        islandDetails.municipality = municipality
+        islandDetails.division = division
+        islandDetails.zone = zone
+        islandDetails.island = island
+        islandDetails.additionalInfo = additionalInfo
+        islandDetails.multilineAddress = multilineAddress
+        islandDetails.requiredAddressFields = requiredAddressFields
+    }
+
 
     private func isValidForm() -> Bool {
         guard formState.isEmailValid else {
@@ -419,16 +496,6 @@ struct CreateAccountView: View {
         return false
     }
 
-    private func createUserAccount() async throws {
-        try await authViewModel.createUser(
-            withEmail: formState.email,
-            password: formState.password,
-            userName: formState.userName,
-            name: formState.name,
-            belt: belt
-        )
-    }
-
     private func createPirateIslandIfValid() async {
         var (isValid, errorMessage) = ValidationUtility.validateIslandForm(
             islandName: islandDetails.islandName,
@@ -446,13 +513,13 @@ struct CreateAccountView: View {
             gymWebsite: gymWebsite
         )
 
-        if !isValid {
+        guard isValid else {
             self.errorMessage = errorMessage
             showErrorAlert = true
             return
         }
 
-        if !gymWebsite.isEmpty, let urlError = ValidationUtility.validateURL(gymWebsite) {
+        if let urlError = ValidationUtility.validateURL(gymWebsite), !gymWebsite.isEmpty {
             errorMessage = "Invalid gym website URL: \(urlError)"
             showErrorAlert = true
             os_log("Invalid gym website URL", type: .error)
@@ -468,16 +535,20 @@ struct CreateAccountView: View {
         os_log("Conditions met. Proceeding to createPirateIsland.", type: .info)
 
         do {
+            let userId = try await authViewModel.getUserId()
+            let country = selectedCountry?.cca2 ?? ""
             _ = try await islandViewModel.createPirateIsland(
                 islandDetails: islandDetails,
-                createdByUserId: formState.userName,
-                gymWebsite: gymWebsite.isEmpty ? nil : gymWebsite
+                createdByUserId: userId,
+                gymWebsite: gymWebsite.isEmpty ? "" : gymWebsite,
+                country: country
             )
             toastMessage = "Island saved successfully!"
         } catch {
             handleCreateAccountError(error)
         }
     }
+
     
     
     private func handleCreateAccountError(_ error: Error) {

@@ -56,7 +56,7 @@ class EnterZipCodeViewModel: ObservableObject {
             do {
                 let coordinate = try await MapUtils.fetchLocation(for: address)
                 
-                DispatchQueue.main.async {
+                await MainActor.run {
                     self.region = MKCoordinateRegion(center: coordinate, span: MKCoordinateSpan(latitudeDelta: self.currentRadius / 69.0, longitudeDelta: self.currentRadius / 69.0))
                     self.enteredLocation = CustomMapMarker(id: UUID(), coordinate: coordinate, title: address, pirateIsland: nil)
                     self.fetchPirateIslandsNear(CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude), within: self.currentRadius * 1609.34)

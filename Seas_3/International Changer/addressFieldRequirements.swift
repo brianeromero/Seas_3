@@ -198,4 +198,3 @@ func getAddressFields(for country: String) -> [AddressFieldType] {
     
     return fields
 }
-    

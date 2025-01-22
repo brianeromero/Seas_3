@@ -32,7 +32,7 @@ struct AdminMenu: View {
         MenuItem(title: "Manage Users", subMenuItems: ["Reset User Verification", "Edit User", "Remove User", "Manual User Verification", "Delete User from Local Database"], padding: 20),
         MenuItem(title: "Manage Gyms", subMenuItems: ["All Gyms", "ALL Gym Schedules", "ALL Mat Schedules"], padding: 15),
         MenuItem(title: "Manage Reviews", subMenuItems: ["View All Reviews", "Moderate Reviews"], padding: 20),
-        MenuItem(title: "Delete Record", subMenuItems: ["Delete Record"], padding: 20)
+        MenuItem(title: "Delete Gym Record", subMenuItems: ["Delete Gym Record"], padding: 20)
     ]
     
     var body: some View {
@@ -90,7 +90,7 @@ struct AdminMenu: View {
         case "ALL Mat Schedules":
             AllpIslandScheduleView(viewModel: appDayOfWeekViewModel, enterZipCodeViewModel: enterZipCodeViewModel)
                 .environment(\.persistenceController, PersistenceController.shared)
-        case "Delete Record":
+        case "Delete Gym Record":
             DeleteRecordView(coreDataContext: persistenceController.container.viewContext, firestoreManager: firestoreManager)
         case "Delete User from Local Database":
             DeleteUserView(coreDataContext: persistenceController.container.viewContext)

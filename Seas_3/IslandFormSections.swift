@@ -6,21 +6,18 @@ import CoreLocation
 import os
 
 
+// MARK: - Country Address Format
 struct CountryAddressFormat {
-    let requiredFields: [AddressField]
+    let requiredFields: [AddressFieldType] // Change this line
     let postalCodeValidationRegex: String?
 }
 
-let countryAddressFormats: [String: CountryAddressFormat] = {
-    var formats = [String: CountryAddressFormat]()
-    for (country, fields) in addressFieldRequirements {
-        formats[country] = CountryAddressFormat(
-            requiredFields: fields.map { AddressField(rawValue: $0.rawValue) ?? .street },
-            postalCodeValidationRegex: getPostalCodeValidationRegex(for: country)
-        )
-    }
-    return formats
-}()
+let countryAddressFormats: [String: CountryAddressFormat] = addressFieldRequirements.reduce(into: [:]) { result, entry in
+    result[entry.key] = CountryAddressFormat(
+        requiredFields: entry.value,
+        postalCodeValidationRegex: ValidationUtility.postalCodeRegexPatterns[entry.key]
+    )
+}
 
 func getPostalCodeValidationRegex(for country: String) -> String? {
     return ValidationUtility.postalCodeRegexPatterns[country]
@@ -28,6 +25,10 @@ func getPostalCodeValidationRegex(for country: String) -> String? {
 
 struct IslandFormSections: View {
     @ObservedObject var viewModel: PirateIslandViewModel
+    @ObservedObject var profileViewModel: ProfileViewModel
+    @ObservedObject var countryService = CountryService.shared
+
+
     @Binding var islandName: String
     @Binding var street: String
     @Binding var city: String
@@ -41,71 +42,81 @@ struct IslandFormSections: View {
     @Binding var county: String
     @Binding var governorate: String
     @Binding var additionalInfo: String
-    @State private var showError = false
-    @State private var errorMessage = ""
-    @Binding var gymWebsite: String
-    @Binding var gymWebsiteURL: URL?
+
+
+    @Binding var islandDetails: IslandDetails
+    @Binding var selectedCountry: Country?
     @Binding var showAlert: Bool
     @Binding var alertMessage: String
-    @Binding var selectedCountry: Country?
-    @Binding var islandDetails: IslandDetails
-    @ObservedObject var profileViewModel: ProfileViewModel
-    @State private var showValidationMessage = false
-    @ObservedObject var countryService = CountryService.shared
-    @State private var isPickerPresented = false
+    @Binding var gymWebsite: String
+    @Binding var gymWebsiteURL: URL?
     
+    // Validation Bindings
+    @Binding var isIslandNameValid: Bool
+    @Binding var islandNameErrorMessage: String
+    @Binding var isFormValid: Bool
+    
+    @State private var showError = false
+    @State private var errorMessage = ""
+    @State private var isPickerPresented = false
+    @State private var showValidationMessage = false
+    
+    // Binding the formState
+    @Binding var formState: FormState
 
+
+    
     var body: some View {
         VStack(spacing: 10) {
-            if countryService.isLoading {
-                ProgressView("Loading countries...")
-                    .progressViewStyle(CircularProgressViewStyle())
-                    .padding()
-            } else if !countryService.countries.isEmpty {
-                UnifiedCountryPickerView(
-                    countryService: countryService,
-                    selectedCountry: $selectedCountry,
-                    isPickerPresented: $isPickerPresented // Updated
-                )
-                .onChange(of: selectedCountry) { newCountry in
-                    if let newCountry = newCountry {
-                        islandDetails.requiredAddressFields = getAddressFields(for: newCountry.cca2)
-                    } else {
-                        islandDetails.requiredAddressFields = defaultAddressFieldRequirements
-                    }
-                }
-            } else {
-                Text("No countries found.")
-            }
+            // Country Picker Section
+            countryPickerSection
+            
+            // Island Details Section
             islandDetailsSection
                 .padding()
-
+            
+            // Website Section
             websiteSection
         }
         .padding()
         .onAppear {
-            Task {
-                await countryService.fetchCountries()
-            }
+            Task { await countryService.fetchCountries() }
         }
         .alert(isPresented: $showError) {
             Alert(title: Text("Error"), message: Text(errorMessage), dismissButton: .default(Text("OK")))
         }
     }
-
     
+    // MARK: - Country Picker Section
+    var countryPickerSection: some View {
+        if countryService.isLoading {
+            AnyView(ProgressView("Loading countries..."))
+        } else if countryService.countries.isEmpty {
+            AnyView(Text("No countries found."))
+        } else {
+            AnyView(UnifiedCountryPickerView(
+                countryService: countryService,
+                selectedCountry: $selectedCountry,
+                isPickerPresented: $isPickerPresented
+            )
+            .onChange(of: selectedCountry) { updateAddressRequirements(for: $0) })
+        }
+    }
+    
+    // MARK: - Island Details Section
     var islandDetailsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Gym Name")
             TextField("Enter Gym Name", text: $islandDetails.islandName)
-                .onChange(of: islandDetails.islandName) { newValue in
-                    os_log("Updated islandName: %@", newValue)
-                    validateFields()
-                }
+                .onChange(of: islandDetails.islandName, perform: validateFields)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
 
-            let requiredFields = requiredFields(for: selectedCountry)
-            AddressFieldsView(requiredFields: requiredFields, islandDetails: $islandDetails)
+            // Address Fields View
+            AddressFieldsView(
+                requiredFields: requiredFields(for: selectedCountry),
+                islandDetails: $islandDetails
+            )
+
 
             if showValidationMessage {
                 Text("Required fields are missing.")
@@ -113,13 +124,6 @@ struct IslandFormSections: View {
             }
         }
     }
-
-    
-    func requiredFields(for country: Country?) -> [AddressFieldType] {
-        guard let countryCode = country?.cca2 else { return defaultAddressFieldRequirements }
-        return getAddressFields(for: countryCode)
-    }
-
 
     func addressField(for field: AddressField) -> some View {
         switch field {
@@ -139,17 +143,21 @@ struct IslandFormSections: View {
         }
     }
 
-    func processWebsiteURL() {
-        guard !islandDetails.gymWebsite.isEmpty else { islandDetails.gymWebsiteURL = nil; return }
-        let fullURLString = "https://" + stripProtocol(from: islandDetails.gymWebsite)
-        if ValidationUtility.validateURL(fullURLString) == nil {
-            islandDetails.gymWebsiteURL = URL(string: fullURLString)
+    func processWebsiteURL(_ url: String) {
+        guard !url.isEmpty else {
+            islandDetails.gymWebsiteURL = nil
+            return
+        }
+        let sanitizedURL = "https://" + stripProtocol(from: url)
+        if ValidationUtility.validateURL(sanitizedURL) == nil {
+            islandDetails.gymWebsiteURL = URL(string: sanitizedURL)
         } else {
-            self.showError = true
-            self.errorMessage = "Invalid URL format"
-            islandDetails.gymWebsite = ""
+            errorMessage = "Invalid URL format"
+            showError = true
         }
     }
+
+
 
     func stripProtocol(from urlString: String) -> String {
         if urlString.lowercased().starts(with: "http://") {
@@ -178,60 +186,336 @@ struct IslandFormSections: View {
         }
     }
     
+    
     func validateAddress(for country: String?) -> Bool {
+        guard !islandDetails.islandName.isEmpty else { return true } // Skip validation if islandName is empty
+
         // Ensure the country is provided
         guard let countryName = country else { return false }
-        
+
         // Create a selectedCountry object
         let selectedCountry = Country(name: .init(common: countryName), cca2: "", flag: "")
-        
+
         // Get the required fields for the selected country
-        let requiredFields = requiredFields(for: selectedCountry)
-        
-        // Validate all required fields
-        let areFieldsValid = requiredFields.allSatisfy { field in
+        _ = requiredFields(for: selectedCountry)
+        var isValid = true
+
+        // Create a dictionary to map AddressField enum values to FormState properties
+        let errorMessages: [AddressField: (String, String)] = [
+            .state: ("State is required for \(selectedCountry.name.common).", "stateErrorMessage"),
+            .postalCode: ("Postal Code is required for \(selectedCountry.name.common).", "postalCodeErrorMessage"),
+            .street: ("Street is required for \(selectedCountry.name.common).", "streetErrorMessage"),
+            .city: ("City is required for \(selectedCountry.name.common).", "cityErrorMessage"),
+            .province: ("Province is required for \(selectedCountry.name.common).", "provinceErrorMessage"),
+            .region: ("Region is required for \(selectedCountry.name.common).", "regionErrorMessage"),
+            .district: ("District is required for \(selectedCountry.name.common).", "districtErrorMessage"),
+            .department: ("Department is required for \(selectedCountry.name.common).", "departmentErrorMessage"),
+            .governorate: ("Governorate is required for \(selectedCountry.name.common).", "governorateErrorMessage"),
+            .emirate: ("Emirate is required for \(selectedCountry.name.common).", "emirateErrorMessage"),
+            .county: ("County is required for \(selectedCountry.name.common).", "countyErrorMessage"),
+            .neighborhood: ("Neighborhood is required for \(selectedCountry.name.common).", "neighborhoodErrorMessage"),
+            .complement: ("Complement is required for \(selectedCountry.name.common).", "complementErrorMessage"),
+            .block: ("Block is required for \(selectedCountry.name.common).", "blockErrorMessage"),
+            .apartment: ("Apartment is required for \(selectedCountry.name.common).", "apartmentErrorMessage"),
+            .additionalInfo: ("Additional Info is required for \(selectedCountry.name.common).", "additionalInfoErrorMessage"),
+            .multilineAddress: ("Multiline Address is required for \(selectedCountry.name.common).", "multilineAddressErrorMessage"),
+            .parish: ("Parish is required for \(selectedCountry.name.common).", "parishErrorMessage"),
+            .entity: ("Entity is required for \(selectedCountry.name.common).", "entityErrorMessage"),
+            .municipality: ("Municipality is required for \(selectedCountry.name.common).", "municipalityErrorMessage"),
+            .division: ("Division is required for \(selectedCountry.name.common).", "divisionErrorMessage"),
+            .zone: ("Zone is required for \(selectedCountry.name.common).", "zoneErrorMessage"),
+            .island: ("Island is required for \(selectedCountry.name.common).", "islandErrorMessage"),
+            .country: ("Country is required for \(selectedCountry.name.common).", "countryErrorMessage"),
+        ]
+
+        // Iterate over all fields in the AddressField enum
+        for field in AddressField.allCases {
             switch field {
-            case .street: return !islandDetails.street.isEmpty
-            case .city: return !islandDetails.city.isEmpty
-            case .state: return !islandDetails.state.isEmpty
-            case .postalCode: return !islandDetails.postalCode.isEmpty
-            case .province: return !islandDetails.province.isEmpty
-            case .neighborhood: return !islandDetails.neighborhood.isEmpty
-            case .complement: return !islandDetails.complement.isEmpty
-            case .apartment: return !islandDetails.apartment.isEmpty
-            case .region: return !islandDetails.region.isEmpty
-            case .county: return !islandDetails.county.isEmpty
-            case .governorate: return !islandDetails.governorate.isEmpty
-            case .additionalInfo: return !islandDetails.additionalInfo.isEmpty
-            case .district: return !islandDetails.district.isEmpty
-            case .department: return !islandDetails.department.isEmpty
-            case .emirate: return !islandDetails.emirate.isEmpty
-            case .block: return !islandDetails.block.isEmpty
-            case .multilineAddress: return !islandDetails.multilineAddress.isEmpty
-            case .parish: return !islandDetails.parish.isEmpty  // Validate 'parish' field
-            case .entity: return !islandDetails.entity.isEmpty  // Validate 'entity' field
-            case .municipality: return !islandDetails.municipality.isEmpty  // Validate 'municipality' field
-            case .division: return !islandDetails.division.isEmpty  // Validate 'division' field
-            case .zone: return !islandDetails.zone.isEmpty  // Validate 'zone' field
-            case .island: return !islandDetails.islandName.isEmpty  // Validate 'island' field
+            case .state:
+                if islandDetails.state.isEmptyOrWhitespace {
+                    formState.stateErrorMessage = errorMessages[field]?.0 ?? ""
+                    isValid = false
+                } else {
+                    formState.stateErrorMessage = ""
+                }
+            case .postalCode:
+                if islandDetails.postalCode.isEmptyOrWhitespace {
+                    formState.postalCodeErrorMessage = errorMessages[field]?.0 ?? ""
+                    isValid = false
+                } else {
+                    formState.postalCodeErrorMessage = ""
+                }
+            case .street:
+                if islandDetails.street.isEmptyOrWhitespace {
+                    formState.streetErrorMessage = errorMessages[field]?.0 ?? ""
+                    isValid = false
+                } else {
+                    formState.streetErrorMessage = ""
+                }
+            case .city:
+                if islandDetails.city.isEmptyOrWhitespace {
+                    formState.cityErrorMessage = errorMessages[field]?.0 ?? ""
+                    isValid = false
+                } else {
+                    formState.cityErrorMessage = ""
+                }
+            case .province:
+                if islandDetails.province.isEmptyOrWhitespace {
+                    formState.provinceErrorMessage = errorMessages[field]?.0 ?? ""
+                    isValid = false
+                } else {
+                    formState.provinceErrorMessage = ""
+                }
+            case .region:
+                if islandDetails.region.isEmptyOrWhitespace {
+                    formState.regionErrorMessage = errorMessages[field]?.0 ?? ""
+                    isValid = false
+                } else {
+                    formState.regionErrorMessage = ""
+                }
+            case .district:
+                if islandDetails.district.isEmptyOrWhitespace {
+                    formState.districtErrorMessage = errorMessages[field]?.0 ?? ""
+                    isValid = false
+                } else {
+                    formState.districtErrorMessage = ""
+                }
+            case .department:
+                if islandDetails.department.isEmptyOrWhitespace {
+                    formState.departmentErrorMessage = errorMessages[field]?.0 ?? ""
+                    isValid = false
+                } else {
+                    formState.departmentErrorMessage = ""
+                }
+            case .governorate:
+                if islandDetails.governorate.isEmptyOrWhitespace {
+                    formState.governorateErrorMessage = errorMessages[field]?.0 ?? ""
+                    isValid = false
+                } else {
+                    formState.governorateErrorMessage = ""
+                }
+            case .emirate:
+                if islandDetails.emirate.isEmptyOrWhitespace {
+                    formState.emirateErrorMessage = errorMessages[field]?.0 ?? ""
+                    isValid = false
+                } else {
+                    formState.emirateErrorMessage = ""
+                }
+            case .county:
+                if islandDetails.county.isEmptyOrWhitespace {
+                    formState.countyErrorMessage = errorMessages[field]?.0 ?? ""
+                    isValid = false
+                } else {
+                    formState.countyErrorMessage = ""
+                }
+            case .neighborhood:
+                if islandDetails.neighborhood.isEmptyOrWhitespace {
+                    formState.neighborhoodErrorMessage = errorMessages[field]?.0 ?? ""
+                    isValid = false
+                } else {
+                    formState.neighborhoodErrorMessage = ""
+                }
+            case .complement:
+                if islandDetails.complement.isEmptyOrWhitespace {
+                    formState.complementErrorMessage = errorMessages[field]?.0 ?? ""
+                    isValid = false
+                } else {
+                    formState.complementErrorMessage = ""
+                }
+            case .block:
+                if islandDetails.block.isEmptyOrWhitespace {
+                    formState.blockErrorMessage = errorMessages[field]?.0 ?? ""
+                    isValid = false
+                } else {
+                    formState.blockErrorMessage = ""
+                }
+            case .apartment:
+                if islandDetails.apartment.isEmptyOrWhitespace {
+                    formState.apartmentErrorMessage = errorMessages[field]?.0 ?? ""
+                    isValid = false
+                } else {
+                    formState.apartmentErrorMessage = ""
+                }
+            case .additionalInfo:
+                if islandDetails.additionalInfo.isEmptyOrWhitespace {
+                    formState.additionalInfoErrorMessage = errorMessages[field]?.0 ?? ""
+                    isValid = false
+                } else {
+                    formState.additionalInfoErrorMessage = ""
+                }
+            case .multilineAddress:
+                if islandDetails.multilineAddress.isEmptyOrWhitespace {
+                    formState.multilineAddressErrorMessage = errorMessages[field]?.0 ?? ""
+                    isValid = false
+                } else {
+                    formState.multilineAddressErrorMessage = ""
+                }
+            case .parish:
+                if islandDetails.parish.isEmptyOrWhitespace {
+                    formState.parishErrorMessage = errorMessages[field]?.0 ?? ""
+                    isValid = false
+                } else {
+                    formState.parishErrorMessage = ""
+                }
+            case .entity:
+                if islandDetails.entity.isEmptyOrWhitespace {
+                    formState.entityErrorMessage = errorMessages[field]?.0 ?? ""
+                    isValid = false
+                } else {
+                    formState.entityErrorMessage = ""
+                }
+            case .municipality:
+                if islandDetails.municipality.isEmptyOrWhitespace {
+                    formState.municipalityErrorMessage = errorMessages[field]?.0 ?? ""
+                    isValid = false
+                } else {
+                    formState.municipalityErrorMessage = ""
+                }
+            case .division:
+                if islandDetails.division.isEmptyOrWhitespace {
+                    formState.divisionErrorMessage = errorMessages[field]?.0 ?? ""
+                    isValid = false
+                } else {
+                    formState.divisionErrorMessage = ""
+                }
+            case .zone:
+                if islandDetails.zone.isEmptyOrWhitespace {
+                    formState.zoneErrorMessage = errorMessages[field]?.0 ?? ""
+                    isValid = false
+                } else {
+                    formState.zoneErrorMessage = ""
+                }
+            case .island:
+                if islandDetails.island.isEmptyOrWhitespace {
+                    formState.islandErrorMessage = errorMessages[field]?.0 ?? ""
+                    isValid = false
+                } else {
+                    formState.islandErrorMessage = ""
+                }
+            case .country:
+                if islandDetails.country.isEmptyOrWhitespace {
+                    formState.countryErrorMessage = errorMessages[field]?.0 ?? ""
+                    isValid = false
+                } else {
+                    formState.countryErrorMessage = ""
+                }
             }
         }
 
-        
-        // Get the postal code validation regex for the country
-        guard let postalCodeValidationRegex = countryAddressFormats[selectedCountry.cca2]?.postalCodeValidationRegex else {
-            return false
+        return isValid
+    }
+
+    
+    var requiredAddressFields: [AddressFieldType] {
+        guard let countryName = selectedCountry?.name.common else {
+            return defaultAddressFieldRequirements
         }
         
-        // Validate the postal code if it's non-empty
-        let isPostalCodeValid = !islandDetails.postalCode.isEmpty &&
-            ValidationUtility.validatePostalCode(
-                islandDetails.postalCode,
-                for: postalCodeValidationRegex
-            ) != nil
+        return getAddressFields(for: countryName)
+    }
+
+
+    private func validateForm() {
+        // Validate island name
+        let islandNameValid = !islandName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        isIslandNameValid = islandNameValid
+        islandNameErrorMessage = islandNameValid ? "" : "Gym name cannot be empty."
+
+        // Validate address fields if islandName is provided
+        let addressFieldsValid = requiredAddressFields.allSatisfy { field in
+            let value = getValue(for: field)
+            let errorMessage = "\(field.rawValue.capitalized) is required."
+            switch field {
+            case .street:
+                formState.streetErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
+            case .city:
+                formState.cityErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
+            case .state:
+                formState.stateErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
+            case .province:
+                formState.provinceErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
+            case .postalCode:
+                formState.postalCodeErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
+            case .region:
+                formState.regionErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
+            case .district:
+                formState.districtErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
+            case .department:
+                formState.departmentErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
+            case .governorate:
+                formState.governorateErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
+            case .emirate:
+                formState.emirateErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
+            case .county:
+                formState.countyErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
+            case .neighborhood:
+                formState.neighborhoodErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
+            case .complement:
+                formState.complementErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
+            case .apartment:
+                formState.apartmentErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
+            case .additionalInfo:
+                formState.additionalInfoErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
+            case .multilineAddress:
+                formState.multilineAddressErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
+            case .parish:
+                formState.parishErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
+            case .entity:
+                formState.entityErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
+            case .municipality:
+                formState.municipalityErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
+            case .division:
+                formState.divisionErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
+            case .zone:
+                formState.zoneErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
+            case .island:
+                formState.islandErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
+            default:
+                break
+            }
+            return !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+
+        // Validate overall form state
+        isFormValid = islandNameValid && addressFieldsValid
+    }
+
+
+
+    private func getValue(for field: AddressFieldType) -> String {
+        // Use a dictionary to map fields to values dynamically
+        let fieldValues: [AddressFieldType: String] = [
+            .state: islandDetails.state,
+            .postalCode: islandDetails.postalCode,
+            .street: islandDetails.street,
+            .city: islandDetails.city,
+            .province: islandDetails.province,
+            .region: islandDetails.region,
+            .district: islandDetails.district,
+            .department: islandDetails.department,
+            .governorate: islandDetails.governorate,
+            .emirate: islandDetails.emirate,
+            .block: islandDetails.block,
+            .county: islandDetails.county,
+            .neighborhood: islandDetails.neighborhood,
+            .complement: islandDetails.complement,
+            .apartment: islandDetails.apartment,
+            .additionalInfo: islandDetails.additionalInfo,
+            .multilineAddress: islandDetails.multilineAddress,
+            .parish: islandDetails.parish,
+            .entity: islandDetails.entity,
+            .municipality: islandDetails.municipality,
+            .division: islandDetails.division,
+            .zone: islandDetails.zone,
+            .island: islandDetails.island
+        ]
         
-        // Return the final validation result
-        return areFieldsValid && isPostalCodeValid
+        return fieldValues[field] ?? ""
+    }
+
+    
+    private func getErrorMessage(for field: AddressFieldType, country: String) -> String {
+        return "\(field.rawValue.capitalized) is required for \(country)."
     }
     
     func updateIslandLocation() async {
@@ -266,7 +550,7 @@ struct IslandFormSections: View {
         errorMessage = message
         showError = true
     }
-
+    
     func isValidPostalCode(_ postalcode: String, regex: String?) -> Bool {
         guard let regex = regex else { return true }
         return NSPredicate(format: "SELF MATCHES %@", regex).evaluate(with: islandDetails.postalCode)
@@ -294,37 +578,70 @@ struct IslandFormSections: View {
 
         return true
     }
-
-    func validateFields() {
-        let invalidFields = requiredFields(for: selectedCountry).compactMap { fieldType -> AddressField? in
-            AddressField(rawValue: fieldType.rawValue)
-        }.filter { field in
-            let value = binding(for: field).wrappedValue
-            return value.isEmpty
+    
+    // MARK: - Address Fields
+    func requiredFields(for country: Country?) -> [AddressFieldType] {
+        guard let countryCode = country?.cca2 else {
+            // If there's no country code, return the default address fields, ensuring all fallbacks are handled correctly
+            return defaultAddressFieldRequirements.map { field in
+                AddressFieldType(rawValue: field.rawValue) ?? .street // Provide .street as the fallback case
+            }
         }
-        showValidationMessage = !invalidFields.isEmpty
+        
+        // If country code exists, use the country-specific address format
+        return countryAddressFormats[countryCode]?.requiredFields.map { field in
+            // Ensure AddressFieldType is converted from the raw value, fallback to .street if conversion fails
+            AddressFieldType(rawValue: field.rawValue) ?? .street
+        } ?? defaultAddressFieldRequirements.map { field in
+            // Handle case where countryAddressFormats doesn't have a valid format
+            AddressFieldType(rawValue: field.rawValue) ?? .street // Fallback to .street
+        }
+    }
+
+
+    func updateAddressRequirements(for country: Country?) {
+        islandDetails.requiredAddressFields = requiredFields(for: country)
+    }
+
+    // MARK: - Validation Logic
+    func validateFields(_ fieldName: String? = nil) {
+        let requiredFields = requiredFields(for: selectedCountry)
+        let allValid = requiredFields.allSatisfy { field in
+            let value: String
+            // Directly access the property based on the field
+            switch field {
+            case .street: value = islandDetails.street
+            case .city: value = islandDetails.city
+            case .state: value = islandDetails.state
+            case .province: value = islandDetails.province
+            case .postalCode: value = islandDetails.postalCode
+            case .region: value = islandDetails.region
+            case .district: value = islandDetails.district
+            case .department: value = islandDetails.department
+            case .governorate: value = islandDetails.governorate
+            case .emirate: value = islandDetails.emirate
+            case .block: value = islandDetails.block
+            case .county: value = islandDetails.county
+            case .neighborhood: value = islandDetails.neighborhood
+            case .complement: value = islandDetails.complement
+            case .apartment: value = islandDetails.apartment
+            case .additionalInfo: value = islandDetails.additionalInfo
+            case .multilineAddress: value = islandDetails.multilineAddress
+            case .parish: value = islandDetails.parish
+            case .entity: value = islandDetails.entity
+            case .municipality: value = islandDetails.municipality
+            case .division: value = islandDetails.division
+            case .zone: value = islandDetails.zone
+            case .island: value = islandDetails.island
+            }
+            
+            return !value.isEmptyOrWhitespace
+        }
+
+        showValidationMessage = !allValid
     }
 
 
-    func saveButtonAction() async {
-        if !validateGymNameAndAddress() {
-            self.showError = true
-            return
-        }
-
-        do {
-            try await viewModel.updatePirateIsland(
-                island: PirateIsland(),
-                islandDetails: islandDetails,
-                lastModifiedByUserId: profileViewModel.name
-            )
-            print("Island data saved successfully")
-        } catch {
-            print("Error saving island data: \(error.localizedDescription)")
-            self.errorMessage = "Error saving island data: \(error.localizedDescription)"
-            self.showError = true
-        }
-    }
     
     func binding(for field: AddressField) -> Binding<String> {
          switch field {
@@ -353,23 +670,14 @@ struct IslandFormSections: View {
          }
      }
     
+    // MARK: - Website Section
     var websiteSection: some View {
-        Section(content: {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Gym Website/Facebook/Instagram")
-                TextField("Enter Website or Facebook or Instagram URL", text: $islandDetails.gymWebsite)
-                    .onChange(of: islandDetails.gymWebsite) { newValue in processWebsiteURL() }
-                    .keyboardType(.URL)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-            }
-            .padding()
-        }, header: {
-            HStack {
-                Text("Gym Website")
-                    .fontWeight(.bold)
-                Spacer()
-            }
-        })
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Gym Website")
+            TextField("Enter Gym Website", text: $islandDetails.gymWebsite)
+                .onChange(of: islandDetails.gymWebsite) { processWebsiteURL($0) }
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+        }
     }
 }
 
@@ -398,6 +706,13 @@ extension View {
 
 extension View {
     func eraseToAnyView() -> AnyView { AnyView(self) }
+}
+
+
+extension String {
+    var isEmptyOrWhitespace: Bool {
+        self.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
 }
 
 
@@ -518,6 +833,8 @@ struct IslandFormSectionPreview: View {
     var body: some View {
         IslandFormSections(
             viewModel: PirateIslandViewModel(persistenceController: PersistenceController.shared),
+            profileViewModel: profileViewModel,
+            countryService: CountryService(), // Provide the correct service
             islandName: islandName,
             street: street,
             city: city,
@@ -527,17 +844,20 @@ struct IslandFormSectionPreview: View {
             neighborhood: neighborhood,
             complement: complement,
             apartment: apartment,
-            region: .constant(""),
+            region: .constant(""), // Provide default values if needed
             county: .constant(""),
             governorate: .constant(""),
             additionalInfo: additionalInfo,
-            gymWebsite: gymWebsite,
-            gymWebsiteURL: gymWebsiteURL,
+            islandDetails: islandDetails,
+            selectedCountry: selectedCountry,
             showAlert: showAlert,
             alertMessage: alertMessage,
-            selectedCountry: selectedCountry,
-            islandDetails: islandDetails,
-            profileViewModel: profileViewModel
+            gymWebsite: gymWebsite,
+            gymWebsiteURL: gymWebsiteURL,
+            isIslandNameValid: .constant(true), // Add default values
+            islandNameErrorMessage: .constant(""), // Add default values
+            isFormValid: .constant(true), // Add default values
+            formState: .constant(FormState()) // Add default values
         )
     }
 }

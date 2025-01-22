@@ -35,6 +35,8 @@ enum AddressField: String, CaseIterable {
     case apartment
     case additionalInfo
     case multilineAddress
+    case island
+
     
     // Country field
     case country
@@ -64,6 +66,7 @@ enum AddressField: String, CaseIterable {
         case .additionalInfo: return \.additionalInfo
         case .multilineAddress: return \.multilineAddress
         case .country: return \.region
+        case .island: return \.islandName
         }
     }
 }

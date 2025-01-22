@@ -10,35 +10,19 @@ import Foundation
 
 struct AddressFormView: View {
     @State private var selectedCountry: String = "US"
-    @State private var street: String = ""
-    @State private var city: String = ""
-    @State private var state: String = ""
-    @State private var province: String = ""
-    @State private var postalCode: String = ""
-    @State private var governorate: String = ""
-    @State private var region: String = ""
-    @State private var district: String = ""
-    @State private var department: String = ""
-    @State private var emirate: String = ""
-    @State private var block: String = ""
-    @State private var county: String = ""
-    @State private var neighborhood: String = ""
-    @State private var complement: String = ""
-    @State private var apartment: String = ""
-    @State private var islandDetails: IslandDetails = IslandDetails()
+    @State private var addressFields: [AddressFieldType: String] = [:]
 
 
-    // Fetch required address fields based on the selected country
     var requiredFields: [AddressFieldType] {
         getAddressFields(for: selectedCountry)
     }
 
-    // Country options from addressFieldRequirements dictionary
+
     let countryOptions = Array(addressFieldRequirements.keys).sorted()
+
 
     var body: some View {
         VStack {
-            // Country Picker
             Picker("Select Country", selection: $selectedCountry) {
                 ForEach(countryOptions, id: \.self) { country in
                     Text(country).tag(country)
@@ -46,53 +30,39 @@ struct AddressFormView: View {
             }
             .pickerStyle(SegmentedPickerStyle())
             .padding()
-            .onChange(of: selectedCountry) { newCountry in
-                print("Country selected: \(newCountry)")  // Log country change
-            }
 
-            // Dynamically display required fields based on selected country
+
             ForEach(requiredFields, id: \.rawValue) { field in
-                Text("Rendering field: \(field.rawValue)")
-                    .onAppear {
-                        print("Rendering field: \(field.rawValue) for country \(selectedCountry)")
-                    }
-                addressField(for: field)
+                AddressFieldView2(field: field, value: binding(for: field))
             }
         }
         .padding()
+        .onAppear {
+            requiredFields.forEach { addressFields[$0] = "" }
+        }
     }
-
-    // Function to display the appropriate address field
-    func addressField(for field: AddressFieldType) -> some View {
-        AddressFieldView(field: AddressField(rawValue: field.rawValue)!, islandDetails: $islandDetails)
-    }
-
-    // Return the correct Binding for each field
+    
+    
     func binding(for field: AddressFieldType) -> Binding<String> {
-        switch field {
-        case .street: return $street
-        case .city: return $city
-        case .state: return $state
-        case .province: return $province
-        case .postalCode: return $postalCode
-        case .governorate: return $governorate
-        case .region: return $region
-        case .district: return $district
-        case .department: return $department
-        case .emirate: return $emirate
-        case .block: return $block
-        case .county: return $county
-        case .neighborhood: return $neighborhood
-        case .complement: return $complement
-        case .apartment: return $apartment
-        case .additionalInfo: return .constant("")
-        case .multilineAddress: return .constant("")
-        case .parish: return $region // Assuming 'region' can represent parish
-        case .entity: return $region // Assuming 'region' can represent entity
-        case .municipality: return $region // Assuming 'region' can represent municipality
-        case .division: return $region // Assuming 'region' can represent division
-        case .zone: return $region // Assuming 'region' can represent zone
-        case .island: return $region // Assuming 'region' can represent island
+        return Binding<String>(get: {
+            addressFields[field] ?? ""
+        }, set: {
+            addressFields[field] = $0
+        })
+    }
+}
+
+
+struct AddressFieldView2: View {
+    let field: AddressFieldType
+    @Binding var value: String
+
+
+    var body: some View {
+        VStack(alignment: .leading) {
+            Text(field.rawValue.capitalized)
+            TextField("", text: $value)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
         }
     }
 }

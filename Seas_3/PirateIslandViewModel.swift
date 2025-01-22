@@ -66,14 +66,14 @@ public class PirateIslandViewModel: ObservableObject {
     }
     
     // MARK: - Create Pirate Island
-    func createPirateIsland(islandDetails: IslandDetails, createdByUserId: String, gymWebsite: String?) async throws -> PirateIsland {
+    func createPirateIsland(islandDetails: IslandDetails, createdByUserId: String, gymWebsite: String?, country: String) async throws -> PirateIsland {
         os_log("createPirateIsland called with Island Name: %@, Location: %@", log: logger, type: .info, islandDetails.islandName, islandDetails.fullAddress)
 
         // Generate a new UUID
         let newIslandID = UUID()
 
         // Step 1: Validate the island details
-        guard validateIslandDetails(islandDetails, createdByUserId, islandDetails.selectedCountry?.cca2 ?? "") else {
+        guard validateIslandDetails(islandDetails, createdByUserId, country) else {
             throw PirateIslandError.invalidInput
         }
 
@@ -102,7 +102,7 @@ public class PirateIslandViewModel: ObservableObject {
         newIsland.islandID = newIslandID  // Assign new UUID
         newIsland.islandName = islandDetails.islandName
         newIsland.islandLocation = islandDetails.fullAddress
-        newIsland.country = islandDetails.selectedCountry?.name.common
+        newIsland.country = country
         newIsland.createdTimestamp = Date()
         newIsland.createdByUserId = createdByUserId
         newIsland.lastModifiedByUserId = createdByUserId
@@ -145,7 +145,6 @@ public class PirateIslandViewModel: ObservableObject {
         return newIsland
     }
 
-
     // Add this code below the createPirateIsland function
     func savePirateIslandToFirestore(island: PirateIsland) async throws {
         print("Saving island to Firestore: \(island.safeIslandName)")
@@ -173,9 +172,9 @@ public class PirateIslandViewModel: ObservableObject {
     }
     
     // MARK: - Create and Save Pirate Island
-    func createAndSavePirateIsland(islandDetails: IslandDetails, createdByUserId: String, gymWebsite: String?) async throws {
+    func createAndSavePirateIsland(islandDetails: IslandDetails, createdByUserId: String, gymWebsite: String?, country: String) async throws {
         // Capture the returned PirateIsland object from createPirateIsland
-        let newIsland = try await createPirateIsland(islandDetails: islandDetails, createdByUserId: createdByUserId, gymWebsite: gymWebsite)
+        let newIsland = try await createPirateIsland(islandDetails: islandDetails, createdByUserId: createdByUserId, gymWebsite: gymWebsite, country: country)
         
         // Optional: You can log or use the created PirateIsland object (newIsland)
         os_log("Successfully created PirateIsland with name: %@", log: logger, newIsland.islandName ?? "Unknown Island Name")
@@ -184,7 +183,7 @@ public class PirateIslandViewModel: ObservableObject {
     }
     
     // MARK: - Validation
-    func validateIslandDetails(_ details: IslandDetails, _ createdByUserId: String, _ countryCode: String) -> Bool {
+    func validateIslandDetails(_ details: IslandDetails, _ createdByUserId: String?, _ countryCode: String) -> Bool {
         let requiredFields = getAddressFields(for: countryCode)
         var isValid = true
 
@@ -215,15 +214,20 @@ public class PirateIslandViewModel: ObservableObject {
         // Validate each field and log the process
         for (fieldName, value) in fieldValues {
             os_log("Validating %@: %@", log: logger, fieldName, value ?? "nil")
-            if let value = value, value.trimmingCharacters(in: .whitespaces).isEmpty {
-                os_log("Validation failed: %@ is missing (%@)", log: logger, fieldName, value)
-                isValid = false
+            if fieldName == "Created By User ID", value == nil {
+                // If Created By User ID is nil, skip validation
+                continue
+            }
+            if let field = AddressField(rawValue: fieldName), requiredFields.contains(AddressFieldType(rawValue: field.rawValue)!) {
+                if let value = value, value.trimmingCharacters(in: .whitespaces).isEmpty {
+                    os_log("Validation failed: %@ is missing (%@)", log: logger, fieldName, value)
+                    isValid = false
+                }
             }
         }
 
         return isValid
     }
-    
     // MARK: - Check Existing Islands
     private func pirateIslandExists(name: String) -> Bool {
         let fetchRequest = PirateIsland.fetchRequest()

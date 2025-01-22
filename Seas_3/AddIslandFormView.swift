@@ -91,6 +91,7 @@ struct AddIslandFormView: View {
         }
     }
 
+
     // MARK: - Address Fields
     // Ensure consistency between AddressField and AddressFieldType
     private func addressField(for field: AddressFieldType) -> some View {
@@ -194,10 +195,11 @@ struct AddIslandFormView: View {
         Task {
             do {
                 // Pass nil for gymWebsite if it's not available
-                _ = try await islandViewModel.createPirateIsland(
+                _ = try await islandViewModel.createAndSavePirateIsland(
                     islandDetails: islandDetails,
                     createdByUserId: profileViewModel.name,
-                    gymWebsite: nil
+                    gymWebsite: nil,
+                    country: islandDetails.country
                 )
                 toastMessage = "Island saved successfully!"
                 clearFields()
@@ -249,8 +251,15 @@ struct AddIslandFormView: View {
     }
     
     private func getAddressFields(for country: String) -> [AddressFieldType] {
-        // Fetch the address field requirements for the country using the predefined mapping
-        return addressFieldRequirements[country] ?? []
+        guard let fields = addressFieldRequirements[country.uppercased()] else {
+            print("No address field requirements found for country: \(country). Using default fields.")
+            return defaultAddressFieldRequirements
+        }
+        
+        // Log the country and the corresponding fields
+        print("Country: \(country), Custom Fields: \(fields.map { $0.rawValue })") // Log custom fields for known countries
+        
+        return fields
     }
 }
 

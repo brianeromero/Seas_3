@@ -226,6 +226,12 @@ struct GymInformationSection: View {
     @State private var governorate: String = ""
     @State private var additionalInfo: String = ""
     
+    @State private var isIslandNameValid: Bool = true
+    @State private var islandNameErrorMessage: String = ""
+    @State private var isFormValid: Bool = false
+    @State private var formState: FormState = FormState()
+
+    
     var body: some View {
         Section(header: HStack {
             Text("Gym Information")
@@ -237,6 +243,8 @@ struct GymInformationSection: View {
         .padding(.horizontal, 20)) {
             IslandFormSections(
                 viewModel: islandViewModel,
+                profileViewModel: profileViewModel,
+                countryService: CountryService.shared,
                 islandName: $islandName,
                 street: $street,
                 city: $city,
@@ -250,15 +258,20 @@ struct GymInformationSection: View {
                 county: $county,
                 governorate: $governorate,
                 additionalInfo: $additionalInfo,
-                gymWebsite: $gymWebsite,
-                gymWebsiteURL: $gymWebsiteURL,
+                islandDetails: $islandDetails,
+                selectedCountry: $selectedCountry,
                 showAlert: .constant(false),
                 alertMessage: .constant(""),
-                selectedCountry: $selectedCountry,
-                islandDetails: $islandDetails,
-                profileViewModel: profileViewModel
+                gymWebsite: $gymWebsite, 
+                gymWebsiteURL: $gymWebsiteURL,
+                isIslandNameValid: $isIslandNameValid,
+                islandNameErrorMessage: $islandNameErrorMessage,
+                isFormValid: $isFormValid,
+                formState: $formState
             )
             .padding(.horizontal, 20)
+
+
         }
     }
 }

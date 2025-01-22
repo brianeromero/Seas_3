@@ -41,7 +41,7 @@ struct FormState {
     var isConfirmPasswordValid: Bool = false
     var confirmPasswordErrorMessage: String = ""
 
-    // Additional Information
+    // Address Information
     var islandName: String = "" {
         didSet { validateField(islandName, type: .name) }
     }
@@ -72,6 +72,130 @@ struct FormState {
     var isPostalCodeValid: Bool = false
     var postalCodeErrorMessage: String = ""
 
+    var province: String = "" {
+        didSet { validateField(province, type: .name) }
+    }
+    var isProvinceValid: Bool = false
+    var provinceErrorMessage: String = ""
+
+    var region: String = "" {
+        didSet { validateField(region, type: .name) }
+    }
+    var isRegionValid: Bool = false
+    var regionErrorMessage: String = ""
+
+    var district: String = "" {
+        didSet { validateField(district, type: .name) }
+    }
+    var department: String = "" {
+        didSet { validateField(department, type: .name) }
+    }
+    var isDepartmentValid: Bool = false
+    var departmentErrorMessage: String = ""
+
+    var governorate: String = "" {
+        didSet { validateField(governorate, type: .name) }
+    }
+    var isGovernorateValid: Bool = false
+    var governorateErrorMessage: String = ""
+
+    var emirate: String = "" {
+        didSet { validateField(emirate, type: .name) }
+    }
+    var isEmirateValid: Bool = false
+    var emirateErrorMessage: String = ""
+
+    var county: String = "" {
+        didSet { validateField(county, type: .name) }
+    }
+    var isCountyValid: Bool = false
+    var countyErrorMessage: String = ""
+
+    var neighborhood: String = "" {
+        didSet { validateField(neighborhood, type: .name) }
+    }
+    var isNeighborhoodValid: Bool = false
+    var neighborhoodErrorMessage: String = ""
+
+    var complement: String = "" {
+        didSet { validateField(complement, type: .name) }
+    }
+    var isComplementValid: Bool = false
+    var complementErrorMessage: String = ""
+
+    var block: String = "" {
+        didSet { validateField(block, type: .name) }
+    }
+    var isBlockValid: Bool = false
+    var blockErrorMessage: String = ""
+
+    var apartment: String = "" {
+        didSet { validateField(apartment, type: .name) }
+    }
+    var isApartmentValid: Bool = false
+    var apartmentErrorMessage: String = ""
+
+    var additionalInfo: String = "" {
+        didSet { validateField(additionalInfo, type: .name) }
+    }
+    var isAdditionalInfoValid: Bool = false
+    var additionalInfoErrorMessage: String = ""
+
+    var multilineAddress: String = "" {
+        didSet { validateField(multilineAddress, type: .name) }
+    }
+    var isMultilineAddressValid: Bool = false
+    var multilineAddressErrorMessage: String = ""
+
+    var parish: String = "" {
+        didSet { validateField(parish, type: .name) }
+    }
+    var isParishValid: Bool = false
+    var parishErrorMessage: String = ""
+
+    var municipality: String = "" {
+        didSet { validateField(municipality, type: .name) }
+    }
+    var isMunicipalityValid: Bool = false
+    var municipalityErrorMessage: String = ""
+
+    var division: String = "" {
+        didSet { validateField(division, type: .name) }
+    }
+    var isDivisionValid: Bool = false
+    var divisionErrorMessage: String = ""
+
+    var zone: String = "" {
+        didSet { validateField(zone, type: .name) }
+    }
+    var isZoneValid: Bool = false
+    var zoneErrorMessage: String = ""
+
+    var island: String = "" {
+        didSet { validateField(island, type: .name) }
+    }
+    
+    var isIslandValid: Bool = false
+    var islandErrorMessage: String = ""
+
+    var country: String = "" {
+        didSet { validateField(country, type: .name) }
+    }
+    var isCountryValid: Bool = false
+    var countryErrorMessage: String = ""
+    
+    var isDistrictValid: Bool = false
+    var districtErrorMessage: String = ""
+    
+    
+    var entity: String = "" {
+        didSet { validateField(entity, type: .name) }
+    }
+    var isEntityValid: Bool = false
+    var entityErrorMessage: String = ""
+    
+
+    // Gym Website Information
     var gymWebsite: String = "" {
         didSet { validateField(gymWebsite, type: .name) }
     }
@@ -102,7 +226,10 @@ struct FormState {
             isStreetValid,
             isCityValid,
             isStateValid,
-            isPostalCodeValid
+            isPostalCodeValid,
+            isProvinceValid,
+            isRegionValid,
+            isDistrictValid
         ].allSatisfy { $0 } : true)
 
         // Gym website fields can be validated, but aren't required
@@ -110,9 +237,30 @@ struct FormState {
             isGymWebsiteValid,
             isGymWebsiteURLValid
         ].allSatisfy { $0 }
-
+        
+        // Additional address fields validation
+        let additionalAddressValidations = [
+            isDepartmentValid,
+            isGovernorateValid,
+            isEmirateValid,
+            isCountyValid,
+            isNeighborhoodValid,
+            isComplementValid,
+            isBlockValid,
+            isApartmentValid,
+            isAdditionalInfoValid,
+            isMultilineAddressValid,
+            isParishValid,
+            isMunicipalityValid,
+            isDivisionValid,
+            isZoneValid,
+            isIslandValid,
+            isCountryValid,
+            isEntityValid
+        ].allSatisfy { $0 }
+        
         // Combine all validations, excluding selectedProtocol
-        return basicValidations && islandRelatedValidations && gymWebsiteValidations
+        return basicValidations && islandRelatedValidations && gymWebsiteValidations && additionalAddressValidations
     }
 
     // Validation functions
@@ -147,6 +295,67 @@ struct FormState {
                 } else if field == gymWebsiteURL {
                     isGymWebsiteURLValid = false
                     gymWebsiteURLErrorMessage = error.rawValue
+                } else if field == province {
+                    isProvinceValid = false
+                    provinceErrorMessage = error.rawValue
+                } else if field == region {
+                    isRegionValid = false
+                    regionErrorMessage = error.rawValue
+                } else if field == district {
+                    isDistrictValid = false
+                    districtErrorMessage = error.rawValue
+                } else if field == department {
+                    isDepartmentValid = false
+                    departmentErrorMessage = error.rawValue
+                } else if field == governorate {
+                    isGovernorateValid = false
+                    governorateErrorMessage = error.rawValue
+                } else if field == emirate {
+                    isEmirateValid = false
+                    emirateErrorMessage = error.rawValue
+                } else if field == county {
+                    isCountyValid = false
+                    countyErrorMessage = error.rawValue
+                } else if field == neighborhood {
+                    isNeighborhoodValid = false
+                    neighborhoodErrorMessage = error.rawValue
+                } else if field == complement {
+                    isComplementValid = false
+                    complementErrorMessage = error.rawValue
+                } else if field == block {
+                    isBlockValid = false
+                    blockErrorMessage = error.rawValue
+                } else if field == apartment {
+                    isApartmentValid = false
+                    apartmentErrorMessage = error.rawValue
+                } else if field == additionalInfo {
+                    isAdditionalInfoValid = false
+                    additionalInfoErrorMessage = error.rawValue
+                } else if field == multilineAddress {
+                    isMultilineAddressValid = false
+                    multilineAddressErrorMessage = error.rawValue
+                } else if field == parish {
+                    isParishValid = false
+                    parishErrorMessage = error.rawValue
+                } else if field == municipality {
+                    isMunicipalityValid = false
+                    municipalityErrorMessage = error.rawValue
+                } else if field == division {
+                    isDivisionValid = false
+                    divisionErrorMessage = error.rawValue
+                } else if field == zone {
+                    isZoneValid = false
+                    zoneErrorMessage = error.rawValue
+                } else if field == island {
+                    isIslandValid = false
+                    islandErrorMessage = error.rawValue
+                } else if field == country {
+                    isCountryValid = false
+                    countryErrorMessage = error.rawValue
+                }
+                else if field == entity {
+                    isEntityValid = false
+                    entityErrorMessage = error.rawValue
                 }
             case .email:
                 isEmailValid = false
@@ -187,6 +396,67 @@ struct FormState {
                 } else if field == gymWebsiteURL {
                     isGymWebsiteURLValid = true
                     gymWebsiteURLErrorMessage = ""
+                } else if field == province {
+                    isProvinceValid = true
+                    provinceErrorMessage = ""
+                } else if field == region {
+                    isRegionValid = true
+                    regionErrorMessage = ""
+                } else if field == district {
+                    isDistrictValid = true
+                    districtErrorMessage = ""
+                } else if field == department {
+                    isDepartmentValid = true
+                    departmentErrorMessage = ""
+                } else if field == governorate {
+                    isGovernorateValid = true
+                    governorateErrorMessage = ""
+                } else if field == emirate {
+                    isEmirateValid = true
+                    emirateErrorMessage = ""
+                } else if field == county {
+                    isCountyValid = true
+                    countyErrorMessage = ""
+                } else if field == neighborhood {
+                    isNeighborhoodValid = true
+                    neighborhoodErrorMessage = ""
+                } else if field == complement {
+                    isComplementValid = true
+                    complementErrorMessage = ""
+                } else if field == block {
+                    isBlockValid = true
+                    blockErrorMessage = ""
+                } else if field == apartment {
+                    isApartmentValid = true
+                    apartmentErrorMessage = ""
+                } else if field == additionalInfo {
+                    isAdditionalInfoValid = true
+                    additionalInfoErrorMessage = ""
+                } else if field == multilineAddress {
+                    isMultilineAddressValid = true
+                    multilineAddressErrorMessage = ""
+                } else if field == parish {
+                    isParishValid = true
+                    parishErrorMessage = ""
+                } else if field == municipality {
+                    isMunicipalityValid = true
+                    municipalityErrorMessage = ""
+                } else if field == division {
+                    isDivisionValid = true
+                    divisionErrorMessage = ""
+                } else if field == zone {
+                    isZoneValid = true
+                    zoneErrorMessage = ""
+                } else if field == island {
+                    isIslandValid = true
+                    islandErrorMessage = ""
+                } else if field == country {
+                    isCountryValid = true
+                    countryErrorMessage = ""
+                }
+                else if field == entity {
+                    isEntityValid = true
+                    entityErrorMessage = ""
                 }
             case .email:
                 isEmailValid = true
@@ -199,13 +469,12 @@ struct FormState {
             }
         }
     }
-    
+
     mutating func validateConfirmPassword() {
         isConfirmPasswordValid = confirmPassword == password
         confirmPasswordErrorMessage = isConfirmPasswordValid ? "" : "Passwords do not match."
     }
 }
-
 
 enum ValidationRule {
     case minLength(Int)

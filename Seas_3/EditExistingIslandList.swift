@@ -41,7 +41,6 @@ struct EditExistingIslandListContent: View {
                 .onChange(of: searchQuery) { _ in
                     updateSearchResults()
                 }
-            let newIsland = PirateIsland(context: viewContext)
             IslandList(
                 islands: filteredIslands,
                 selectedIsland: $selectedIsland,
@@ -55,13 +54,21 @@ struct EditExistingIslandListContent: View {
                     dismissButton: .default(Text("OK"))
                 )
             }
-            .onAppear {
-                updateFilteredIslands()
-                logFetch()
-            }
+        }
+        .onAppear {
+            updateFilteredIslands()
+            logFetch()
+            createNewPirateIslandIfNeeded()
         }
     }
-
+    
+    
+    private func createNewPirateIslandIfNeeded() {
+        // Check if you need to create a new PirateIsland object
+        let newIsland = PirateIsland(context: viewContext)
+        // ...
+    }
+    
     
     private func updateSearchResults() {
         debounceTimer?.invalidate()

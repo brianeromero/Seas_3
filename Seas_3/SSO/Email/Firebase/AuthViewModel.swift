@@ -19,6 +19,7 @@ enum AuthError: Error, LocalizedError {
     case passwordsDoNotMatch
     case invalidEmail
     case unknownError
+    case notSignedIn
     
     var errorDescription: String? {
         switch self {
@@ -34,6 +35,8 @@ enum AuthError: Error, LocalizedError {
             return "Passwords do not match."
         case .invalidEmail:
             return "Email is invalid."
+        case .notSignedIn:
+            return "User is not signed in."
         case .unknownError:
             return "Unknown Error, pleaes reach out to email: mfinder.bjj@gmail.com"
         }
@@ -142,11 +145,10 @@ class AuthViewModel: ObservableObject {
     // Add this method to AuthViewModel
     func logoutUser() async throws {
         do {
-            try auth.signOut() // No need for 'await' here
-            DispatchQueue.main.async {
-                self.userSession = nil
-                self.currentUser = nil
-                // Optionally reset other relevant states or notify UI
+            try auth.signOut()
+            await MainActor.run {
+                userSession = nil
+                currentUser = nil
             }
         } catch {
             throw AuthError.firebaseError(error)
@@ -465,9 +467,9 @@ class AuthViewModel: ObservableObject {
         let currentUser = try await mapFirebaseUserToSeasUser(firebaseUser: authResult.user, userName: user.userName, name: user.name)
 
         // Set session and current user state on main thread
-        DispatchQueue.main.async { [weak self] in
-            self?.userSession = authResult.user
-            self?.currentUser = currentUser
+        await MainActor.run {
+            userSession = authResult.user
+            self.currentUser = currentUser
         }
     }
 
@@ -614,4 +616,12 @@ class AuthViewModel: ObservableObject {
             print("Error signing out: \(error.localizedDescription)")
         }
     }
+    
+    func getUserId() async throws -> String {
+        guard let user = auth.currentUser else {
+            throw AuthError.notSignedIn
+        }
+        return user.uid
+    }
+    
 }
