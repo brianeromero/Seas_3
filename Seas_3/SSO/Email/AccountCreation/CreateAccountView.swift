@@ -202,8 +202,8 @@ struct CreateAccountView: View {
                 
                 // Validation logic
                 let isIslandNameRequired = islandDetails.islandName.trimmingCharacters(in: .whitespaces).isEmpty
-                let areAddressFieldsRequired = !isIslandNameRequired && !areAddressFieldsValid(for: selectedCountry?.cca2 ?? "", islandDetails: islandDetails)
-                
+                let areAddressFieldsRequired = !isIslandNameRequired && !areAddressFieldsValid(for: selectedCountry?.name.common ?? "", islandDetails: islandDetails)
+
                 // Error Message for Island Name and Address Validation
                 if isIslandNameRequired {
                     Text("Island name is required.")
@@ -236,7 +236,7 @@ struct CreateAccountView: View {
                     if islandDetails.islandName.trimmingCharacters(in: .whitespaces).isEmpty {
                         return true // Address fields aren't required if island name is empty
                     } else {
-                        return areAddressFieldsValid(for: selectedCountry?.cca2 ?? "", islandDetails: islandDetails)
+                        return areAddressFieldsValid(for: selectedCountry?.name.common ?? "", islandDetails: islandDetails)
                     }
                 }
                 
@@ -248,7 +248,7 @@ struct CreateAccountView: View {
                         do {
                             // Ensure all required parameters are passed
                             let userId = try await authViewModel.getUserId() // Access getUserId directly
-                            islandDetails.country = selectedCountry?.cca2 ?? ""
+                            islandDetails.country = selectedCountry?.name.common ?? ""
                             let result = try await islandViewModel.createPirateIsland(
                                 islandDetails: islandDetails,
                                 createdByUserId: userId,
@@ -536,7 +536,7 @@ struct CreateAccountView: View {
 
         do {
             let userId = try await authViewModel.getUserId()
-            let country = selectedCountry?.cca2 ?? ""
+            let country = selectedCountry?.name.common ?? ""
             _ = try await islandViewModel.createPirateIsland(
                 islandDetails: islandDetails,
                 createdByUserId: userId,
