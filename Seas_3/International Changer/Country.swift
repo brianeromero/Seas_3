@@ -11,15 +11,9 @@ import SwiftUI
 struct Country: Codable, Hashable {
     let name: Name
     let cca2: String
-    let flag: String // Add this property
-
+    let flag: String
 
     struct Name: Codable, Hashable {
         let common: String
-    }
-
-    // You can add a computed property if needed to access the country name easily
-    var countryName: String {
-        return name.common
     }
 }
