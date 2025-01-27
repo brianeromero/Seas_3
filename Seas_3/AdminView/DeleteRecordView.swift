@@ -10,6 +10,7 @@ import SwiftUI
 import FirebaseFirestore
 import CoreData
 
+
 struct DeleteRecordView: View {
     @State private var recordID: String = ""
     @State private var statusMessage: String = ""
@@ -50,9 +51,11 @@ struct DeleteRecordView: View {
         let db = Firestore.firestore()
 
         do {
+            // Firestore deletion
             try await db.collection("pirateIslands").document(recordID).delete()
             print("Record deleted from Firestore.")
             
+            // Core Data deletion
             let fetchRequest: NSFetchRequest<NSFetchRequestResult> = NSFetchRequest(entityName: "PirateIsland")
             fetchRequest.predicate = NSPredicate(format: "islandID == %@", recordID as NSString)
             
@@ -60,7 +63,7 @@ struct DeleteRecordView: View {
                 try coreDataContext.fetch(fetchRequest) as? [NSManagedObject]
             }
             
-            if let results = results {
+            if let results = results, !results.isEmpty {
                 for object in results {
                     coreDataContext.delete(object)
                 }
@@ -70,7 +73,7 @@ struct DeleteRecordView: View {
                 print("Record deleted from Core Data.")
                 return (true, "")
             } else {
-                return (false, "Failed to delete from Core Data: No results found")
+                return (false, "No matching record found in Core Data.")
             }
         } catch {
             return (false, "Failed to delete from Firestore or Core Data: \(error.localizedDescription)")
@@ -78,8 +81,8 @@ struct DeleteRecordView: View {
     }
 
     private func deleteRecordAndHandleCache() {
-        guard !recordID.isEmpty else {
-            statusMessage = "Please enter a valid Record ID."
+        guard validateRecordID(recordID) else {
+            statusMessage = "Invalid Record ID. Please enter a valid UUID."
             return
         }
 
@@ -91,5 +94,10 @@ struct DeleteRecordView: View {
                 statusMessage = "Error: \(message)"
             }
         }
+    }
+    
+    private func validateRecordID(_ recordID: String) -> Bool {
+        // Ensure the recordID is a valid UUID
+        return UUID(uuidString: recordID) != nil
     }
 }
