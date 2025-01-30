@@ -190,7 +190,7 @@ struct AddOpenMatFormView: View {
                         for: viewModel.selectedDay ?? DayOfWeek.monday
                     )
                 } else {
-                    alertMessage = "Please fill in all required fields."
+                    alertMessage = "Please fill in all required fields202122."
                     showAlert = true
                 }
             }

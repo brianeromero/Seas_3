@@ -16,7 +16,7 @@ enum ValidationError: String, Error, Equatable {
     case invalidPassword = "Password should be at least 8 characters long."
     case tooShort = "Password is too short."
     case missingUppercase = "Password must contain at least one uppercase letter."
-    case invalidIslandName = "Island name is required."
+    case invalidIslandName = "Island name is required123."
     case invalidLocation = "Street, city, state, and postal code are required."
     case invalidURL = "Invalid URL format."
     case usernameTaken = "Username already exists."
@@ -194,8 +194,7 @@ class ValidationUtility {
         }
     }
     
-    
-    
+
     static func validateIslandForm(
         islandName: String,
         street: String,
@@ -205,93 +204,74 @@ class ValidationUtility {
         neighborhood: String? = nil,  // For Brazil
         complement: String? = nil,    // For Brazil
         province: String? = nil,      // For Canada and China
-        region: String? = nil,         // For Russia
-        district: String? = nil,       // For Israel
-        department: String? = nil,     // For Colombia
-        governorate: String? = nil,    // For Egypt
-        emirate: String? = nil,        // For United Arab Emirates
-        apartment: String? = nil,      // For Russia
-        additionalInfo: String? = nil, // For Saudi Arabia
+        region: String? = nil,        // For Russia
+        district: String? = nil,      // For Israel
+        department: String? = nil,    // For Colombia
+        governorate: String? = nil,   // For Egypt
+        emirate: String? = nil,       // For United Arab Emirates
+        apartment: String? = nil,     // For Russia
+        additionalInfo: String? = nil,// For Saudi Arabia
         selectedCountry: Country?,
         createdByUserId: String,
         gymWebsite: String
     ) -> (isValid: Bool, errorMessage: String) {
-        Logger.logCreatedByIdEvent(createdByUserId: createdByUserId, fileName: "ValidationUtility", functionName: "validateIslandForm")
-        var errorMessage = ""
         
+        Logger.logCreatedByIdEvent(createdByUserId: createdByUserId, fileName: "ValidationUtility", functionName: "validateIslandForm")
+
+        // Validate island name
         if islandName.isEmpty {
-            errorMessage = "Island name is required."
+            return (false, "Island name is required456.")
+        }
+        
+        // Validate country selection
+        guard let selectedCountry = selectedCountry else {
+            return (false, "Please select a country.")
+        }
+
+        // Get required address fields for the selected country
+        if let requiredFields = try? getAddressFields(for: selectedCountry.name.common) {
+            // Helper function to check required fields
+            func validateField(_ field: String?, fieldName: String) -> (isValid: Bool, errorMessage: String)? {
+                if field?.isEmpty ?? true {
+                    return (false, "\(fieldName) is required.")
+                }
+                return nil
+            }
+
+            // Validate required fields
+            if let result = validateField(street, fieldName: "Street"), requiredFields.contains(.street) { return result }
+            if let result = validateField(city, fieldName: "City"), requiredFields.contains(.city) { return result }
+            if let result = validateField(state, fieldName: "State"), requiredFields.contains(.state) { return result }
+            if let result = validateField(postalCode, fieldName: "Postal code"), requiredFields.contains(.postalCode) { return result }
+            
+            // Country-specific validations
+            if let result = validateField(province, fieldName: "Province"), requiredFields.contains(.province) { return result }
+            if let result = validateField(region, fieldName: "Region"), requiredFields.contains(.region) { return result }
+            if let result = validateField(district, fieldName: "District"), requiredFields.contains(.district) { return result }
+            if let result = validateField(department, fieldName: "Department"), requiredFields.contains(.department) { return result }
+            if let result = validateField(governorate, fieldName: "Governorate"), requiredFields.contains(.governorate) { return result }
+            if let result = validateField(emirate, fieldName: "Emirate"), requiredFields.contains(.emirate) { return result }
+            if let result = validateField(apartment, fieldName: "Apartment"), requiredFields.contains(.apartment) { return result }
+            if let result = validateField(additionalInfo, fieldName: "Additional info"), requiredFields.contains(.additionalInfo) { return result }
+            if let result = validateField(neighborhood, fieldName: "Neighborhood"), requiredFields.contains(.neighborhood) { return result }
+            if let result = validateField(complement, fieldName: "Complement"), requiredFields.contains(.complement) { return result }
         } else {
-            guard let selectedCountry = selectedCountry else {
-                errorMessage = "Please select a country."
-                return (false, errorMessage)
-            }
-            
-            let requiredFields = getAddressFields(for: selectedCountry.name.common)
-            
-            if requiredFields.contains(.street) && street.isEmpty {
-                errorMessage = "Street is required."
-            }
-            
-            if requiredFields.contains(.city) && city.isEmpty {
-                errorMessage = "City is required."
-            }
-            
-            if requiredFields.contains(.state) && state.isEmpty {
-                errorMessage = "State is required."
-            }
-            
-            if requiredFields.contains(.province) && province?.isEmpty ?? true {
-                errorMessage = "Province is required."
-            }
-            
-            if requiredFields.contains(.region) && region?.isEmpty ?? true {
-                errorMessage = "Region is required."
-            }
-            
-            if requiredFields.contains(.district) && district?.isEmpty ?? true {
-                errorMessage = "District is required."
-            }
-            
-            if requiredFields.contains(.department) && department?.isEmpty ?? true {
-                errorMessage = "Department is required."
-            }
-            
-            if requiredFields.contains(.governorate) && governorate?.isEmpty ?? true {
-                errorMessage = "Governorate is required."
-            }
-            
-            if requiredFields.contains(.emirate) && emirate?.isEmpty ?? true {
-                errorMessage = "Emirate is required."
-            }
-            
-            if requiredFields.contains(.apartment) && apartment?.isEmpty ?? true {
-                errorMessage = "Apartment is required."
-            }
-            
-            if requiredFields.contains(.additionalInfo) && additionalInfo?.isEmpty ?? true {
-                errorMessage = "Additional info is required."
-            }
-            
-            if requiredFields.contains(.neighborhood) && neighborhood?.isEmpty ?? true {
-                errorMessage = "Neighborhood is required."
-            }
-            
-            if requiredFields.contains(.complement) && complement?.isEmpty ?? true {
-                errorMessage = "Complement is required."
-            }
-            
-            if requiredFields.contains(.postalCode) && postalCode.isEmpty {
-                errorMessage = "Postal code is required."
-            }
-            
-            if !createdByUserId.isEmpty && gymWebsite.isEmpty {
-                errorMessage = "Website URL is invalid."
-            } else if !gymWebsite.isEmpty && validateURL(gymWebsite) != nil {
-                errorMessage = "Invalid website URL."
+            // Handle the case where getAddressFields returns nil
+            return (false, "Error getting address fields for country code \(selectedCountry.name.common)")
+        }
+
+        // Validate website URL if provided
+        if !createdByUserId.isEmpty {
+            if gymWebsite.isEmpty {
+                return (false, "Website URL is required.")
+            } else if validateURL(gymWebsite) != nil {
+                return (false, "Invalid website URL.")
             }
         }
         
-        return (errorMessage.isEmpty, errorMessage)
+        // All validations passed
+        return (true, "")
     }
+
+
 }

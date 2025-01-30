@@ -56,6 +56,7 @@ class CountryService: NSObject, ObservableObject, URLSessionDelegate {
                 self?.error = URLError(.badURL)
                 self?.isLoading = false
             }
+            await fetchCountriesFromGoogleAPI() // Call Google API if RestCountries API fails
             return
         }
 
@@ -77,7 +78,7 @@ class CountryService: NSObject, ObservableObject, URLSessionDelegate {
                 }
                 self?.isLoading = false
             }
-            await fetchCountriesFromGoogleAPI()
+            await fetchCountriesFromGoogleAPI() // Call Google API if RestCountries API fails
         }
     }
     

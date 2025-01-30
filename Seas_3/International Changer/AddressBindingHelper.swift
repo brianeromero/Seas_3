@@ -11,9 +11,10 @@ import SwiftUI
 class AddressBindingHelper {
     /// Creates a binding for the specified address field.
     static func binding(for field: AddressField, islandDetails: Binding<IslandDetails>) -> Binding<String> {
-        islandDetails.transform(field.keyPath)
+        return islandDetails.transform(field.keyPath)
     }
 }
+
 
 /// Extension on Binding for IslandDetails.
 extension Binding where Value == IslandDetails {

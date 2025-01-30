@@ -22,8 +22,19 @@ struct CountryPicker: View {
         )
         .onChange(of: selectedCountry) { newValue in
             if let countryCode = newValue?.cca2 {
-                requiredFields = getAddressFields(for: countryCode)
+                let normalizedCountryCode = countryCode.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
+                print("Normalized Country Code Set123: \(normalizedCountryCode)") // Debugging Log
+                
+                do {
+                    requiredFields = try getAddressFields(for: normalizedCountryCode)
+                    print("Address Fields Required456: \(requiredFields)") // Debugging Log
+                } catch {
+                    print("Error getting address fields for country code \(normalizedCountryCode): \(error)")
+                }
+            } else {
+                print("Error: Selected country is nil or does not have a valid cca2 code.")
             }
         }
     }
 }
+

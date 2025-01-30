@@ -347,7 +347,7 @@ public struct LoginView: View {
         HStack(alignment: .center, spacing: 10) {
             Text("Log In OR")
             Button(action: {
-                print("Create Account link tapped")
+                print("GO TO Create Account link tapped")
                 os_log("Create Account link tapped", log: OSLog.default, type: .info)
                 navigateToCreateAccount = true
             }) {

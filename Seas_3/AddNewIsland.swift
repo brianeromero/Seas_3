@@ -62,8 +62,16 @@ struct AddNewIsland: View {
                         )
                         .onChange(of: islandDetails.selectedCountry) { newCountry in
                             if let newCountry = newCountry {
-                                islandDetails.requiredAddressFields = getAddressFields(for: newCountry.cca2)
+                                do {
+                                    // Fetch address fields for the selected country code
+                                    islandDetails.requiredAddressFields = try getAddressFields(for: newCountry.cca2)
+                                } catch {
+                                    // Handle error if address fields cannot be fetched
+                                    os_log("Error getting address fields for country code %@: %@", log: OSLog.default, type: .error, newCountry.cca2, error.localizedDescription)
+                                    islandDetails.requiredAddressFields = defaultAddressFieldRequirements
+                                }
                             } else {
+                                // Reset to default if no country is selected
                                 islandDetails.requiredAddressFields = defaultAddressFieldRequirements
                             }
                         }
@@ -73,13 +81,14 @@ struct AddNewIsland: View {
                 }
                 
                 Section(header: Text("Address")) {
+                    // Dynamically generate address fields
                     ForEach(islandDetails.requiredAddressFields, id: \.self) { field in
                         addressField(for: field)
                     }
                 }
                 
                 Section(header: Text("Website (optional)")) {
-                    TextField("Gym Website011111", text: $gymWebsite)
+                    TextField("Gym Website", text: $gymWebsite)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .keyboardType(.URL)
                         .onChange(of: gymWebsite) { newValue in
@@ -128,6 +137,7 @@ struct AddNewIsland: View {
                 }
                 
                 Task {
+                    // Load countries on appear
                     await countryService.fetchCountries()
                     if let usa = countryService.countries.first(where: { $0.cca2 == "US" }) {
                         islandDetails.selectedCountry = usa
@@ -136,7 +146,6 @@ struct AddNewIsland: View {
                     os_log("Countries loaded successfully", log: OSLog.default, type: .info)
                 }
             }
-            
             .overlay(toastOverlay)
             .onChange(of: islandDetails) { _ in validateForm() }
             .onChange(of: islandDetails.islandName) { _ in validateForm() }
@@ -145,15 +154,24 @@ struct AddNewIsland: View {
     }
 
 
+
     // MARK: - Helper Methods
     private func updateAddressFields() {
+        // Use islandDetails.selectedCountry?.cca2 directly
         guard let selectedCountry = islandDetails.selectedCountry else {
             islandDetails.requiredAddressFields = defaultAddressFieldRequirements
             return
         }
-        islandDetails.requiredAddressFields = getAddressFields(for: selectedCountry.cca2)
-        print("Country: \(selectedCountry.name.common), Custom Fields: \(islandDetails.requiredAddressFields.map { $0.rawValue })")
-        os_log("Updated address fields for country: %@", log: OSLog.default, type: .info, selectedCountry.name.common)
+        
+        do {
+            // Pass selectedCountry.cca2 directly to getAddressFields
+            islandDetails.requiredAddressFields = try getAddressFields(for: selectedCountry.cca2)
+            print("Country: \(selectedCountry.name.common), Custom Fields: \(islandDetails.requiredAddressFields.map { $0.rawValue })")
+            os_log("Updated address fields for country: %@", log: OSLog.default, type: .info, selectedCountry.name.common)
+        } catch {
+            os_log("Error getting address fields for country code %@: %@", log: OSLog.default, type: .error, selectedCountry.cca2, error.localizedDescription)
+            islandDetails.requiredAddressFields = defaultAddressFieldRequirements
+        }
     }
 
 
@@ -199,7 +217,7 @@ struct AddNewIsland: View {
     }
     
     private func validateForm() {
-        print("Validating form...")
+        print("Validating form...123")
         let requiredFields = islandDetails.requiredAddressFields
         print("Required fields: \(requiredFields.map { $0.rawValue })")
         isSaveEnabled = true // Assume the form is valid initially
@@ -229,16 +247,17 @@ struct AddNewIsland: View {
     private func saveIsland(onSave: @escaping () -> Void) async {
         if isSaveEnabled {
             do {
+                // Use islandDetails.selectedCountry?.cca2 directly
                 let newIsland = try await islandViewModel.createPirateIsland(
                     islandDetails: islandDetails,
                     createdByUserId: profileViewModel.name,
                     gymWebsite: gymWebsite,
-                    country: islandDetails.selectedCountry?.cca2 ?? ""
+                    country: islandDetails.selectedCountry?.cca2 ?? "" // Directly access the country code here
                 )
 
                 // Store the country and gym website URL in the new island
                 newIsland.country = islandDetails.selectedCountry?.name.common
-                
+
                 if !gymWebsite.isEmpty {
                     if let url = URL(string: gymWebsite) {
                         newIsland.gymWebsite = url
@@ -249,12 +268,14 @@ struct AddNewIsland: View {
                         return
                     }
                 }
-                
+
+                //CONFIRM IF I NEED THIS SINCEislandViewModel.createPirateIsland ALREADY DOES THE SAVE
                 try viewContext.save()
                 
+
                 toastMessage = "Island saved successfully: \(newIsland.islandName ?? "Unknown Name")"
                 clearFields()
-                
+
                 // Call the onSave callback
                 onSave()
             } catch {
@@ -267,10 +288,11 @@ struct AddNewIsland: View {
                 }
             }
         } else {
-            toastMessage = "Please fill in all required fields"
+            toastMessage = "Please fill in all required fields789"
             showToast = true
         }
     }
+
 
     private func clearFields() {
         islandDetails.islandName = ""

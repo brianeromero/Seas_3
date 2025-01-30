@@ -83,17 +83,18 @@ class IslandDetails: ObservableObject, Equatable {
     
     var fullAddress: String {
         var address = [islandLocation]
-        if !country.isEmpty {
-            address.append(country)
-        }
+
         if let selectedCountry = selectedCountry, !selectedCountry.name.common.isEmpty {
-            address.append(selectedCountry.name.common)
+            address.append(selectedCountry.name.common)  // Use selectedCountry
+        } else if !country.isEmpty {
+            address.append(country)  // Fallback to manually entered country
         }
-        
+
         let computedAddress = address.filter { !$0.isEmpty }.joined(separator: "\n")
         os_log("Computed fullAddress: %@", log: .default, type: .debug, computedAddress)
         return computedAddress
     }
+
     // MARK: - Initializer
     init(islandName: String = "",
          street: String = "",
@@ -128,52 +129,61 @@ class IslandDetails: ObservableObject, Equatable {
     
     // MARK: - Validation Logic
     private func validateForm() {
+        os_log("Validating form 789: islandName = %@", log: .default, type: .debug, islandName)
+
         let fieldsValid = requiredAddressFields.allSatisfy { field in
             switch field {
             case .street: return !street.isEmpty
             case .city: return !city.isEmpty
             case .state: return !state.isEmpty
-            case .province: return !province.isEmpty
             case .postalCode: return !postalCode.isEmpty
+            case .county: return !county.isEmpty
+            case .province: return !province.isEmpty
             case .region: return !region.isEmpty
             case .district: return !district.isEmpty
             case .department: return !department.isEmpty
             case .governorate: return !governorate.isEmpty
             case .emirate: return !emirate.isEmpty
             case .block: return !block.isEmpty
-            case .county: return !county.isEmpty
             case .neighborhood: return !neighborhood.isEmpty
             case .complement: return !complement.isEmpty
             case .apartment: return !apartment.isEmpty
             case .additionalInfo: return !additionalInfo.isEmpty
             case .multilineAddress: return !multilineAddress.isEmpty
-            case .parish: return !islandName.isEmpty
-            case .entity: return !islandName.isEmpty
-            case .municipality: return !islandName.isEmpty
-            case .division: return !islandName.isEmpty
-            case .zone: return !islandName.isEmpty
+            case .parish: return !parish.isEmpty
+            case .entity: return !entity.isEmpty
+            case .municipality: return !municipality.isEmpty
+            case .division: return !division.isEmpty
+            case .zone: return !zone.isEmpty
             case .island: return !island.isEmpty
             }
         }
-        let islandNameValid = !islandName.isEmpty
-        isIslandNameValid = islandNameValid
-        islandNameErrorMessage = islandNameValid ? "" : "Gym name cannot be empty."
-        
-        let formValid = fieldsValid && islandNameValid
-        isFormValid = formValid
-        onValidationChange?(formValid)
+
+        isIslandNameValid = !islandName.isEmpty
+        islandNameErrorMessage = isIslandNameValid ? "" : "Gym name cannot be empty."
+
+        isFormValid = fieldsValid && isIslandNameValid
+        onValidationChange?(isFormValid)
     }
+
     
     // MARK: - Update Required Address
     func updateRequiredAddressFields() {
-        guard let countryName = selectedCountry?.name.common else {
+        guard let countryCode = selectedCountry?.cca2 else {
             requiredAddressFields = defaultAddressFieldRequirements
             return
         }
-        
-        requiredAddressFields = getAddressFields(for: countryName)
-        validateForm()
+
+        do {
+            requiredAddressFields = try getAddressFields(for: countryCode)  // Use cca2 instead of name
+            validateForm()
+        } catch {
+            os_log("Error getting address fields for country code: %@", log: OSLog.default, type: .error, countryCode)
+            requiredAddressFields = defaultAddressFieldRequirements
+            validateForm()
+        }
     }
+
     
     // MARK: - Equatable Protocol
     static func == (lhs: IslandDetails, rhs: IslandDetails) -> Bool {
@@ -188,6 +198,10 @@ class IslandDetails: ObservableObject, Equatable {
         lhs.additionalInfo == rhs.additionalInfo &&
         lhs.country == rhs.country &&
         lhs.county == rhs.county &&
-        lhs.island == rhs.island
+        lhs.province == rhs.province &&  // Added province
+        lhs.region == rhs.region &&      // Added region
+        lhs.island == rhs.island &&
+        lhs.gymWebsite == rhs.gymWebsite // Added gymWebsite
     }
+
 }

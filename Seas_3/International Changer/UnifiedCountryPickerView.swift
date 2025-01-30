@@ -16,6 +16,7 @@ extension Country {
     }
 }
 
+
 struct UnifiedCountryPickerView: View {
     @ObservedObject var countryService: CountryService
     @Binding var selectedCountry: Country?
@@ -54,8 +55,38 @@ struct UnifiedCountryPickerView: View {
                 }
             }
         }
+        .onChange(of: selectedCountry) { newCountry in
+            if let country = newCountry {
+                let countryCode = country.cca2 // no need for `if let` since `cca2` is non-optional
+                let normalizedCountryCode = countryCode.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
+                print("Normalized Country Code Set 456: \(normalizedCountryCode)")
+                
+                // Fetch address fields
+                fetchAddressFields(forCountry: normalizedCountryCode)
+            } else {
+                print("Error: Selected country is nil.")
+            }
+        }
+    }
+
+    // Function to fetch address fields based on the normalized country code
+    func fetchAddressFields(forCountry countryCode: String) {
+        do {
+            let addressFields = try getAddressFields(for: countryCode)
+            
+            // Update your UI or model with the fetched address fields
+            print("Fetched Address Fields for \(countryCode): \(addressFields)")
+            
+            // Now you can use the address fields as needed
+            // For example, you might show/hide input fields based on this information
+        } catch {
+            print("Error fetching address fields123: \(error)")
+            
+            // Handle error, such as showing a default address format or an error message
+        }
     }
 }
+
 
 
 struct CountryPickerSheetView: View {
@@ -69,6 +100,7 @@ struct CountryPickerSheetView: View {
                 Button(action: {
                     print("Country selected: \(country.name.common)")
                     selectedCountry = country
+                    print("Updated selectedCountry to: \(country.name.common)")
                     isPickerPresented = false
                 }) {
                     HStack {
@@ -91,6 +123,8 @@ struct CountryPickerSheetView: View {
         }
     }
 }
+
+
 
 struct UnifiedCountryPickerView_Previews: PreviewProvider {
     static var previews: some View {

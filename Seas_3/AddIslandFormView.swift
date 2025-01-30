@@ -27,6 +27,10 @@ struct AddIslandFormView: View {
     @State private var showToast = false
     @State private var toastMessage = ""
     @State private var isGeocoding = false
+    @State private var error: String?
+    @State private var requiredFields: [AddressFieldType] = []
+
+
 
     // MARK: - Initialization
     init(
@@ -72,21 +76,35 @@ struct AddIslandFormView: View {
     
     private var countrySpecificFieldsSection: some View {
         Section(header: Text("Country Specific Fields")) {
-            if let selectedCountry = islandDetails.selectedCountry {
-                let requiredFields = getAddressFields(for: selectedCountry.cca2)
-                
-                // Dynamically create fields based on the country-specific requirements
-                ForEach(requiredFields, id: \.self) { field in
-                    self.addressField(for: field)
+            VStack {
+                if let selectedCountry = islandDetails.selectedCountry {
+                    if let error = error {
+                        Text("Error getting address fields for country code \(selectedCountry.cca2): \(error)")
+                    } else {
+                        ForEach(requiredFields, id: \.self) { field in
+                            self.addressField(for: field)
+                        }
+                        
+                        if selectedCountry.cca2.uppercased().trimmingCharacters(in: .whitespacesAndNewlines) == "IE" {
+                            TextField("County", text: $islandDetails.county)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                        }
+                    }
+                } else {
+                    Text("Please select a country")
                 }
-                
-                // Conditional field specifically for countries like Ireland
-                if selectedCountry.cca2 == "IE" {
-                    TextField("County", text: $islandDetails.county)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
+            }
+            .onAppear {
+                if let selectedCountry = islandDetails.selectedCountry {
+                    let normalizedCountryCode = selectedCountry.cca2.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
+                    print("Fetching address fields for normalized country code456: \(normalizedCountryCode)")
+
+                    do {
+                        requiredFields = try getAddressFields(for: normalizedCountryCode)
+                    } catch {
+                        self.error = "Error getting address fields for country code \(normalizedCountryCode): \(error.localizedDescription)"
+                    }
                 }
-            } else {
-                Text("Please select a country")
             }
         }
     }
@@ -194,8 +212,7 @@ struct AddIslandFormView: View {
         
         Task {
             do {
-                // Pass nil for gymWebsite if it's not available
-                _ = try await islandViewModel.createAndSavePirateIsland(
+                _ = try await islandViewModel.createPirateIsland(
                     islandDetails: islandDetails,
                     createdByUserId: profileViewModel.name,
                     gymWebsite: nil,
@@ -221,17 +238,23 @@ struct AddIslandFormView: View {
     }
 
     private func validateForm() {
+        let normalizedCountryCode = islandDetails.selectedCountry?.cca2.uppercased().trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
         let (isValid, errorMessage) = ValidationUtility.validateIslandForm(
             islandName: islandDetails.islandName,
             street: islandDetails.street,
             city: islandDetails.city,
             state: islandDetails.state,
             postalCode: islandDetails.postalCode,
-            selectedCountry: Country(name: .init(common: islandDetails.selectedCountry?.name.common ?? ""), cca2: "", flag: ""),
+            selectedCountry: Country(
+                name: .init(common: islandDetails.selectedCountry?.name.common ?? ""),
+                cca2: normalizedCountryCode,
+                flag: ""
+            ),
             createdByUserId: profileViewModel.name,
             gymWebsite: islandDetails.gymWebsite
         )
-        
+
         if !isValid {
             alertMessage = errorMessage
             showAlert = true
@@ -239,6 +262,7 @@ struct AddIslandFormView: View {
             isSaveEnabled = true
         }
     }
+
     
     private func binding(for field: AddressFieldType) -> Binding<String> {
         switch field {
@@ -248,18 +272,6 @@ struct AddIslandFormView: View {
         case .postalCode: return $islandDetails.postalCode
         default: return .constant("")
         }
-    }
-    
-    private func getAddressFields(for country: String) -> [AddressFieldType] {
-        guard let fields = addressFieldRequirements[country.uppercased()] else {
-            print("No address field requirements found for country: \(country). Using default fields.")
-            return defaultAddressFieldRequirements
-        }
-        
-        // Log the country and the corresponding fields
-        print("Country: \(country), Custom Fields: \(fields.map { $0.rawValue })") // Log custom fields for known countries
-        
-        return fields
     }
 }
 
@@ -272,17 +284,22 @@ struct AddIslandFormView_Previews: PreviewProvider {
         )
         profileViewModel.name = "Brian Romero"
 
-        // Adjust IslandDetails initialization based on available initializer
+        // Simulate an actual selected country
+        let exampleCountry = Country(
+            name: .init(common: "France"),  // Example country
+            cca2: "FR",                     // Ensure correct cca2 format
+            flag: "🇫🇷"
+        )
+
         let islandDetails = IslandDetails(
             islandName: "Example Gym",
             street: "123 Main St",
-            city: "Anytown",
-            state: "CA",
-            postalCode: "90210",
-            selectedCountry: Country(name: .init(common: "USA"), cca2: "US", flag: "")
+            city: "Paris",
+            state: "Île-de-France",
+            postalCode: "75001",
+            selectedCountry: exampleCountry
         )
 
-        // Create an instance of PirateIslandViewModel
         let islandViewModel = PirateIslandViewModel(persistenceController: PersistenceController.preview)
 
         return AddIslandFormView(

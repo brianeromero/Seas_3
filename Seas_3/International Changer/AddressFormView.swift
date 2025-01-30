@@ -14,9 +14,13 @@ struct AddressFormView: View {
 
 
     var requiredFields: [AddressFieldType] {
-        getAddressFields(for: selectedCountry)
+        do {
+            return try getAddressFields(for: selectedCountry)
+        } catch {
+            print("Error getting address fields for country code \(selectedCountry): \(error)")
+            return [] // Return an empty array if there's an error
+        }
     }
-
 
     let countryOptions = Array(addressFieldRequirements.keys).sorted()
 

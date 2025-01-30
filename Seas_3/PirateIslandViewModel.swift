@@ -41,9 +41,9 @@ enum PirateIslandError: Error {
         case .stateMissing:
             return "State is missing"
         case .postalCodeMissing:
-            return "Postal code is missing" // Update to postal code
+            return "Postal code is missing"
         case .invalidGymWebsite:
-            return "Confirm website validity" // Update to postal code
+            return "Confirm website validity"
         }
     }
 }
@@ -57,8 +57,6 @@ public class PirateIslandViewModel: ObservableObject {
     init(persistenceController: PersistenceController) {
         self.persistenceController = persistenceController
     }
-    
-    
     
     // MARK: - Geocoding
     public func geocodeAddress(_ address: String) async throws -> (latitude: Double, longitude: Double) {
@@ -77,7 +75,7 @@ public class PirateIslandViewModel: ObservableObject {
             throw PirateIslandError.invalidInput
         }
 
-        os_log("Validation succeeded for Island Name: %@, Full Address: %@", log: logger, type: .info, islandDetails.islandName, islandDetails.fullAddress)
+        os_log("Validation succeeded for Island Name: %@, Full Address999: %@", log: logger, type: .info, islandDetails.islandName, islandDetails.fullAddress)
 
         // Step 2: Check if the island already exists
         guard !pirateIslandExists(name: islandDetails.islandName) else {
@@ -108,7 +106,7 @@ public class PirateIslandViewModel: ObservableObject {
         newIsland.lastModifiedByUserId = createdByUserId
         newIsland.lastModifiedTimestamp = Date()
 
-        // Convert the gymWebsite string to a URL
+        // Step 5: Convert the gymWebsite string to a URL
         if let website = gymWebsite, !website.isEmpty {
             if let url = URL(string: website) {
                 newIsland.gymWebsite = url
@@ -123,25 +121,19 @@ public class PirateIslandViewModel: ObservableObject {
 
         os_log("Prepared new PirateIsland for saving: %@, %@, Lat: %@, Long: %@", log: logger, newIsland.islandName ?? "Unknown", newIsland.islandLocation ?? "Unknown", "\(newIsland.latitude)", "\(newIsland.longitude)")
 
-        // Save to Firestore first
-        try await savePirateIslandToFirestore(island: newIsland)
-
-        // Then save to Core Data
+        // Step 6:  Save to Core Data first
         do {
-            // Log before saving
-            let islandName = newIsland.islandName ?? "Unknown Island Name"  // Default value if nil
-            let islandLocation = newIsland.islandLocation ?? "Unknown Location"  // Default value if nil
-
-            os_log("Saving Island to Core Data: %@, Location: %@", log: logger, type: .info, islandName, islandLocation)
-
-            // Ensure persistenceController.saveContext() is async if needed or use the correct method
-            try await persistenceController.saveContext()  // If saveContext() is synchronous, remove the 'await'
-            os_log("Successfully saved PirateIsland: %@", log: logger, type: .info, islandName)
+            try await persistenceController.saveContext()
+            os_log("Successfully saved PirateIsland: %@", log: logger, type: .info, newIsland.islandName ?? "Unknown Island Name")
         } catch {
             os_log("Error saving PirateIsland: %@", log: logger, type: .error, error.localizedDescription)
             throw error
         }
 
+        // Step 7:  Then save to Firestore
+        try await savePirateIslandToFirestore(island: newIsland)
+
+        os_log("Successfully created PirateIsland with name: %@", log: logger, newIsland.islandName ?? "Unknown Island Name")
         return newIsland
     }
 
@@ -156,13 +148,7 @@ public class PirateIslandViewModel: ObservableObject {
         print("Latitude: \(island.latitude)")
         print("Longitude: \(island.longitude)")
         
-        // Validate data
-        guard let islandName = island.islandName, !islandName.isEmpty,
-              let islandLocation = island.islandLocation, !islandLocation.isEmpty else {
-            print("Invalid data: Island name or location is missing")
-            return
-        }
-        
+
         do {
             try await FirestoreManager.shared.saveIslandToFirestore(island: island)
         } catch {
@@ -171,63 +157,53 @@ public class PirateIslandViewModel: ObservableObject {
         }
     }
     
-    // MARK: - Create and Save Pirate Island
-    func createAndSavePirateIsland(islandDetails: IslandDetails, createdByUserId: String, gymWebsite: String?, country: String) async throws {
-        // Capture the returned PirateIsland object from createPirateIsland
-        let newIsland = try await createPirateIsland(islandDetails: islandDetails, createdByUserId: createdByUserId, gymWebsite: gymWebsite, country: country)
-        
-        // Optional: You can log or use the created PirateIsland object (newIsland)
-        os_log("Successfully created PirateIsland with name: %@", log: logger, newIsland.islandName ?? "Unknown Island Name")
-        
-        // Additional logic can be added here if needed, e.g., updating UI, triggering notifications, etc.
-    }
-    
     // MARK: - Validation
     func validateIslandDetails(_ details: IslandDetails, _ createdByUserId: String?, _ countryCode: String) -> Bool {
-        let requiredFields = getAddressFields(for: countryCode)
-        var isValid = true
+        do {
+            let requiredFields = try getAddressFields(for: countryCode.uppercased())
+            var isValid = true
 
-        // Prepare field values for logging and validation
-        let fieldValues: [String: String?] = [
-            "Island Name": details.islandName,
-            "Created By User ID": createdByUserId,
-            "Street": requiredFields.contains(.street) ? details.street : nil,
-            "City": requiredFields.contains(.city) ? details.city : nil,
-            "State": requiredFields.contains(.state) ? details.state : nil,
-            "Province": requiredFields.contains(.province) ? details.province : nil,
-            "Postal Code": requiredFields.contains(.postalCode) ? details.postalCode : nil,
-            "Department": requiredFields.contains(.department) ? details.department : nil,
-            "County": requiredFields.contains(.county) ? details.county : nil,
-            "Neighborhood": requiredFields.contains(.neighborhood) ? details.neighborhood : nil,
-            "Complement": requiredFields.contains(.complement) ? details.complement : nil,
-            "Block": requiredFields.contains(.block) ? details.block : nil,
-            "Apartment": requiredFields.contains(.apartment) ? details.apartment : nil,
-            "Region": requiredFields.contains(.region) ? details.region : nil,
-            "District": requiredFields.contains(.district) ? details.district : nil,
-            "Governorate": requiredFields.contains(.governorate) ? details.governorate : nil,
-            "Emirate": requiredFields.contains(.emirate) ? details.emirate : nil,
-            "Island": requiredFields.contains(.island) ? details.island : nil,
-            "Division": requiredFields.contains(.division) ? details.division : nil,
-            "Zone": requiredFields.contains(.zone) ? details.zone : nil
-        ]
+            // Prepare field values for logging and validation
+            let fieldValues: [String: String?] = [
+                "street": requiredFields.contains(.street) ? details.street : nil,
+                "city": requiredFields.contains(.city) ? details.city : nil,
+                "state": requiredFields.contains(.state) ? details.state : nil,
+                "province": requiredFields.contains(.province) ? details.province : nil,
+                "postalCode": requiredFields.contains(.postalCode) ? details.postalCode : nil,
+                "department": requiredFields.contains(.department) ? details.department : nil,
+                "county": requiredFields.contains(.county) ? details.county : nil,
+                "neighborhood": requiredFields.contains(.neighborhood) ? details.neighborhood : nil,
+                "complement": requiredFields.contains(.complement) ? details.complement : nil,
+                "block": requiredFields.contains(.block) ? details.block : nil,
+                "apartment": requiredFields.contains(.apartment) ? details.apartment : nil,
+                "region": requiredFields.contains(.region) ? details.region : nil,
+                "district": requiredFields.contains(.district) ? details.district : nil,
+                "governorate": requiredFields.contains(.governorate) ? details.governorate : nil,
+                "emirate": requiredFields.contains(.emirate) ? details.emirate : nil,
+                "island": requiredFields.contains(.island) ? details.island : nil,
+                "division": requiredFields.contains(.division) ? details.division : nil,
+                "zone": requiredFields.contains(.zone) ? details.zone : nil
+            ]
 
-        // Validate each field and log the process
-        for (fieldName, value) in fieldValues {
-            os_log("Validating %@: %@", log: logger, fieldName, value ?? "nil")
-            if fieldName == "Created By User ID", value == nil {
-                // If Created By User ID is nil, skip validation
-                continue
-            }
-            if let field = AddressField(rawValue: fieldName), requiredFields.contains(AddressFieldType(rawValue: field.rawValue)!) {
-                if let value = value, value.trimmingCharacters(in: .whitespaces).isEmpty {
-                    os_log("Validation failed: %@ is missing (%@)", log: logger, fieldName, value)
-                    isValid = false
+            // Validate each field and log the process
+            for (fieldName, value) in fieldValues {
+                os_log("Validating %@: %@", log: logger, fieldName, value ?? "nil")
+                let camelCaseFieldName = fieldName.capitalizingFirstLetter()
+                if let field = AddressField(rawValue: camelCaseFieldName), requiredFields.contains(AddressFieldType(rawValue: field.rawValue)!) {
+                    if let value = value, value.trimmingCharacters(in: .whitespaces).isEmpty {
+                        os_log("Validation failed: %@ is missing (%@)", log: logger, fieldName, value)
+                        isValid = false
+                    }
                 }
             }
-        }
 
-        return isValid
+            return isValid
+        } catch {
+            os_log("Error getting address fields for country code %@: %@", log: logger, countryCode, error.localizedDescription)
+            return false
+        }
     }
+    
     // MARK: - Check Existing Islands
     private func pirateIslandExists(name: String) -> Bool {
         let fetchRequest = PirateIsland.fetchRequest()
@@ -252,5 +228,10 @@ public class PirateIslandViewModel: ObservableObject {
         
         try await persistenceController.saveContext()
     }
-    
+}
+
+extension String {
+    func capitalizingFirstLetter() -> String {
+        return prefix(1).uppercased() + dropFirst()
+    }
 }

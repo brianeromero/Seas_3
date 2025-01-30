@@ -5,7 +5,7 @@
 
 import Foundation
 
-// Define address field types
+/// Define address field types
 enum AddressFieldType: String {
     case street
     case city
@@ -31,6 +31,7 @@ enum AddressFieldType: String {
     case zone
     case island
 }
+
 
 // Define address field requirements for each region/country
 let addressFieldRequirements: [String: [AddressFieldType]] = [
@@ -183,18 +184,38 @@ let addressFieldRequirements: [String: [AddressFieldType]] = [
     "WS": [.street, .city, .district, .postalCode] // Samoa
 ]
 
-// Default address field requirements
+/// Default address field requirements
 let defaultAddressFieldRequirements: [AddressFieldType] = [.street, .city, .state, .postalCode]
+/// Function to get address field requirements for a country
+/// - Parameter countryCode: The country code for which to retrieve address field requirements
+/// - Throws: `CountryError.unknownCountryCode` if the country code is unknown
+/// - Returns: An array of address field types required for the given country
+///
 
-// Function to get address field requirements for a country
-func getAddressFields(for country: String) -> [AddressFieldType] {
-    guard let fields = addressFieldRequirements[country.uppercased()] else {
-        print("No address field requirements found for country: \(country). Using default fields.")
-        return defaultAddressFieldRequirements
+func getAddressFields(for countryCode: String) throws -> [AddressFieldType] {
+    let uppercasedCode = countryCode.uppercased()
+    print("Fetching address fields for country code: \(uppercasedCode)")
+
+    // Check if the country code is empty
+    if uppercasedCode.isEmpty {
+        print("Error: Country code is empty")
+        throw CountryError.unknownCountryCode
     }
-    
-    // Log the country and the corresponding fields
-    print("Country: \(country), Custom Fields: \(fields.map { $0.rawValue })") // Log custom fields for known countries
-    
-    return fields
+
+    // Check if the country code exists in the addressFieldRequirements dictionary
+    if let fields = addressFieldRequirements[uppercasedCode] {
+        print("Address Fields Required for 123\(uppercasedCode): \(fields)")
+        return fields
+    } else {
+        print("Error: Unknown country code - \(uppercasedCode)")
+        throw CountryError.unknownCountryCode
+    }
+}
+
+
+
+/// Errors related to country codes
+enum CountryError: Error {
+    /// The country code is unknown
+    case unknownCountryCode
 }

@@ -87,7 +87,16 @@ struct EditExistingIsland: View {
                         .onChange(of: selectedCountry) { newCountry in
                             if let newCountry = newCountry {
                                 os_log("Selected Country: %@", log: OSLog.default, type: .info, newCountry.name.common)
-                                requiredAddressFields = getAddressFields(for: newCountry.cca2)
+
+                                let normalizedCountryCode = newCountry.cca2.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
+                                os_log("Normalized Country Code 101112: %@", log: OSLog.default, type: .info, normalizedCountryCode)
+
+                                do {
+                                    requiredAddressFields = try getAddressFields(for: normalizedCountryCode)
+                                } catch {
+                                    os_log("Error getting address fields for country code %@: %@", log: OSLog.default, type: .error, normalizedCountryCode, error.localizedDescription)
+                                    requiredAddressFields = defaultAddressFieldRequirements
+                                }
                             } else {
                                 requiredAddressFields = defaultAddressFieldRequirements
                             }
@@ -147,7 +156,16 @@ struct EditExistingIsland: View {
                     if let countryName = island.country,
                        let country = countryService.countries.first(where: { $0.name.common == countryName }) {
                         selectedCountry = country
-                        requiredAddressFields = getAddressFields(for: country.cca2)
+
+                        let normalizedCountryCode = country.cca2.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
+                        os_log("Setting initial country code: %@", log: OSLog.default, type: .info, normalizedCountryCode)
+
+                        do {
+                            requiredAddressFields = try getAddressFields(for: normalizedCountryCode)
+                        } catch {
+                            os_log("Error getting address fields for country code %@: %@", log: OSLog.default, type: .error, normalizedCountryCode, error.localizedDescription)
+                            requiredAddressFields = defaultAddressFieldRequirements
+                        }
                     }
                     parseIslandLocation(island.islandLocation ?? "")
                 }
@@ -174,13 +192,23 @@ struct EditExistingIsland: View {
     }
     
     private func updateAddressFields() {
-        guard let selectedCountry = selectedCountry else {
+        guard let selectedCountry = islandDetails.selectedCountry else {
             requiredAddressFields = defaultAddressFieldRequirements
             return
         }
-        requiredAddressFields = getAddressFields(for: selectedCountry.cca2)
-        os_log("Updated address fields for country: %@", log: OSLog.default, type: .info, selectedCountry.name.common)
+        
+        let normalizedCountryCode = selectedCountry.cca2.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        os_log("Fetching address fields for normalized country code123: %@", log: OSLog.default, type: .info, normalizedCountryCode)
+
+        do {
+            requiredAddressFields = try getAddressFields(for: normalizedCountryCode)
+            os_log("Updated address fields for country: %@", log: OSLog.default, type: .info, selectedCountry.name.common)
+        } catch {
+            os_log("Error getting address fields for country code %@: %@", log: OSLog.default, type: .error, normalizedCountryCode, error.localizedDescription)
+            requiredAddressFields = defaultAddressFieldRequirements
+        }
     }
+
 
     private func addressField(for field: AddressFieldType) -> some View {
         guard let keyPath = fieldValues.first(where: { $1 == field })?.0 else {
@@ -200,9 +228,11 @@ struct EditExistingIsland: View {
     }
 
     private func validateForm() {
+        print("validateForm()111213 called: islandName = \(islandName)")
+
         isSaveEnabled = requiredAddressFields.allSatisfy { isValidField($0) } && !islandName.isEmpty
         if !isSaveEnabled {
-            toastMessage = "Please fill in all required fields"
+            toastMessage = "Please fill in all required fields161718"
             showToast = true
         }
     }
@@ -215,7 +245,7 @@ struct EditExistingIsland: View {
     private func saveIsland() {
         guard !islandName.isEmpty, !islandLocation.isEmpty, !lastModifiedByUserId.isEmpty else {
             showAlert = true
-            alertMessage = "Please fill in all required fields"
+            alertMessage = "Please fill in all required fields192021"
             return
         }
 
