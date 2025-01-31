@@ -64,18 +64,19 @@ public class PirateIslandViewModel: ObservableObject {
     }
     
     // MARK: - Create Pirate Island
-    func createPirateIsland(islandDetails: IslandDetails, createdByUserId: String, gymWebsite: String?, country: String) async throws -> PirateIsland {
+    func createPirateIsland(islandDetails: IslandDetails, createdByUserId: String, gymWebsite: String?, country: String, selectedCountry: Country) async throws -> PirateIsland {
         os_log("createPirateIsland called with Island Name: %@, Location: %@", log: logger, type: .info, islandDetails.islandName, islandDetails.fullAddress)
 
         // Generate a new UUID
         let newIslandID = UUID()
 
-        // Step 1: Validate the island details
-        guard validateIslandDetails(islandDetails, createdByUserId, country) else {
+   /*     // Step 1: Validate the island details
+        guard validateIslandDetails(islandDetails, createdByUserId, country, selectedCountry) else {
             throw PirateIslandError.invalidInput
         }
 
         os_log("Validation succeeded for Island Name: %@, Full Address999: %@", log: logger, type: .info, islandDetails.islandName, islandDetails.fullAddress)
+    */
 
         // Step 2: Check if the island already exists
         guard !pirateIslandExists(name: islandDetails.islandName) else {
@@ -158,9 +159,9 @@ public class PirateIslandViewModel: ObservableObject {
     }
     
     // MARK: - Validation
-    func validateIslandDetails(_ details: IslandDetails, _ createdByUserId: String?, _ countryCode: String) -> Bool {
+    func validateIslandDetails(_ details: IslandDetails, _ createdByUserId: String?, _ countryCode: String, _ selectedCountry: Country?) -> Bool {
         do {
-            let requiredFields = try getAddressFields(for: countryCode.uppercased())
+            let requiredFields = try getAddressFields(for: selectedCountry?.cca2.uppercased() ?? "")
             var isValid = true
 
             // Prepare field values for logging and validation
@@ -194,16 +195,16 @@ public class PirateIslandViewModel: ObservableObject {
                         os_log("Validation failed: %@ is missing (%@)", log: logger, fieldName, value)
                         isValid = false
                     }
+                    
                 }
             }
 
             return isValid
         } catch {
-            os_log("Error getting address fields for country code %@: %@", log: logger, countryCode, error.localizedDescription)
+            os_log("Error getting address fields for country code 313233 %@: %@", log: logger, countryCode, "\(error)")
             return false
         }
     }
-    
     // MARK: - Check Existing Islands
     private func pirateIslandExists(name: String) -> Bool {
         let fetchRequest = PirateIsland.fetchRequest()

@@ -17,7 +17,7 @@ struct AddressFormView: View {
         do {
             return try getAddressFields(for: selectedCountry)
         } catch {
-            print("Error getting address fields for country code \(selectedCountry): \(error)")
+            print("Error getting address fields for country code 123 \(selectedCountry): \(error)")
             return [] // Return an empty array if there's an error
         }
     }

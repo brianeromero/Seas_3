@@ -67,7 +67,7 @@ struct AddNewIsland: View {
                                     islandDetails.requiredAddressFields = try getAddressFields(for: newCountry.cca2)
                                 } catch {
                                     // Handle error if address fields cannot be fetched
-                                    os_log("Error getting address fields for country code %@: %@", log: OSLog.default, type: .error, newCountry.cca2, error.localizedDescription)
+                                    os_log("Error getting address fields for country code 10 11 12 %@: %@", log: OSLog.default, type: .error, newCountry.cca2, error.localizedDescription)
                                     islandDetails.requiredAddressFields = defaultAddressFieldRequirements
                                 }
                             } else {
@@ -169,7 +169,7 @@ struct AddNewIsland: View {
             print("Country: \(selectedCountry.name.common), Custom Fields: \(islandDetails.requiredAddressFields.map { $0.rawValue })")
             os_log("Updated address fields for country: %@", log: OSLog.default, type: .info, selectedCountry.name.common)
         } catch {
-            os_log("Error getting address fields for country code %@: %@", log: OSLog.default, type: .error, selectedCountry.cca2, error.localizedDescription)
+            os_log("Error getting address fields for country code 13 14 15 %@: %@", log: OSLog.default, type: .error, selectedCountry.cca2, error.localizedDescription)
             islandDetails.requiredAddressFields = defaultAddressFieldRequirements
         }
     }
@@ -247,12 +247,12 @@ struct AddNewIsland: View {
     private func saveIsland(onSave: @escaping () -> Void) async {
         if isSaveEnabled {
             do {
-                // Use islandDetails.selectedCountry?.cca2 directly
                 let newIsland = try await islandViewModel.createPirateIsland(
                     islandDetails: islandDetails,
                     createdByUserId: profileViewModel.name,
                     gymWebsite: gymWebsite,
-                    country: islandDetails.selectedCountry?.cca2 ?? "" // Directly access the country code here
+                    country: islandDetails.selectedCountry?.cca2 ?? "",
+                    selectedCountry: islandDetails.selectedCountry!
                 )
 
                 // Store the country and gym website URL in the new island

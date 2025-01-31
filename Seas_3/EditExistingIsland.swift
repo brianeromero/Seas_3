@@ -94,7 +94,7 @@ struct EditExistingIsland: View {
                                 do {
                                     requiredAddressFields = try getAddressFields(for: normalizedCountryCode)
                                 } catch {
-                                    os_log("Error getting address fields for country code %@: %@", log: OSLog.default, type: .error, normalizedCountryCode, error.localizedDescription)
+                                    os_log("Error getting address fields for country code 181920 %@: %@", log: OSLog.default, type: .error, normalizedCountryCode, error.localizedDescription)
                                     requiredAddressFields = defaultAddressFieldRequirements
                                 }
                             } else {
@@ -163,7 +163,7 @@ struct EditExistingIsland: View {
                         do {
                             requiredAddressFields = try getAddressFields(for: normalizedCountryCode)
                         } catch {
-                            os_log("Error getting address fields for country code %@: %@", log: OSLog.default, type: .error, normalizedCountryCode, error.localizedDescription)
+                            os_log("Error getting address fields for country code 202122 %@: %@", log: OSLog.default, type: .error, normalizedCountryCode, error.localizedDescription)
                             requiredAddressFields = defaultAddressFieldRequirements
                         }
                     }
@@ -204,7 +204,7 @@ struct EditExistingIsland: View {
             requiredAddressFields = try getAddressFields(for: normalizedCountryCode)
             os_log("Updated address fields for country: %@", log: OSLog.default, type: .info, selectedCountry.name.common)
         } catch {
-            os_log("Error getting address fields for country code %@: %@", log: OSLog.default, type: .error, normalizedCountryCode, error.localizedDescription)
+            os_log("Error getting address fields for country code 222324 %@: %@", log: OSLog.default, type: .error, normalizedCountryCode, error.localizedDescription)
             requiredAddressFields = defaultAddressFieldRequirements
         }
     }

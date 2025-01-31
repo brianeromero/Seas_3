@@ -29,7 +29,7 @@ struct CountryPicker: View {
                     requiredFields = try getAddressFields(for: normalizedCountryCode)
                     print("Address Fields Required456: \(requiredFields)") // Debugging Log
                 } catch {
-                    print("Error getting address fields for country code \(normalizedCountryCode): \(error)")
+                    print("Error getting address fields for country code 456 \(normalizedCountryCode): \(error)")
                 }
             } else {
                 print("Error: Selected country is nil or does not have a valid cca2 code.")

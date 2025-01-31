@@ -194,7 +194,6 @@ class ValidationUtility {
         }
     }
     
-
     static func validateIslandForm(
         islandName: String,
         street: String,
@@ -212,25 +211,30 @@ class ValidationUtility {
         apartment: String? = nil,     // For Russia
         additionalInfo: String? = nil,// For Saudi Arabia
         selectedCountry: Country?,
-        createdByUserId: String,
-        gymWebsite: String
+        gymWebsite: String,
+        latitude: Double? = nil,      // Add latitude as optional
+        longitude: Double? = nil,     // Add longitude as optional
+        country: String = "",        // Add country as a String parameter
+        county: String = "",         // Add county as a String parameter
+        requiredAddressFields: [AddressFieldType] = [], // Add requiredAddressFields
+        gymWebsiteURL: URL? = nil     // Add gymWebsiteURL as optional
     ) -> (isValid: Bool, errorMessage: String) {
-        
-        Logger.logCreatedByIdEvent(createdByUserId: createdByUserId, fileName: "ValidationUtility", functionName: "validateIslandForm")
 
         // Validate island name
         if islandName.isEmpty {
-            return (false, "Island name is required456.")
+            return (false, "Island name is required.")
         }
-        
+
         // Validate country selection
         guard let selectedCountry = selectedCountry else {
             return (false, "Please select a country.")
         }
 
         // Get required address fields for the selected country
-        if let requiredFields = try? getAddressFields(for: selectedCountry.name.common) {
-            // Helper function to check required fields
+        do {
+            let requiredFields = try getAddressFields(for: selectedCountry.cca2)
+
+            // Function to dynamically validate address fields
             func validateField(_ field: String?, fieldName: String) -> (isValid: Bool, errorMessage: String)? {
                 if field?.isEmpty ?? true {
                     return (false, "\(fieldName) is required.")
@@ -238,13 +242,45 @@ class ValidationUtility {
                 return nil
             }
 
-            // Validate required fields
+            // Validate address fields dynamically using the required fields list
+            let islandDetails = IslandDetails(
+                islandName: islandName,
+                street: street,
+                city: city,
+                state: state,
+                postalCode: postalCode,
+                latitude: latitude,
+                longitude: longitude,
+                selectedCountry: selectedCountry,
+                country: country,
+                county: county,
+                additionalInfo: additionalInfo ?? "",
+                requiredAddressFields: requiredAddressFields,
+                gymWebsite: gymWebsite,
+                gymWebsiteURL: gymWebsiteURL
+            )
+
+            // Iterate through required fields and check their corresponding island details
+            for field in requiredFields {
+                // Dynamically check each required address field based on its keyPath
+                let keyPath = AddressField(rawValue: field.rawValue)?.keyPath ?? \.street
+
+                // Safely unwrap and trim the string value
+                let value = islandDetails[keyPath: keyPath].trimmingCharacters(in: .whitespaces)
+
+                // Check if the value is empty
+                if value.isEmpty {
+                    return (false, "\(field.rawValue) is required.")
+                }
+            }
+
+            // Country-specific address validations
             if let result = validateField(street, fieldName: "Street"), requiredFields.contains(.street) { return result }
             if let result = validateField(city, fieldName: "City"), requiredFields.contains(.city) { return result }
             if let result = validateField(state, fieldName: "State"), requiredFields.contains(.state) { return result }
             if let result = validateField(postalCode, fieldName: "Postal code"), requiredFields.contains(.postalCode) { return result }
-            
-            // Country-specific validations
+
+            // Country-specific validations for optional fields
             if let result = validateField(province, fieldName: "Province"), requiredFields.contains(.province) { return result }
             if let result = validateField(region, fieldName: "Region"), requiredFields.contains(.region) { return result }
             if let result = validateField(district, fieldName: "District"), requiredFields.contains(.district) { return result }
@@ -255,20 +291,19 @@ class ValidationUtility {
             if let result = validateField(additionalInfo, fieldName: "Additional info"), requiredFields.contains(.additionalInfo) { return result }
             if let result = validateField(neighborhood, fieldName: "Neighborhood"), requiredFields.contains(.neighborhood) { return result }
             if let result = validateField(complement, fieldName: "Complement"), requiredFields.contains(.complement) { return result }
-        } else {
-            // Handle the case where getAddressFields returns nil
-            return (false, "Error getting address fields for country code \(selectedCountry.name.common)")
+
+        } catch {
+            // Handle the case where getAddressFields throws an error
+            return (false, "Error getting address fields for country code \(selectedCountry.cca2)")
         }
 
         // Validate website URL if provided
-        if !createdByUserId.isEmpty {
-            if gymWebsite.isEmpty {
-                return (false, "Website URL is required.")
-            } else if validateURL(gymWebsite) != nil {
+        if !gymWebsite.isEmpty {
+            if validateURL(gymWebsite) != nil {
                 return (false, "Invalid website URL.")
             }
         }
-        
+
         // All validations passed
         return (true, "")
     }

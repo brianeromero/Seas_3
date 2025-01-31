@@ -260,15 +260,16 @@ struct GymInformationSection: View {
                 additionalInfo: $additionalInfo,
                 islandDetails: $islandDetails,
                 selectedCountry: $selectedCountry,
-                showAlert: .constant(false),
-                alertMessage: .constant(""),
-                gymWebsite: $gymWebsite, 
+                gymWebsite: $gymWebsite,
                 gymWebsiteURL: $gymWebsiteURL,
                 isIslandNameValid: $isIslandNameValid,
                 islandNameErrorMessage: $islandNameErrorMessage,
                 isFormValid: $isFormValid,
-                formState: $formState
+                showAlert: .constant(false),  // Move these two below isFormValid
+                alertMessage: .constant(""),
+                formState: $formState // Ensure formState is last
             )
+
             .padding(.horizontal, 20)
 
 

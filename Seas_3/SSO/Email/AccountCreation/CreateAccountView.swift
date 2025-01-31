@@ -63,15 +63,14 @@ struct CreateAccountView: View {
     @State private var gymWebsiteURL: URL?
     @State private var selectedProtocol = "http://"
     @State private var province = ""
-    @State private var selectedCountry: Country? = Country(name: Country.Name(common: "United States"), cca2: "US", flag: "")
+    @State private var selectedCountry: Country? = Country(name: Country.Name(common: "United States"), cca2: "US", flag: "") {
+        didSet {
+            islandDetails.selectedCountry = selectedCountry
+        }
+    }
     @State private var governorate = ""
     @State private var region = ""
     @State private var county = ""
-    @State private var islandName: String = ""
-    @State private var street: String = ""
-    @State private var city: String = ""
-    @State private var state: String = ""
-    @State private var postalCode: String = ""
     @State private var islandDetails = IslandDetails()
     @State private var block: String = ""
     @State private var district: String = ""
@@ -126,20 +125,40 @@ struct CreateAccountView: View {
  
     // Validation logic
     var isIslandNameRequired: Bool {
-        return !islandDetails.islandName.trimmingCharacters(in: .whitespaces).isEmpty
+        return islandDetails.islandName.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
     var areAddressFieldsRequired: Bool {
-        return isIslandNameRequired && !areAddressFieldsValid(for: selectedCountry?.cca2 ?? "", islandDetails: islandDetails)
+        // Use validateIslandForm and check the isValid value
+        return isIslandNameRequired && !ValidationUtility.validateIslandForm(
+            islandName: islandDetails.islandName,
+            street: islandDetails.street,
+            city: islandDetails.city,
+            state: islandDetails.state,
+            postalCode: islandDetails.postalCode,
+            selectedCountry: selectedCountry,
+            gymWebsite: islandDetails.gymWebsite
+        ).isValid
     }
 
     var addressFormIsValid: Bool {
         if islandDetails.islandName.trimmingCharacters(in: .whitespaces).isEmpty {
-            return true
+            return false // Island name is required, so return false if empty
         } else {
-            return areAddressFieldsValid(for: selectedCountry?.cca2 ?? "", islandDetails: islandDetails)
+            // Validate using validateIslandForm and return isValid
+            return ValidationUtility.validateIslandForm(
+                islandName: islandDetails.islandName,
+                street: islandDetails.street,
+                city: islandDetails.city,
+                state: islandDetails.state,
+                postalCode: islandDetails.postalCode,
+                selectedCountry: selectedCountry,
+                gymWebsite: islandDetails.gymWebsite
+            ).isValid
         }
     }
+
+
 
     var body: some View {
         ScrollView {
@@ -205,24 +224,25 @@ struct CreateAccountView: View {
                             county: $county,
                             governorate: $governorate,
                             additionalInfo: $additionalInfo,
-                            islandDetails: $islandDetails, // Corrected order
+                            islandDetails: $islandDetails,
                             selectedCountry: $selectedCountry,
-                            showAlert: $showAlert,
-                            alertMessage: $alertMessage,
                             gymWebsite: $islandDetails.gymWebsite,
                             gymWebsiteURL: $gymWebsiteURL,
                             isIslandNameValid: $isIslandNameValid,
                             islandNameErrorMessage: $islandNameErrorMessage,
                             isFormValid: $isFormValid,
-                            formState: $formState
+                            showAlert: $showAlert,  // Move these two below isFormValid
+                            alertMessage: $alertMessage,
+                            formState: $formState // Ensure formState is last
                         )
+
                     }
                 
 
                 // Error Message for Island Name and Address Validation
                 // Validation Messages in ViewBuilder-friendly structure
                 if isIslandNameRequired {
-                    Text("Island name is required789.")
+                    Text("Island name cannot be empty.")
                         .foregroundColor(.red)
                         .font(.footnote)
                         .padding(.horizontal, 20)
@@ -234,9 +254,6 @@ struct CreateAccountView: View {
                         .font(.footnote)
                         .padding(.horizontal, 20)
                 }
-
-
-
 
                 
                 Button(action: {
@@ -333,13 +350,11 @@ struct CreateAccountView: View {
         case .county:
             TextField("Enter county", text: binding)
         case .country:
-            // Directly bind to selectedCountry's common name
             TextField("Enter country", text: Binding(
-                get: { islandDetails.selectedCountry?.name.common ?? "" },
+                get: { selectedCountry?.name.common ?? "" },
                 set: { newValue in
-                    // Ensure you're updating islandDetails.selectedCountry correctly
-                    if let currentCountry = islandDetails.selectedCountry {
-                        islandDetails.selectedCountry = Country(
+                    if let currentCountry = selectedCountry {
+                        self.selectedCountry = Country(
                             name: Country.Name(common: newValue),
                             cca2: currentCountry.cca2,
                             flag: currentCountry.flag
@@ -347,37 +362,17 @@ struct CreateAccountView: View {
                     }
                 }
             ))
-
         default:
             EmptyView()
         }
     }
 
     
-    func areAddressFieldsValid(for countryCode: String, islandDetails: IslandDetails) -> Bool {
-        do {
-            let requiredFields = try getAddressFields(for: countryCode)
-            for field in requiredFields {
-                // Dynamically check each required address field based on its keyPath
-                let keyPath = AddressField(rawValue: field.rawValue)?.keyPath ?? \.street
-                let value = islandDetails[keyPath: keyPath].trimmingCharacters(in: .whitespaces)
-                print("Debug: Address field123'\(field.rawValue)' = '\(value)'")
 
-                if value.isEmpty {
-                    print("Debug: Address field456 '\(field.rawValue)' is missing.")
-                    return false
-                }
-            }
-            return true
-        } catch {
-            print("Error: \(error)")
-            return false
-        }
-    }
 
     
     private func createAccount() {
-        os_log("Create Account  button pressed - calling createAccount", type: .info)
+        os_log("Calling createAccount", type: .info)
         
         // Start form validation
         os_log("Debug: Starting form validation", type: .debug)
@@ -414,14 +409,13 @@ struct CreateAccountView: View {
                 )
 
                 // If successful
-                os_log("Account created successfully. Preparing to send verification emails...", type: .info)
+                os_log("Account created successfully. Preparing to send verification emails123...", type: .info)
             
                 successMessage = "Account created successfully"
                 showErrorAlert = true
 
                 // Log address details and update fields
                 logAddressDetails()
-                updateIslandDetails()
 
                 // Create Pirate Island if valid
                 await createPirateIslandIfValid()
@@ -453,80 +447,177 @@ struct CreateAccountView: View {
         os_log("Debug: Selected Country before validation: %@", type: .debug, selectedCountry?.name.common ?? "None")
     }
 
-    private func updateIslandDetails() {
-        islandDetails.islandName = islandName
-        islandDetails.street = street
-        islandDetails.city = city
-        islandDetails.state = state
-        islandDetails.postalCode = postalCode
-        islandDetails.selectedCountry = selectedCountry
-        islandDetails.country = country
-        islandDetails.county = county
-        islandDetails.gymWebsite = gymWebsite
-        islandDetails.gymWebsiteURL = gymWebsiteURL
-        islandDetails.neighborhood = neighborhood
-        islandDetails.complement = complement
-        islandDetails.block = block
-        islandDetails.apartment = apartment
-        islandDetails.region = region
-        islandDetails.governorate = governorate
-        islandDetails.province = province
-        islandDetails.district = district
-        islandDetails.department = department
-        islandDetails.emirate = emirate
-        islandDetails.parish = parish
-        islandDetails.entity = entity
-        islandDetails.municipality = municipality
-        islandDetails.division = division
-        islandDetails.zone = zone
-        islandDetails.island = island
-        islandDetails.additionalInfo = additionalInfo
-        islandDetails.multilineAddress = multilineAddress
-        islandDetails.requiredAddressFields = requiredAddressFields
-    }
-
     func isValidForm() -> (isValid: Bool, errorMessage: String?) {
         var errorMessage: String?
-        
+
+        // Email Validation
         guard formState.isEmailValid else {
             errorMessage = "Please enter a valid email address."
             return (false, errorMessage)
         }
-        
+
+        // Name Validation
         guard !formState.name.isEmpty else {
             errorMessage = "Name is required."
             return (false, errorMessage)
         }
-        
-        if !addressFormIsValid {
-            errorMessage = "Please fill in all required address fields456."
-            return (false, errorMessage)
+
+        // Address Validation (only if islandName is not blank)
+        if !formState.islandName.isEmpty {
+            guard let selectedCountry = formState.selectedCountry else {
+                errorMessage = "Please select a country."
+                return (false, errorMessage)
+            }
+
+            if !isAddressValid(for: selectedCountry.cca2) {
+                errorMessage = "Please fill in all required address fields."
+                return (false, errorMessage)
+            }
         }
-        
+
+        // Password Validation
         if !formState.isPasswordValid {
             errorMessage = "Password is invalid."
             return (false, errorMessage)
         }
-        
-        if !formState.isConfirmPasswordValid {
-            errorMessage = "Confirm password doesn't match."
+
+        // Confirm Password Validation: Ensure passwords match
+        if formState.password != formState.confirmPassword {
+            errorMessage = "Confirm password doesn't match the password."
             return (false, errorMessage)
         }
-        
+
         // Debug logging for detailed validation statuses
         print("""
         Debug: Validation Status -
-            Username Valid: \(formState.isUserNameValid),
-            Name Valid: \(formState.isNameValid),
-            Email Valid: \(formState.isEmailValid),
-            Password Valid: \(formState.isPasswordValid),
-            Confirm Password Valid: \(formState.isConfirmPasswordValid),
-            Address Valid: \(addressFormIsValid),
-            Error Message: \(String(describing: errorMessage))
+        Username Valid: \(formState.isUserNameValid),
+        Name Valid: \(formState.isNameValid),
+        Email Valid: \(formState.isEmailValid),
+        Password Valid: \(formState.isPasswordValid),
+        Confirm Password Match: \(formState.password == formState.confirmPassword),
+        Address Valid: \(isAddressValid(for: formState.selectedCountry?.cca2 ?? "")),
+        Error Message: \(String(describing: errorMessage))
         """)
-        
-        return (addressFormIsValid && formState.isPasswordValid && formState.isConfirmPasswordValid, nil)
+
+        return (formState.isPasswordValid && formState.password == formState.confirmPassword && (formState.islandName.isEmpty || isAddressValid(for: formState.selectedCountry?.cca2 ?? "")), nil)
     }
+
+
+
+    // Address Validation Logic
+    func isAddressValid(for countryCode: String) -> Bool {
+        do {
+            // Fetch required address fields for the specified country
+            let requiredFields = try getAddressFields(for: countryCode)
+            
+            // Validate that each required field is not empty
+            for field in requiredFields {
+                switch field {
+                case .street:
+                    if islandDetails.street.isEmpty {
+                        return false
+                    }
+                case .city:
+                    if islandDetails.city.isEmpty {
+                        return false
+                    }
+                case .state:
+                    if islandDetails.state.isEmpty {
+                        return false
+                    }
+                case .province:
+                    if islandDetails.province.isEmpty {
+                        return false
+                    }
+                case .postalCode:
+                    if islandDetails.postalCode.isEmpty {
+                        return false
+                    }
+                case .region:
+                    if islandDetails.region.isEmpty {
+                        return false
+                    }
+                case .district:
+                    if islandDetails.district.isEmpty {
+                        return false
+                    }
+                case .department:
+                    if islandDetails.department.isEmpty {
+                        return false
+                    }
+                case .governorate:
+                    if islandDetails.governorate.isEmpty {
+                        return false
+                    }
+                case .emirate:
+                    if islandDetails.emirate.isEmpty {
+                        return false
+                    }
+                case .block:
+                    if islandDetails.block.isEmpty {
+                        return false
+                    }
+                case .county:
+                    if islandDetails.county.isEmpty {
+                        return false
+                    }
+                case .neighborhood:
+                    if islandDetails.neighborhood.isEmpty {
+                        return false
+                    }
+                case .complement:
+                    if islandDetails.complement.isEmpty {
+                        return false
+                    }
+                case .apartment:
+                    if islandDetails.apartment.isEmpty {
+                        return false
+                    }
+                case .additionalInfo:
+                    if islandDetails.additionalInfo.isEmpty {
+                        return false
+                    }
+                case .multilineAddress:
+                    if islandDetails.multilineAddress.isEmpty {
+                        return false
+                    }
+                case .parish:
+                    if islandDetails.parish.isEmpty {
+                        return false
+                    }
+                case .entity:
+                    if islandDetails.entity.isEmpty {
+                        return false
+                    }
+                case .municipality:
+                    if islandDetails.municipality.isEmpty {
+                        return false
+                    }
+                case .division:
+                    if islandDetails.division.isEmpty {
+                        return false
+                    }
+                case .zone:
+                    if islandDetails.zone.isEmpty {
+                        return false
+                    }
+                case .island:
+                    if islandDetails.island.isEmpty {
+                        return false
+                    }
+                }
+            }
+            
+            // If all required fields are filled, return true
+            return true
+            
+        } catch {
+            // Handle errors (e.g., unknown country code)
+            print("Error: \(error)")
+            return false
+        }
+    }
+
 
 
 
@@ -554,7 +645,7 @@ struct CreateAccountView: View {
 
     private func createPirateIslandIfValid() async {
         os_log("Debug: Validating island form...", type: .debug)
-
+        
         os_log("createPirateIslandIfValid islandName: %@", type: .info, islandDetails.islandName)
         os_log("createPirateIslandIfValid street: %@", type: .info, islandDetails.street)
         os_log("createPirateIslandIfValid city: %@", type: .info, islandDetails.city)
@@ -568,9 +659,9 @@ struct CreateAccountView: View {
         os_log("createPirateIslandIfValid selectedCountry: %@", type: .info, selectedCountry?.name.common ?? "nil")
         os_log("createPirateIslandIfValid createdByUserId: %@", type: .info, formState.userName)
         os_log("createPirateIslandIfValid gymWebsite: %@", type: .info, gymWebsite)
-
-
-        var (isValid, errorMessage) = ValidationUtility.validateIslandForm(
+        
+        
+        let (isValid, errorMessage) = ValidationUtility.validateIslandForm(
             islandName: islandDetails.islandName,
             street: islandDetails.street,
             city: islandDetails.city,
@@ -582,57 +673,84 @@ struct CreateAccountView: View {
             region: region,
             governorate: governorate,
             selectedCountry: selectedCountry,
-            createdByUserId: formState.userName,
             gymWebsite: gymWebsite
         )
         
-        os_log("Debug: Island validation result - isValid: %d, errorMessage: %@", type: .debug, isValid, errorMessage)
-
-
-        guard isValid else {
-            self.errorMessage = errorMessage
-            showErrorAlert = true
+        os_log("Debug: Island validation result - isValid: %@", type: .debug, isValid ? "Passed" : "Failed", errorMessage)
+        
+        /*
+         guard isValid else {
+         self.errorMessage = errorMessage
+         showErrorAlert = true
+         return
+         }
+         
+         if let urlError = ValidationUtility.validateURL(gymWebsite), !gymWebsite.isEmpty {
+         errorMessage = "Invalid gym website URL: \(urlError)"
+         showErrorAlert = true
+         os_log("Invalid gym website URL", type: .error)
+         return
+         }
+         
+         if islandDetails.islandName.trimmingCharacters(in: .whitespaces).isEmpty {
+         errorMessage = "Please provide a valid island name."
+         showErrorAlert = true
+         return
+         }
+         
+         guard islandDetails.selectedCountry != nil else {
+         toastMessage = "Error: No country selected123"
+         showToast = true
+         return
+         } */
+        
+        guard let selectedCountry = selectedCountry else {
+            toastMessage = "Error: No country selected456"
+            showToast = true
             return
         }
 
-        if let urlError = ValidationUtility.validateURL(gymWebsite), !gymWebsite.isEmpty {
-            errorMessage = "Invalid gym website URL: \(urlError)"
-            showErrorAlert = true
-            os_log("Invalid gym website URL", type: .error)
-            return
-        }
-
-        if islandDetails.islandName.trimmingCharacters(in: .whitespaces).isEmpty {
-            errorMessage = "Please provide a valid island name."
-            showErrorAlert = true
-            return
-        }
+        // Directly use the createdByUserId from profileViewModel
+        let createdByUserId = formState.userName
 
         do {
-            // Use islandDetails.selectedCountry?.cca2 directly
+            print("Creating pirate island...")
+            
             let newIsland = try await islandViewModel.createPirateIsland(
                 islandDetails: islandDetails,
-                createdByUserId: profileViewModel.name,
+                createdByUserId: createdByUserId,
                 gymWebsite: gymWebsite,
-                country: islandDetails.selectedCountry?.cca2 ?? "" // Directly access the country code here
+                country: selectedCountry.cca2,
+                selectedCountry: selectedCountry
             )
-
+            
+            print("Pirate island created: \(newIsland.islandName ?? "Unknown Name")")
+            
             // Store the country and gym website URL in the new island
             newIsland.country = islandDetails.selectedCountry?.name.common
-
+            
+            print("Country set: \(newIsland.country ?? "Unknown Country")")
+            
             if !gymWebsite.isEmpty {
+                print("Setting gym website URL...")
+                
                 if let url = URL(string: gymWebsite) {
                     newIsland.gymWebsite = url
+                    print("Gym website URL set: \(url.absoluteString)")
                 } else {
                     // Handle invalid URL
+                    print("Invalid gym website URL: \(gymWebsite)")
                     toastMessage = "Invalid gym website URL"
                     showToast = true
                     return
                 }
             }
-
+            
             toastMessage = "Island saved successfully: \(newIsland.islandName ?? "Unknown Name")"
-         } catch {
+            print("Island saved successfully")
+        } catch {
+            print("Error creating pirate island: \(error.localizedDescription)")
+            
             if let error = error as? PirateIslandError {
                 toastMessage = "Error saving island: \(error.localizedDescription)"
                 showToast = true
@@ -643,6 +761,8 @@ struct CreateAccountView: View {
             }
         }
     }
+
+
     
     private func handleCreateAccountError(_ error: Error) {
         os_log("Create account error occurred: %@", type: .error, error.localizedDescription)
@@ -659,8 +779,7 @@ struct CreateAccountView: View {
     
     /// Handles successful account creation.
     private func handleSuccess() {
-        os_log("Account created successfully. Preparing to send verification emails...", type: .info)
-        print("Account created successfully. Preparing to send verification emails...")
+        os_log("Account created successfully. Preparing to send verification emails456...", type: .info)
 
         sendVerificationEmails()
         successMessage = "Account created successfully. Check your email for login instructions."
@@ -673,8 +792,8 @@ struct CreateAccountView: View {
 
         // Send Firebase email verification
         UnifiedEmailManager.shared.sendEmailVerification(to: email) { success in
-            os_log("Firebase email verification sent: %d", type: .info, success)
-            print("Firebase email verification sent: \(success)")
+            os_log("Firebase email verification sent: %@", type: .info, success ? "Passed" : "Failed")
+            print("Firebase email verification sent: \(success ? "Passed" : "Failed")")
         }
 
         // Send custom verification token email
@@ -684,8 +803,8 @@ struct CreateAccountView: View {
                 userName: formState.userName,
                 password: formState.password
             )
-            print("Custom verification token email sent: \(success)")
-            os_log("Custom verification token email sent: %d", type: .info, success)
+            print("Custom verification token email sent: \(success ? "Passed" : "Failed")")
+            os_log("Custom verification token email sent: %@", type: .info, success ? "Passed" : "Failed")
         }
     }
     

@@ -175,7 +175,7 @@ class IslandDetails: ObservableObject, Equatable {
         }
 
         do {
-            requiredAddressFields = try getAddressFields(for: countryCode)  // Use cca2 instead of name
+            requiredAddressFields = try getAddressFields(for: countryCode)
             validateForm()
         } catch {
             os_log("Error getting address fields for country code: %@", log: OSLog.default, type: .error, countryCode)
@@ -183,7 +183,6 @@ class IslandDetails: ObservableObject, Equatable {
             validateForm()
         }
     }
-
     
     // MARK: - Equatable Protocol
     static func == (lhs: IslandDetails, rhs: IslandDetails) -> Bool {

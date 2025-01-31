@@ -65,6 +65,8 @@ struct FormState {
     }
     var isStateValid: Bool = false
     var stateErrorMessage: String = ""
+    
+    var selectedCountry: Country? // Where `Country` is a type you've defined or imported.
 
     var postalCode: String = "" {
         didSet { validateField(postalCode, type: .name) }

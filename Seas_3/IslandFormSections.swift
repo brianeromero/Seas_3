@@ -42,12 +42,8 @@ struct IslandFormSections: View {
     @Binding var county: String
     @Binding var governorate: String
     @Binding var additionalInfo: String
-
-
     @Binding var islandDetails: IslandDetails
     @Binding var selectedCountry: Country?
-    @Binding var showAlert: Bool
-    @Binding var alertMessage: String
     @Binding var gymWebsite: String
     @Binding var gymWebsiteURL: URL?
     
@@ -56,10 +52,18 @@ struct IslandFormSections: View {
     @Binding var islandNameErrorMessage: String
     @Binding var isFormValid: Bool
     
+    // Alerts and Toasts
+    @Binding var showAlert: Bool
+    @Binding var alertMessage: String
     @State private var showError = false
     @State private var errorMessage = ""
     @State private var isPickerPresented = false
     @State private var showValidationMessage = false
+    @State private var successMessage: String? = nil
+    @State private var showErrorAlert = false
+    @State private var showToast = false
+    @State private var toastMessage = ""
+    
     
     // Binding the formState
     @Binding var formState: FormState
@@ -102,23 +106,18 @@ struct IslandFormSections: View {
                     // Normalize the country code
                     let normalizedCountryCode = countryCode.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
                     print("Normalized Country Code Set7896: \(normalizedCountryCode)") // Print the normalized code
-                    do {
-                        // Fetch address fields based on the normalized country code
-                        let addressFields = try getAddressFields(for: normalizedCountryCode)
-                        print("Address Fields Required789: \(addressFields)")
-                    } catch {
-                        print("Error fetching address fields789: \(error)")
-                    }
+                    
+                    // Fetch address fields using the safe method
+                    let addressFields = getAddressFieldsSafely(for: normalizedCountryCode)
+                    print("Address Fields Required789: \(addressFields)")
                 } else {
-                    print("No country selected")
+                    print("No country selected789")
                 }
                 // Update address requirements for the new selected country
                 updateAddressRequirements(for: newCountry)
             })
         }
     }
-
-
 
     
     // MARK: - Island Details Section
@@ -128,17 +127,21 @@ struct IslandFormSections: View {
             TextField("Enter Gym Name", text: $islandDetails.islandName)
                 .onChange(of: islandDetails.islandName) { newValue in
                     print("Gym Name Updated: \(newValue)")
-                    validateFields(newValue) // Validation based on the updated value
+                    validateFields() // Validation based on the updated value
                 }
                 .textFieldStyle(RoundedBorderTextFieldStyle())
 
-
             // Address Fields View
-            AddressFieldsView(
-                requiredFields: requiredFields(for: selectedCountry),
-                islandDetails: $islandDetails
-            )
+            VStack {
+                // Fetch the required fields using the safer method
+                let requiredFields = getAddressFieldsSafely(for: selectedCountry?.cca2)
 
+                // Dynamically generate address fields
+                ForEach(requiredFields, id: \.self) { field in
+                    addressField(for: field)
+                }
+            }
+            .padding(.top)
 
             if showValidationMessage {
                 Text("Required fields are missing.")
@@ -147,23 +150,69 @@ struct IslandFormSections: View {
         }
     }
 
-    func addressField(for field: AddressField) -> some View {
+    // MARK: - Address Field Dynamic Generation
+    @ViewBuilder
+    func addressField(for field: AddressFieldType) -> some View {
         switch field {
-        case .street: return AnyView(TextField("Street", text: $islandDetails.street))
-        case .city: return AnyView(TextField("City", text: $islandDetails.city))
-        case .state: return AnyView(TextField("State", text: $islandDetails.state))
-        case .postalCode: return AnyView(TextField("Postal Code", text: $islandDetails.postalCode))
-        case .province: return AnyView(TextField("Province", text: $islandDetails.province))
-        case .neighborhood: return AnyView(TextField("Neighborhood", text: $islandDetails.neighborhood))
-        case .complement: return AnyView(TextField("Complement", text: $islandDetails.complement))
-        case .apartment: return AnyView(TextField("Apartment", text: $islandDetails.apartment))
-        case .region: return AnyView(TextField("Region", text: $islandDetails.region))
-        case .county: return AnyView(TextField("County", text: $islandDetails.county))
-        case .governorate: return AnyView(TextField("Governorate", text: $islandDetails.governorate))
-        case .additionalInfo: return AnyView(TextField("Additional Info", text: $islandDetails.additionalInfo))
-        default: return AnyView(EmptyView())
+        case .street: TextField("Street", text: $islandDetails.street)
+        case .city: TextField("City", text: $islandDetails.city)
+        case .state: TextField("State", text: $islandDetails.state)
+        case .postalCode: TextField("Postal Code", text: $islandDetails.postalCode)
+        case .province: TextField("Province", text: $islandDetails.province)
+        case .neighborhood: TextField("Neighborhood", text: $islandDetails.neighborhood)
+        case .complement: TextField("Complement", text: $islandDetails.complement)
+        case .apartment: TextField("Apartment", text: $islandDetails.apartment)
+        case .region: TextField("Region", text: $islandDetails.region)
+        case .county: TextField("County", text: $islandDetails.county)
+        case .governorate: TextField("Governorate", text: $islandDetails.governorate)
+        case .additionalInfo: TextField("Additional Info", text: $islandDetails.additionalInfo)
+        case .island: TextField("Island", text: $islandDetails.island)
+        default: EmptyView()
         }
     }
+
+    
+    // MARK: - Website Section
+    var websiteSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Gym Website")
+            TextField("Enter Gym Website", text: $islandDetails.gymWebsite)
+                .onChange(of: islandDetails.gymWebsite) { processWebsiteURL($0) }
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+        }
+    }
+    
+    private func getValue(for field: AddressFieldType) -> String {
+        // Use a dictionary to map fields to values dynamically
+        let fieldValues: [AddressFieldType: String] = [
+            .state: islandDetails.state,
+            .postalCode: islandDetails.postalCode,
+            .street: islandDetails.street,
+            .city: islandDetails.city,
+            .province: islandDetails.province,
+            .region: islandDetails.region,
+            .district: islandDetails.district,
+            .department: islandDetails.department,
+            .governorate: islandDetails.governorate,
+            .emirate: islandDetails.emirate,
+            .block: islandDetails.block,
+            .county: islandDetails.county,
+            .neighborhood: islandDetails.neighborhood,
+            .complement: islandDetails.complement,
+            .apartment: islandDetails.apartment,
+            .additionalInfo: islandDetails.additionalInfo,
+            .multilineAddress: islandDetails.multilineAddress,
+            .parish: islandDetails.parish,
+            .entity: islandDetails.entity,
+            .municipality: islandDetails.municipality,
+            .division: islandDetails.division,
+            .zone: islandDetails.zone,
+            .island: islandDetails.island
+        ]
+        
+        return fieldValues[field] ?? ""
+    }
+
 
     func processWebsiteURL(_ url: String) {
         guard !url.isEmpty else {
@@ -177,6 +226,14 @@ struct IslandFormSections: View {
             errorMessage = "Invalid URL format"
             showError = true
         }
+    }
+    
+    var requiredAddressFields: [AddressFieldType] {
+        guard let countryName = selectedCountry?.name.common else {
+            return defaultAddressFieldRequirements
+        }
+        
+        return getAddressFieldsSafely(for: countryName)
     }
 
 
@@ -428,23 +485,17 @@ struct IslandFormSections: View {
         return isValid
     }
 
+    func getAddressFieldsSafely(for countryName: String?) -> [AddressFieldType] {
+        guard let countryName = countryName else {
+            return defaultAddressFieldRequirements // Return default fields if country name is nil
+        }
 
-    
-    func getAddressFieldsSafely(for countryName: String) -> [AddressFieldType] {
         do {
             return try getAddressFields(for: countryName)
         } catch {
-            os_log("Error getting address fields for country: %@", log: OSLog.default, type: .error, countryName)
+            os_log("Error getting address fields for country: %@", log: OSLog.default, type: .error, countryName ?? "Unknown")
             return defaultAddressFieldRequirements
         }
-    }
-
-    var requiredAddressFields: [AddressFieldType] {
-        guard let countryName = selectedCountry?.name.common else {
-            return defaultAddressFieldRequirements
-        }
-        
-        return getAddressFieldsSafely(for: countryName)
     }
 
     private func validateForm() {
@@ -515,38 +566,6 @@ struct IslandFormSections: View {
     }
 
 
-
-    private func getValue(for field: AddressFieldType) -> String {
-        // Use a dictionary to map fields to values dynamically
-        let fieldValues: [AddressFieldType: String] = [
-            .state: islandDetails.state,
-            .postalCode: islandDetails.postalCode,
-            .street: islandDetails.street,
-            .city: islandDetails.city,
-            .province: islandDetails.province,
-            .region: islandDetails.region,
-            .district: islandDetails.district,
-            .department: islandDetails.department,
-            .governorate: islandDetails.governorate,
-            .emirate: islandDetails.emirate,
-            .block: islandDetails.block,
-            .county: islandDetails.county,
-            .neighborhood: islandDetails.neighborhood,
-            .complement: islandDetails.complement,
-            .apartment: islandDetails.apartment,
-            .additionalInfo: islandDetails.additionalInfo,
-            .multilineAddress: islandDetails.multilineAddress,
-            .parish: islandDetails.parish,
-            .entity: islandDetails.entity,
-            .municipality: islandDetails.municipality,
-            .division: islandDetails.division,
-            .zone: islandDetails.zone,
-            .island: islandDetails.island
-        ]
-        
-        return fieldValues[field] ?? ""
-    }
-
     
     private func getErrorMessage(for field: AddressFieldType, country: String) -> String {
         return "\(field.rawValue.capitalized) is required for \(country)."
@@ -604,8 +623,8 @@ struct IslandFormSections: View {
             return false
         }
 
-        // Pass the country's name (or cca2 if needed) to validateAddress
-        guard validateAddress(for: selectedCountry.name.common) else {
+        // Pass the country's cca2 to validateAddress
+        guard validateAddress(for: selectedCountry.cca2) else {
             setError("Please fill in all required address fields.")
             return false
         }
@@ -639,8 +658,9 @@ struct IslandFormSections: View {
     }
 
     // MARK: - Validation Logic
-    func validateFields(_ fieldName: String? = nil) {
+    func validateFields() {
         let requiredFields = requiredFields(for: selectedCountry)
+        var invalidFields: [String] = []
         
         // Directly reference your formState property here
         let formState = self.formState  // Assuming formState is a property in the current context
@@ -698,13 +718,69 @@ struct IslandFormSections: View {
                 isValid = formState.isIslandValid
             }
             
+            if !isValid {
+                switch field {
+                case .street:
+                    invalidFields.append("Street")
+                case .city:
+                    invalidFields.append("City")
+                case .state:
+                    invalidFields.append("State")
+                case .province:
+                    invalidFields.append("Province")
+                case .postalCode:
+                    invalidFields.append("Postal Code")
+                case .region:
+                    invalidFields.append("Region")
+                case .district:
+                    invalidFields.append("District")
+                case .department:
+                    invalidFields.append("Department")
+                case .governorate:
+                    invalidFields.append("Governorate")
+                case .emirate:
+                    invalidFields.append("Emirate")
+                case .block:
+                    invalidFields.append("Block")
+                case .county:
+                    invalidFields.append("County")
+                case .neighborhood:
+                    invalidFields.append("Neighborhood")
+                case .complement:
+                    invalidFields.append("Complement")
+                case .apartment:
+                    invalidFields.append("Apartment")
+                case .additionalInfo:
+                    invalidFields.append("Additional Info")
+                case .multilineAddress:
+                    invalidFields.append("Multiline Address")
+                case .parish:
+                    invalidFields.append("Parish")
+                case .entity:
+                    invalidFields.append("Entity")
+                case .municipality:
+                    invalidFields.append("Municipality")
+                case .division:
+                    invalidFields.append("Division")
+                case .zone:
+                    invalidFields.append("Zone")
+                case .island:
+                    invalidFields.append("Island")
+                }
+            }
+            
             return isValid
         }
-
+        
         // Show or hide validation message based on whether the fields are valid
         showValidationMessage = !allValid
+        
+        // Display the invalid fields
+        if !allValid {
+            toastMessage = "The following fields are invalid: \(invalidFields.joined(separator: ", "))"
+            showToast = true
+        }
     }
-
 
     
     func binding(for field: AddressField) -> Binding<String> {
@@ -734,15 +810,7 @@ struct IslandFormSections: View {
          }
      }
     
-    // MARK: - Website Section
-    var websiteSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Gym Website")
-            TextField("Enter Gym Website", text: $islandDetails.gymWebsite)
-                .onChange(of: islandDetails.gymWebsite) { processWebsiteURL($0) }
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-        }
-    }
+
 }
 
 extension Binding where Value == String? {
@@ -916,7 +984,7 @@ struct IslandFormSectionPreview: View {
         IslandFormSections(
             viewModel: PirateIslandViewModel(persistenceController: PersistenceController.shared),
             profileViewModel: profileViewModel,
-            countryService: CountryService(), // Provide the correct service
+            countryService: CountryService(),
             islandName: islandName,
             street: street,
             city: city,
@@ -926,20 +994,21 @@ struct IslandFormSectionPreview: View {
             neighborhood: neighborhood,
             complement: complement,
             apartment: apartment,
-            region: .constant(""), // Provide default values if needed
+            region: .constant(""),
             county: .constant(""),
             governorate: .constant(""),
             additionalInfo: additionalInfo,
             islandDetails: islandDetails,
             selectedCountry: selectedCountry,
-            showAlert: showAlert,
-            alertMessage: alertMessage,
             gymWebsite: gymWebsite,
             gymWebsiteURL: gymWebsiteURL,
-            isIslandNameValid: .constant(true), // Add default values
-            islandNameErrorMessage: .constant(""), // Add default values
-            isFormValid: .constant(true), // Add default values
-            formState: .constant(FormState()) // Add default values
+            isIslandNameValid: .constant(true),
+            islandNameErrorMessage: .constant(""),
+            isFormValid: .constant(true),
+            showAlert: showAlert, // Move these two lines below isFormValid
+            alertMessage: alertMessage,
+            formState: .constant(FormState()) // Ensure formState is last
         )
+
     }
 }

@@ -79,7 +79,7 @@ struct AddIslandFormView: View {
             VStack {
                 if let selectedCountry = islandDetails.selectedCountry {
                     if let error = error {
-                        Text("Error getting address fields for country code \(selectedCountry.cca2): \(error)")
+                        Text("Error getting address fields for country code 252627 \(selectedCountry.cca2): \(error)")
                     } else {
                         ForEach(requiredFields, id: \.self) { field in
                             self.addressField(for: field)
@@ -102,7 +102,7 @@ struct AddIslandFormView: View {
                     do {
                         requiredFields = try getAddressFields(for: normalizedCountryCode)
                     } catch {
-                        self.error = "Error getting address fields for country code \(normalizedCountryCode): \(error.localizedDescription)"
+                        self.error = "Error getting address fields for country code 282930 \(normalizedCountryCode): \(error.localizedDescription)"
                     }
                 }
             }
@@ -216,7 +216,8 @@ struct AddIslandFormView: View {
                     islandDetails: islandDetails,
                     createdByUserId: profileViewModel.name,
                     gymWebsite: nil,
-                    country: islandDetails.country
+                    country: islandDetails.country,
+                    selectedCountry: islandDetails.selectedCountry!
                 )
                 toastMessage = "Island saved successfully!"
                 clearFields()
@@ -251,7 +252,6 @@ struct AddIslandFormView: View {
                 cca2: normalizedCountryCode,
                 flag: ""
             ),
-            createdByUserId: profileViewModel.name,
             gymWebsite: islandDetails.gymWebsite
         )
 
