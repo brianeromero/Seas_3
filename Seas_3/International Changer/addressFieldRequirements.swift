@@ -192,14 +192,14 @@ let defaultAddressFieldRequirements: [AddressFieldType] = [.street, .city, .stat
 /// - Returns: An array of address field types required for the given country
 ///
 
-func getAddressFields(for countryCode: String) throws -> [AddressFieldType] {
+func getAddressFields(for countryCode: String, callingFunctionName: String = #function) throws -> [AddressFieldType] {
     let uppercasedCode = countryCode.uppercased()
     print("Fetching address fields for country code: \(uppercasedCode)")
 
     // Check if the country code is empty
     if uppercasedCode.isEmpty {
         print("Error: Country code is empty")
-        throw CountryError.unknownCountryCode
+        throw CountryError.unknownCountryCode(callingFunctionName, uppercasedCode)
     }
 
     // Check if the country code exists in the addressFieldRequirements dictionary
@@ -208,14 +208,20 @@ func getAddressFields(for countryCode: String) throws -> [AddressFieldType] {
         return fields
     } else {
         print("Error: Unknown country code - \(uppercasedCode)")
-        throw CountryError.unknownCountryCode
+        throw CountryError.unknownCountryCode(callingFunctionName, uppercasedCode)
     }
 }
 
 
-
 /// Errors related to country codes
-enum CountryError: Error {
+enum CountryError: Error, CustomStringConvertible {
     /// The country code is unknown
-    case unknownCountryCode
+    case unknownCountryCode(String, String)
+
+    var description: String {
+        switch self {
+        case .unknownCountryCode(let functionName, let countryCode):
+            return "Error in \(functionName): Unknown country code - \(countryCode)"
+        }
+    }
 }
