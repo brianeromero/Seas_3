@@ -44,7 +44,7 @@ public class FirestoreManager {
     
 
     // Also add the disabled check in other methods that interact with Firestore
-    func saveIslandToFirestore(island: PirateIsland) async throws {
+    func saveIslandToFirestore(island: PirateIsland, selectedCountry: Country) async throws {
         if disabled { return }
         print("Saving island to Firestore: \(island.safeIslandName)")
         
@@ -59,7 +59,7 @@ public class FirestoreManager {
             "id": island.islandID?.uuidString ?? UUID().uuidString,
             "name": island.safeIslandName,
             "location": island.safeIslandLocation,
-            "country": island.country ?? "",
+            "country": selectedCountry.name.common ?? "",
             "createdByUserId": island.createdByUserId ?? "Unknown User",
             "createdTimestamp": island.createdTimestamp ?? Date(),
             "lastModifiedByUserId": island.lastModifiedByUserId ?? "",

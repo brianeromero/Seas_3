@@ -67,10 +67,15 @@ public class PirateIslandViewModel: ObservableObject {
     func createPirateIsland(islandDetails: IslandDetails, createdByUserId: String, gymWebsite: String?, country: String, selectedCountry: Country) async throws -> PirateIsland {
         os_log("createPirateIsland called with Island Name: %@, Location: %@", log: logger, type: .info, islandDetails.islandName, islandDetails.fullAddress)
 
+        
+        // Step 1: Validate the island details
         // Generate a new UUID
         let newIslandID = UUID()
+        
+        // Update islandDetails.country with the selected country
+        islandDetails.country = country
 
-   /*     // Step 1: Validate the island details
+   /*     // Step 2: Validate the island details
         guard validateIslandDetails(islandDetails, createdByUserId, country, selectedCountry) else {
             throw PirateIslandError.invalidInput
         }
@@ -78,13 +83,13 @@ public class PirateIslandViewModel: ObservableObject {
         os_log("Validation succeeded for Island Name: %@, Full Address999: %@", log: logger, type: .info, islandDetails.islandName, islandDetails.fullAddress)
     */
 
-        // Step 2: Check if the island already exists
+        // Step 3: Check if the island already exists
         guard !pirateIslandExists(name: islandDetails.islandName) else {
             os_log("Island already exists: %@", log: logger, type: .error, islandDetails.islandName)
             throw PirateIslandError.islandExists
         }
 
-        // Step 3: Geocode the address to get coordinates
+        // Step 4: Geocode the address to get coordinates
         os_log("Attempting geocoding for address: %@", log: logger, type: .info, islandDetails.fullAddress)
         let coordinates: (latitude: Double, longitude: Double)
 
@@ -96,18 +101,18 @@ public class PirateIslandViewModel: ObservableObject {
             throw PirateIslandError.geocodingError(error.localizedDescription)
         }
 
-        // Step 4: Create the new PirateIsland object
+        // Step 5: Create the new PirateIsland object
         let newIsland = PirateIsland(context: persistenceController.viewContext)
         newIsland.islandID = newIslandID  // Assign new UUID
         newIsland.islandName = islandDetails.islandName
         newIsland.islandLocation = islandDetails.fullAddress
-        newIsland.country = country
+        newIsland.country = selectedCountry.name.common
         newIsland.createdTimestamp = Date()
         newIsland.createdByUserId = createdByUserId
         newIsland.lastModifiedByUserId = createdByUserId
         newIsland.lastModifiedTimestamp = Date()
 
-        // Step 5: Set the gym website URL
+        // Step 6: Set the gym website URL
         if let website = islandDetails.gymWebsiteURL {
             newIsland.gymWebsite = website
         }
@@ -117,7 +122,7 @@ public class PirateIslandViewModel: ObservableObject {
 
         os_log("Prepared new PirateIsland for saving: %@, %@, Lat: %@, Long: %@", log: logger, newIsland.islandName ?? "Unknown", newIsland.islandLocation ?? "Unknown", "\(newIsland.latitude)", "\(newIsland.longitude)")
 
-        // Step 6:  Save to Core Data first
+        // Step 7:  Save to Core Data first
         do {
             try await persistenceController.saveContext()
             os_log("Successfully saved PirateIsland: %@", log: logger, type: .info, newIsland.islandName ?? "Unknown Island Name")
@@ -126,15 +131,15 @@ public class PirateIslandViewModel: ObservableObject {
             throw error
         }
 
-        // Step 7:  Then save to Firestore
-        try await savePirateIslandToFirestore(island: newIsland)
+        // Step 8:  Then save to Firestore
+        try await savePirateIslandToFirestore(island: newIsland, selectedCountry: selectedCountry)
 
         os_log("Successfully created PirateIsland with name: %@", log: logger, newIsland.islandName ?? "Unknown Island Name")
         return newIsland
     }
 
     // Add this code below the createPirateIsland function
-    func savePirateIslandToFirestore(island: PirateIsland) async throws {
+    func savePirateIslandToFirestore(island: PirateIsland, selectedCountry: Country) async throws {
         print("Saving island to Firestore: \(island.safeIslandName)")
         
         // Add some debug prints here
@@ -146,7 +151,7 @@ public class PirateIslandViewModel: ObservableObject {
         
 
         do {
-            try await FirestoreManager.shared.saveIslandToFirestore(island: island)
+            try await FirestoreManager.shared.saveIslandToFirestore(island: island, selectedCountry: selectedCountry)
         } catch {
             os_log("Error saving island to Firestore: %@", log: logger, error.localizedDescription)
             throw error

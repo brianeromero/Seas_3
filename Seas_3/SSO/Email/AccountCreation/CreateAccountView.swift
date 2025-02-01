@@ -271,19 +271,23 @@ struct CreateAccountView: View {
                                 print("Error fetching address fields456: \(error)")
                             }
                         }
-                    // Use the updated isValidForm function
-                    let (isValid, errorMessage) = isValidForm()
-                    if isValid {
-                        // Call createAccount only if the form is valid
-                        await createAccount()
-                    } else {
-                        debugPrint("Form is invalid123")
-                        print("Form is invalid345")
-                        self.errorMessage = errorMessage
-                        self.showValidationMessage = true
+                        
+                        // Update country with the selected country's name
+                        let country = selectedCountry?.name.common ?? ""
+                        
+                        // Use the updated isValidForm function
+                        let (isValid, errorMessage) = isValidForm()
+                        if isValid {
+                            // Call createAccount with the updated country
+                            await createAccount(country: country)
+                        } else {
+                            debugPrint("Form is invalid123")
+                            print("Form is invalid345")
+                            self.errorMessage = errorMessage
+                            self.showValidationMessage = true
+                        }
                     }
-                }
-            }) {
+                }) {
                 Text("Create Account")
                     .font(.title)
                     .frame(maxWidth: .infinity)
@@ -368,7 +372,7 @@ struct CreateAccountView: View {
         }
     }
     
-    private func createAccount() async {
+    private func createAccount(country: String) async {
         os_log("Calling createAccount", type: .info)
         
         // Start form validation
