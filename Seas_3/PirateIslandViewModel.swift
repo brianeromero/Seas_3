@@ -107,14 +107,9 @@ public class PirateIslandViewModel: ObservableObject {
         newIsland.lastModifiedByUserId = createdByUserId
         newIsland.lastModifiedTimestamp = Date()
 
-        // Step 5: Convert the gymWebsite string to a URL
-        if let website = gymWebsite, !website.isEmpty {
-            if let url = URL(string: website) {
-                newIsland.gymWebsite = url
-            } else {
-                os_log("Invalid Gym Website URL: %@", log: logger, type: .error, website)
-                throw PirateIslandError.invalidGymWebsite
-            }
+        // Step 5: Set the gym website URL
+        if let website = islandDetails.gymWebsiteURL {
+            newIsland.gymWebsite = website
         }
 
         newIsland.latitude = coordinates.latitude

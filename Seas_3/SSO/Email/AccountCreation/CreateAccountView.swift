@@ -257,40 +257,41 @@ struct CreateAccountView: View {
 
                 
                 Button(action: {
-                    debugPrint("Create Account Button tapped - validating form")
-                    
-                    if let countryCode = selectedCountry?.cca2 {
-                        let normalizedCountryCode = countryCode.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
-                        print("Normalized Country Code before validation: \(normalizedCountryCode)")
+                    Task {
+                        debugPrint("Create Account Button tapped - validating form")
                         
-                        do {
-                            let addressFields = try getAddressFields(for: selectedCountry?.cca2 ?? "")
-                            print("Address Fields Required: \(addressFields)")
-                        } catch {
-                            print("Error fetching address fields456: \(error)")
+                        if let countryCode = selectedCountry?.cca2 {
+                            let normalizedCountryCode = countryCode.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
+                            print("Normalized Country Code before validation: \(normalizedCountryCode)")
+                            
+                            do {
+                                let addressFields = try getAddressFields(for: selectedCountry?.cca2 ?? "")
+                                print("Address Fields Required: \(addressFields)")
+                            } catch {
+                                print("Error fetching address fields456: \(error)")
+                            }
                         }
-                    }
-                    
                     // Use the updated isValidForm function
                     let (isValid, errorMessage) = isValidForm()
                     if isValid {
                         // Call createAccount only if the form is valid
-                        createAccount()
+                        await createAccount()
                     } else {
                         debugPrint("Form is invalid123")
                         print("Form is invalid345")
                         self.errorMessage = errorMessage
                         self.showValidationMessage = true
                     }
-                }) {
-                    Text("Create Account")
-                        .font(.title)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(isValidForm().isValid ? Color.blue : Color.gray) // Reflect form validity
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
                 }
+            }) {
+                Text("Create Account")
+                    .font(.title)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(isValidForm().isValid ? Color.blue : Color.gray) // Reflect form validity
+                    .foregroundColor(.white)
+                    .cornerRadius(8)
+            }
                 .disabled(!isValidForm().isValid) // Disable the button if the form is invalid
                 .opacity(isValidForm().isValid ? 1 : 0.5)
                 .padding(.bottom)
@@ -366,12 +367,8 @@ struct CreateAccountView: View {
             EmptyView()
         }
     }
-
     
-
-
-    
-    private func createAccount() {
+    private func createAccount() async {
         os_log("Calling createAccount", type: .info)
         
         // Start form validation
@@ -393,7 +390,7 @@ struct CreateAccountView: View {
         os_log("Debug: All validations passed. Proceeding to create account.", type: .debug)
 
         // Proceed with creating the account
-        if userAlreadyExists() {
+        if await authViewModel.userAlreadyExists() {
             return
         }
 
@@ -464,8 +461,9 @@ struct CreateAccountView: View {
 
         // Address Validation (only if islandName is not blank)
         if !formState.islandName.isEmpty {
-            guard let selectedCountry = formState.selectedCountry else {
-                errorMessage = "Please select a country."
+            guard let selectedCountry = formState.selectedCountry,
+                  !selectedCountry.cca2.isEmpty else {
+                errorMessage = "Please select a valid country."
                 return (false, errorMessage)
             }
 
@@ -506,114 +504,45 @@ struct CreateAccountView: View {
 
     // Address Validation Logic
     func isAddressValid(for countryCode: String) -> Bool {
+        let normalizedCode = countryCode.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !normalizedCode.isEmpty else {
+            print("Error in isAddressValid(for:): Country code is empty")
+            return false
+        }
+
         do {
-            // Fetch required address fields for the specified country
-            let requiredFields = try getAddressFields(for: countryCode)
-            
-            // Validate that each required field is not empty
+            let requiredFields = try getAddressFields(for: normalizedCode)
             for field in requiredFields {
                 switch field {
-                case .street:
-                    if islandDetails.street.isEmpty {
-                        return false
-                    }
-                case .city:
-                    if islandDetails.city.isEmpty {
-                        return false
-                    }
-                case .state:
-                    if islandDetails.state.isEmpty {
-                        return false
-                    }
-                case .province:
-                    if islandDetails.province.isEmpty {
-                        return false
-                    }
-                case .postalCode:
-                    if islandDetails.postalCode.isEmpty {
-                        return false
-                    }
-                case .region:
-                    if islandDetails.region.isEmpty {
-                        return false
-                    }
-                case .district:
-                    if islandDetails.district.isEmpty {
-                        return false
-                    }
-                case .department:
-                    if islandDetails.department.isEmpty {
-                        return false
-                    }
-                case .governorate:
-                    if islandDetails.governorate.isEmpty {
-                        return false
-                    }
-                case .emirate:
-                    if islandDetails.emirate.isEmpty {
-                        return false
-                    }
-                case .block:
-                    if islandDetails.block.isEmpty {
-                        return false
-                    }
-                case .county:
-                    if islandDetails.county.isEmpty {
-                        return false
-                    }
-                case .neighborhood:
-                    if islandDetails.neighborhood.isEmpty {
-                        return false
-                    }
-                case .complement:
-                    if islandDetails.complement.isEmpty {
-                        return false
-                    }
-                case .apartment:
-                    if islandDetails.apartment.isEmpty {
-                        return false
-                    }
-                case .additionalInfo:
-                    if islandDetails.additionalInfo.isEmpty {
-                        return false
-                    }
-                case .multilineAddress:
-                    if islandDetails.multilineAddress.isEmpty {
-                        return false
-                    }
-                case .parish:
-                    if islandDetails.parish.isEmpty {
-                        return false
-                    }
-                case .entity:
-                    if islandDetails.entity.isEmpty {
-                        return false
-                    }
-                case .municipality:
-                    if islandDetails.municipality.isEmpty {
-                        return false
-                    }
-                case .division:
-                    if islandDetails.division.isEmpty {
-                        return false
-                    }
-                case .zone:
-                    if islandDetails.zone.isEmpty {
-                        return false
-                    }
-                case .island:
-                    if islandDetails.island.isEmpty {
-                        return false
-                    }
+                    case .street: if islandDetails.street.isEmpty { return false }
+                    case .city: if islandDetails.city.isEmpty { return false }
+                    case .state: if islandDetails.state.isEmpty { return false }
+                    case .province: if islandDetails.province.isEmpty { return false }
+                    case .postalCode: if islandDetails.postalCode.isEmpty { return false }
+                    case .region: if islandDetails.region.isEmpty { return false }
+                    case .district: if islandDetails.district.isEmpty { return false }
+                    case .department: if islandDetails.department.isEmpty { return false }
+                    case .governorate: if islandDetails.governorate.isEmpty { return false }
+                    case .emirate: if islandDetails.emirate.isEmpty { return false }
+                    case .block: if islandDetails.block.isEmpty { return false }
+                    case .county: if islandDetails.county.isEmpty { return false }
+                    case .neighborhood: if islandDetails.neighborhood.isEmpty { return false }
+                    case .complement: if islandDetails.complement.isEmpty { return false }
+                    case .apartment: if islandDetails.apartment.isEmpty { return false }
+                    case .additionalInfo: if islandDetails.additionalInfo.isEmpty { return false }
+                    case .multilineAddress: if islandDetails.multilineAddress.isEmpty { return false }
+                    case .parish: if islandDetails.parish.isEmpty { return false }
+                    case .entity: if islandDetails.entity.isEmpty { return false }
+                    case .municipality: if islandDetails.municipality.isEmpty { return false }
+                    case .division: if islandDetails.division.isEmpty { return false }
+                    case .zone: if islandDetails.zone.isEmpty { return false }
+                    case .island: if islandDetails.island.isEmpty { return false }
                 }
             }
-            
-            // If all required fields are filled, return true
             return true
-            
         } catch {
-            // Handle errors (e.g., unknown country code)
-            print("Error: \(error)")
+            print("Error in isAddressValid(for:): \(error)")
             return false
         }
     }
@@ -621,27 +550,6 @@ struct CreateAccountView: View {
 
 
 
-    private func userAlreadyExists() -> Bool {
-        let fetchRequest: NSFetchRequest<UserInfo> = UserInfo.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "email == %@ OR userName == %@", formState.email, formState.userName)
-
-        do {
-            let existingUsers = try managedObjectContext.fetch(fetchRequest)
-            if !existingUsers.isEmpty {
-                if existingUsers.first?.email == formState.email {
-                    errorMessage = "A user with this email address already exists."
-                } else {
-                    errorMessage = "A user with this username already exists."
-                }
-                showErrorAlert = true
-                return true
-            }
-        } catch {
-            handleCreateAccountError(error)
-            return true
-        }
-        return false
-    }
 
     private func createPirateIslandIfValid() async {
         os_log("Debug: Validating island form...", type: .debug)

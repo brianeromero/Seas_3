@@ -20,6 +20,8 @@ enum AuthError: Error, LocalizedError {
     case invalidEmail
     case unknownError
     case notSignedIn
+    case userAlreadyExists
+
     
     var errorDescription: String? {
         switch self {
@@ -39,6 +41,9 @@ enum AuthError: Error, LocalizedError {
             return "User is not signed in."
         case .unknownError:
             return "Unknown Error, pleaes reach out to email: mfinder.bjj@gmail.com"
+        case .userAlreadyExists:
+            return "User Already Exists; pleaes email: mfinder.bjj@gmail.com in order to be reset"
+
         }
     }
 }
@@ -99,6 +104,11 @@ class AuthViewModel: ObservableObject {
             throw AuthError.invalidInput
         }
         
+        // Check if user already exists
+        if await userAlreadyExists() {
+            throw AuthError.userAlreadyExists
+        }
+        
         do {
             let authResult = try await auth.createUser(withEmail: email, password: password)
             
@@ -131,8 +141,45 @@ class AuthViewModel: ObservableObject {
         }
     }
 
+    func userAlreadyExists() async -> Bool {
+        // Check Core Data
+        let fetchRequest: NSFetchRequest<UserInfo> = UserInfo.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "email == %@ OR userName == %@", formState.email, formState.userName)
+
+        do {
+            let existingUsers = try context.fetch(fetchRequest)
+            if !existingUsers.isEmpty {
+                if existingUsers.first?.email == formState.email {
+                    errorMessage = "A user with this email address already exists."
+                } else {
+                    errorMessage = "A user with this username already exists."
+                }
+                self.showVerificationAlert = true
+                return true
+            }
+        } catch {
+            print("Error checking user existence in Core Data: \(error.localizedDescription)")
+            errorMessage = "Error checking user existence."
+            return true
+        }
+
+        // Check Firestore
+        return await userAlreadyExistsInFirestore()
+    }
     
-    
+    func userAlreadyExistsInFirestore() async -> Bool {
+        let firestore = Firestore.firestore()
+        let query = firestore.collection("users").whereField("email", isEqualTo: formState.email).whereField("userName", isEqualTo: formState.userName)
+
+        do {
+            let querySnapshot = try await query.getDocuments()
+            return !querySnapshot.documents.isEmpty
+        } catch {
+            print("Error checking user existence in Firestore: \(error.localizedDescription)")
+            errorMessage = "Error checking user existence."
+            return true
+        }
+    }
     
     // Resets all the profile form fields
     func resetProfileForm() {
