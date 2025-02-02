@@ -37,8 +37,8 @@ struct IslandMenu: View {
     // Log authentication event
     init(isLoggedIn: Binding<Bool>) {
         os_log("User logged in", log: IslandMenulogger)
-        os_log("Initializing IslandMenu", log: logger)
-        
+        os_log("Initializing IslandMenu", log: IslandMenulogger)
+
         _appDayOfWeekViewModel = StateObject(wrappedValue: AppDayOfWeekViewModel(
             selectedIsland: nil,
             repository: AppDayOfWeekRepository(persistenceController: PersistenceController.shared),
@@ -93,7 +93,7 @@ struct IslandMenu: View {
                 GIFView(name: "flashing2")
                     .frame(width: 500, height: 450)
                     .offset(x: 100, y: -150)
-                
+
                 if isLoggedIn {
                     menuView
                 } else {
@@ -110,7 +110,7 @@ struct IslandMenu: View {
             )
         }
         .onAppear {
-            os_log("IslandMenu appeared", log: logger)
+            os_log("IslandMenu appeared", log: IslandMenulogger)
         }
     }
     
@@ -129,25 +129,29 @@ struct IslandMenu: View {
                     .font(.headline)
                 
                 ForEach(menuItem.subMenuItems, id: \.self) { subMenuItem in
-                    // Log user interaction
-                    NavigationLink(destination: destinationView(for: IslandMenuOption(rawValue: subMenuItem)!)) {
+                    if let option = IslandMenuOption(rawValue: subMenuItem) {
+                        NavigationLink(destination: destinationView(for: option)) {
+                            Text(subMenuItem)
+                                .foregroundColor(.blue)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.leading, 1)
+                        }
+                        .simultaneousGesture(
+                            TapGesture()
+                                .onEnded {
+                                    os_log("User tapped menu item: %@", log: IslandMenulogger, subMenuItem)
+                                }
+                        )
+                    } else {
                         Text(subMenuItem)
-                            .foregroundColor(.blue)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.leading, 1)
+                            .foregroundColor(.gray)
                     }
-                    .simultaneousGesture(
-                        TapGesture()
-                            .onEnded {
-                                os_log("User tapped %@", log: IslandMenulogger, "\(subMenuItem) button")
-                            }
-                    )
                 }
             }
             .padding(.bottom, CGFloat(Padding.menuItem))
         }
     }
+
     
     private var profileLinkView: some View {
         NavigationLink(destination: ProfileView(profileViewModel: profileViewModel)) {
@@ -189,11 +193,11 @@ struct IslandMenu: View {
     // MARK: - Destination View
     @ViewBuilder
     private func destinationView(for option: IslandMenuOption) -> some View {
+
         LogView(message: "Destination view for \(option.rawValue)")
-        
+
         switch option {
         case .addNewGym:
-            // Use the shared persistence controller in the view model
             AddNewIsland(
                 viewModel: PirateIslandViewModel(persistenceController: PersistenceController.shared),
                 profileViewModel: profileViewModel
@@ -228,11 +232,6 @@ struct IslandMenu: View {
             .alert(isPresented: $showAlert) {
                 handleInvalidZipCode()
             }
-            .onAppear {
-                if appDayOfWeekViewModel.enterZipCodeViewModel.postalCode.isEmpty || !appDayOfWeekViewModel.enterZipCodeViewModel.isValidPostalCode() {
-                    os_log("Invalid zip code", log: IslandMenulogger)
-                }
-            }
             
         case .addOrEditScheduleOpenMat:
             DaysOfWeekFormView(
@@ -245,17 +244,19 @@ struct IslandMenu: View {
         case .dayOfWeek:
             DayOfWeekSearchView(
                 selectedIsland: $selectedIsland,
-                selectedAppDayOfWeek: .constant(nil),
-                region: $region,
-                searchResults: $searchResults
+                selectedAppDayOfWeek: .constant(nil),  // Add this
+                region: $region,                      // Add this
+                searchResults: $searchResults        // Add this
             )
+
             
         case .searchReviews:
             ViewReviewSearch(
                 selectedIsland: $selectedIsland,
-                titleString: "Explore Gym Reviews",
-                enterZipCodeViewModel: appDayOfWeekViewModel.enterZipCodeViewModel
+                titleString: "Explore Gym Reviews",  // Add this
+                enterZipCodeViewModel: appDayOfWeekViewModel.enterZipCodeViewModel  // Add this
             )
+
             
         case .submitReview:
             GymMatReviewSelect(
@@ -265,26 +266,27 @@ struct IslandMenu: View {
                     persistenceController: PersistenceController.shared
                 )
             )
-            .navigationTitle("Select Gym for Review")
-            .navigationBarTitleDisplayMode(.inline)
+
             
         case .faqDisclaimer:
             FAQnDisclaimerMenuView()
         }
     }
+}
 
+struct LogView: View {
+    let message: String
     
-    struct LogView: View {
-        let message: String
-        
-        var body: some View {
-            EmptyView()
-            .onAppear {
-                os_log("%@", log: IslandMenulogger, message)
-            }
+    var body: some View {
+        EmptyView()
+        .onAppear {
+            os_log("%@", log: IslandMenulogger, message)
         }
     }
 }
+    
+
+
 
 // MARK: - Preview
 struct IslandMenu_Previews: PreviewProvider {

@@ -67,13 +67,14 @@ public class PirateIslandViewModel: ObservableObject {
     func createPirateIsland(islandDetails: IslandDetails, createdByUserId: String, gymWebsite: String?, country: String, selectedCountry: Country) async throws -> PirateIsland {
         os_log("createPirateIsland called with Island Name: %@, Location: %@", log: logger, type: .info, islandDetails.islandName, islandDetails.fullAddress)
 
-        
         // Step 1: Validate the island details
         // Generate a new UUID
         let newIslandID = UUID()
-        
-        // Update islandDetails.country with the selected country
-        islandDetails.country = country
+
+        // Update islandDetails.country with the selected country on the main thread
+        await MainActor.run {
+            islandDetails.country = country
+        }
 
    /*     // Step 2: Validate the island details
         guard validateIslandDetails(islandDetails, createdByUserId, country, selectedCountry) else {

@@ -59,7 +59,7 @@ public class FirestoreManager {
             "id": island.islandID?.uuidString ?? UUID().uuidString,
             "name": island.safeIslandName,
             "location": island.safeIslandLocation,
-            "country": selectedCountry.name.common ?? "",
+            "country": selectedCountry.name.common,
             "createdByUserId": island.createdByUserId ?? "Unknown User",
             "createdTimestamp": island.createdTimestamp ?? Date(),
             "lastModifiedByUserId": island.lastModifiedByUserId ?? "",
