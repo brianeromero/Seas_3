@@ -65,7 +65,7 @@ struct EditExistingIslandListContent: View {
     
     private func createNewPirateIslandIfNeeded() {
         // Check if you need to create a new PirateIsland object
-        let newIsland = PirateIsland(context: viewContext)
+        _ = PirateIsland(context: viewContext)
         // ...
     }
     

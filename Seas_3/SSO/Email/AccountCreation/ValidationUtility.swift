@@ -16,11 +16,14 @@ enum ValidationError: String, Error, Equatable {
     case invalidPassword = "Password should be at least 8 characters long."
     case tooShort = "Password is too short."
     case missingUppercase = "Password must contain at least one uppercase letter."
-    case invalidIslandName = "Island name is required123."
+    case invalidIslandName = "Gym name is required123."
     case invalidLocation = "Street, city, state, and postal code are required."
     case invalidURL = "Invalid URL format."
     case usernameTaken = "Username already exists."
     case emptyName = "Name cannot be empty."
+    case missingLowercase = "Password must contain at least one lowercase letter."
+    case missingNumber = "Password must contain at least one number."
+    case missingSpecialCharacter = "Password must contain at least one special character."
 }
 
 // MARK: - Validation Type
@@ -142,6 +145,15 @@ class ValidationUtility {
         }
         if !password.contains(where: { $0.isUppercase }) {
             return .missingUppercase
+        }
+        if !password.contains(where: { $0.isLowercase }) {
+            return .missingLowercase
+        }
+        if !password.contains(where: { $0.isNumber }) {
+            return .missingNumber
+        }
+        if !password.contains(where: { !$0.isLetter && !$0.isNumber }) {
+            return .missingSpecialCharacter
         }
         return nil
     }

@@ -112,7 +112,6 @@ struct ConsolidatedIslandMapView: View {
                     .frame(width: UIScreen.main.bounds.width * 0.8, height: UIScreen.main.bounds.height * 0.6)
                     .background(Color.white)
                     .cornerRadius(10)
-                    .shadow(radius: 10)
                     .padding()
                     .transition(.opacity)
                 } else {
@@ -131,7 +130,6 @@ struct ConsolidatedIslandMapView: View {
                 .padding(5)
                 .background(Color.white)
                 .cornerRadius(5)
-                .shadow(radius: 3)
             CustomMarkerView()
                 .onTapGesture {
                     if let pirateIsland = marker.pirateIsland {

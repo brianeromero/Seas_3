@@ -177,7 +177,6 @@ struct IslandModalView: View {
                     .padding()
                     .background(Color.white)
                     .cornerRadius(10)
-                    .shadow(radius: 10)
                     .frame(width: UIScreen.main.bounds.width * 0.8, height: UIScreen.main.bounds.height * 0.6)
                 } else {
                     Text("Error: selectedIsland or selectedDay is nil.")
@@ -186,7 +185,6 @@ struct IslandModalView: View {
                         .padding()
                         .background(Color.white)
                         .cornerRadius(10)
-                        .shadow(radius: 10)
                 }
             }
         }

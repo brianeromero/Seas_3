@@ -10,6 +10,7 @@ import SwiftUI
 import CoreData
 import Firebase
 
+
 class ProfileViewModel: ObservableObject {
     @Published var email: String = ""
     @Published var userName: String = ""
@@ -18,7 +19,6 @@ class ProfileViewModel: ObservableObject {
     @Published var newPassword: String = ""
     @Published var confirmPassword: String = ""
     @Published var showPasswordChange: Bool = false
-    // Add these if needed
     @Published var password: String = ""
     private var viewContext: NSManagedObjectContext
     private var authViewModel: AuthViewModel
@@ -59,10 +59,17 @@ class ProfileViewModel: ObservableObject {
                 userInfo.name = name
                 userInfo.belt = belt
 
-                // Update password in Firebase if changing
+                // Update password if changing
                 if showPasswordChange {
-                    try await authViewModel.signInUser(with: email, password: newPassword)
-                    // Alternatively, implement password update in AuthViewModel
+                    let hashPassword = HashPassword()
+                    // Hash the password
+                    let hashedPassword = try hashPassword.hashPasswordScrypt(newPassword)
+                    
+                    // Store the hashed password
+                    userInfo.passwordHash = hashedPassword.hash
+
+                    // Optionally: Update password in Firebase as well
+                    try await authViewModel.updatePassword(newPassword)
                 }
 
                 try viewContext.save()
@@ -93,8 +100,7 @@ class ProfileViewModel: ObservableObject {
         ], merge: true)
         print("User data successfully saved to Firestore.")
     }
-    
-    
+
     func validateProfile() -> Bool {
         let emailError = ValidationUtility.validateEmail(email)
         let userNameError = ValidationUtility.validateUserName(userName)
@@ -103,7 +109,6 @@ class ProfileViewModel: ObservableObject {
         let isValid = [emailError, userNameError, nameError].allSatisfy { $0 == nil }
 
         if !isValid {
-            // Handle errors
             if let emailError = emailError {
                 print("Email error: \(emailError.rawValue)")
             }
@@ -117,5 +122,15 @@ class ProfileViewModel: ObservableObject {
 
         return isValid
     }
+}
 
+extension Data {
+    static func randomBytes(count: Int) -> Data {
+        var bytes = [UInt8](repeating: 0, count: count)
+        let status = SecRandomCopyBytes(kSecRandomDefault, count, &bytes)
+        if status != errSecSuccess {
+            fatalError("Unable to generate random bytes")
+        }
+        return Data(bytes)
+    }
 }

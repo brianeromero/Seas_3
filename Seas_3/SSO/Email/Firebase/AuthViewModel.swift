@@ -21,6 +21,8 @@ enum AuthError: Error, LocalizedError {
     case unknownError
     case notSignedIn
     case userAlreadyExists
+    case invalidStoredPassword
+
 
     
     var errorDescription: String? {
@@ -43,7 +45,8 @@ enum AuthError: Error, LocalizedError {
             return "Unknown Error, pleaes reach out to email: mfinder.bjj@gmail.com"
         case .userAlreadyExists:
             return "User Already Exists; pleaes email: mfinder.bjj@gmail.com in order to be reset"
-
+        case .invalidStoredPassword:
+            return "Password stored is invalid"
         }
     }
 }
@@ -304,6 +307,7 @@ class AuthViewModel: ObservableObject {
 
     // New method to add user to Core Data
     private func addUserToCoreData(with userID: String, email: String, userName: String, name: String, belt: String?) throws {
+        let hashPassword = HashPassword()
         let newUser = UserInfo(context: context)
         newUser.userID = userID
         newUser.userName = userName
@@ -316,16 +320,16 @@ class AuthViewModel: ObservableObject {
             newUser.belt = belt
         }
 
-        let hashedPassword = try hashPasswordPbkdf(password)
-
-        guard let passwordHashData = hashedPassword.hash.base64EncodedString().data(using: .utf8),
-              let saltData = hashedPassword.salt.base64EncodedString().data(using: .utf8) else {
-            throw AuthError.firebaseError(NSError(domain: "Hash conversion error", code: -1, userInfo: nil))
-        }
-
-        newUser.passwordHash = passwordHashData
-        newUser.salt = saltData
-        newUser.iterations = Int64(hashedPassword.iterations)
+        // Hash the password using the updated hashPasswordScrypt
+        let hashedPassword = try hashPassword.hashPasswordScrypt(password)
+        print("Password: \(password)")
+        print("Salt: \(hashedPassword.salt)")
+        print("Iterations: \(hashedPassword.iterations)")
+        
+        // Assign the raw Data directly to the Core Data properties (no Base64 conversion needed)
+        newUser.passwordHash = hashedPassword.hash  // Store the hash as Data
+        newUser.salt = hashedPassword.salt          // Store the salt as Data
+        newUser.iterations = Int64(hashedPassword.iterations)  // Store iterations as Int64
 
         // Save to Core Data
         do {
@@ -336,8 +340,6 @@ class AuthViewModel: ObservableObject {
             throw error // Rethrow or handle error accordingly
         }
     }
-
-
 
     // Handle email verification response
     func handleEmailVerificationResponse() async {
@@ -393,6 +395,7 @@ class AuthViewModel: ObservableObject {
     }
 
     func mapFirebaseUserToSeasUser(firebaseUser: FirebaseAuth.User, userName: String, name: String) async throws -> UserInfo {
+        let hashPassword = HashPassword()
         // Use Core Data's context to create a new UserInfo
         guard let entityDescription = NSEntityDescription.entity(forEntityName: "UserInfo", in: context) else {
             throw AuthError.firebaseError(NSError(domain: "Entity description not found", code: -1, userInfo: nil))
@@ -403,24 +406,20 @@ class AuthViewModel: ObservableObject {
         seasUser.userName = userName
         seasUser.name = name
         seasUser.userID = firebaseUser.uid // Use Firebase's User UID
-        
-        // Hash the password
-        let hashedPassword = try hashPasswordPbkdf(formState.password)
-        
-        // Convert hash, salt, and iterations safely
-        guard let passwordHashData = hashedPassword.hash.base64EncodedString().data(using: .utf8),
-              let saltData = hashedPassword.salt.base64EncodedString().data(using: .utf8) else {
-            throw AuthError.firebaseError(NSError(domain: "Hash conversion error", code: -1, userInfo: nil))
-        }
 
-        seasUser.passwordHash = passwordHashData
-        seasUser.salt = saltData
+        // Hash the password
+        let hashedPassword = try hashPassword.hashPasswordScrypt(formState.password)
+        
+        // Assign raw Data to Core Data properties (no Base64 encoding)
+        seasUser.passwordHash = hashedPassword.hash // Store raw hash as Data
+        seasUser.salt = hashedPassword.salt         // Store raw salt as Data
         seasUser.iterations = Int64(hashedPassword.iterations)
         seasUser.userID = firebaseUser.uid
         seasUser.isVerified = false
 
         return seasUser
     }
+
 
     // Send sign-in link (passwordless)
     func sendSignInLink(toEmail email: String) async {
@@ -456,35 +455,9 @@ class AuthViewModel: ObservableObject {
         }
     }
 
-    // Verify password using PBKDF2 hashing
-    func verifyPassword(_ inputPassword: String, storedHash: String, storedSalt: String, iterations: Int) -> Bool {
-        do {
-            // Decode the stored salt from Base64
-            let salt = Data(base64Encoded: storedSalt)!
-
-            // Create a PBKDF2 object using CryptoSwift
-            let pbkdf = try PKCS5.PBKDF2(
-                password: Array(inputPassword.utf8),
-                salt: salt.bytes,
-                iterations: iterations,
-                keyLength: storedHash.count,
-                variant: .sha2(.sha256)  // Use SHA-256 variant of PBKDF2
-            )
-
-            // Calculate the hashed password from the input
-            let inputPasswordData = try pbkdf.calculate()
-            let inputHash = Data(inputPasswordData).base64EncodedString()
-
-            // Compare hashes
-            return inputHash == storedHash
-        } catch {
-            errorMessage = "Password verification failed: \(error.localizedDescription)"
-            return false
-        }
-    }
-    
     // Refactor sign-in method to separate password verification and Firebase authentication
     func signInUser(with identifier: String, password: String) async throws {
+        let hashPassword = HashPassword() // Add this line
         print("Signing in user \(identifier)...")
         
         // Fetch user from Core Data
@@ -493,22 +466,28 @@ class AuthViewModel: ObservableObject {
             throw NSError(domain: ErrorDomain.auth.rawValue, code: ErrorCode.userNotFound.rawValue, userInfo: nil)
         }
         
-        // Verify password before Firebase sign-in
-        let storedHash = HashedPassword(salt: user.salt, iterations: Int(user.iterations), hash: user.passwordHash)
+        // Extract stored hash and salt from Core Data
+        guard let storedSalt = Data(base64Encoded: user.salt),
+              let storedHash = Data(base64Encoded: user.passwordHash) else {
+            throw AuthError.invalidStoredPassword
+        }
+
+        // Debug the stored salt value
+        print("Stored Salt: \(user.salt)")
         
-        // Verify password using PBKDF2
-        guard try verifyPasswordPbkdf(password, againstHash: storedHash) else {
+        // Create a HashedPassword object from storedSalt and storedHash
+        let storedHashedPassword = HashedPassword(hash: storedHash, salt: storedSalt, iterations: Int(user.iterations))
+
+        // Verify password using SCRYPT
+        guard try hashPassword.verifyPasswordScrypt(password, againstHash: storedHashedPassword) else {
             throw AuthError.passwordsDoNotMatch
         }
 
-        // Directly use email as a String (no need for a conditional cast)
-        let emailString = user.email // Assuming user.email is already a String type
-        
-        // Sign in with Firebase
-        let authResult = try await auth.signIn(withEmail: emailString, password: password)
+        // Proceed with Firebase authentication
+        let authResult = try await auth.signIn(withEmail: user.email, password: password)
         
         // Update Firestore with last login timestamp
-        try await updateFirestoreLoginTimestamp(for: emailString)
+        try await updateFirestoreLoginTimestamp(for: user.email)
         
         // Map Firebase user to local user model
         let currentUser = try await mapFirebaseUserToSeasUser(firebaseUser: authResult.user, userName: user.userName, name: user.name)
@@ -519,6 +498,7 @@ class AuthViewModel: ObservableObject {
             self.currentUser = currentUser
         }
     }
+
 
     private func updateFirestoreLoginTimestamp(for email: String) async throws {
         let userRef = Firestore.firestore().collection("users").document(email)
@@ -604,28 +584,17 @@ class AuthViewModel: ObservableObject {
         }
     }
 
+    private let userFetcher = UserFetcher()
+    
     private func fetchUser(_ usernameOrEmail: String) async throws -> UserInfo? {
-        if ValidationUtility.validateEmail(usernameOrEmail) == nil {
-            // Fetch user by email
-            let result: Result<UserInfo?, Error> = await fetchUserByEmail(usernameOrEmail)
-            switch result {
-            case .success(let user):
-                return user
-            case .failure(let error):
-                throw error
-            }
+        if ValidationUtility.validateEmail(usernameOrEmail) != nil {
+            // Fetch user by email or username using UserFetcher
+            return try await userFetcher.fetchUser(usernameOrEmail: usernameOrEmail, context: nil as NSManagedObjectContext?)
         } else {
-            // Fetch user by username
-            let result: Result<UserInfo?, Error> = await fetchUserByUsername(usernameOrEmail)
-            switch result {
-            case .success(let user):
-                return user
-            case .failure(let error):
-                throw error
-            }
+            // Fetch user by username using UserFetcher (pass nil for Firestore)
+            return try await userFetcher.fetchUser(usernameOrEmail: usernameOrEmail, context: nil as NSManagedObjectContext?)
         }
     }
-
     
     // Fetch user by username from Firebase
     private func fetchUserByUsername(_ username: String) async throws -> UserInfo? {
@@ -670,5 +639,16 @@ class AuthViewModel: ObservableObject {
         }
         return user.uid
     }
+    
+    func updatePassword(_ newPassword: String) async throws {
+        guard let user = auth.currentUser else {
+            throw AuthError.userNotAuthenticated
+        }
+
+        // Update the password in Firebase Authentication
+        try await user.updatePassword(to: newPassword)
+        print("Password updated in Firebase.")
+    }
+
     
 }

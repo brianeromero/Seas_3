@@ -6,27 +6,33 @@
 //
 
 import Foundation
+import CryptoSwift
+
 
 class EmailSignOn {
     func exampleUsage() {
+        // Create an instance of HashPassword
+        let hashPassword = HashPassword()
+        
         // Storing hashed password
         let userPassword = "mysecretpassword"
         do {
-            let hashedPassword = try hashPasswordPbkdf(userPassword)
+            let hashedPassword = try hashPassword.hashPasswordScrypt(userPassword)
+            
             // Use hashedPassword properties for the User object
             _ = User(email: "user@example.com",
-                            userName: "username",  // Updated here
-                            name: "John Doe",
-                            passwordHash: hashedPassword.hash,
-                            salt: hashedPassword.salt,
-                            iterations: Int64(hashedPassword.iterations),
-                            isVerified: false,
-                            belt: nil,
-                            verificationToken: nil,
-                            userID: UUID())
+                     userName: "username",  // Updated here
+                     name: "John Doe",
+                     passwordHash: hashedPassword.hash,  // Use the Data directly here
+                     salt: hashedPassword.salt,  // Use the salt Data directly here
+                     iterations: Int64(hashedPassword.iterations),  // Store the iterations
+                     isVerified: false,
+                     belt: nil,
+                     verificationToken: nil,
+                     userID: UUID())
             
             // Verify password
-            if try verifyPasswordPbkdf(userPassword, againstHash: hashedPassword) {
+            if try hashPassword.verifyPasswordScrypt(userPassword, againstHash: hashedPassword) {
                 print("Password is valid")
             } else {
                 print("Password is invalid")

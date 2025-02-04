@@ -30,7 +30,6 @@ struct IslandMapView: View {
                             .padding(5)
                             .background(Color.white)
                             .cornerRadius(5)
-                            .shadow(radius: 3)
                         CustomMarkerView()
                     }
                     .onTapGesture {
@@ -159,7 +158,6 @@ struct IslandMapViewMap: View {
                         .padding(5)
                         .background(Color.white)
                         .cornerRadius(5)
-                        .shadow(radius: 3)
                     CustomMarkerView()
                 }
                 .onTapGesture {

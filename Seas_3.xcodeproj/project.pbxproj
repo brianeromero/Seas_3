@@ -371,6 +371,7 @@
 				Login/LoginViewModel.swift,
 				Login/MFBACKGROUND.swift,
 				"Login/PLAYING WITH LOGIN.swift",
+				Login/UserFetcher.swift,
 				Login/UserProfileViewModel.swift,
 			);
 			target = 0CF13E402C2A326700D714C0 /* Seas_3 */;

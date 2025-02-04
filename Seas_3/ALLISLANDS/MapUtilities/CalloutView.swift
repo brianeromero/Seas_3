@@ -26,6 +26,5 @@ struct CalloutView: View {
         .padding()
         .background(Color.white)
         .cornerRadius(10)
-        .shadow(radius: 3)
     }
 }

@@ -59,8 +59,9 @@ class UnifiedEmailManager {
         userInfo.name = userName    // Use userName as the name
         
         do {
-            let hashedPassword = try hashPasswordPbkdf(password)
-            userInfo.passwordHash = hashedPassword.hash
+            let hashPassword = HashPassword()
+            let hashedPassword = try hashPassword.hashPasswordScrypt(password)
+            userInfo.passwordHash = hashedPassword.hash // Corrected here
         } catch {
             print("Error hashing password: \(error)")
             return false
@@ -89,6 +90,7 @@ class UnifiedEmailManager {
         """
         return await sendCustomEmail(to: email, subject: subject, content: content)
     }
+
     
     // Sends a custom email using SendGrid
     func sendCustomEmail(to email: String, subject: String, content: String) async -> Bool {

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23507" systemVersion="24B91" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23605" systemVersion="24C101" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
     <entity name="AdSettings" representedClassName="AdSettings" syncable="YES">
         <attribute name="enabled" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="idfa" optional="YES" attributeType="String"/>
@@ -54,6 +54,7 @@
     <entity name="UserInfo" representedClassName="UserInfo" syncable="YES">
         <attribute name="belt" optional="YES" attributeType="String"/>
         <attribute name="email" attributeType="String"/>
+        <attribute name="isBanned" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="isVerified" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="iterations" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="name" attributeType="String"/>

@@ -117,7 +117,6 @@ struct HourRow: View {
         .padding()
         .background(Color.white)
         .cornerRadius(8)
-        .shadow(radius: 1)
     }
 
     private func filteredEvents(for hour: String) -> [AppDayOfWeek] {

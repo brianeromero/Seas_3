@@ -493,7 +493,7 @@ struct IslandFormSections: View {
         do {
             return try getAddressFields(for: countryName)
         } catch {
-            os_log("Error getting address fields for country: %@", log: OSLog.default, type: .error, countryName ?? "Unknown")
+            os_log("Error getting address fields for country: %@", log: OSLog.default, type: .error, countryName)
             return defaultAddressFieldRequirements
         }
     }

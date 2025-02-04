@@ -1,5 +1,6 @@
 import Foundation
 import FirebaseAuth
+import FirebaseFirestore
 import CoreData
 import SwiftUI
 import GoogleSignIn
@@ -176,45 +177,71 @@ struct LoginForm: View {
         }
 
         do {
+            print("Starting sign-in process for \(usernameOrEmail)") // Logging the start of the process
+            
             if ValidationUtility.validateEmail(usernameOrEmail) != nil {
-                let user = try fetchUser(usernameOrEmail)
-                let email = user.email
-                try await signInWithEmail(email: email, password: password)
+                print("Email validation passed. Attempting direct email login.") // Logging email login attempt
+                // ✅ Direct email login via Firebase
+                try await signInWithEmail(email: usernameOrEmail, password: password)
             } else {
-                try await authViewModel.signInUser(with: usernameOrEmail, password: password)
+                print("Email validation failed. Checking Core Data for username.") // Logging when checking Core Data for username
+                
+                // 🔍 First, try looking up username in Core Data
+                do {
+                    let user = try await fetchUser(usernameOrEmail)
+                    print("User found in Core Data: \(user.email ?? "Unknown email")") // Logging user found in Core Data
+                    try await signInWithEmail(email: user.email, password: password)
+                } catch {
+                    print("Username not found in Core Data, checking Firestore...") // Logging when checking Firestore
+
+                    // 🔍 Try Firestore as a last resort
+                    do {
+                        let user = try await fetchUser(usernameOrEmail)
+                        print("User found in Firestore: \(user.email ?? "Unknown email")") // Logging user found in Firestore
+                        try await signInWithEmail(email: user.email, password: password)
+                    } catch {
+                        print("Username or email not found in both Core Data and Firestore.") // Logging failed sign-in attempt
+                        showAlert(with: "Username or email not found.")
+                    }
+                }
             }
         } catch let error {
+            print("Error during sign-in: \(error.localizedDescription)") // Logging error during sign-in
             DispatchQueue.main.async {
                 NotificationCenter.default.post(name: .showToast, object: nil, userInfo: ["message": error.localizedDescription])
+                self.errorMessage = error.localizedDescription
             }
         }
     }
 
     private func signInWithEmail(email: String, password: String) async throws {
+        print("Attempting to sign in with email: \(email)") // Logging email sign-in attempt
         do {
             _ = try await Auth.auth().signIn(withEmail: email, password: password)
+            print("Successfully signed in with email: \(email)") // Logging success
+
             DispatchQueue.main.async {
                 self.authenticationState.isAuthenticated = true
                 self.isLoggedIn = true
                 showMainContent = true
             }
         } catch let error {
+            print("Error signing in with email: \(email) - \(error.localizedDescription)") // Logging error during email sign-in
             showAlert(with: error.localizedDescription)
             throw error
         }
     }
 
-    private func fetchUser(_ usernameOrEmail: String) throws -> UserInfo {
-        let request = NSFetchRequest<UserInfo>(entityName: "UserInfo")
-        request.predicate = NSPredicate(format: "userName == %@ OR email == %@", usernameOrEmail, usernameOrEmail)
-
-        let results = try viewContext.fetch(request)
-        guard let user = results.first else { throw UserFetchError.userNotFound }
-        guard !user.email.isEmpty else { throw UserFetchError.emailNotFound }
-        return user
+    private let userFetcher = UserFetcher()
+    
+    private func fetchUser(_ usernameOrEmail: String) async throws -> UserInfo {
+        print("Fetching user with identifier: \(usernameOrEmail)") // Logging the fetch attempt
+        // Pass the viewContext (Core Data context) to UserFetcher
+        return try await userFetcher.fetchUser(usernameOrEmail: usernameOrEmail, context: viewContext)
     }
 
     private func showAlert(with message: String) {
+        print("Showing alert with message: \(message)") // Logging when showing an alert
         errorMessage = message
     }
 }

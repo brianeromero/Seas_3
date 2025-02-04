@@ -6,7 +6,9 @@
 //
 
 import Foundation
+import Firebase
 import FirebaseAuth
+import FirebaseFirestore
 import CoreData
 import SwiftUI
 
@@ -35,32 +37,65 @@ class LoginViewModel: ObservableObject {
             return
         }
 
-        // Check if usernameOrEmail is a valid email
-        if validateEmail(usernameOrEmail) {
-            do {
-                let user = try fetchUser(usernameOrEmail, viewContext: viewContext)
-                let email = user.email
-                Auth.auth().signIn(withEmail: email, password: password) { result, error in
-                    if let error = error {
-                        self.errorMessage = error.localizedDescription
-                    } else {
-                        self.isLoggedIn = true
-                        self.showMainContent = true
-                    }
+        do {
+            var emailToUse: String? = nil
+            
+            // Step 1: Check Core Data for user
+            if validateEmail(usernameOrEmail) {
+                if let user = try? fetchUser(usernameOrEmail, viewContext: viewContext) {
+                    emailToUse = user.email
                 }
-            } catch {
+            }
+
+            // Step 2: If not found in Core Data, check Firestore
+            if emailToUse == nil {
+                emailToUse = try await fetchFirestoreUserEmail(for: usernameOrEmail)
+            }
+
+            guard let email = emailToUse else {
                 self.errorMessage = "User not found."
+                return
             }
-        } else {
-            // Handle username login (assuming your `signInUser` method handles username)
-            do {
-                try await signInUser(with: usernameOrEmail, password: password)
-                self.isLoggedIn = true
-                self.showMainContent = true
-            } catch {
-                self.errorMessage = error.localizedDescription
+
+            // Step 3: Check if the user is banned in Firestore
+            let isBanned = try await checkIfUserIsBanned(email: email)
+            if isBanned {
+                self.errorMessage = "Your account has been locked due to a violation of principles."
+                return
             }
+
+            // Step 4: Sign in using Firebase Authentication
+            Auth.auth().signIn(withEmail: email, password: password) { result, error in
+                if let error = error {
+                    self.errorMessage = error.localizedDescription
+                } else {
+                    self.isLoggedIn = true
+                    self.showMainContent = true
+                }
+            }
+        } catch {
+            self.errorMessage = error.localizedDescription
         }
+    }
+    
+    private let userFetcher = UserFetcher()
+
+    private func fetchFirestoreUserEmail(for usernameOrEmail: String) async throws -> String? {
+        // Fetch user via UserFetcher, passing nil for Firestore
+        let user = try await userFetcher.fetchUser(usernameOrEmail: usernameOrEmail, context: nil as NSManagedObjectContext?)
+        return user.email
+    }
+    
+    private func checkIfUserIsBanned(email: String) async throws -> Bool {
+        let db = Firestore.firestore()
+        let userDoc = db.collection("users").document(email)
+        
+        let document = try await userDoc.getDocument()
+        if let data = document.data(), let isBanned = data["isBanned"] as? Bool {
+            return isBanned
+        }
+        
+        return false
     }
     
     // Fetch user from CoreData (fetch by email or username)

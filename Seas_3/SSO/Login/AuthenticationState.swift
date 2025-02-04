@@ -124,11 +124,17 @@ public class AuthenticationState: ObservableObject {
             throw AuthenticationError.invalidCredentials
         }
         
+        let hashPassword = HashPassword()
         do {
             // Convert user.passwordHash (Data) to HashedPassword
             let hashedPassword = try convertToHashedPassword(user.passwordHash)
             
-            if try !verifyPasswordPbkdf(password, againstHash: hashedPassword) {
+            // Verify password using SCRYPT with the HashedPassword object
+            let combinedHashSalt = "\(hashedPassword.hash.base64EncodedString())\(hashPassword.base64SaltSeparator)\(hashedPassword.salt.base64EncodedString())"
+            let hashSaltHashedPassword = try convertToHashedPassword(Data(combinedHashSalt.utf8))
+            
+            // Now use HashedPassword directly for verification
+            if try !hashPassword.verifyPasswordScrypt(password, againstHash: hashSaltHashedPassword) {
                 throw AuthenticationError.invalidPassword
             }
         } catch {
@@ -149,15 +155,18 @@ public class AuthenticationState: ObservableObject {
 
     // Helper function to convert Data to HashedPassword
     private func convertToHashedPassword(_ passwordHash: Data) throws -> HashedPassword {
-        // Separate salt and hash
-        guard let separatorIndex = passwordHash.firstIndex(of: hashConfig.separator.first!) else {
+        let hashPassword = HashPassword()
+        
+        // Separate salt and hash using the separator
+        guard let separatorIndex = passwordHash.firstIndex(of: hashPassword.base64SaltSeparator.utf8.first!) else {
             throw HashError.invalidInput
         }
         
         let salt = passwordHash.prefix(upTo: separatorIndex)
-        let hash = passwordHash.suffix(from: separatorIndex + hashConfig.separator.count)
+        let hash = passwordHash.suffix(from: separatorIndex + hashPassword.base64SaltSeparator.utf8.count)
         
-        return HashedPassword(salt: salt, iterations: hashConfig.rounds, hash: hash)
+        // Return HashedPassword with hash first, then salt
+        return HashedPassword(hash: hash, salt: salt, iterations: 8)
     }
 
     /// Logs out the current user.

@@ -221,7 +221,6 @@ struct IslandAnnotationView: View {
                     .padding(5)
                     .background(Color.white)
                     .cornerRadius(5)
-                    .shadow(radius: 3)
                 CustomMarkerView()
             }
         }

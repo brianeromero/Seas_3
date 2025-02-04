@@ -21,7 +21,6 @@ struct CustomPin: View {
                 .padding(5)
                 .background(Color.white)
                 .cornerRadius(5)
-                .shadow(radius: 3)
             Image(imageName)
                 .resizable()
                 .scaledToFit()

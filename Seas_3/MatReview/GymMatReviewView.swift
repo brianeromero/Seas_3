@@ -135,7 +135,6 @@ struct GymMatReviewView: View {
                 .padding(.horizontal, 20)
                 .background(Color.white.opacity(0.8))
                 .cornerRadius(10)
-                .shadow(radius: 5)
         }
         .navigationTitle("Gym Mat Review")
         .onAppear {
@@ -285,7 +284,6 @@ struct StarRatingsLedger: View {
         .padding(.bottom, 20)
         .background(Color.white.opacity(0.8))
         .cornerRadius(10)
-        .shadow(radius: 5)
     }
 }
 

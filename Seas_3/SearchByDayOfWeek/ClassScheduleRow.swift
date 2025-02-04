@@ -56,7 +56,6 @@ struct ClassScheduleRow: View {
         .padding()
         .background(Color(.systemGray6))
         .cornerRadius(8.0)
-        .shadow(radius: 1)
     }
 }
 

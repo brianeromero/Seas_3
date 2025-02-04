@@ -23,6 +23,7 @@ extension UserInfo {
     @NSManaged public var iterations: Int64 // Required
     @NSManaged public var isVerified: Bool // Required
     @NSManaged public var userID: String! // Required, unique
+    @NSManaged public var isBanned: Bool // Added for user ban status
 
     // Optional fields
     @NSManaged public var belt: String? // Optional

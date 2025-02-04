@@ -9,12 +9,21 @@ import Foundation
 import SwiftUI
 import CoreData
 
+struct HashedPassword {
+    var hash: Data
+    var salt: Data
+    var iterations: Int
+}
+
 
 class AuthenticationHelper {
     static func verifyUserPassword(inputPassword: String, storedHash: HashedPassword) throws -> Bool {
-        return try verifyPasswordPbkdf(inputPassword, againstHash: storedHash)
+        let hashPassword = HashPassword()
+        
+        // Directly passing Data (salt and hash) to verifyPasswordScrypt
+        return try hashPassword.verifyPasswordScrypt(inputPassword, againstHash: storedHash)
     }
-
+    
     static func fetchStoredUserHash(identifier: String) throws -> HashedPassword {
         let context = PersistenceController.shared.viewContext  // Use shared viewContext
 
@@ -30,7 +39,17 @@ class AuthenticationHelper {
             guard let user = users.first else {
                 throw HashError.invalidInput
             }
-            return HashedPassword(salt: user.salt, iterations: Int(user.iterations), hash: user.passwordHash)
+
+            // Convert base64 string to Data
+            guard let saltData = Data(base64Encoded: user.salt) else {
+                throw HashError.invalidInput
+            }
+            guard let hashData = Data(base64Encoded: user.passwordHash) else {
+                throw HashError.invalidInput
+            }
+
+            // Return the HashedPassword struct with decoded data
+            return HashedPassword(hash: hashData, salt: saltData, iterations: Int(user.iterations))
         } catch {
             throw HashError.coreDataError(error)
         }
@@ -42,4 +61,3 @@ class AuthenticationHelper {
         return username == "Admin" && password == "Password"
     }
 }
-
