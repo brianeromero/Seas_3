@@ -638,12 +638,17 @@ class AuthViewModel: ObservableObject {
     }
 
     
-    // Sign out user from Firebase
-    func signOut() {
+    // Sign out user from Firebase with a completion handler
+    func signOut(navigateToLogin: @escaping () -> Void) {
         do {
-            try auth.signOut()
+            try auth.signOut() // Firebase sign-out
             self.userSession = nil
             self.currentUser = nil
+            
+            // Call the navigation closure after sign-out
+            navigateToLogin()
+            
+            print("User signed out successfully.")
         } catch {
             print("Error signing out: \(error.localizedDescription)")
         }

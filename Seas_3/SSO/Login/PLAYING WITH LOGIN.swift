@@ -318,9 +318,8 @@ struct LoginViewLoginView: View {
                     }
                     // Display IslandMenu if authenticated and 'showMainContent' is true
                     else if authenticationState.isAuthenticated && showMainContent {
-                        IslandMenu(
-                            isLoggedIn: $authenticationState.isLoggedIn
-                        )
+                        IslandMenu(isLoggedIn: $authenticationState.isLoggedIn, authViewModel: authViewModel)
+
                     }
                     // Display LoginForm when the selected view is 'login'
                     else if isSelected == .login {

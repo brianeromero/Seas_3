@@ -10,6 +10,9 @@ import Firebase
 struct ProfileView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @ObservedObject var profileViewModel: ProfileViewModel
+    @ObservedObject var authViewModel: AuthViewModel  // Injected AuthViewModel
+    @Binding var selectedTabIndex: LoginViewSelection
+    let setupGlobalErrorHandler: () -> Void
     
     private let beltOptions = ["", "White", "Blue", "Purple", "Brown", "Black"]
     @State private var isEditing = false
@@ -17,6 +20,11 @@ struct ProfileView: View {
     @State private var originalUserName: String = ""
     @State private var originalName: String = ""
     @State private var originalBelt: String = ""
+    @State private var showMainContent = false
+    @State private var navigateToAdminMenu = false
+    @StateObject private var pirateIslandViewModel = PirateIslandViewModel(persistenceController: PersistenceController.shared)
+
+    @State private var navigateToLogin = false
     
     // Placeholder declarations
     @State private var errorMessages: [ValidationType: String] = [:]
@@ -152,12 +160,45 @@ struct ProfileView: View {
                 }
                 .disabled(!isEditing || !profileViewModel.validateProfile())
             }
-            .onAppear {
-                profileViewModel.loadProfile()
+            
+            // Sign Out Button
+            Button(action: {
+                authViewModel.signOut {
+                    // This will be called after sign-out, navigating to the login screen
+                    navigateToLoginPage()
+                }
+            }) {
+                Text("Sign Out")
+                    .font(.headline)
+                    .padding()
+                    .frame(minWidth: 335)
+                    .background(Color.red)
+                    .foregroundColor(.white)
+                    .cornerRadius(40)
             }
+            .padding(.top, 20)
+            
+            NavigationLink(
+                destination: LoginView(
+                    islandViewModel: pirateIslandViewModel,
+                    isSelected: $selectedTabIndex,
+                    navigateToAdminMenu: $navigateToAdminMenu,
+                    isLoggedIn: $profileViewModel.isLoggedIn
+                )
+                .environment(\.managedObjectContext, viewContext)
+                .environmentObject(authViewModel)
+                .onAppear {
+                    setupGlobalErrorHandler()
+                },
+                isActive: $navigateToLogin
+            ) { EmptyView() }
         }
     }
     
+    private func navigateToLoginPage() {
+        profileViewModel.resetProfile()
+        navigateToLogin = true
+    }
     
     private func toggleEdit() {
         if isEditing {
@@ -192,22 +233,24 @@ struct ProfileView: View {
     private func validateField(_ fieldType: ValidationType) {
         switch fieldType {
         case .email:
-            errorMessages[.email] = ValidationUtility.validateField(profileViewModel.email, type: .email)?.rawValue
+            errorMessages[.email] = profileViewModel.validateEmail(profileViewModel.email)
         case .userName:
-            errorMessages[.userName] = ValidationUtility.validateField(profileViewModel.userName, type: .userName)?.rawValue
+            errorMessages[.userName] = profileViewModel.validateUserName(profileViewModel.userName)
         case .name:
-            errorMessages[.name] = ValidationUtility.validateField(profileViewModel.name, type: .name)?.rawValue
+            errorMessages[.name] = profileViewModel.validateName(profileViewModel.name)
         case .password:
-            errorMessages[.password] = ValidationUtility.validateField(profileViewModel.password, type: .password)?.rawValue
+            errorMessages[.password] = profileViewModel.validatePassword(profileViewModel.password)
         }
         print("Error for \(fieldType): \(errorMessages[fieldType] ?? "No error")")
     }
 }
 
+
 struct ProfileView_Previews: PreviewProvider {
     static var previews: some View {
         let viewContext = PersistenceController.preview.viewContext
         let profileViewModel = ProfileViewModel(viewContext: viewContext)
+        let authViewModel = AuthViewModel() // Mock AuthViewModel
         
         profileViewModel.email = "example@email.com"
         profileViewModel.userName = "john_doe"
@@ -215,8 +258,15 @@ struct ProfileView_Previews: PreviewProvider {
         profileViewModel.belt = "Black"
         profileViewModel.showPasswordChange = false
         
+        @State var selectedTabIndex: LoginViewSelection = .login
+        
         return NavigationView {
-            ProfileView(profileViewModel: profileViewModel)
+            ProfileView(
+                profileViewModel: profileViewModel,
+                authViewModel: authViewModel,
+                selectedTabIndex: $selectedTabIndex,
+                setupGlobalErrorHandler: {}
+            )
         }
         .previewDisplayName("Profile View Preview")
     }

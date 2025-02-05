@@ -20,9 +20,13 @@ class ProfileViewModel: ObservableObject {
     @Published var confirmPassword: String = ""
     @Published var showPasswordChange: Bool = false
     @Published var password: String = ""
+    @Published var isSignInEnabled: Bool = true
+    @Published var errorMessage: String = ""
+    @Published var isLoggedIn: Bool = false
+    
     private var viewContext: NSManagedObjectContext
     private var authViewModel: AuthViewModel
-
+    
     init(viewContext: NSManagedObjectContext, authViewModel: AuthViewModel = .shared) {
         self.viewContext = viewContext
         self.authViewModel = authViewModel
@@ -47,7 +51,7 @@ class ProfileViewModel: ObservableObject {
 
     func updateProfile() async {
         guard !showPasswordChange || newPassword == confirmPassword else {
-            print("Passwords do not match")
+            errorMessage = "Passwords do not match"
             return
         }
 
@@ -59,16 +63,10 @@ class ProfileViewModel: ObservableObject {
                 userInfo.name = name
                 userInfo.belt = belt
 
-                // Update password if changing
                 if showPasswordChange {
                     let hashPassword = HashPassword()
-                    // Hash the password
                     let hashedPassword = try hashPassword.hashPasswordScrypt(newPassword)
-                    
-                    // Store the hashed password
                     userInfo.passwordHash = hashedPassword.hash
-
-                    // Optionally: Update password in Firebase as well
                     try await authViewModel.updatePassword(newPassword)
                 }
 
@@ -78,7 +76,6 @@ class ProfileViewModel: ObservableObject {
             print("Error updating profile: \(error.localizedDescription)")
         }
 
-        // Update Firestore document with user info
         do {
             try await updateFirestoreDocument()
         } catch {
@@ -98,39 +95,41 @@ class ProfileViewModel: ObservableObject {
             "name": name,
             "belt": belt
         ], merge: true)
-        print("User data successfully saved to Firestore.")
     }
 
     func validateProfile() -> Bool {
-        let emailError = ValidationUtility.validateEmail(email)
-        let userNameError = ValidationUtility.validateUserName(userName)
-        let nameError = ValidationUtility.validateName(name)
+        let emailError = validateEmail(email)
+        let userNameError = validateUserName(userName)
+        let nameError = validateName(name)
+        let passwordError = validatePassword(password)
 
-        let isValid = [emailError, userNameError, nameError].allSatisfy { $0 == nil }
-
-        if !isValid {
-            if let emailError = emailError {
-                print("Email error: \(emailError.rawValue)")
-            }
-            if let userNameError = userNameError {
-                print("Username error: \(userNameError.rawValue)")
-            }
-            if let nameError = nameError {
-                print("Name error: \(nameError.rawValue)")
-            }
-        }
-
-        return isValid
+        return [emailError, userNameError, nameError, passwordError].allSatisfy { $0 == nil }
     }
-}
 
-extension Data {
-    static func randomBytes(count: Int) -> Data {
-        var bytes = [UInt8](repeating: 0, count: count)
-        let status = SecRandomCopyBytes(kSecRandomDefault, count, &bytes)
-        if status != errSecSuccess {
-            fatalError("Unable to generate random bytes")
-        }
-        return Data(bytes)
+    func validateEmail(_ email: String) -> String? {
+        return ValidationUtility.validateField(email, type: .email)?.rawValue
     }
+    
+    func validateUserName(_ userName: String) -> String? {
+        return ValidationUtility.validateField(userName, type: .userName)?.rawValue
+    }
+
+    func validateName(_ name: String) -> String? {
+        return ValidationUtility.validateField(name, type: .name)?.rawValue
+    }
+
+    func validatePassword(_ password: String) -> String? {
+        return ValidationUtility.validateField(password, type: .password)?.rawValue
+    }
+    
+    func resetProfile() {
+        email = ""
+        userName = ""
+        name = ""
+        belt = ""
+        showPasswordChange = false
+        newPassword = ""
+        confirmPassword = ""
+    }
+    
 }

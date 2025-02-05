@@ -13,138 +13,47 @@ import FirebaseFirestore
 import os
 
 struct AddNewIsland: View {
-    // MARK: - Environment Variables
+    // Environment Variables
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.presentationMode) private var presentationMode
     
-    // MARK: - Observed Objects
+    // Observed Objects
     @ObservedObject var islandViewModel: PirateIslandViewModel
     @ObservedObject var profileViewModel: ProfileViewModel
-    @StateObject var islandDetails = IslandDetails()
-    @ObservedObject var countryService = CountryService.shared
-    @State private var isCountryPickerPresented = false
+    @StateObject var countryService = CountryService.shared
+    @ObservedObject var authViewModel: AuthViewModel
     
-    // MARK: - State Variables
+    // State Variables
+    @State private var gymWebsiteURL: URL? = nil
+    @State private var formState = FormState()
     @State private var isSaveEnabled = false
     @State private var showAlert = false
-    @State private var showIslandMenu = false
-    @State private var navigationPath: [String] = []
-
     @State private var alertMessage = ""
+    @State private var gymWebsite = ""
     @State private var showToast = false
     @State private var toastMessage = ""
-    @State private var isLoadingCountries = true
-    @State private var gymWebsite = ""
+    @State private var navigationPath = NavigationPath()
     
-    // MARK: - Initialization
-    init(viewModel: PirateIslandViewModel, profileViewModel: ProfileViewModel) {
-        self.islandViewModel = viewModel
-        self.profileViewModel = profileViewModel
-    }
+    @Binding var islandDetails: IslandDetails
+
     
-    // MARK: - Body
+    // Body
     var body: some View {
-        NavigationStack(path: $navigationPath) {
-            Form {
-                Section(header: Text("Gym Details")) {
-                    TextField("Gym Name", text: $islandDetails.islandName)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                    
-                    if countryService.isLoading {
-                        ProgressView("Loading countries...")
-                            .progressViewStyle(CircularProgressViewStyle())
-                            .padding()
-                    } else if !countryService.countries.isEmpty {
-                        UnifiedCountryPickerView(
-                            countryService: countryService,
-                            selectedCountry: $islandDetails.selectedCountry,
-                            isPickerPresented: $isCountryPickerPresented
-                        )
-                        .onChange(of: islandDetails.selectedCountry) { newCountry in
-                            if let newCountry = newCountry {
-                                do {
-                                    // Fetch address fields for the selected country code
-                                    islandDetails.requiredAddressFields = try getAddressFields(for: newCountry.cca2)
-                                } catch {
-                                    // Handle error if address fields cannot be fetched
-                                    os_log("Error getting address fields for country code 10 11 12 %@: %@", log: OSLog.default, type: .error, newCountry.cca2, error.localizedDescription)
-                                    islandDetails.requiredAddressFields = defaultAddressFieldRequirements
-                                }
-                            } else {
-                                // Reset to default if no country is selected
-                                islandDetails.requiredAddressFields = defaultAddressFieldRequirements
-                            }
-                        }
-                    } else {
-                        Text("No countries found.")
-                    }
-                }
-                
-                Section(header: Text("Address")) {
-                    // Dynamically generate address fields
-                    ForEach(islandDetails.requiredAddressFields, id: \.self) { field in
-                        addressField(for: field)
-                    }
-                }
-                
-                Section(header: Text("Website (optional)")) {
-                    TextField("Gym Website", text: $gymWebsite)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .keyboardType(.URL)
-                        .onChange(of: gymWebsite) { newValue in
-                            if !newValue.isEmpty && ValidationUtility.validateURL(newValue) != nil {
-                                alertMessage = "Invalid website URL"
-                                showAlert = true
-                            }
-                        }
-                }
-                
-                Section(header: Text("Entered By")) {
-                    Text(profileViewModel.name)
-                        .foregroundColor(.primary)
-                }
-                
-                VStack {
-                    Button("Save") {
-                        os_log("Save button clicked", log: OSLog.default, type: .info)
-                        Task {
-                            await saveIsland {
-                                navigationPath.append("IslandMenu")
-                            }
-                        }
-                    }
-                    .disabled(!isSaveEnabled)
-                }
-                Spacer()
-                VStack {
-                    Button("Cancel") {
-                        os_log("Cancel button clicked", log: OSLog.default, type: .info)
-                        clearFields()
-                        presentationMode.wrappedValue.dismiss()
-                    }
-                }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                islandFormSection
+                enteredBySection
+                actionButtons
             }
             .navigationDestination(for: String.self) { islandMenuPath in
-                IslandMenu(isLoggedIn: Binding.constant(true))
+                IslandMenu(isLoggedIn: Binding.constant(true), authViewModel: authViewModel)
             }
             .navigationBarTitle("Add New Gym", displayMode: .inline)
             .alert(isPresented: $showAlert) {
                 Alert(title: Text("Error"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
             }
             .onAppear {
-                islandDetails.onValidationChange = { isValid in
-                    isSaveEnabled = isValid
-                }
-                
-                Task {
-                    // Load countries on appear
-                    await countryService.fetchCountries()
-                    if let usa = countryService.countries.first(where: { $0.cca2 == "US" }) {
-                        islandDetails.selectedCountry = usa
-                    }
-                    updateAddressFields()
-                    os_log("Countries loaded successfully", log: OSLog.default, type: .info)
-                }
+                loadCountries()
             }
             .overlay(toastOverlay)
             .onChange(of: islandDetails) { _ in validateForm() }
@@ -153,26 +62,109 @@ struct AddNewIsland: View {
         }
     }
 
+    // MARK: - Subviews
+    private var islandFormSection: some View {
+        IslandFormSections(
+            viewModel: islandViewModel,
+            profileViewModel: profileViewModel,
+            countryService: countryService,
+            islandName: $islandDetails.islandName,
+            street: $islandDetails.street,
+            city: $islandDetails.city,
+            state: $islandDetails.state,
+            postalCode: $islandDetails.postalCode,
+            islandDetails: $islandDetails,
+            selectedCountry: $islandDetails.selectedCountry,
+            gymWebsite: $gymWebsite,
+            gymWebsiteURL: $gymWebsiteURL,
+
+            // Additional address fields:
+            province: $islandDetails.province,
+            neighborhood: $islandDetails.neighborhood,
+            complement: $islandDetails.complement,
+            apartment: $islandDetails.apartment,
+            region: $islandDetails.region,
+            county: $islandDetails.county,
+            governorate: $islandDetails.governorate,
+            additionalInfo: $islandDetails.additionalInfo,
+
+            // More address fields:
+            department: $islandDetails.department,
+            parish: $islandDetails.parish,
+            district: $islandDetails.district,
+            entity: $islandDetails.entity,
+            municipality: $islandDetails.municipality,
+            division: $islandDetails.division,
+            emirate: $islandDetails.emirate,
+            zone: $islandDetails.zone,
+            block: $islandDetails.block,
+            island: $islandDetails.island,
+
+            // Validation and alert:
+            isIslandNameValid: $islandDetails.isIslandNameValid,
+            islandNameErrorMessage: $islandDetails.islandNameErrorMessage,
+            isFormValid: $isSaveEnabled,
+            showAlert: $showAlert,
+            alertMessage: $alertMessage,
+
+            // FormState argument should come last:
+            formState: $formState
+        )
+    }
+
+
+
+
+    private var enteredBySection: some View {
+        Section(header: Text("Entered By")) {
+            Text(profileViewModel.name)
+                .foregroundColor(.primary)
+        }
+    }
+
+    private var actionButtons: some View {
+        VStack {
+            saveButton
+            cancelButton
+        }
+    }
+
+    private var saveButton: some View {
+        Button("Save") {
+            os_log("Save button clicked", log: OSLog.default, type: .info)
+            Task {
+                await saveIsland {
+                    navigationPath.append("IslandMenu")
+                }
+            }
+        }
+        .disabled(!isSaveEnabled)
+    }
+
+    private var cancelButton: some View {
+        Button("Cancel") {
+            os_log("Cancel button clicked", log: OSLog.default, type: .info)
+            clearFields()
+            presentationMode.wrappedValue.dismiss()
+        }
+    }
+
+    // MARK: - Helper Methods
+
+    private func loadCountries() {
+        Task {
+            // Load countries on appear
+            await countryService.fetchCountries()
+            if let usa = countryService.countries.first(where: { $0.cca2 == "US" }) {
+                islandDetails.selectedCountry = usa
+            }
+            os_log("Countries loaded successfully", log: OSLog.default, type: .info)
+        }
+    }
 
 
     // MARK: - Helper Methods
-    private func updateAddressFields() {
-        // Use islandDetails.selectedCountry?.cca2 directly
-        guard let selectedCountry = islandDetails.selectedCountry else {
-            islandDetails.requiredAddressFields = defaultAddressFieldRequirements
-            return
-        }
-        
-        do {
-            // Pass selectedCountry.cca2 directly to getAddressFields
-            islandDetails.requiredAddressFields = try getAddressFields(for: selectedCountry.cca2)
-            print("Country: \(selectedCountry.name.common), Custom Fields: \(islandDetails.requiredAddressFields.map { $0.rawValue })")
-            os_log("Updated address fields for country: %@", log: OSLog.default, type: .info, selectedCountry.name.common)
-        } catch {
-            os_log("Error getting address fields for country code 13 14 15 %@: %@", log: OSLog.default, type: .error, selectedCountry.cca2, error.localizedDescription)
-            islandDetails.requiredAddressFields = defaultAddressFieldRequirements
-        }
-    }
+
 
 
     private let fieldValues: [PartialKeyPath<IslandDetails>: AddressFieldType] = [
@@ -195,27 +187,6 @@ struct AddNewIsland: View {
         \.multilineAddress: .multilineAddress
     ]
 
-    private func addressField(for field: AddressFieldType) -> some View {
-        guard let keyPath = fieldValues.first(where: { $1 == field })?.0 else {
-            return AnyView(EmptyView())
-        }
-        return AnyView(
-            TextField(field.rawValue.capitalized, text: Binding(
-                get: { islandDetails[keyPath: keyPath] as? String ?? "" },
-                set: { newValue in
-                    if let writableKeyPath = keyPath as? ReferenceWritableKeyPath<IslandDetails, String> {
-                        islandDetails[keyPath: writableKeyPath] = newValue
-                    }
-                }
-            ))
-            .textFieldStyle(RoundedBorderTextFieldStyle())
-        )
-    }
-
-    private func setValue(value: String, forKeyPath keyPath: ReferenceWritableKeyPath<IslandDetails, String>) {
-        islandDetails[keyPath: keyPath] = value
-    }
-    
     private func validateForm() {
         print("Validating form...123")
         let requiredFields = islandDetails.requiredAddressFields
@@ -337,7 +308,29 @@ struct AddNewIsland_Previews: PreviewProvider {
         profileViewModel.name = "Brian Romero"
 
         let islandViewModel = PirateIslandViewModel(persistenceController: persistenceController)
+        
+        // Create a mock IslandDetails for the preview
+        var mockIslandDetails = IslandDetails()
+        mockIslandDetails.islandName = "Test Island"
+        mockIslandDetails.street = "123 Paradise Ave"
+        mockIslandDetails.city = "Wonderland"
+        mockIslandDetails.state = "Fantasy"
+        mockIslandDetails.postalCode = "12345"
+        
+        // Use the Country model from your existing CountryService
+        let mockCountry = Country(name: Country.Name(common: "USA"), cca2: "US", flag: "🇺🇸")
+        mockIslandDetails.selectedCountry = mockCountry
 
-        return AddNewIsland(viewModel: islandViewModel, profileViewModel: profileViewModel)
+        // Create a mock AuthViewModel for the preview
+        let mockAuthViewModel = AuthViewModel.shared
+        
+        // Create a Binding for islandDetails
+        let islandDetailsBinding = Binding(
+            get: { mockIslandDetails },
+            set: { mockIslandDetails = $0 }
+        )
+        
+        return AddNewIsland(islandViewModel: islandViewModel, profileViewModel: profileViewModel, authViewModel: mockAuthViewModel, islandDetails: islandDetailsBinding)
+            .environment(\.managedObjectContext, persistenceController.viewContext)
     }
 }

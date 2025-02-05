@@ -347,7 +347,7 @@ public struct LoginView: View {
                     emailManager: UnifiedEmailManager.shared
                 )
             } else if authenticationState.isAuthenticated && showMainContent {
-                IslandMenu(isLoggedIn: $authenticationState.isLoggedIn)
+                IslandMenu(isLoggedIn: $authenticationState.isLoggedIn, authViewModel: authViewModel)
             } else if isSelected == .login {
                 VStack(spacing: 20) {
                     loginOrCreateAccount

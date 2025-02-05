@@ -25,6 +25,7 @@ struct Seas3App: App {
     @StateObject var authenticationState = AuthenticationState()
     @StateObject private var persistenceController = PersistenceController.shared
     @StateObject var profileViewModel: ProfileViewModel
+    @StateObject var authViewModel = AuthViewModel.shared
 
     init() {
         _profileViewModel = StateObject(wrappedValue: ProfileViewModel(
@@ -68,7 +69,7 @@ struct Seas3App: App {
                         setupGlobalErrorHandler()
                     }
             } else if authenticationState.isAuthenticated && authenticationState.isLoggedIn {
-                IslandMenu(isLoggedIn: $authenticationState.isLoggedIn)
+                IslandMenu(isLoggedIn: $authenticationState.isLoggedIn, authViewModel: authViewModel)
                     .environment(\.managedObjectContext, persistenceController.container.viewContext)
                     .environmentObject(authenticationState)
                     .environmentObject(appState)

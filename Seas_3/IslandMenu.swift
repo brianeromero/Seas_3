@@ -20,6 +20,8 @@ struct IslandMenu: View {
     // MARK: - Environment Variables
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.presentationMode) private var presentationMode
+    @ObservedObject var authViewModel: AuthViewModel
+    @State private var islandDetails = IslandDetails()
     
     // MARK: - State Variables
     @State private var showAlert = false
@@ -35,9 +37,12 @@ struct IslandMenu: View {
     
     // MARK: - Initialization
     // Log authentication event
-    init(isLoggedIn: Binding<Bool>) {
+    init(isLoggedIn: Binding<Bool>, authViewModel: AuthViewModel) {
         os_log("User logged in", log: IslandMenulogger)
         os_log("Initializing IslandMenu", log: IslandMenulogger)
+
+        self.authViewModel = authViewModel  // Initialize authViewModel
+        self._isLoggedIn = isLoggedIn
 
         _appDayOfWeekViewModel = StateObject(wrappedValue: AppDayOfWeekViewModel(
             selectedIsland: nil,
@@ -47,8 +52,6 @@ struct IslandMenu: View {
                 persistenceController: PersistenceController.shared
             )
         ))
-
-        self._isLoggedIn = isLoggedIn
     }
 
     
@@ -152,9 +155,13 @@ struct IslandMenu: View {
         }
     }
 
-    
     private var profileLinkView: some View {
-        NavigationLink(destination: ProfileView(profileViewModel: profileViewModel)) {
+        NavigationLink(destination: ProfileView(
+            profileViewModel: profileViewModel,
+            authViewModel: authViewModel,
+            selectedTabIndex: .constant(LoginViewSelection.login),
+            setupGlobalErrorHandler: {}
+        )) {
             Label("Profile", systemImage: "person.crop.circle.fill")
                 .font(.headline)
                 .padding(.bottom, 1)
@@ -199,10 +206,13 @@ struct IslandMenu: View {
         switch option {
         case .addNewGym:
             AddNewIsland(
-                viewModel: PirateIslandViewModel(persistenceController: PersistenceController.shared),
-                profileViewModel: profileViewModel
+                islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.shared),
+                profileViewModel: profileViewModel,
+                authViewModel: authViewModel,
+                islandDetails: $islandDetails  
             )
-            
+
+
         case .updateExistingGyms:
             EditExistingIslandList()
             
@@ -292,13 +302,14 @@ struct LogView: View {
 struct IslandMenu_Previews: PreviewProvider {
     static var previews: some View {
         let previewContext = PersistenceController.preview.container.viewContext
-        
+        let authViewModel = AuthViewModel.shared  // Use shared instance or create a new one
+
         return NavigationView {
-            IslandMenu(isLoggedIn: .constant(true))
+            IslandMenu(isLoggedIn: .constant(true), authViewModel: authViewModel)
                 .environment(\.managedObjectContext, previewContext)
                 .environmentObject(ProfileViewModel(
-                    viewContext: PersistenceController.preview.container.viewContext,
-                    authViewModel: AuthViewModel.shared
+                    viewContext: previewContext,
+                    authViewModel: authViewModel
                 ))
         }
     }
