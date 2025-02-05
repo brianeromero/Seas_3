@@ -24,13 +24,6 @@ class PersistenceController: ObservableObject {
         
         let viewContext = controller.container.viewContext
         
-        for _ in 0..<5 {
-            let sampleIsland = PirateIsland(context: viewContext)
-            sampleIsland.islandID = UUID()
-            sampleIsland.islandName = "SAAAMMMPPPLLLEEEE Gym"
-            sampleIsland.islandLocation = "Sample Location"
-        }
-        
         do {
             try viewContext.save()
         } catch {

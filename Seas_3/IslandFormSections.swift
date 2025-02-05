@@ -28,12 +28,18 @@ struct IslandFormSections: View {
     @ObservedObject var profileViewModel: ProfileViewModel
     @ObservedObject var countryService = CountryService.shared
 
-
     @Binding var islandName: String
     @Binding var street: String
     @Binding var city: String
     @Binding var state: String
     @Binding var postalCode: String
+
+    @Binding var islandDetails: IslandDetails
+    @Binding var selectedCountry: Country?
+    @Binding var gymWebsite: String
+    @Binding var gymWebsiteURL: URL?
+    
+    // Additional Bindings
     @Binding var province: String
     @Binding var neighborhood: String
     @Binding var complement: String
@@ -42,10 +48,17 @@ struct IslandFormSections: View {
     @Binding var county: String
     @Binding var governorate: String
     @Binding var additionalInfo: String
-    @Binding var islandDetails: IslandDetails
-    @Binding var selectedCountry: Country?
-    @Binding var gymWebsite: String
-    @Binding var gymWebsiteURL: URL?
+    @Binding var department: String
+    @Binding var parish: String
+    @Binding var district: String
+    @Binding var entity: String
+    @Binding var municipality: String
+    @Binding var division: String
+    @Binding var emirate: String
+    @Binding var zone: String
+    @Binding var block: String
+    @Binding var island: String
+
     
     // Validation Bindings
     @Binding var isIslandNameValid: Bool
@@ -139,35 +152,70 @@ struct IslandFormSections: View {
                 // Dynamically generate address fields
                 ForEach(requiredFields, id: \.self) { field in
                     addressField(for: field)
+                        .textFieldStyle(RoundedBorderTextFieldStyle()) // Apply the textFieldStyle here
                 }
             }
             .padding(.top)
 
-            if showValidationMessage {
+            // Only show the validation message if Gym Name is not empty
+            if !islandDetails.islandName.isEmpty && showValidationMessage {
                 Text("Required fields are missing.")
                     .foregroundColor(.red)
             }
         }
     }
 
+
     // MARK: - Address Field Dynamic Generation
     @ViewBuilder
     func addressField(for field: AddressFieldType) -> some View {
         switch field {
-        case .street: TextField("Street", text: $islandDetails.street)
-        case .city: TextField("City", text: $islandDetails.city)
-        case .state: TextField("State", text: $islandDetails.state)
-        case .postalCode: TextField("Postal Code", text: $islandDetails.postalCode)
-        case .province: TextField("Province", text: $islandDetails.province)
-        case .neighborhood: TextField("Neighborhood", text: $islandDetails.neighborhood)
-        case .complement: TextField("Complement", text: $islandDetails.complement)
-        case .apartment: TextField("Apartment", text: $islandDetails.apartment)
-        case .region: TextField("Region", text: $islandDetails.region)
-        case .county: TextField("County", text: $islandDetails.county)
-        case .governorate: TextField("Governorate", text: $islandDetails.governorate)
-        case .additionalInfo: TextField("Additional Info", text: $islandDetails.additionalInfo)
-        case .island: TextField("Island", text: $islandDetails.island)
-        default: EmptyView()
+        case .street:
+            TextField("Street", text: $islandDetails.street)
+        case .city:
+            TextField("City", text: $islandDetails.city)
+        case .state:
+            TextField("State", text: $islandDetails.state)
+        case .postalCode:
+            TextField("Postal Code", text: $islandDetails.postalCode)
+        case .province:
+            TextField("Province", text: $islandDetails.province)
+        case .neighborhood:
+            TextField("Neighborhood", text: $islandDetails.neighborhood)
+        case .complement:
+            TextField("Complement", text: $islandDetails.complement)
+        case .apartment:
+            TextField("Apartment", text: $islandDetails.apartment)
+        case .region:
+            TextField("Region", text: $islandDetails.region)
+        case .county:
+            TextField("County", text: $islandDetails.county)
+        case .governorate:
+            TextField("Governorate", text: $islandDetails.governorate)
+        case .additionalInfo:
+            TextField("Additional Info", text: $islandDetails.additionalInfo)
+        case .island:
+            TextField("Island", text: $islandDetails.island)
+        case .department:
+            TextField("Department", text: $islandDetails.department)  // Added
+        case .parish:
+            TextField("Parish", text: $islandDetails.parish)  // Added
+        case .district:
+            TextField("District", text: $islandDetails.district)  // Added
+        case .entity:
+            TextField("Entity", text: $islandDetails.entity)  // Added
+        case .municipality:
+            TextField("Municipality", text: $islandDetails.municipality)  // Added
+        case .division:
+            TextField("Division", text: $islandDetails.division)  // Added
+        case .emirate:
+            TextField("Emirate", text: $islandDetails.emirate)  // Added
+        case .zone:
+            TextField("Zone", text: $islandDetails.zone)  // Added
+        case .block:
+            TextField("Block", text: $islandDetails.block)  // Added
+        default:
+            EmptyView()
         }
     }
 
@@ -659,9 +707,15 @@ struct IslandFormSections: View {
 
     // MARK: - Validation Logic
     func validateFields() {
+        // Skip validation if Gym Name is empty
+        if islandDetails.islandName.isEmpty {
+            showValidationMessage = false
+            return
+        }
+
         let requiredFields = requiredFields(for: selectedCountry)
         var invalidFields: [String] = []
-        
+
         // Directly reference your formState property here
         let formState = self.formState  // Assuming formState is a property in the current context
         
@@ -717,8 +771,9 @@ struct IslandFormSections: View {
             case .island:
                 isValid = formState.isIslandValid
             }
-            
+
             if !isValid {
+                // Add the field name to the list of invalid fields
                 switch field {
                 case .street:
                     invalidFields.append("Street")
@@ -771,16 +826,17 @@ struct IslandFormSections: View {
             
             return isValid
         }
-        
+
         // Show or hide validation message based on whether the fields are valid
         showValidationMessage = !allValid
-        
+
         // Display the invalid fields
         if !allValid {
             toastMessage = "The following fields are invalid: \(invalidFields.joined(separator: ", "))"
             showToast = true
         }
     }
+
 
     
     func binding(for field: AddressField) -> Binding<String> {
@@ -870,7 +926,17 @@ struct IslandFormSections_Previews: PreviewProvider {
                 alertMessage: .constant(""),
                 selectedCountry: .constant(Country(name: .init(common: "United States"), cca2: "US", flag: "")),
                 islandDetails: .constant(IslandDetails(selectedCountry: Country(name: .init(common: "United States"), cca2: "US", flag: ""))),
-                profileViewModel: ProfileViewModel(viewContext: PersistenceController.shared.container.viewContext)
+                profileViewModel: ProfileViewModel(viewContext: PersistenceController.shared.container.viewContext),
+                department: .constant(""),
+                parish: .constant(""),
+                district: .constant(""),
+                entity: .constant(""),
+                municipality: .constant(""),
+                division: .constant(""),
+                emirate: .constant(""),
+                zone: .constant(""),
+                block: .constant(""),
+                island: .constant("")
             )
             .previewDisplayName("Empty Form")
             
@@ -881,7 +947,7 @@ struct IslandFormSections_Previews: PreviewProvider {
                 city: .constant("Anytown"),
                 state: .constant("CA"),
                 postalCode: .constant("12345"),
-                province: .constant("California"), // Update placeholder
+                province: .constant("California"),
                 neighborhood: .constant("Neighborhood A"),
                 complement: .constant(""),
                 apartment: .constant("Apt 101"),
@@ -899,7 +965,17 @@ struct IslandFormSections_Previews: PreviewProvider {
                     postalCode: "12345",
                     selectedCountry: Country(name: .init(common: "United States"), cca2: "US", flag: "")
                 )),
-                profileViewModel: ProfileViewModel(viewContext: PersistenceController.shared.container.viewContext)
+                profileViewModel: ProfileViewModel(viewContext: PersistenceController.shared.container.viewContext),
+                department: .constant("Department A"),
+                parish: .constant("Parish X"),
+                district: .constant("District 1"),
+                entity: .constant("Entity Z"),
+                municipality: .constant("Municipality A"),
+                division: .constant("Division B"),
+                emirate: .constant("Emirate C"),
+                zone: .constant("Zone 1"),
+                block: .constant("Block 5"),
+                island: .constant("Island XYZ")
             )
             .previewDisplayName("Filled Form (US)")
             
@@ -910,7 +986,7 @@ struct IslandFormSections_Previews: PreviewProvider {
                 city: .constant("Anytown"),
                 state: .constant("ON"),
                 postalCode: .constant("M5V"),
-                province: .constant("Ontario"), // Update placeholder
+                province: .constant("Ontario"),
                 neighborhood: .constant("Neighborhood B"),
                 complement: .constant(""),
                 apartment: .constant("Apt 202"),
@@ -928,7 +1004,17 @@ struct IslandFormSections_Previews: PreviewProvider {
                     postalCode: "M5V",
                     selectedCountry: Country(name: .init(common: "Canada"), cca2: "CA", flag: "")
                 )),
-                profileViewModel: ProfileViewModel(viewContext: PersistenceController.shared.container.viewContext)
+                profileViewModel: ProfileViewModel(viewContext: PersistenceController.shared.container.viewContext),
+                department: .constant("Department B"),
+                parish: .constant("Parish Y"),
+                district: .constant("District 2"),
+                entity: .constant("Entity W"),
+                municipality: .constant("Municipality B"),
+                division: .constant("Division A"),
+                emirate: .constant("Emirate D"),
+                zone: .constant("Zone 2"),
+                block: .constant("Block 10"),
+                island: .constant("Island ABC")
             )
             .previewDisplayName("Filled Form (Canada)")
             
@@ -953,13 +1039,22 @@ struct IslandFormSections_Previews: PreviewProvider {
                     islandName: "My Gym",
                     selectedCountry: Country(name: .init(common: "United States"), cca2: "US", flag: "")
                 )),
-                profileViewModel: ProfileViewModel(viewContext: PersistenceController.shared.container.viewContext)
+                profileViewModel: ProfileViewModel(viewContext: PersistenceController.shared.container.viewContext),
+                department: .constant(""),
+                parish: .constant(""),
+                district: .constant(""),
+                entity: .constant(""),
+                municipality: .constant(""),
+                division: .constant(""),
+                emirate: .constant(""),
+                zone: .constant(""),
+                block: .constant(""),
+                island: .constant("")
             )
             .previewDisplayName("Invalid Form")
         }
     }
 }
-
 
 struct IslandFormSectionPreview: View {
     var islandName: Binding<String>
@@ -980,6 +1075,18 @@ struct IslandFormSectionPreview: View {
     var islandDetails: Binding<IslandDetails>
     var profileViewModel: ProfileViewModel
 
+    // Add bindings for the new fields
+    var department: Binding<String>
+    var parish: Binding<String>
+    var district: Binding<String>
+    var entity: Binding<String>
+    var municipality: Binding<String>
+    var division: Binding<String>
+    var emirate: Binding<String>
+    var zone: Binding<String>
+    var block: Binding<String>
+    var island: Binding<String>
+
     var body: some View {
         IslandFormSections(
             viewModel: PirateIslandViewModel(persistenceController: PersistenceController.shared),
@@ -990,6 +1097,12 @@ struct IslandFormSectionPreview: View {
             city: city,
             state: state,
             postalCode: postalCode,
+            islandDetails: islandDetails,
+            selectedCountry: selectedCountry,
+            gymWebsite: gymWebsite,
+            gymWebsiteURL: gymWebsiteURL,
+            
+            // Correct argument order:
             province: province,
             neighborhood: neighborhood,
             complement: complement,
@@ -998,17 +1111,26 @@ struct IslandFormSectionPreview: View {
             county: .constant(""),
             governorate: .constant(""),
             additionalInfo: additionalInfo,
-            islandDetails: islandDetails,
-            selectedCountry: selectedCountry,
-            gymWebsite: gymWebsite,
-            gymWebsiteURL: gymWebsiteURL,
+            
+            // New fields
+            department: department,
+            parish: parish,
+            district: district,
+            entity: entity,
+            municipality: municipality,
+            division: division,
+            emirate: emirate,
+            zone: zone,
+            block: block,
+            island: island,
+            
+            // Remaining parameters
             isIslandNameValid: .constant(true),
             islandNameErrorMessage: .constant(""),
             isFormValid: .constant(true),
-            showAlert: showAlert, // Move these two lines below isFormValid
+            showAlert: showAlert,
             alertMessage: alertMessage,
             formState: .constant(FormState()) // Ensure formState is last
         )
-
     }
 }

@@ -228,7 +228,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
             case "reviews":
                 guard let review = localRecord as? Review else { continue }
                 recordData = [
-                    "id": review.reviewID,
+                    "id": review.reviewID.uuidString, // Convert UUID to string
                     "stars": review.stars,
                     "review": review.review,
                     "createdTimestamp": review.createdTimestamp,
@@ -237,7 +237,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
             case "matTimes":
                 guard let matTime = localRecord as? MatTime else { continue }
                 recordData = [
-                    "id": matTime.id ?? "",
+                    "id": matTime.id?.uuidString ?? "", // Convert UUID to string
                     "type": matTime.type ?? "",
                     "time": matTime.time ?? "",
                     "gi": matTime.gi,
@@ -252,10 +252,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
             case "appDayOfWeeks":
                 guard let appDayOfWeek = localRecord as? AppDayOfWeek else { continue }
                 recordData = [
-                    "id": appDayOfWeek.id ?? "",
+                    "id": appDayOfWeek.appDayOfWeekID ?? "", // Convert UUID to string
                     "day": appDayOfWeek.day,
                     "name": appDayOfWeek.name ?? "",
-                    "appDayOfWeekID": appDayOfWeek.appDayOfWeekID ?? "",
                     "createdTimestamp": appDayOfWeek.createdTimestamp ?? Date()
                 ]
             // Add other collection types as needed

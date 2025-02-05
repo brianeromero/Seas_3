@@ -153,9 +153,14 @@ struct IslandModalView: View {
                                         // Handle island change
                                     }
                                 )) {
-                                    Text(selectedIsland.islandName ?? "Unknown Gym")
+                                    HStack {
+                                        Text("Be the first to write a review!")
+                                        Image(systemName: "pencil.and.ellipsis.rectangle")
+                                    }
+                                    .foregroundColor(.blue) // Ensures both icon and text are blue
                                 }
                             }
+
                         }
 
                         .padding(.top, 20)

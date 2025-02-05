@@ -107,45 +107,56 @@ class AuthViewModel: ObservableObject {
             throw AuthError.invalidInput
         }
         
-        // Check if user already exists
+        let normalizedEmail = email.lowercased()
+        
+        // Ensure the user doesn't exist in either Core Data or Firestore before proceeding
         if await userAlreadyExists() {
             throw AuthError.userAlreadyExists
         }
         
+        // Proceed with user creation in Firestore and Core Data
         do {
-            let authResult = try await auth.createUser(withEmail: email, password: password)
+            let authResult = try await auth.createUser(withEmail: normalizedEmail, password: password)
             
-            // Check if user already exists in Core Data
-            let result = await fetchUserByEmail(email)
-            switch result {
-            case .success(let existingUser):
-                if let existingUser = existingUser {
-                    try updateUser(existingUser, with: userName, name: name)
-                } else {
-                    // Pass nil if belt is empty
-                    let beltToSave = belt?.isEmpty == true ? nil : belt
-                    try addUserToCoreData(with: authResult.user.uid, email: email, userName: userName, name: name, belt: beltToSave)
-                }
-            case .failure(let error):
-                throw error
-            }
+            // Create user in Core Data if not found
+            try await createUserInCoreData(authResult.user.uid, email: normalizedEmail, userName: userName, name: name, belt: belt)
             
-            // Create Firestore document, pass nil if belt is empty
-            let beltToFirestore = belt?.isEmpty == true ? nil : belt
-            try await createFirestoreDocument(for: authResult.user.uid, email: email, userName: userName, name: name, belt: beltToFirestore)
+            // Create Firestore document
+            try await createFirestoreDocument(for: authResult.user.uid, email: normalizedEmail, userName: userName, name: name, belt: belt)
+
+            // Send verification emails
+            try await sendVerificationEmail(to: normalizedEmail)
+            try await sendCustomVerificationEmail(to: normalizedEmail, userName: userName, password: password)
             
-            // Send Firebase verification email
-            try await sendVerificationEmail(to: email)
-            
-            // Send custom verification email
-            try await sendCustomVerificationEmail(to: email, userName: userName, password: password)
         } catch {
             throw AuthError.firebaseError(error)
         }
     }
 
+    func createUserInCoreData(_ userId: String, email: String, userName: String, name: String, belt: String?) async throws {
+        // Check if the user already exists in Core Data
+        let result = await fetchUserByEmail(email)
+        
+        switch result {
+        case .success(let existingUser):
+            if let existingUser = existingUser {
+                // Handle the case where the user already exists in Core Data
+                try updateUser(existingUser, with: userName, name: name)
+            } else {
+                // Add the user to Core Data if not found
+                try addUserToCoreData(with: userId, email: email, userName: userName, name: name, belt: belt)
+            }
+            
+        case .failure(let error):
+            // Handle the error
+            print("Error fetching user: \(error.localizedDescription)")
+            throw error
+        }
+    }
+
+
     func userAlreadyExists() async -> Bool {
-        // Check Core Data
+        // Check if the user exists in Core Data first
         let fetchRequest: NSFetchRequest<UserInfo> = UserInfo.fetchRequest()
         fetchRequest.predicate = NSPredicate(format: "email == %@ OR userName == %@", formState.email, formState.userName)
 
@@ -166,9 +177,10 @@ class AuthViewModel: ObservableObject {
             return true
         }
 
-        // Check Firestore
+        // Check if the user exists in Firestore
         return await userAlreadyExistsInFirestore()
     }
+
     
     func userAlreadyExistsInFirestore() async -> Bool {
         let firestore = Firestore.firestore()
@@ -208,19 +220,23 @@ class AuthViewModel: ObservableObject {
 
 
     // Ensure fetchUserByEmail is async
-    private func fetchUserByEmail(_ email: String) async -> Result<UserInfo?, Error> {
-        let request: NSFetchRequest<UserInfo> = UserInfo.fetchRequest()
-        request.predicate = NSPredicate(format: "email == %@", email)
-
+    func fetchUserByEmail(_ email: String) async -> Result<UserInfo?, Error> {
+        // Perform your Core Data fetch and return a Result type
         do {
-            let users = try await context.perform {
-                try self.context.fetch(request)
+            let fetchRequest: NSFetchRequest<UserInfo> = UserInfo.fetchRequest()
+            fetchRequest.predicate = NSPredicate(format: "email == %@", email)
+            
+            let result = try context.fetch(fetchRequest)
+            if let user = result.first {
+                return .success(user)
+            } else {
+                return .success(nil)
             }
-            return .success(users.first)
         } catch {
-            return .failure(CoreDataError.fetchError)
+            return .failure(error)
         }
     }
+
 
     // Modify fetchUserByUsername
     private func fetchUserByUsername(_ username: String) async -> Result<UserInfo?, Error> {

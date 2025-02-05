@@ -100,21 +100,32 @@ class LoginViewModel: ObservableObject {
     
     // Fetch user from CoreData (fetch by email or username)
     private func fetchUser(_ usernameOrEmail: String, viewContext: NSManagedObjectContext) throws -> UserInfo {
+        let normalizedEmail = usernameOrEmail.lowercased()  // Normalize the email/username input to lowercase
+        
         let request = NSFetchRequest<UserInfo>(entityName: "UserInfo")
-        request.predicate = NSPredicate(format: "userName == %@ OR email == %@", usernameOrEmail, usernameOrEmail)
         
-        let results = try viewContext.fetch(request)
-        guard let user = results.first else {
-            throw NSError(domain: "User not found", code: 404, userInfo: nil)
+        // Apply case-insensitive comparison on both userName and email
+        request.predicate = NSPredicate(format: "userName ==[c] %@ OR email ==[c] %@", normalizedEmail, normalizedEmail)
+        
+        do {
+            let results = try viewContext.fetch(request)
+            
+            // Ensure a user is found
+            guard let user = results.first else {
+                throw NSError(domain: "User not found", code: 404, userInfo: nil)
+            }
+            
+            // Ensure email is set
+            if user.email.isEmpty {
+                throw NSError(domain: "User email not found.", code: 404, userInfo: nil)
+            }
+            
+            return user
+        } catch {
+            throw error // Propagate the error if fetch fails
         }
-        
-        // Ensure email is set
-        if user.email.isEmpty {
-            throw NSError(domain: "User email not found.", code: 404, userInfo: nil)
-        }
-        
-        return user
     }
+
 
     // Sign in using a username (implement as necessary)
     private func signInUser(with username: String, password: String) async throws {

@@ -105,6 +105,9 @@ struct CreateAccountView: View {
     @State private var isPickerPresented = false
     @State private var countries: [Country] = []
     
+    @State private var isButtonDisabled = false
+
+    
     let emailManager: UnifiedEmailManager
     
     init(
@@ -125,12 +128,13 @@ struct CreateAccountView: View {
  
     // Validation logic
     var isIslandNameRequired: Bool {
-        return islandDetails.islandName.trimmingCharacters(in: .whitespaces).isEmpty
+        let isRequired = islandDetails.islandName.trimmingCharacters(in: .whitespaces).isEmpty
+        os_log("Computed property accessed: isIslandNameRequired = %@", type: .debug, isRequired ? "Yes" : "No")
+        return isRequired
     }
 
     var areAddressFieldsRequired: Bool {
-        // Use validateIslandForm and check the isValid value
-        return isIslandNameRequired && !ValidationUtility.validateIslandForm(
+        let isRequired = isIslandNameRequired && !ValidationUtility.validateIslandForm(
             islandName: islandDetails.islandName,
             street: islandDetails.street,
             city: islandDetails.city,
@@ -139,14 +143,19 @@ struct CreateAccountView: View {
             selectedCountry: selectedCountry,
             gymWebsite: islandDetails.gymWebsite
         ).isValid
+
+        os_log("Computed property accessed: areAddressFieldsRequired = %@", type: .debug, isRequired ? "Yes" : "No")
+        return isRequired
     }
+
 
     var addressFormIsValid: Bool {
         if islandDetails.islandName.trimmingCharacters(in: .whitespaces).isEmpty {
+            os_log("Island name is empty, returning false for address form validation.", type: .debug)
             return false // Island name is required, so return false if empty
         } else {
             // Validate using validateIslandForm and return isValid
-            return ValidationUtility.validateIslandForm(
+            let validation = ValidationUtility.validateIslandForm(
                 islandName: islandDetails.islandName,
                 street: islandDetails.street,
                 city: islandDetails.city,
@@ -154,9 +163,12 @@ struct CreateAccountView: View {
                 postalCode: islandDetails.postalCode,
                 selectedCountry: selectedCountry,
                 gymWebsite: islandDetails.gymWebsite
-            ).isValid
+            )
+            os_log("Validation result for address fields: %@", type: .debug, validation.isValid ? "Valid" : "Invalid")
+            return validation.isValid
         }
     }
+
 
 
 
@@ -216,6 +228,12 @@ struct CreateAccountView: View {
                             city: $islandDetails.city,
                             state: $islandDetails.state,
                             postalCode: $islandDetails.postalCode,
+                            islandDetails: $islandDetails,  // Keep islandDetails in the correct position
+                            selectedCountry: $selectedCountry,
+                            gymWebsite: $islandDetails.gymWebsite,
+                            gymWebsiteURL: $gymWebsiteURL,
+                            
+                            // Correct order:
                             province: $province,
                             neighborhood: $neighborhood,
                             complement: $complement,
@@ -224,39 +242,46 @@ struct CreateAccountView: View {
                             county: $county,
                             governorate: $governorate,
                             additionalInfo: $additionalInfo,
-                            islandDetails: $islandDetails,
-                            selectedCountry: $selectedCountry,
-                            gymWebsite: $islandDetails.gymWebsite,
-                            gymWebsiteURL: $gymWebsiteURL,
+
+                            // Add the new fields:
+                            department: $islandDetails.department,
+                            parish: $islandDetails.parish,
+                            district: $islandDetails.district,
+                            entity: $islandDetails.entity,
+                            municipality: $islandDetails.municipality,
+                            division: $islandDetails.division,
+                            emirate: $islandDetails.emirate,
+                            zone: $islandDetails.zone,
+                            block: $islandDetails.block,
+                            island: $islandDetails.island,
+
+                            // Validation and alert:
                             isIslandNameValid: $isIslandNameValid,
                             islandNameErrorMessage: $islandNameErrorMessage,
                             isFormValid: $isFormValid,
-                            showAlert: $showAlert,  // Move these two below isFormValid
+                            showAlert: $showAlert,
                             alertMessage: $alertMessage,
-                            formState: $formState // Ensure formState is last
+                            formState: $formState
                         )
-
                     }
-                
-
-                // Error Message for Island Name and Address Validation
-                // Validation Messages in ViewBuilder-friendly structure
-                if isIslandNameRequired {
-                    Text("Island name cannot be empty.")
-                        .foregroundColor(.red)
-                        .font(.footnote)
-                        .padding(.horizontal, 20)
-                }
-                
-                if areAddressFieldsRequired {
-                    Text("Please fill in all required address fields123.")
-                        .foregroundColor(.red)
-                        .font(.footnote)
-                        .padding(.horizontal, 20)
-                }
 
                 
                 Button(action: {
+                    // Display values before validation to confirm they are correctly populated
+                    print("Island Name: '\(islandDetails.islandName)'")
+                    print("Street: '\(islandDetails.street)'")
+                    print("City: '\(islandDetails.city)'")
+                    
+                    // Start by disabling the button
+                    print("Button tapped - isButtonDisabled: \(isButtonDisabled)")
+                    if isButtonDisabled {
+                        return // Don't proceed if the button is disabled
+                    }
+
+                    // Disable the button to prevent multiple taps
+                    isButtonDisabled = true
+                    
+                    // Call the task to validate the form and create the account
                     Task {
                         debugPrint("Create Account Button tapped - validating form")
                         
@@ -268,7 +293,7 @@ struct CreateAccountView: View {
                                 let addressFields = try getAddressFields(for: selectedCountry?.cca2 ?? "")
                                 print("Address Fields Required: \(addressFields)")
                             } catch {
-                                print("Error fetching address fields456: \(error)")
+                                print("Error fetching address fields: \(error)")
                             }
                         }
                         
@@ -279,38 +304,37 @@ struct CreateAccountView: View {
                         let (isValid, errorMessage) = isValidForm()
                         if isValid {
                             // Call createAccount with the updated country
-                            await createAccount(country: country)
+                            createAccount(country: country)
                         } else {
-                            debugPrint("Form is invalid123")
-                            print("Form is invalid345")
+                            debugPrint("Form is invalid")
                             self.errorMessage = errorMessage
                             self.showValidationMessage = true
                         }
+                        
+                        // When the process finishes (either success or failure), enable the button again
+                        isButtonDisabled = false
                     }
                 }) {
-                Text("Create Account")
-                    .font(.title)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(isValidForm().isValid ? Color.blue : Color.gray) // Reflect form validity
-                    .foregroundColor(.white)
-                    .cornerRadius(8)
-            }
-                .disabled(!isValidForm().isValid) // Disable the button if the form is invalid
-                .opacity(isValidForm().isValid ? 1 : 0.5)
+                    Text("Create Account")
+                        .font(.title)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(isButtonDisabled || !isValidForm().isValid ? Color.gray : Color.blue) // Reflect form validity & disabled state
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                        .scaleEffect(isButtonDisabled ? 1.0 : 0.98) // Add subtle scale effect when button is pressed
+                        .shadow(radius: isButtonDisabled ? 0 : 5) // Shadow effect to make the button look like it's raised
+                        .opacity(isButtonDisabled || !isValidForm().isValid ? 0.5 : 1) // Adjust opacity based on button state
+                }
+                .disabled(isButtonDisabled || !isValidForm().isValid) // Disable the button if already disabled or form is invalid
                 .padding(.bottom)
                 .padding(.horizontal, 24)
-
-
                 .onAppear {
                     print("Island Name: '\(islandDetails.islandName)'")
-                    print("Full Address123: '\(islandDetails.fullAddress)'")
+                    print("Full Address: '\(islandDetails.fullAddress)'")
                     print("Form State - isUserNameValid: \(formState.isUserNameValid), isEmailValid: \(formState.isEmailValid)")
-                    print("Debug: Full Address123 = '\(islandDetails.fullAddress)'")
                     print("Debug: Initial state - islandName: '\(islandDetails.islandName)', fullAddress: '\(islandDetails.fullAddress)', email: '\(formState.email)', username: '\(formState.userName)'")
 
-
-                    
                     Task {
                         await countryService.fetchCountries()
                     }
@@ -372,34 +396,39 @@ struct CreateAccountView: View {
         }
     }
     
-    private func createAccount(country: String) async {
+    private func createAccount(country: String) {
         os_log("Calling createAccount", type: .info)
-        
+
         // Start form validation
         os_log("Debug: Starting form validation", type: .debug)
 
         print("Debug: Full Address456 = '\(islandDetails.fullAddress)'")
-        
+
         logFormState()
-        
+
         // Check if form is valid
         let (isValid, errorMessage) = isValidForm()
         if !isValid {
             os_log("Form is invalid. Validation failed.", type: .debug)
             self.errorMessage = errorMessage
             self.showValidationMessage = true
+            isButtonDisabled = false  // Ensure button is re-enabled on failure
             return
         }
 
         os_log("Debug: All validations passed. Proceeding to create account.", type: .debug)
 
-        // Proceed with creating the account
-        if await authViewModel.userAlreadyExists() {
-            return
-        }
-
         Task {
             do {
+                // Check if user already exists
+                if await authViewModel.userAlreadyExists() {
+                    os_log("User already exists. Aborting account creation.", type: .error)
+                    self.errorMessage = "An account with this email already exists."
+                    self.showValidationMessage = true
+                    isButtonDisabled = false
+                    return
+                }
+
                 // Attempt to create the user account
                 try await authViewModel.createUser(
                     withEmail: formState.email,
@@ -409,28 +438,24 @@ struct CreateAccountView: View {
                     belt: belt
                 )
 
-                // If successful
-                os_log("Account created successfully. Preparing to send verification emails123...", type: .info)
-            
+                os_log("Account created successfully. Preparing to send verification emails...", type: .info)
+
                 successMessage = "Account created successfully"
                 showErrorAlert = true
 
-                // Log address details and update fields
                 logAddressDetails()
 
-                // Create Pirate Island if valid
                 await createPirateIslandIfValid()
 
-                // Handle overall success
                 handleSuccess()
             } catch {
-                // Handle any errors that occurred during the account creation process
                 handleCreateAccountError(error)
             }
+
+            // Re-enable the button after everything is complete
+            isButtonDisabled = false
         }
     }
-
-
 
     // MARK: - Helper Functions
 

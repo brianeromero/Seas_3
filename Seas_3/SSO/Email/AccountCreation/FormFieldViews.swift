@@ -127,6 +127,8 @@ struct PasswordField: View {
     @Binding var bypassValidation: Bool
     var validateField: (String) -> (Bool, String)
     
+    @State private var isPasswordVisible: Bool = false  // Add state to control password visibility
+    
     var body: some View {
         VStack(alignment: .leading) {
             HStack {
@@ -135,14 +137,35 @@ struct PasswordField: View {
             }
             .padding(.horizontal, 20)
             
-            SecureField("Enter your password", text: $password)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding(.horizontal, 20)
-                .onChange(of: password) { newValue in
-                    let (newIsValid, newErrorMessage) = validateField(newValue)
-                    self.isValid = newIsValid
-                    self.errorMessage = newErrorMessage
+            HStack {
+                if isPasswordVisible {
+                    TextField("Enter your password", text: $password)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .padding(.horizontal, 20)
+                        .onChange(of: password) { newValue in
+                            let (newIsValid, newErrorMessage) = validateField(newValue)
+                            self.isValid = newIsValid
+                            self.errorMessage = newErrorMessage
+                        }
+                } else {
+                    SecureField("Enter your password", text: $password)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .padding(.horizontal, 20)
+                        .onChange(of: password) { newValue in
+                            let (newIsValid, newErrorMessage) = validateField(newValue)
+                            self.isValid = newIsValid
+                            self.errorMessage = newErrorMessage
+                        }
                 }
+                
+                // Eye slash button
+                Image(systemName: isPasswordVisible ? "eye.slash" : "eye")
+                    .onTapGesture {
+                        isPasswordVisible.toggle()
+                    }
+                    .accessibilityLabel(isPasswordVisible ? "Hide password" : "Show password")
+                    .padding(.trailing, 10)
+            }
             
             if !isValid {
                 Text(errorMessage)
@@ -151,23 +174,7 @@ struct PasswordField: View {
                     .padding(.leading, 20)
             }
             
-            if !bypassValidation {
-                Text("Password must be at least 8 characters, contain uppercase, lowercase, and digits.")
-                    .foregroundColor(.gray)
-                    .font(.caption)
-                    .padding(.leading, 20)
-            }
-            
-            Toggle("Bypass password validation", isOn: $bypassValidation)
-                .toggleStyle(SwitchToggleStyle())
-                .padding(.leading, 20)
-                .onChange(of: bypassValidation) { _ in
-                    let (newIsValid, newErrorMessage) = validateField(password)
-                    self.isValid = newIsValid
-                    self.errorMessage = newErrorMessage
-                }
-            
-            Text("Use at your own risk")
+            Text("Password must be at least 8 characters, contain uppercase, lowercase, and digits.")
                 .foregroundColor(.gray)
                 .font(.caption)
                 .padding(.leading, 20)
@@ -179,7 +186,8 @@ struct ConfirmPasswordField: View {
     @Binding var confirmPassword: String
     @Binding var isValid: Bool
     @Binding var password: String
-
+    @State private var isConfirmPasswordVisible: Bool = false // Add state to control confirm password visibility
+    
     var body: some View {
         VStack(alignment: .leading) {
             HStack {
@@ -188,18 +196,38 @@ struct ConfirmPasswordField: View {
             }
             .padding(.horizontal, 20)
             
-            SecureField("Confirm your password", text: $confirmPassword)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding(.horizontal, 20)
-                .onChange(of: confirmPassword) { newValue in
-                    isValid = newValue == password
+            HStack {
+                if isConfirmPasswordVisible {
+                    TextField("Confirm your password", text: $confirmPassword)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .padding(.horizontal, 20)
+                        .onChange(of: confirmPassword) { newValue in
+                            isValid = newValue == password
+                        }
+                } else {
+                    SecureField("Confirm your password", text: $confirmPassword)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .padding(.horizontal, 20)
+                        .onChange(of: confirmPassword) { newValue in
+                            isValid = newValue == password
+                        }
                 }
+                
+                // Eye slash button for confirm password
+                Image(systemName: isConfirmPasswordVisible ? "eye.slash" : "eye")
+                    .onTapGesture {
+                        isConfirmPasswordVisible.toggle()
+                    }
+                    .accessibilityLabel(isConfirmPasswordVisible ? "Hide confirm password" : "Show confirm password")
+                    .padding(.trailing, 10)
+            }
             
             ValidationMessage(isValid: isValid, password: password, confirmPassword: confirmPassword)
                 .padding(.leading, 20)
         }
     }
 }
+
 
 
 struct GymInformationSection: View {
@@ -250,6 +278,10 @@ struct GymInformationSection: View {
                 city: $city,
                 state: $state,
                 postalCode: $postalCode,
+                islandDetails: $islandDetails,  // This must come before other parameters
+                selectedCountry: $selectedCountry,
+                gymWebsite: $gymWebsite,
+                gymWebsiteURL: $gymWebsiteURL,
                 province: $province,
                 neighborhood: $neighborhood,
                 complement: $complement,
@@ -258,23 +290,31 @@ struct GymInformationSection: View {
                 county: $county,
                 governorate: $governorate,
                 additionalInfo: $additionalInfo,
-                islandDetails: $islandDetails,
-                selectedCountry: $selectedCountry,
-                gymWebsite: $gymWebsite,
-                gymWebsiteURL: $gymWebsiteURL,
+                
+                // Required parameters
+                department: $islandDetails.department,
+                parish: $islandDetails.parish,
+                district: $islandDetails.district,
+                entity: $islandDetails.entity,
+                municipality: $islandDetails.municipality,
+                division: $islandDetails.division,
+                emirate: $islandDetails.emirate,
+                zone: $islandDetails.zone,
+                block: $islandDetails.block,
+                island: $islandDetails.island,
+
+                // Validation and alert
                 isIslandNameValid: $isIslandNameValid,
                 islandNameErrorMessage: $islandNameErrorMessage,
                 isFormValid: $isFormValid,
-                showAlert: .constant(false),  // Move these two below isFormValid
+                showAlert: .constant(false),
                 alertMessage: .constant(""),
-                formState: $formState // Ensure formState is last
+                formState: $formState
             )
-
             .padding(.horizontal, 20)
-
-
         }
     }
+
 }
 
 

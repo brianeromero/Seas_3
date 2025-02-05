@@ -176,19 +176,21 @@ struct LoginForm: View {
             return
         }
 
+        let normalizedUsernameOrEmail = usernameOrEmail.lowercased() // Normalize the email to lowercase
+
         do {
-            print("Starting sign-in process for \(usernameOrEmail)") // Logging the start of the process
+            print("Starting sign-in process for \(normalizedUsernameOrEmail)") // Logging the start of the process
             
-            if ValidationUtility.validateEmail(usernameOrEmail) != nil {
+            if ValidationUtility.validateEmail(normalizedUsernameOrEmail) != nil {
                 print("Email validation passed. Attempting direct email login.") // Logging email login attempt
                 // ✅ Direct email login via Firebase
-                try await signInWithEmail(email: usernameOrEmail, password: password)
+                try await signInWithEmail(email: normalizedUsernameOrEmail, password: password)
             } else {
                 print("Email validation failed. Checking Core Data for username.") // Logging when checking Core Data for username
                 
                 // 🔍 First, try looking up username in Core Data
                 do {
-                    let user = try await fetchUser(usernameOrEmail)
+                    let user = try await fetchUser(normalizedUsernameOrEmail)
                     print("User found in Core Data: \(user.email ?? "Unknown email")") // Logging user found in Core Data
                     try await signInWithEmail(email: user.email, password: password)
                 } catch {
@@ -196,7 +198,7 @@ struct LoginForm: View {
 
                     // 🔍 Try Firestore as a last resort
                     do {
-                        let user = try await fetchUser(usernameOrEmail)
+                        let user = try await fetchUser(normalizedUsernameOrEmail)
                         print("User found in Firestore: \(user.email ?? "Unknown email")") // Logging user found in Firestore
                         try await signInWithEmail(email: user.email, password: password)
                     } catch {
@@ -213,6 +215,7 @@ struct LoginForm: View {
             }
         }
     }
+
 
     private func signInWithEmail(email: String, password: String) async throws {
         print("Attempting to sign in with email: \(email)") // Logging email sign-in attempt
