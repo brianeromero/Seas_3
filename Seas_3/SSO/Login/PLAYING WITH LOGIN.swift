@@ -116,7 +116,8 @@ struct LoginFormLoginForm: View {
                         handleError: { message in
                             self.errorMessage = message
                         },
-                        googleClientID: AppConfig.shared.googleClientID
+                        googleClientID: AppConfig.shared.googleClientID,
+                        managedObjectContext: viewContext  // Pass the existing viewContext
                     )
                     .frame(height: 50)
                     .clipped()

@@ -59,7 +59,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         
         // Firebase configuration
         configureFirebase()
-                            
+                                
         // Check if Firebase has been configured successfully
         if FirebaseApp.app() != nil {
             // No need to initialize FirestoreManager or PersistenceController here
@@ -72,31 +72,45 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
 
         // App Check setup
         setupAppCheck()
-                
+        
+        let pirateIslandRecords: [String] = [] // populate with actual records
+        let reviewRecords: [String] = [] // populate with actual records
+        let matTimeRecords: [String] = [] // populate with actual records
+        let appDayOfWeekRecords: [String] = [] // populate with actual records
+                    
         // Firestore collection creation
         Task {
             do {
                 try await createFirestoreCollection()
+                
+                // Download Firestore records to Core Data
+                await downloadFirestoreRecordsToLocal(collectionName: "pirateIslands", records: pirateIslandRecords)
+                await downloadFirestoreRecordsToLocal(collectionName: "reviews", records: reviewRecords)
+                await downloadFirestoreRecordsToLocal(collectionName: "matTimes", records: matTimeRecords)
+                await downloadFirestoreRecordsToLocal(collectionName: "appDayOfWeeks", records: appDayOfWeekRecords)
             } catch {
-                print("Error creating Firestore collection: \(error.localizedDescription)")
+                print("Error creating Firestore collection or downloading records: \(error.localizedDescription)")
             }
         }
 
         // Google Ads configuration
         configureGoogleAds()
-                
+        
+        // Google Sign-In configuration
+        configureGoogleSignIn()
+                        
+                    
         // Request IDFA permission
         IDFAHelper.requestIDFAPermission()
-                
+                    
         // Load configuration values
         loadConfigValues()
-                
+                    
         // Register for push notifications
         registerForPushNotifications {}
 
         return true
     }
-
     
     private func configureApplicationAppearance() {
         UINavigationBar.appearance().tintColor = .systemOrange
@@ -303,16 +317,16 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         let context = PersistenceController.shared.container.viewContext
         let db = Firestore.firestore()
         let collectionRef = db.collection(collectionName)
-        
+
         // Loop through each Firestore record
         for record in records {
             // Get a reference to the Firestore document
             let docRef = collectionRef.document(record)
-            
+
             // Fetch the Firestore document
             do {
                 let docSnapshot = try await docRef.getDocument()
-                
+
                 // Check if the document exists
                 if docSnapshot.exists {
                     // Create a new Core Data object based on the collection name
@@ -321,7 +335,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
                     case "pirateIslands":
                         newRecord = PirateIsland(context: context)
                         if let pirateIsland = newRecord as? PirateIsland {
-                            pirateIsland.islandID = UUID(uuidString: record)
+                            if let uuid = UUID(uuidString: record) {
+                                pirateIsland.islandID = uuid
+                            } else {
+                                print("Invalid UUID string: \(record)")
+                            }
                             pirateIsland.islandName = docSnapshot.get("name") as? String
                             pirateIsland.islandLocation = docSnapshot.get("location") as? String
                             pirateIsland.country = docSnapshot.get("country") as? String
@@ -333,21 +351,30 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
                             pirateIsland.lastModifiedByUserId = docSnapshot.get("lastModifiedByUserId") as? String
                             pirateIsland.lastModifiedTimestamp = docSnapshot.get("lastModifiedTimestamp") as? Date
                         }
-                        
+
                     case "reviews":
                         newRecord = Review(context: context)
                         if let review = newRecord as? Review {
-                            review.reviewID = UUID(uuidString: record)!
-                            review.stars = (docSnapshot.get("stars") as? Int16)!
-                            review.review = (docSnapshot.get("review") as? String)!
-                            review.createdTimestamp = (docSnapshot.get("createdTimestamp") as? Date)!
-                            review.averageStar = (docSnapshot.get("averageStar") as? Int16)!
+                            if let uuid = UUID(uuidString: record) {
+                                review.reviewID = uuid
+                            } else {
+                                print("Invalid UUID string: \(record)")
+                            }
+                            
+                            review.stars = docSnapshot.get("stars") as? Int16 ?? 0
+                            review.review = docSnapshot.get("review") as? String ?? ""
+                            review.createdTimestamp = docSnapshot.get("createdTimestamp") as? Date ?? Date()
+                            review.averageStar = docSnapshot.get("averageStar") as? Int16 ?? 0
                         }
-                        
+
                     case "matTimes":
                         newRecord = MatTime(context: context)
                         if let matTime = newRecord as? MatTime {
-                            matTime.id = UUID(uuidString: record)
+                            if let uuid = UUID(uuidString: record) {
+                                matTime.id = uuid
+                            } else {
+                                print("Invalid UUID string: \(record)")
+                            }
                             matTime.type = docSnapshot.get("type") as? String
                             matTime.time = docSnapshot.get("time") as? String
                             matTime.gi = docSnapshot.get("gi") as? Bool ?? false
@@ -363,17 +390,21 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
                     case "appDayOfWeeks":
                         newRecord = AppDayOfWeek(context: context)
                         if let appDayOfWeek = newRecord as? AppDayOfWeek {
-                            appDayOfWeek.appDayOfWeekID = UUID(uuidString: record)?.uuidString
+                            if let uuid = UUID(uuidString: record) {
+                                appDayOfWeek.appDayOfWeekID = uuid.uuidString
+                            } else {
+                                print("Invalid UUID string: \(record)")
+                            }
                             appDayOfWeek.day = docSnapshot.get("day") as? String ?? ""
                             appDayOfWeek.name = docSnapshot.get("name") as? String
                             appDayOfWeek.createdTimestamp = docSnapshot.get("createdTimestamp") as? Date
                         }
-                        
+
                     default:
                         print("Unknown collection name: \(collectionName)")
                         return
                     }
-                    
+
                     // Save the new record to Core Data
                     await context.perform {
                         do {
@@ -383,31 +414,31 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
                             print("Error downloading Firestore record \(record) to Core Data: \(error.localizedDescription)")
                         }
                     }
-                } else {
-                    print("Firestore document does not exist for record: \(record)")
-                }
-            } catch {
-                print("Error fetching Firestore document for record: \(record)")
-            }
-        }
+                    } else {
+                        print("Firestore document does not exist for record: \(record)")
+                    }
+                    } catch {
+                        print("Error fetching Firestore document for record: \(record): \(error.localizedDescription)")
+                    }
+                    }
     }
     
     func configureFirebase() {
         guard !isFirebaseConfigured else { return }
-        
+
         #if DEBUG
         let providerFactory = AppCheckDebugProviderFactory()
         AppCheck.setAppCheckProviderFactory(providerFactory)
         #endif
-        
+
         FirebaseApp.configure()
         FirebaseConfiguration.shared.setLoggerLevel(.debug)
         Analytics.setAnalyticsCollectionEnabled(true)
         isFirebaseConfigured = true
-        
+
         // Firestore setup directly here
         Firestore.firestore().settings = FirestoreSettings()
-        
+
         configureFirebaseLogger()
         configureMessaging()
         configureFirestore()
@@ -543,6 +574,17 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         appConfig.deviceCheckKeyID = deviceCheckKeyID ?? ""
         appConfig.deviceCheckTeamID = deviceCheckTeamID ?? ""
     }
+    
+    private func configureGoogleSignIn() {
+        guard let clientID = googleClientID else {
+            print("Google Client ID is missing.")
+            return
+        }
+
+        let configuration = GIDConfiguration(clientID: clientID)
+        GIDSignIn.sharedInstance.configuration = configuration
+    }
+
 
     // MARK: - MessagingDelegate
 
@@ -565,7 +607,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
     }
 
     // MARK: - Orientation Handling
-
     func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
         return [.portrait, .landscapeLeft, .landscapeRight]
     }

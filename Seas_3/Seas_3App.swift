@@ -12,11 +12,14 @@ struct URLHandler: View {
                 if url.absoluteString.contains("fb") {
                     print("Facebook URL handled: \(url)")
                 } else if GIDSignIn.sharedInstance.handle(url) {
-                    print("Google URL handled: \(url)")
+                    print("Google URL handled successfully: \(url)")
+                } else {
+                    print("URL not handled: \(url)")
                 }
             }
     }
 }
+
 
 @main
 struct Seas3App: App {

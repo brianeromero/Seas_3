@@ -121,7 +121,8 @@ struct LoginForm: View {
                         handleError: { message in
                             self.errorMessage = message
                         },
-                        googleClientID: AppConfig.shared.googleClientID
+                        googleClientID: AppConfig.shared.googleClientID,
+                        managedObjectContext: viewContext  // Pass the existing viewContext
                     )
                     .frame(height: 50)
                     .clipped()
@@ -191,7 +192,7 @@ struct LoginForm: View {
                 // 🔍 First, try looking up username in Core Data
                 do {
                     let user = try await fetchUser(normalizedUsernameOrEmail)
-                    print("User found in Core Data: \(user.email ?? "Unknown email")") // Logging user found in Core Data
+                    print("User found in Core Data: \(user.email)") // Logging user found in Core Data
                     try await signInWithEmail(email: user.email, password: password)
                 } catch {
                     print("Username not found in Core Data, checking Firestore...") // Logging when checking Firestore
@@ -199,7 +200,7 @@ struct LoginForm: View {
                     // 🔍 Try Firestore as a last resort
                     do {
                         let user = try await fetchUser(normalizedUsernameOrEmail)
-                        print("User found in Firestore: \(user.email ?? "Unknown email")") // Logging user found in Firestore
+                        print("User found in Firestore: \(user.email)") // Logging user found in Firestore
                         try await signInWithEmail(email: user.email, password: password)
                     } catch {
                         print("Username or email not found in both Core Data and Firestore.") // Logging failed sign-in attempt

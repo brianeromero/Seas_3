@@ -8,6 +8,8 @@
 import Foundation
 import SwiftUI
 import CoreData
+import Firebase
+import FirebaseFirestore
 
 // Enum for star ratings
 public enum StarRating: Int, CaseIterable {
@@ -174,6 +176,23 @@ struct GymMatReviewView: View {
 
         do {
             try viewContext.save()
+            
+            // Save review to Firestore
+            let db = Firestore.firestore()
+            db.collection("reviews").document(newReview.reviewID.uuidString).setData([
+                "stars": newReview.stars,
+                "review": newReview.review,
+                "createdTimestamp": newReview.createdTimestamp,
+                "averageStar": newReview.averageStar,
+                "islandID": island.islandID?.uuidString ?? ""
+            ]) { error in
+                if let error = error {
+                    print("Error saving review to Firestore: \(error)")
+                } else {
+                    print("Review saved to Firestore successfully")
+                }
+            }
+            
             alertMessage = "Thank you for your review!"
             presentationMode.wrappedValue.dismiss() // Dismiss the view
         } catch {

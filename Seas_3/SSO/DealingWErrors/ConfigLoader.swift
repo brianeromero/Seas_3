@@ -8,14 +8,14 @@
 import Foundation
 
 struct Config: Decodable {
-    let FacebookSecret: String?
-    let FacebookDisplayName: String?
-    let SENDGRID_API_KEY: String?
-    let GoogleClientID: String?
-    let GoogleApiKey: String?
-    let GoogleAppID: String?
-    let DeviceCheckKeyID: String?
-    let DeviceCheckTeamID: String?
+    var FacebookSecret: String?
+    var FacebookDisplayName: String?
+    var SENDGRID_API_KEY: String?
+    var GoogleClientID: String?
+    var GoogleApiKey: String?
+    var GoogleAppID: String?
+    var DeviceCheckKeyID: String?
+    var DeviceCheckTeamID: String?
 }
 
 class ConfigLoader {
@@ -31,6 +31,73 @@ class ConfigLoader {
         }
         
         let config = try? PropertyListDecoder().decode(Config.self, from: data)
-        return config
+
+        // Load GoogleClientID separately from GoogleService-Info.plist
+        guard let googleClientID = loadGoogleClientID() else {
+            print("GoogleClientID not found in GoogleService-Info.plist")
+            return nil
+        }
+
+        // Create a local modifiedConfig variable to avoid overlapping access
+        var modifiedConfig = config
+        modifiedConfig?.GoogleClientID = googleClientID
+        
+        // Optionally load other values from GoogleService-Info.plist (e.g., API keys)
+        let googleApiKey = loadGoogleApiKey() ?? modifiedConfig?.GoogleApiKey
+        let googleAppID = loadGoogleAppID() ?? modifiedConfig?.GoogleAppID
+        
+        // Now update modifiedConfig with the new values
+        modifiedConfig?.GoogleApiKey = googleApiKey
+        modifiedConfig?.GoogleAppID = googleAppID
+        
+        return modifiedConfig
+    }
+
+    private static func loadGoogleClientID() -> String? {
+        guard let path = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist"),
+              let plistData = FileManager.default.contents(atPath: path) else {
+            print("GoogleService-Info.plist not found")
+            return nil
+        }
+        
+        var format = PropertyListSerialization.PropertyListFormat.xml
+        guard let plistDict = try? PropertyListSerialization.propertyList(from: plistData, options: .mutableContainersAndLeaves, format: &format) as? [String: Any] else {
+            print("Failed to parse GoogleService-Info.plist")
+            return nil
+        }
+        
+        return plistDict["CLIENT_ID"] as? String ?? plistDict["GoogleClientID"] as? String
+    }
+    
+    private static func loadGoogleApiKey() -> String? {
+        guard let path = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist"),
+              let plistData = FileManager.default.contents(atPath: path) else {
+            print("GoogleService-Info.plist not found")
+            return nil
+        }
+        
+        var format = PropertyListSerialization.PropertyListFormat.xml
+        guard let plistDict = try? PropertyListSerialization.propertyList(from: plistData, options: .mutableContainersAndLeaves, format: &format) as? [String: Any] else {
+            print("Failed to parse GoogleService-Info.plist")
+            return nil
+        }
+        
+        return plistDict["API_KEY"] as? String
+    }
+    
+    private static func loadGoogleAppID() -> String? {
+        guard let path = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist"),
+              let plistData = FileManager.default.contents(atPath: path) else {
+            print("GoogleService-Info.plist not found")
+            return nil
+        }
+        
+        var format = PropertyListSerialization.PropertyListFormat.xml
+        guard let plistDict = try? PropertyListSerialization.propertyList(from: plistData, options: .mutableContainersAndLeaves, format: &format) as? [String: Any] else {
+            print("Failed to parse GoogleService-Info.plist")
+            return nil
+        }
+        
+        return plistDict["GOOGLE_APP_ID"] as? String
     }
 }

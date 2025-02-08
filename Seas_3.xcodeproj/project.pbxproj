@@ -10,6 +10,8 @@
 		0C00086E2CA895D600CA5181 /* SearchComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C00086D2CA895D600CA5181 /* SearchComponents.swift */; };
 		0C00087A2CAB092B00CA5181 /* ErrorHandling.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0008792CAB092B00CA5181 /* ErrorHandling.swift */; };
 		0C0008862CAB420100CA5181 /* Errors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0008852CAB420100CA5181 /* Errors.swift */; };
+		0C02EA7D2D56D73100134160 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 0C02EA7C2D56D73100134160 /* GoogleSignIn */; };
+		0C02EA7F2D56D73100134160 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 0C02EA7E2D56D73100134160 /* GoogleSignInSwift */; };
 		0C07B0712C2CFD0300D0BFB2 /* IslandMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0702C2CFD0300D0BFB2 /* IslandMenu.swift */; };
 		0C07B0732C2CFD2800D0BFB2 /* AddNewIsland.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0722C2CFD2800D0BFB2 /* AddNewIsland.swift */; };
 		0C07B0752C2CFD4900D0BFB2 /* EditExistingIslandList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0742C2CFD4900D0BFB2 /* EditExistingIslandList.swift */; };
@@ -116,6 +118,13 @@
 		0CC1120F2C45F7D80066CF80 /* MatTime+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC1120D2C45F7D80066CF80 /* MatTime+CoreDataClass.swift */; };
 		0CC112102C45F7D80066CF80 /* MatTime+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC1120E2C45F7D80066CF80 /* MatTime+CoreDataProperties.swift */; };
 		0CC29C802CEC49AA00FC48F9 /* IslandDetails.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC29C7F2CEC49AA00FC48F9 /* IslandDetails.swift */; };
+		0CC76A702D56E59600154832 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 0CC76A6F2D56E59600154832 /* GoogleSignIn */; };
+		0CC76A722D56E59600154832 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 0CC76A712D56E59600154832 /* GoogleSignInSwift */; };
+		0CC76A752D56E7E100154832 /* FacebookAEM in Frameworks */ = {isa = PBXBuildFile; productRef = 0CC76A742D56E7E100154832 /* FacebookAEM */; };
+		0CC76A772D56E7E100154832 /* FacebookBasics in Frameworks */ = {isa = PBXBuildFile; productRef = 0CC76A762D56E7E100154832 /* FacebookBasics */; };
+		0CC76A792D56E7E100154832 /* FacebookCore in Frameworks */ = {isa = PBXBuildFile; productRef = 0CC76A782D56E7E100154832 /* FacebookCore */; };
+		0CC76A7B2D56E7E100154832 /* FacebookLogin in Frameworks */ = {isa = PBXBuildFile; productRef = 0CC76A7A2D56E7E100154832 /* FacebookLogin */; };
+		0CC76A7D2D56E7E100154832 /* FacebookShare in Frameworks */ = {isa = PBXBuildFile; productRef = 0CC76A7C2D56E7E100154832 /* FacebookShare */; };
 		0CD376E02CED4C7200491DD8 /* AdSettings+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CD376DE2CED4C7200491DD8 /* AdSettings+CoreDataClass.swift */; };
 		0CD376E12CED4C7200491DD8 /* AdSettings+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CD376DF2CED4C7200491DD8 /* AdSettings+CoreDataProperties.swift */; };
 		0CD4E2BF2C7CDA0C005082AC /* ScheduledMatTimesSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CD4E2BE2C7CDA0C005082AC /* ScheduledMatTimesSection.swift */; };
@@ -364,7 +373,6 @@
 				Login/AuthenticationState.swift,
 				Login/ButtonStyle.swift,
 				Login/FacebookSignInButtonWrapper.swift,
-				Login/fetchGoogleUserProfile.swift,
 				Login/GoogleSignInButton.swift,
 				Login/GoogleSignInButtonWrapper.swift,
 				Login/LogInView.swift,
@@ -433,11 +441,17 @@
 				0CBA13302CC19D5400A74C2A /* CoreML.framework in Frameworks */,
 				0CBA132E2CC19D4100A74C2A /* SwiftUI.framework in Frameworks */,
 				0C7E22F92CDC0F5D004C46C8 /* Logging in Frameworks */,
+				0C02EA7F2D56D73100134160 /* GoogleSignInSwift in Frameworks */,
 				0C4A7B4D2CC0D443008CE1EA /* AdSupport.framework in Frameworks */,
 				0CBA132C2CC19D1600A74C2A /* CoreData.framework in Frameworks */,
 				0CBA132A2CC19D0C00A74C2A /* MapKit.framework in Frameworks */,
+				0CC76A792D56E7E100154832 /* FacebookCore in Frameworks */,
+				0CC76A772D56E7E100154832 /* FacebookBasics in Frameworks */,
 				0C4A7B4F2CC0D507008CE1EA /* CoreLocation.framework in Frameworks */,
+				0CC76A7D2D56E7E100154832 /* FacebookShare in Frameworks */,
+				0C02EA7D2D56D73100134160 /* GoogleSignIn in Frameworks */,
 				0CBA13282CC19CC600A74C2A /* FirebasePerformance in Frameworks */,
+				0CC76A752D56E7E100154832 /* FacebookAEM in Frameworks */,
 				0CBA13182CC19C5A00A74C2A /* FirebaseAnalytics in Frameworks */,
 				0CBA130E2CC19BFA00A74C2A /* FacebookBasics in Frameworks */,
 				0CBA13102CC19C0500A74C2A /* FacebookCore in Frameworks */,
@@ -445,11 +459,14 @@
 				0C6CA7AE2CEFCFCE004FF120 /* AdServices.framework in Frameworks */,
 				0CBA13222CC19C8E00A74C2A /* FirebaseFirestore in Frameworks */,
 				0CBA130C2CC19BF100A74C2A /* FacebookAEM in Frameworks */,
+				0CC76A702D56E59600154832 /* GoogleSignIn in Frameworks */,
 				0CBA13202CC19C8600A74C2A /* FirebaseDynamicLinks in Frameworks */,
 				0CBA13242CC19CAC00A74C2A /* FirebaseFunctions in Frameworks */,
 				0CBA13062CC19BC100A74C2A /* GoogleSignIn in Frameworks */,
+				0CC76A722D56E59600154832 /* GoogleSignInSwift in Frameworks */,
 				0CBA13262CC19CB600A74C2A /* FirebaseMessaging in Frameworks */,
 				0CBA13162CC19C4100A74C2A /* GoogleMobileAds in Frameworks */,
+				0CC76A7B2D56E7E100154832 /* FacebookLogin in Frameworks */,
 				0C4A7B512CC0D50F008CE1EA /* DeviceCheck.framework in Frameworks */,
 				0CBA13122CC19C0D00A74C2A /* FacebookLogin in Frameworks */,
 				0CBA13082CC19BC100A74C2A /* GoogleSignInSwift in Frameworks */,
@@ -635,6 +652,7 @@
 				0CF13E632C2A326A00D714C0 /* Seas_3UITests */,
 				0CB5070B2CB7055A007D9173 /* Frameworks */,
 				0CF13E422C2A326700D714C0 /* Products */,
+				6D1A526F36280797C748FAFD /* Pods */,
 			);
 			sourceTree = "<group>";
 		};
@@ -746,6 +764,13 @@
 			path = CoreDataItems;
 			sourceTree = "<group>";
 		};
+		6D1A526F36280797C748FAFD /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Pods;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -817,7 +842,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1540;
-				LastUpgradeCheck = 1610;
+				LastUpgradeCheck = 1620;
 				TargetAttributes = {
 					0CF13E402C2A326700D714C0 = {
 						CreatedOnToolsVersion = 15.4;
@@ -841,12 +866,11 @@
 			);
 			mainGroup = 0CF13E382C2A326700D714C0;
 			packageReferences = (
-				0CA73BAD2CB733D8000A66E2 /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */,
-				0CA73BB82CB733EC000A66E2 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
 				0CA73BBD2CB733F9000A66E2 /* XCRemoteSwiftPackageReference "CryptoSwift" */,
-				0CA73BC02CB73597000A66E2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 				0CCA63962CC16A8C008D45F7 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */,
 				0C7E22F72CDC0F5D004C46C8 /* XCRemoteSwiftPackageReference "swift-log" */,
+				0CC76A6E2D56E59600154832 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+				0CC76A732D56E7E000154832 /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 0CF13E422C2A326700D714C0 /* Products */;
@@ -1193,10 +1217,12 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Info.plist;
-				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "We need your location to show nearby gyms even in the background.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We need your location to show nearby gyms.";
+				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "This app requires access to your location even when the app is in the background.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We need your location to provide personalized services.";
+				INFOPLIST_KEY_NSUserTrackingUsageDescription = "This app uses IDFA for advertising and analytics purposes.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIMainStoryboardFile = MainStoryboard;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -1208,8 +1234,9 @@
 				);
 				MARKETING_VERSION = 1.0;
 				NEW_SETTING = "";
-				OTHER_LDFLAGS = "-ObjC";
-				"OTHER_LDFLAGS[arch=*]" = "-ObjC";
+				NEW_SETTING1 = "";
+				OTHER_LDFLAGS = "$(inherited)";
+				"OTHER_LDFLAGS[arch=*]" = "$(inherited)";
 				PRODUCT_BUNDLE_IDENTIFIER = "MF-inder.Seas-3";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -1231,10 +1258,12 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Info.plist;
-				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "We need your location to show nearby gyms even in the background.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We need your location to show nearby gyms.";
+				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "This app requires access to your location even when the app is in the background.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We need your location to provide personalized services.";
+				INFOPLIST_KEY_NSUserTrackingUsageDescription = "This app uses IDFA for advertising and analytics purposes.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIMainStoryboardFile = MainStoryboard;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -1245,8 +1274,9 @@
 				);
 				MARKETING_VERSION = 1.0;
 				NEW_SETTING = "";
-				OTHER_LDFLAGS = "-ObjC";
-				"OTHER_LDFLAGS[arch=*]" = "-ObjC";
+				NEW_SETTING1 = "";
+				OTHER_LDFLAGS = "$(inherited)";
+				"OTHER_LDFLAGS[arch=*]" = "$(inherited)";
 				PRODUCT_BUNDLE_IDENTIFIER = "MF-inder.Seas-3";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -1409,6 +1439,22 @@
 				minimumVersion = 11.5.0;
 			};
 		};
+		0CC76A6E2D56E59600154832 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 8.0.0;
+			};
+		};
+		0CC76A732D56E7E000154832 /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/facebook/facebook-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 14.1.0;
+			};
+		};
 		0CCA63962CC16A8C008D45F7 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/googleads/swift-package-manager-google-mobile-ads.git";
@@ -1420,6 +1466,16 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		0C02EA7C2D56D73100134160 /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0CA73BB82CB733EC000A66E2 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
+		};
+		0C02EA7E2D56D73100134160 /* GoogleSignInSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0CA73BB82CB733EC000A66E2 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignInSwift;
+		};
 		0C276CDE2CC9D2C700A6B6D6 /* FirebaseDatabase */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = FirebaseDatabase;
@@ -1522,6 +1578,41 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 0CA73BC02CB73597000A66E2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebasePerformance;
+		};
+		0CC76A6F2D56E59600154832 /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0CC76A6E2D56E59600154832 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
+		};
+		0CC76A712D56E59600154832 /* GoogleSignInSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0CC76A6E2D56E59600154832 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignInSwift;
+		};
+		0CC76A742D56E7E100154832 /* FacebookAEM */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0CC76A732D56E7E000154832 /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */;
+			productName = FacebookAEM;
+		};
+		0CC76A762D56E7E100154832 /* FacebookBasics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0CC76A732D56E7E000154832 /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */;
+			productName = FacebookBasics;
+		};
+		0CC76A782D56E7E100154832 /* FacebookCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0CC76A732D56E7E000154832 /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */;
+			productName = FacebookCore;
+		};
+		0CC76A7A2D56E7E100154832 /* FacebookLogin */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0CC76A732D56E7E000154832 /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */;
+			productName = FacebookLogin;
+		};
+		0CC76A7C2D56E7E100154832 /* FacebookShare */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0CC76A732D56E7E000154832 /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */;
+			productName = FacebookShare;
 		};
 /* End XCSwiftPackageProductDependency section */
 
