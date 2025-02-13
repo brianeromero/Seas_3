@@ -28,11 +28,11 @@ func handleError(_ error: Error, context: String = "", presentation: ErrorPresen
     case .user:
         switch errorCode {
         case 7: // Permission denied
-            errorMessage?.wrappedValue = "Missing or insufficient permissions."
+            errorMessage?.wrappedValue = "log1: Missing or insufficient permissions."
         case 16: // Unauthenticated
-            errorMessage?.wrappedValue = "Authentication error."
+            errorMessage?.wrappedValue = "log1: Authentication error."
         case 3: // Invalid argument
-            errorMessage?.wrappedValue = "Invalid argument provided."
+            errorMessage?.wrappedValue = "log1: Invalid argument provided."
         default:
             errorMessage?.wrappedValue = errorDescription
         }

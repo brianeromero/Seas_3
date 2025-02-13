@@ -55,31 +55,37 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
     }
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        
+        // Configure app appearance early in the app lifecycle
         configureApplicationAppearance()
         
         // Firebase configuration
         configureFirebase()
-                                
+        
         // Check if Firebase has been configured successfully
         if FirebaseApp.app() != nil {
-            // No need to initialize FirestoreManager or PersistenceController here
+            // Firebase is successfully configured
         } else {
             print("Firebase configuration failed.")
         }
         
-        // Third-party SDK initializations
+        // Third-party SDK initializations (e.g., Facebook, Ads)
         ApplicationDelegate.shared.application(application, didFinishLaunchingWithOptions: launchOptions)
+        configureGoogleAds()
 
-        // App Check setup
+        // Google Sign-In configuration
+        configureGoogleSignIn()
+
+        // App Check setup (Firebase App Check, if applicable)
         setupAppCheck()
         
-        let pirateIslandRecords: [String] = [] // populate with actual records
-        let reviewRecords: [String] = [] // populate with actual records
-        let matTimeRecords: [String] = [] // populate with actual records
-        let appDayOfWeekRecords: [String] = [] // populate with actual records
-                    
-        // Firestore collection creation
+        // Firestore collection creation and downloading records to Core Data
         Task {
+            let pirateIslandRecords: [String] = [] // populate with actual records
+            let reviewRecords: [String] = [] // populate with actual records
+            let matTimeRecords: [String] = [] // populate with actual records
+            let appDayOfWeekRecords: [String] = [] // populate with actual records
+            
             do {
                 try await createFirestoreCollection()
                 
@@ -93,31 +99,119 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
             }
         }
 
-        // Google Ads configuration
-        configureGoogleAds()
-        
-        // Google Sign-In configuration
-        configureGoogleSignIn()
-                        
-                    
         // Request IDFA permission
         IDFAHelper.requestIDFAPermission()
-                    
-        // Load configuration values
+        
+        // Load configuration values (can be done after other setups)
         loadConfigValues()
-                    
+        
         // Register for push notifications
         registerForPushNotifications {}
-
+        
         return true
     }
+
     
     private func configureApplicationAppearance() {
         UINavigationBar.appearance().tintColor = .systemOrange
         UITabBar.appearance().tintColor = .systemOrange
     }
+    
+    func configureFirebase() {
+        guard !isFirebaseConfigured else { return }
+
+        #if DEBUG
+        let providerFactory = AppCheckDebugProviderFactory()
+        AppCheck.setAppCheckProviderFactory(providerFactory)
+        #endif
+
+        FirebaseApp.configure()
+        FirebaseConfiguration.shared.setLoggerLevel(.debug)
+        Analytics.setAnalyticsCollectionEnabled(true)
+        isFirebaseConfigured = true
+
+        // Firestore setup directly here
+        Firestore.firestore().settings = FirestoreSettings()
+
+        configureFirebaseLogger()
+        configureMessaging()
+        configureFirestore()
+    }
+
+    private func configureFirebaseLogger() {
+        FirebaseConfiguration.shared.setLoggerLevel(.debug)
+    }
+
+    private func configureMessaging() {
+        Messaging.messaging().delegate = self
+        Messaging.messaging().isAutoInitEnabled = true
+    }
+
+    private func configureFirestore() {
+        Firestore.firestore().settings = FirestoreSettings()
+    }
+
+    
+    private func loadConfigValues() {
+        print("🔹 Loading configuration values...")
+
+        guard let config = ConfigLoader.loadConfigValues() else {
+            print("❌ Could not load configuration values.")
+            return
+        }
+
+        // Assign values
+        sendgridApiKey = config.SENDGRID_API_KEY
+        googleClientID = config.GoogleClientID
+        googleApiKey = config.GoogleApiKey
+        googleAppID = config.GoogleAppID
+        deviceCheckKeyID = config.DeviceCheckKeyID
+        deviceCheckTeamID = config.DeviceCheckTeamID
+
+        // Log loaded values for debugging
+        print("✅ Configuration Loaded:")
+        print("   - SendGrid API Key: \(sendgridApiKey ?? "MISSING")")
+        print("   - Google Client ID: \(googleClientID ?? "MISSING")")
+        print("   - Google API Key: \(googleApiKey ?? "MISSING")")
+        print("   - Google App ID: \(googleAppID ?? "MISSING")")
+        print("   - DeviceCheck Key ID: \(deviceCheckKeyID ?? "MISSING")")
+        print("   - DeviceCheck Team ID: \(deviceCheckTeamID ?? "MISSING")")
+
+        // Assign values with default fallbacks
+        appConfig.googleClientID = googleClientID ?? ""
+        appConfig.googleApiKey = googleApiKey ?? ""
+        appConfig.googleAppID = googleAppID ?? ""
+        appConfig.sendgridApiKey = sendgridApiKey ?? "DEFAULT_SENDGRID_API_KEY"
+        appConfig.deviceCheckKeyID = deviceCheckKeyID ?? ""
+        appConfig.deviceCheckTeamID = deviceCheckTeamID ?? ""
+
+        print("✅ Configuration values set successfully.")
+    }
+
+    
+    func configureGoogleSignIn() {
+        print("🔹 Configuring Google Sign-In...")
+
+        guard let clientID = googleClientID, !clientID.isEmpty else {
+            print("❌ Google Client ID is missing or empty.")
+            return
+        }
+
+        print("✅ Using Google Client ID: \(clientID)")
+
+        let configuration = GIDConfiguration(clientID: clientID)
+        GIDSignIn.sharedInstance.configuration = configuration
+
+        print("✅ Google Sign-In configuration set successfully.")
+    }
 
 
+
+    func application(_ application: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
+        return GIDSignIn.sharedInstance.handle(url)
+    }
+
+    
     private func createFirestoreCollection() async throws {
         let collectionsToCheck = [
             "pirateIslands",
@@ -423,39 +517,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
                     }
     }
     
-    func configureFirebase() {
-        guard !isFirebaseConfigured else { return }
 
-        #if DEBUG
-        let providerFactory = AppCheckDebugProviderFactory()
-        AppCheck.setAppCheckProviderFactory(providerFactory)
-        #endif
-
-        FirebaseApp.configure()
-        FirebaseConfiguration.shared.setLoggerLevel(.debug)
-        Analytics.setAnalyticsCollectionEnabled(true)
-        isFirebaseConfigured = true
-
-        // Firestore setup directly here
-        Firestore.firestore().settings = FirestoreSettings()
-
-        configureFirebaseLogger()
-        configureMessaging()
-        configureFirestore()
-    }
-
-    private func configureFirebaseLogger() {
-        FirebaseConfiguration.shared.setLoggerLevel(.debug)
-    }
-
-    private func configureMessaging() {
-        Messaging.messaging().delegate = self
-        Messaging.messaging().isAutoInitEnabled = true
-    }
-
-    private func configureFirestore() {
-        Firestore.firestore().settings = FirestoreSettings()
-    }
 
 
     private func setupAppCheck() {
@@ -552,38 +614,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         print("Error: \(error.localizedDescription)")
     }
 
-    private func loadConfigValues() {
-        guard let config = ConfigLoader.loadConfigValues() else {
-            print("Could not load configuration values.")
-            return
-        }
-        
-        // Use optional binding to safely unwrap optionals
-        sendgridApiKey = config.SENDGRID_API_KEY
-        googleClientID = config.GoogleClientID
-        googleApiKey = config.GoogleApiKey
-        googleAppID = config.GoogleAppID
-        deviceCheckKeyID = config.DeviceCheckKeyID
-        deviceCheckTeamID = config.DeviceCheckTeamID
-
-        // Use nil coalescing operator to provide default values
-        appConfig.googleClientID = googleClientID ?? ""
-        appConfig.googleApiKey = googleApiKey ?? ""
-        appConfig.googleAppID = googleAppID ?? ""
-        appConfig.sendgridApiKey = sendgridApiKey ?? "DEFAULT_SENDGRID_API_KEY"
-        appConfig.deviceCheckKeyID = deviceCheckKeyID ?? ""
-        appConfig.deviceCheckTeamID = deviceCheckTeamID ?? ""
-    }
-    
-    private func configureGoogleSignIn() {
-        guard let clientID = googleClientID else {
-            print("Google Client ID is missing.")
-            return
-        }
-
-        let configuration = GIDConfiguration(clientID: clientID)
-        GIDSignIn.sharedInstance.configuration = configuration
-    }
 
 
     // MARK: - MessagingDelegate

@@ -6,6 +6,8 @@
 //
 
 import Foundation
+import GoogleSignIn
+
 
 struct Config: Decodable {
     var FacebookSecret: String?
@@ -38,6 +40,9 @@ class ConfigLoader {
             return nil
         }
 
+        // Configure Google Sign-In with the loaded GoogleClientID
+        configureGoogleSignIn(clientID: googleClientID)
+        
         // Create a local modifiedConfig variable to avoid overlapping access
         var modifiedConfig = config
         modifiedConfig?.GoogleClientID = googleClientID
@@ -68,7 +73,12 @@ class ConfigLoader {
         
         return plistDict["CLIENT_ID"] as? String ?? plistDict["GoogleClientID"] as? String
     }
-    
+
+    private static func configureGoogleSignIn(clientID: String) {
+        let config = GIDConfiguration(clientID: clientID)
+        GIDSignIn.sharedInstance.configuration = config
+    }
+
     private static func loadGoogleApiKey() -> String? {
         guard let path = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist"),
               let plistData = FileManager.default.contents(atPath: path) else {

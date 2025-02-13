@@ -44,17 +44,25 @@ class User: Codable, Identifiable {
         self.userID = userID
     }
 
-    // New initializer to create a User from FirebaseAuth.User
-    convenience init(from firebaseUser: FirebaseAuth.User, userName: String, name: String) {
-        // Assign default values for passwordHash, salt, and iterations
+    // New initializer to create a User from UserInfo
+    convenience init(from userInfo: UserInfo) {
+        // Assign default values for passwordHash, salt, and iterations if not available
+        let passwordHash = userInfo.passwordHash
+        let salt = userInfo.salt
+        let iterations = userInfo.iterations
+
         self.init(
-            email: firebaseUser.email ?? "",
-            userName: userName,
-            name: name,
-            passwordHash: Data(), // Default value or you can handle this differently
-            salt: Data(), // Default value or you can handle this differently
-            iterations: 0, // Default value or you can handle this differently
-            isVerified: false // Set default verification status
+            email: userInfo.email,
+            userName: userInfo.userName,
+            name: userInfo.name,
+            passwordHash: passwordHash,
+            salt: salt,
+            iterations: iterations,
+            isVerified: userInfo.isVerified,
+            belt: userInfo.belt,
+            verificationToken: userInfo.verificationToken,
+            userID: UUID(uuidString: userInfo.userID) ?? UUID()
         )
     }
+
 }

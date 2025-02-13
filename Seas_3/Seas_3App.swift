@@ -20,37 +20,24 @@ struct URLHandler: View {
     }
 }
 
-
 @main
-struct Seas3App: App {
+struct Seas_3App: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject var appState = AppState()
     @StateObject var authenticationState = AuthenticationState()
     @StateObject private var persistenceController = PersistenceController.shared
-    @StateObject var profileViewModel: ProfileViewModel
+    @StateObject var profileViewModel = ProfileViewModel(
+        viewContext: PersistenceController.shared.container.viewContext,
+        authViewModel: AuthViewModel.shared
+    )
     @StateObject var authViewModel = AuthViewModel.shared
 
-    init() {
-        _profileViewModel = StateObject(wrappedValue: ProfileViewModel(
-            viewContext: PersistenceController.shared.container.viewContext,
-            authViewModel: AuthViewModel.shared
-        ))
-    }
-
-    @StateObject var viewModel = AppDayOfWeekViewModel(
-        selectedIsland: nil,
-        repository: AppDayOfWeekRepository(persistenceController: PersistenceController.shared),
-        enterZipCodeViewModel: EnterZipCodeViewModel(
-            repository: AppDayOfWeekRepository(persistenceController: PersistenceController.shared),
-            persistenceController: PersistenceController.shared
-        )
-    )
-    
     @State private var selectedTabIndex: LoginViewSelection = .login
 
     var body: some Scene {
         WindowGroup {
-            URLHandler()
+            URLHandler()  // Handle URLs for Google/Facebook sign-ins
+            
             if appState.showWelcomeScreen {
                 PirateIslandView()
                     .onAppear {
@@ -66,7 +53,6 @@ struct Seas3App: App {
                     .environment(\.managedObjectContext, persistenceController.container.viewContext)
                     .environmentObject(authenticationState)
                     .environmentObject(appState)
-                    .environmentObject(viewModel)
                     .environmentObject(profileViewModel)
                     .onAppear {
                         setupGlobalErrorHandler()
@@ -76,7 +62,6 @@ struct Seas3App: App {
                     .environment(\.managedObjectContext, persistenceController.container.viewContext)
                     .environmentObject(authenticationState)
                     .environmentObject(appState)
-                    .environmentObject(viewModel)
                     .environmentObject(profileViewModel)
                     .onAppear {
                         let sceneLoader = SceneLoader()
@@ -112,7 +97,7 @@ struct Seas3App: App {
     }
 }
 
-// Add this extension
+// Add this extension for PersistenceController in Environment
 struct PersistenceControllerKey: EnvironmentKey {
     static var defaultValue: PersistenceController { PersistenceController.shared }
 }

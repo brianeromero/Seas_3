@@ -150,7 +150,6 @@ struct AccountAuthView_Previews: PreviewProvider {
             emailManager: UnifiedEmailManager.shared
         )
         .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
-        .environmentObject(AuthenticationState(errorMessage: "Example Error Message"))
         .previewLayout(.sizeThatFits)
         .previewDisplayName("Account Creation Form - Error")
     }

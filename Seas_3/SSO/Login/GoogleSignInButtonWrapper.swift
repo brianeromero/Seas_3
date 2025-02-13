@@ -5,18 +5,21 @@
 //  Created by Brian Romero on 10/7/24.
 //
 
-
 import Foundation
 import SwiftUI
 import GoogleSignIn
 import CoreData
+import Firebase
+import FirebaseAuth
+import GoogleSignIn
+
 
 struct GoogleSignInButtonWrapper: UIViewRepresentable {
     @EnvironmentObject var authenticationState: AuthenticationState
     var handleError: (String) -> Void
     let googleClientID: String?
     let managedObjectContext: NSManagedObjectContext  // Pass managedObjectContext here
-
+    
     func makeUIView(context: Context) -> GIDSignInButton {
         print("Making Google Sign-In button")
         let button = GIDSignInButton()
@@ -24,16 +27,16 @@ struct GoogleSignInButtonWrapper: UIViewRepresentable {
         button.addTarget(context.coordinator, action: #selector(context.coordinator.signIn), for: .touchUpInside)
         return button
     }
-
+    
     func updateUIView(_ uiView: GIDSignInButton, context: Context) {
         print("Updating Google Sign-In button")
     }
-
+    
     func makeCoordinator() -> Coordinator {
         print("Creating coordinator for Google Sign-In button")
         return Coordinator(self)
     }
-
+    
     func fetchGoogleUserProfile(managedObjectContext: NSManagedObjectContext, authenticationState: AuthenticationState) {
         print("Fetching Google user profile")
         
@@ -43,7 +46,7 @@ struct GoogleSignInButtonWrapper: UIViewRepresentable {
             print("No current Google user")
             return
         }
-
+        
         // Log user data for debugging (consider removing in production)
         print("Google Sign-In Current User: \(currentUser)")
         print("Google Sign-In User Profile: \(userProfile)")
@@ -88,75 +91,91 @@ struct GoogleSignInButtonWrapper: UIViewRepresentable {
                 print("Error fetching or saving user: \(error.localizedDescription), \(error.userInfo)")
             }
         }
-        
-        // Use the passed authenticationState instead of singleton
-        do {
-            print("Updating AuthenticationState with Google user data")
-            try authenticationState.updateSocialUser(
-                .google, // Correct use of the SocialPlatform enum
-                userId,
-                userName,
-                userEmail
-            )
-        } catch {
-            print("Error updating AuthenticationState: \(error.localizedDescription)")
-        }
     }
-
+    
     class Coordinator: NSObject {
         var parent: GoogleSignInButtonWrapper?
         let googleClientID: String
         let googleScopes: [String] = ["openid", "email", "profile"]
-
+        
         init(_ parent: GoogleSignInButtonWrapper) {
             self.parent = parent
             self.googleClientID = parent.googleClientID ?? ""
             super.init()
         }
-
+        
         @objc func signIn() {
             print("Google Sign-In initiated")
-
+            
             guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
                   let rootViewController = windowScene.windows.first?.rootViewController else {
-                print("No root view controller available")
+                print("❌ No root view controller available")
                 return
             }
-
-            let config = GIDConfiguration(clientID: googleClientID)
-            print("GIDConfiguration: \(config)")
-
-            GIDSignIn.sharedInstance.signIn(withPresenting: rootViewController, hint: nil, additionalScopes: googleScopes) { [weak self] result, error in
-                guard let self = self else { return }
-                
-                // Error handling for Google Sign-In
-                if let error = error {
-                    print("Google Sign-In error: \(error.localizedDescription)")
-                    self.parent?.handleError(error.localizedDescription)
-                    return
-                }
-
-                print("Google Sign-In successful")
-                if let user = result?.user {
-                    let userID = user.userID ?? ""
-                    let userName = user.profile?.name ?? ""
-                    let userEmail = user.profile?.email ?? ""
-
-                    print("Google Sign-In User ID: \(userID)")
-                    print("Google Sign-In User Name: \(userName)")
-                    print("Google Sign-In User Email: \(userEmail)")
-
-                    // Update AuthenticationState with Google user data
-                    do {
-                        try self.parent?.authenticationState.updateSocialUser(.google, userID, userName, userEmail)
-                    } catch {
-                        print("Error updating AuthenticationState: \(error.localizedDescription)")
+            
+            print("✅ Found root view controller")
+            
+            _ = GIDConfiguration(clientID: googleClientID)
+            print("🛠 GIDConfiguration created with client ID: \(googleClientID)")
+            
+            GIDSignIn.sharedInstance.signIn(
+                withPresenting: rootViewController,
+                hint: nil,
+                additionalScopes: googleScopes,
+                completion: { [weak self] result, error in
+                    guard let self = self else { return }
+                    
+                    if let error = error {
+                        print("❌ Google Sign-In error: \(error.localizedDescription)")
+                        self.parent?.handleError(error.localizedDescription)
+                        return
                     }
+                    
+                    guard let result = result else {
+                        print("❌ Error: No result found.")
+                        return
+                    }
+                    
+                    let user = result.user
+                    
+                    print("✅ Google Sign-In successful")
+                    let userID = user.userID ?? "Unknown"
+                    let userName = user.profile?.name ?? "Unknown"
+                    let userEmail = user.profile?.email ?? "Unknown"
+                    print("👤 Google User: ID: \(userID), Name: \(userName), Email: \(userEmail)")
+                    
+                    let idToken = user.idToken?.tokenString ?? ""
+                    let accessToken = user.accessToken.tokenString
+                    
+                    if idToken.isEmpty {
+                        print("❌ Google ID Token is missing")
+                    } else {
+                        print("✅ Google ID Token retrieved")
+                    }
+                    
+                    if accessToken.isEmpty {
+                        print("❌ Google Access Token is missing")
+                    } else {
+                        print("✅ Google Access Token retrieved")
+                    }
+                    
+                    let credential = GoogleAuthProvider.credential(withIDToken: idToken, accessToken: accessToken)
+                    
+                    let authenticationManager = AuthenticationManager()
+                    authenticationManager.handleAuthentication(with: credential) { result in
+                        switch result {
+                        case .success(let user):
+                            // Handle successful authentication
+                            print("✅ User authenticated successfully: \(user)")
+                        case .failure(let error):
+                            // Handle authentication error
+                            print("❌ Google Authentication error: \(error.localizedDescription)")
+                            self.parent!.handleError("Google Authentication error: \(error.localizedDescription)")
 
-                    // Call fetchGoogleUserProfile to update Core Data
-                    self.parent?.fetchGoogleUserProfile(managedObjectContext: self.parent?.managedObjectContext ?? NSManagedObjectContext(concurrencyType: .mainQueueConcurrencyType), authenticationState: self.parent?.authenticationState ?? AuthenticationState())
+                        }
+                    }
                 }
-            }
+            )
         }
     }
 }
@@ -178,4 +197,3 @@ struct GoogleSignInButtonWrapper_Previews: PreviewProvider {
         .padding()
     }
 }
-

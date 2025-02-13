@@ -68,16 +68,6 @@ enum AuthenticationError: LocalizedError {
     }
 }
 
-// Signin-related errors
-enum SignInError: String, LocalizedError {
-    case invalidEmail = "Email not found. Please create an account."
-    case invalidPassword = "Invalid password."
-    case accountLocked = "Account locked due to excessive password attempts."
-    case invalidPasswordHash = "Invalid password hash: "
-    
-    var errorDescription: String { rawValue }
-}
-
 // Core Data-related fetch errors
 enum FetchError: LocalizedError {
     case failedToFetchMatTimes(Error)

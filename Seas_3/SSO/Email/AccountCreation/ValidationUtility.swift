@@ -319,6 +319,4 @@ class ValidationUtility {
         // All validations passed
         return (true, "")
     }
-
-
 }

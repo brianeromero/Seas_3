@@ -9,7 +9,9 @@ import Foundation
 import FBSDKLoginKit
 import FBSDKCoreKit
 import FirebaseAnalytics
-
+import FirebaseAuth
+import FirebaseCore
+import os
 
 enum FacebookError: Error {
     case expiredAccessToken
@@ -29,88 +31,55 @@ enum FacebookError: Error {
 }
 
 class FacebookHelper {
-    
-    static func checkFacebookToken() {
-        if AccessToken.current?.isExpired ?? true {
-            // Let the button handle login
-            print("Access token is expired or missing. Not fetching profile.")
-            return
-        } else {
-            FacebookHelper.fetchFacebookUserProfile { userInfo in
-                if userInfo != nil {
-                    print("Facebook user profile fetched successfully: \(String(describing: userInfo))")
-                } else {
-                    print("Failed to fetch Facebook user profile.")
-                }
-            }
-        }
-    }
-    
-    static func handleFacebookLogin() {
-        let loginManager = LoginManager()
-        loginManager.logIn(permissions: ["public_profile", "email"], from: nil) { result, error in
-            
-            if let error = error {
-                print("Facebook Login Error: \(error.localizedDescription)")
-                Analytics.logEvent("facebook_login_error", parameters: ["error": error.localizedDescription])
-            } else if let result = result, !result.isCancelled {
-                print("Facebook Login Success")
-                Analytics.logEvent("facebook_login_success", parameters: nil)
-                
-                FacebookHelper.fetchFacebookUserProfile { userInfo in
-                    guard let userInfo = userInfo else { return }
-                    print("Fetched Facebook user profile: \(userInfo)")
-                    
-                    // Fetch ios_skadnetwork_conversion_config
-                    let params = ["fields": "id,ios_skadnetwork_conversion_config"]
-                    let graphRequest = GraphRequest(graphPath: "1057815062545175", parameters: params)
-                    graphRequest.start { _, result, error in
-                        if let error = error {
-                            FacebookHelper.handleFacebookSDKError(error)
-                            return
-                        }
-                        print("Fetched ios_skadnetwork_conversion_config: \(String(describing: result))")
-                    }
-                }
-            }
-        }
-    }
-    
-    static func fetchFacebookUserProfile(completion: @escaping ([String: Any]?) -> Void) {
+    static func handleFacebookLogin(authManager: AuthenticationManager) {
+        _ = LoginManager()
+
+        // Check if the access token is expired and refresh if necessary
         if AccessToken.current?.isExpired ?? false {
             AccessToken.refreshCurrentAccessToken { _, _, error in
                 if let error = error {
-                    print("Access token refresh error: \(error.localizedDescription)")
-                    handleFacebookSDKError(error)
-                    completion(nil)
+                    authManager.log(message: "Error refreshing Facebook token: \(error.localizedDescription)", level: .error)
                     return
+                } else {
+                    authManager.log(message: "Facebook token refreshed.", level: .info)
+                    // Now proceed to authenticate after refreshing the token
+                    loginUser(authManager: authManager)
                 }
-                fetchFacebookUserProfile(completion: completion)
             }
         } else {
-            let params = ["fields": "id,name,email,picture"]
-            let graphRequest = GraphRequest(graphPath: "me", parameters: params)
-            graphRequest.start { _, result, error in
-                if let error = error {
-                    print("Error fetching Facebook user profile: \(error.localizedDescription)")
-                    handleFacebookSDKError(error)
-                    completion(nil)
-                    return
-                }
-                completion(result as? [String: Any])
-            }
+            loginUser(authManager: authManager) // Proceed to login if the token is still valid
         }
     }
 
-    
-    static func handleFacebookSDKError(_ error: Error) {
-        let errorCode = (error as NSError).code
-        switch errorCode {
-        case 190:
-            print("Invalid OAuth access token signature.")
-        default:
-            print("Unknown Facebook SDK error: \(error.localizedDescription)")
+    private static func loginUser(authManager: AuthenticationManager) {
+        let loginManager = LoginManager()
+        loginManager.logIn(permissions: ["public_profile", "email"], from: nil) { result, error in
+            if let error = error {
+                authManager.log(message: "Facebook Login Error: \(error.localizedDescription)", level: .error)
+                return
+            }
+
+            guard let result = result, !result.isCancelled, let accessToken = AccessToken.current?.tokenString else {
+                authManager.log(message: "Facebook login was cancelled.", level: .warning)
+                return
+            }
+
+            authManager.log(message: "Facebook Login Success", level: .info)
+            let credential = FacebookAuthProvider.credential(withAccessToken: accessToken)
+            authenticateWithFacebookCredential(credential, authManager: authManager)
         }
-        Analytics.logEvent("facebook_sdk_error", parameters: ["error": error.localizedDescription])
+    }
+
+    private static func authenticateWithFacebookCredential(_ credential: AuthCredential, authManager: AuthenticationManager) {
+        // Delegate authentication to AuthenticationManager
+        authManager.handleAuthentication(with: credential) { result in
+            switch result {
+            case .success(_):
+                authManager.log(message: "Successfully authenticated with Firebase.", level: .info)
+                // Handle the user object here if needed
+            case .failure(let error):
+                authManager.log(message: "Authentication failed: \(error.localizedDescription)", level: .error)
+            }
+        }
     }
 }
