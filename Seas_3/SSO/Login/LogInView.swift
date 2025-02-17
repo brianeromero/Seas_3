@@ -204,7 +204,7 @@ struct LoginForm: View {
                         try await signInWithEmail(email: user.email, password: password)
                     } catch {
                         print("Username or email not found in both Core Data and Firestore.") // Logging failed sign-in attempt
-                        showAlert(with: "Username or email not found.")
+                        showAlert(with: "Error logging in. Check Email and Password.")
                     }
                 }
             }
