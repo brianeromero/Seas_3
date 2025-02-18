@@ -8,9 +8,13 @@
 
 import Foundation
 import CoreData
+import os
+
 
 extension Review: Identifiable {
     @nonobjc public class func fetchRequest() -> NSFetchRequest<Review> {
+        // Log whenever fetchRequest is called with call stack
+        os_log("Called fetchRequest for Review from function: %@", log: logger, type: .info, #function)
         return NSFetchRequest<Review>(entityName: "Review")
     }
 

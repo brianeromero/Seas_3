@@ -8,6 +8,7 @@
 import Foundation
 import SwiftUI
 import CoreData
+import os
 
 enum SortType: String, CaseIterable {
     case latest = "Latest"
@@ -34,25 +35,27 @@ enum SortType: String, CaseIterable {
 }
 
 
+
 struct ViewReviewforIsland: View {
     @Binding var showReview: Bool
     @Binding var selectedIsland: PirateIsland?
     @State private var selectedSortType: SortType = .latest
     @ObservedObject var enterZipCodeViewModel: EnterZipCodeViewModel
-    
+
     // FetchRequest for Pirate Islands
     @FetchRequest(entity: PirateIsland.entity(), sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.islandName, ascending: true)]) private var islands: FetchedResults<PirateIsland>
-    
+
     // FetchRequest for Reviews related to the selected island
     @FetchRequest private var reviews: FetchedResults<Review>
-    
-    // The initializer here should expect the @Binding for showReview
+
+
+    // Initializer
     init(selectedIsland: Binding<PirateIsland?>, showReview: Binding<Bool>, enterZipCodeViewModel: EnterZipCodeViewModel) {
         self._selectedIsland = selectedIsland
-        self._showReview = showReview  // Initialize showReview with the passed binding
+        self._showReview = showReview
         self.enterZipCodeViewModel = enterZipCodeViewModel
-        
-        // Define the fetch request for reviews here
+
+        // Define the fetch request for reviews
         let sortDescriptor = NSSortDescriptor(key: "createdTimestamp", ascending: false)
         let predicate: NSPredicate = selectedIsland.wrappedValue == nil ?
             NSPredicate(value: false) :
@@ -77,49 +80,21 @@ struct ViewReviewforIsland: View {
                             .padding(.horizontal, 16)
 
                         Text("Reviews \(reviews.count)")
-
-                        if !filteredReviews.isEmpty {
-                            ReviewList(filteredReviews: filteredReviews, selectedSortType: $selectedSortType)
-                                .padding(.horizontal, 16)
-                                .frame(minHeight: 300) // Ensure sufficient height
-
-                            // Calculate average rating
-                            let averageRatingString = ReviewUtils.averageStarRating(for: filteredReviews)
-                            
-                            if averageRatingString != "No reviews" {
-                                if let doubleAverageRating = Double(averageRatingString) {
-                                    let intAverageRating = Int(round(doubleAverageRating))
-
-                                    HStack {
-                                        Text("Average Rating: \(averageRatingString) ")
-                                        ForEach(0..<5, id: \.self) { index in
-                                            if index < intAverageRating {
-                                                Image(systemName: "star.fill")
-                                                    .foregroundColor(.yellow)
-                                            } else {
-                                                Image(systemName: "star")
-                                                    .foregroundColor(.gray)
-                                            }
-                                        }
-                                        Text("(\(intAverageRating))") // Display the integer average rating
-                                    }
-                                    .font(.headline)
-                                    .padding(.horizontal, 16)
-                                } else {
-                                    Text("No average rating available.")
-                                        .font(.headline)
-                                        .padding()
-                                }
-                            } else {
+                        
+                        if filteredReviews.isEmpty {
+                            NavigationLink(
+                                destination: GymMatReviewView(
+                                    localSelectedIsland: $selectedIsland,
+                                    isPresented: .constant(false),
+                                    enterZipCodeViewModel: enterZipCodeViewModel
+                                ) { _ in }
+                            ) {
                                 Text("No reviews available. Be the first to write a review!")
                                     .font(.headline)
+                                    .foregroundColor(.blue)
+                                    .underline()
                                     .padding()
                             }
-
-                        } else {
-                            Text("No reviews available. Be the first to write a review!")
-                                .font(.headline)
-                                .padding()
                         }
                     } else {
                         Text("No Gyms Selected")
@@ -132,12 +107,18 @@ struct ViewReviewforIsland: View {
         }
         .navigationTitle("View Reviews for Gym")
         .onAppear {
-            print("Fetched Reviews Count: \(reviews.count)")
+            os_log("ViewReviewforIsland appeared", log: logger, type: .info)
+
+            // Logging when view finishes loading
+            DispatchQueue.main.async {
+                os_log("ViewReviewforIsland finished loading and rendering", log: logger, type: .info)
+            }
         }
-        .onChange(of: selectedSortType) { _ in
-            print("Selected Sort Type: \(selectedSortType.rawValue)")
+        .onChange(of: selectedSortType) { newSortType in
+            os_log("Selected Sort Type: %@", log: logger, type: .info, newSortType.rawValue)
         }
     }
+
 
     var filteredReviews: [Review] {
         let filtered = ReviewUtils.getReviews(from: NSOrderedSet(array: Array(reviews)))
@@ -153,6 +134,7 @@ struct ViewReviewforIsland: View {
         }
     }
 }
+
 
 
 extension ViewReviewforIsland {

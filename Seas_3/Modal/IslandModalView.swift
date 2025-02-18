@@ -69,9 +69,10 @@ struct IslandModalView: View {
     }
 
     // Calculate average star rating here
-    private var averageStarRating: String {
+    private var averageStarRating: Double {
         ReviewUtils.averageStarRating(for: reviews)
     }
+
 
     var body: some View {
         NavigationView {
@@ -130,7 +131,7 @@ struct IslandModalView: View {
                                 HStack {
                                     Text("Average Rating:")
                                     Spacer()
-                                    Text(averageStarRating) // Use calculated average star rating
+                                    Text(String(format: "%.1f", averageStarRating)) // Convert the Double to String
                                 }
 
                                 NavigationLink(destination: ViewReviewforIsland(
@@ -139,8 +140,6 @@ struct IslandModalView: View {
                                 )) {
                                     Text("View Reviews")
                                 }
-
-
                             } else {
                                 Text("No reviews available.")
                                     .foregroundColor(.secondary)
@@ -160,7 +159,6 @@ struct IslandModalView: View {
                                     .foregroundColor(.blue) // Ensures both icon and text are blue
                                 }
                             }
-
                         }
 
                         .padding(.top, 20)

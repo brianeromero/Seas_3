@@ -175,44 +175,42 @@ struct IslandList: View {
                     }) {
                         IslandListItem(island: island)
                     }
-                    .navigationDestination(
-                        isPresented: $showNavigationDestination
-                    ) {
-                        if let island = selectedIsland {
-                            switch self.navigationDestination {
-                            case .editExistingIsland:
-                                EditExistingIsland(
-                                    island: island,
-                                    islandViewModel: PirateIslandViewModel(
-                                        persistenceController: PersistenceController.shared
-                                    ),
-                                    profileViewModel: ProfileViewModel(viewContext: PersistenceController.shared.container.viewContext)
-                                )
-                                
-                            case .viewReviewForIsland:
-                                ViewReviewforIsland(
-                                    selectedIsland: $selectedIsland,
-                                    showReview: .constant(true),
-                                    enterZipCodeViewModel: EnterZipCodeViewModel(
-                                        repository: AppDayOfWeekRepository(
-                                            persistenceController: PersistenceController.shared
-                                        ),
-                                        persistenceController: PersistenceController.shared
-                                    )
-                                )
-                            case .review:
-                                ReviewDestinationView(
-                                    viewModel: IslandListViewModel.shared,
-                                    selectedIsland: island
-                                )
-                            }
-                        } else {
-                            EmptyView()
-                        }
-                    }
                 }
             }
             .navigationTitle(title)
+            .navigationDestination(isPresented: $showNavigationDestination) {
+                if let island = selectedIsland {
+                    switch self.navigationDestination {
+                    case .editExistingIsland:
+                        EditExistingIsland(
+                            island: island,
+                            islandViewModel: PirateIslandViewModel(
+                                persistenceController: PersistenceController.shared
+                            ),
+                            profileViewModel: ProfileViewModel(viewContext: PersistenceController.shared.container.viewContext)
+                        )
+                        
+                    case .viewReviewForIsland:
+                        ViewReviewforIsland(
+                            selectedIsland: $selectedIsland,
+                            showReview: .constant(true),
+                            enterZipCodeViewModel: EnterZipCodeViewModel(
+                                repository: AppDayOfWeekRepository(
+                                    persistenceController: PersistenceController.shared
+                                ),
+                                persistenceController: PersistenceController.shared
+                            )
+                        )
+                    case .review:
+                        ReviewDestinationView(
+                            viewModel: IslandListViewModel.shared,
+                            selectedIsland: island
+                        )
+                    }
+                } else {
+                    EmptyView()
+                }
+            }
         }
     }
 }

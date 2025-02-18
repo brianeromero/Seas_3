@@ -7,6 +7,7 @@
 
 import SwiftUI
 import CoreData
+import os
 
 struct ViewReviewSearch: View {
     @Binding var selectedIsland: PirateIsland?
@@ -40,19 +41,24 @@ struct ViewReviewSearch: View {
                 )
             }
             .onAppear {
-                print("View appeared")
+                os_log("ViewReviewSearch appeared", log: OSLog.default, type: .info)
                 viewModel.updateFilteredIslands(with: pirateIslands)
             }
             .onChange(of: viewModel.searchQuery) { newValue in
-                print("Search query changed: \(newValue)")
+                os_log("Search query changed: %@", log: OSLog.default, type: .info, newValue)
                 viewModel.updateFilteredIslands(with: pirateIslands)
             }
             .onChange(of: selectedIsland) { newIsland in
-                print("Selected Island: \(String(describing: newIsland?.islandName))")
+                if let islandName = newIsland?.islandName {
+                    os_log("Selected Island: %@", log: OSLog.default, type: .info, islandName)
+                } else {
+                    os_log("Selected Island: nil", log: OSLog.default, type: .info)
+                }
             }
         }
     }
 }
+
 
 class ViewReviewSearchViewModel: ObservableObject {
     @Published var searchQuery: String = ""

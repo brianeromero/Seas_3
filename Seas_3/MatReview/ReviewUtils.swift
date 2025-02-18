@@ -16,15 +16,15 @@ struct ReviewUtils {
             .sorted(by: { $0.createdTimestamp > $1.createdTimestamp })
     }
 
-    static func averageStarRating(for reviews: [Review]) -> String {
+    static func averageStarRating(for reviews: [Review]) -> Double {
         guard !reviews.isEmpty else {
-            return "No reviews"
+            return 0
         }
 
         let totalStars = reviews.reduce(0) { $0 + Int($1.stars) }
-        let averageStars = Double(totalStars) / Double(reviews.count)
-        return String(format: "%.1f", averageStars)
+        return Double(totalStars) / Double(reviews.count)
     }
+
 
     static func openInMaps(latitude: Double, longitude: Double, islandName: String, islandLocation: String) {
         if latitude != 0 && longitude != 0 {
