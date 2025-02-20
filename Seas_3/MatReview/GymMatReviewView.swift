@@ -12,6 +12,7 @@ import Firebase
 import FirebaseFirestore
 import os
 
+
 // Enum for star ratings
 public enum StarRating: Int, CaseIterable {
     case zero = 0, one, two, three, four, five
@@ -36,6 +37,9 @@ public enum StarRating: Int, CaseIterable {
 
 // Main view for Gym Mat Review
 struct GymMatReviewView: View {
+    
+    @State private var isReviewsFetched = false
+
     @State private var showReview = false
     @State private var activeIsland: PirateIsland?
     @State private var reviewText: String = ""
@@ -43,9 +47,9 @@ struct GymMatReviewView: View {
     @State private var showAlert = false
     @State private var alertMessage = ""
     @State private var isLoading = false
-    @State private var cachedAverageRating: Double = 0 // Cached average rating
-    @State private var isRatingUpdated = false // Flag to track if rating was updated
-    @State private var isInitialLoad = true // Flag to track initial view load
+    @State private var cachedAverageRating: Double = 0
+    @State private var isRatingUpdated = false
+    @State private var cachedIsland: PirateIsland?
     @Binding var localSelectedIsland: PirateIsland?
     @Binding var isPresented: Bool
     @StateObject var enterZipCodeViewModel: EnterZipCodeViewModel
@@ -55,6 +59,7 @@ struct GymMatReviewView: View {
         entity: PirateIsland.entity(),
         sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.islandName, ascending: true)]
     ) private var islands: FetchedResults<PirateIsland>
+    @State private var isReviewValid: Bool = false
 
     let onIslandChange: (PirateIsland?) -> Void
 
@@ -70,129 +75,22 @@ struct GymMatReviewView: View {
         self.onIslandChange = onIslandChange
     }
 
-    // Modified isReviewValid to require only a non-empty review text and a selected island
-    var isReviewValid: Bool {
-        let isReviewTextValid = !reviewText.trimmingCharacters(in: .whitespaces).isEmpty
-        return isReviewTextValid && localSelectedIsland != nil
-    }
-
-    var averageRating: Double {
-        if isInitialLoad || isRatingUpdated {
-            os_log("Fetching new averageRating", log: logger, type: .info)
-            guard let island = localSelectedIsland else {
-                os_log("No island selected", log: logger, type: .info)
-                return 0
-            }
-
-            // Fetch reviews for the selected island
-            let reviewsFetchRequest: NSFetchRequest<Review> = Review.fetchRequest()
-            reviewsFetchRequest.predicate = NSPredicate(format: "%K == %@", "island", island)
-
-            do {
-                os_log("Fetching reviews for island: %@", log: logger, type: .info, island.islandName ?? "Unknown")
-                let reviews = try viewContext.fetch(reviewsFetchRequest)
-
-                if reviews.isEmpty {
-                    os_log("No reviews found for island: %@", log: logger, type: .info, island.islandName ?? "Unknown")
-                    return 0
-                }
-
-                // Use ReviewUtils to calculate average rating
-                let reviewsArray = ReviewUtils.getReviews(from: island.reviews)
-                let average = ReviewUtils.averageStarRating(for: reviewsArray)
-                os_log("Calculated average rating for island %@: %.2f", log: logger, type: .info, island.islandName ?? "Unknown", average)
-
-                cachedAverageRating = average
-                isInitialLoad = false
-                isRatingUpdated = false
-                return average
-            } catch {
-                os_log("Error fetching reviews for island %@: %@", log: logger, type: .error, island.islandName ?? "Unknown", error.localizedDescription)
-                return 0
-            }
-        } else {
-            return cachedAverageRating
-        }
-    }
-
-
-
-    private func submitReview() {
-        guard let island = localSelectedIsland else {
-            alertMessage = "Please Select a Gym"
-            showAlert = true
-            return
-        }
-
-        isLoading = true
-
-        let newReview = Review(context: viewContext)
-        newReview.stars = Int16(selectedRating.rawValue)
-        newReview.review = reviewText
-        newReview.createdTimestamp = Date()
-        newReview.island = island
-        newReview.reviewID = UUID()
-
-        let reviewsFetchRequest: NSFetchRequest<Review> = Review.fetchRequest()
-        reviewsFetchRequest.predicate = NSPredicate(format: "%K == %@", "island", island)
-
-        do {
-            let existingReviews = try viewContext.fetch(reviewsFetchRequest)
-            let totalStars = existingReviews.reduce(0) { $0 + $1.stars }
-            let averageStars = existingReviews.isEmpty ? newReview.stars : (totalStars + newReview.stars) / Int16(existingReviews.count + 1)
-            newReview.averageStar = averageStars
-        } catch {
-            print("Error fetching existing reviews: \(error)")
-            newReview.averageStar = newReview.stars
-        }
-
-        do {
-            try viewContext.save()
-
-            // Save review to Firestore
-            let db = Firestore.firestore()
-            db.collection("reviews").document(newReview.reviewID.uuidString).setData([
-                "stars": newReview.stars,
-                "review": newReview.review,
-                "createdTimestamp": newReview.createdTimestamp,
-                "averageStar": newReview.averageStar,
-                "islandID": island.islandID?.uuidString ?? ""
-            ]) { error in
-                if let error = error {
-                    print("Error saving review to Firestore: \(error)")
-                } else {
-                    print("Review saved to Firestore successfully")
-                }
-            }
-
-            alertMessage = "Thank you for your review!"
-            presentationMode.wrappedValue.dismiss() // Dismiss the view
-
-            // Set the flag to recalculate the rating after review submission
-            isRatingUpdated = true
-        } catch {
-            print("Error saving review: \(error)")
-            alertMessage = "Failed to save review. Please try again."
-        }
-
-        isLoading = false
-        reviewText = ""
-        DispatchQueue.main.async {
-            showAlert = true
-        }
-    }
-
     var body: some View {
         VStack {
             Form {
                 IslandSection(islands: Array(islands), selectedIsland: $activeIsland, showReview: $showReview)
                     .onChange(of: activeIsland) { newIsland in
-                        if let island = newIsland {
+                        os_log("Island selection changed: %@", log: logger, type: .info, String(describing: newIsland))
+
+                        // Only fetch reviews if the selected island actually changed
+                        if let island = newIsland, island != cachedIsland {
+                            cachedIsland = island
                             localSelectedIsland = island
-                        } else {
-                            localSelectedIsland = nil
+                            isReviewsFetched = false // Reset the flag to allow fetching
+
+                            // Call onIslandChange only when it's actually a new island
+                            onIslandChange(island)
                         }
-                        onIslandChange(newIsland)
                     }
 
                 ReviewSection(reviewText: $reviewText, isReviewValid: isReviewValid)
@@ -210,16 +108,17 @@ struct GymMatReviewView: View {
                 }
                 Section(header: Text("Average Rating")) {
                     HStack {
-                        ForEach(0..<Int(averageRating.rounded()), id: \.self) { _ in
+                        ForEach(0..<Int(cachedAverageRating.rounded()), id: \.self) { index in
                             Image(systemName: "star.fill")
                                 .foregroundColor(.yellow)
+                                .id(index) // Ensure uniqueness
                         }
-                        Text(String(format: "%.1f", averageRating))
+                        Text(String(format: "%.1f", cachedAverageRating))
                     }
                 }
             }
 
-            Spacer() // Push everything to the top
+            Spacer()
 
             StarRatingsLedger()
                 .frame(height: 150)
@@ -229,16 +128,80 @@ struct GymMatReviewView: View {
         }
         .navigationTitle("Gym Mat Review")
         .onAppear {
-            activeIsland = localSelectedIsland
             os_log("GymMatReviewView appeared", log: logger, type: .info)
-
-            // Ensure data is loaded and view is rendered
+            
+            if !isReviewsFetched {
+                isReviewsFetched = true
+                // Trigger fetching logic for reviews (if necessary)
+                os_log("Fetching reviews...", log: logger, type: .info)
+            }
+            
             DispatchQueue.main.async {
                 os_log("GymMatReviewView finished loading and rendering", log: logger, type: .info)
             }
         }
+        .onDisappear {
+            os_log("GymMatReviewView disappeared", log: logger, type: .info)
+        }
+    }
+
+
+
+    private func submitReview() {
+        guard let island = localSelectedIsland else {
+            alertMessage = "Please Select a Gym"
+            showAlert = true
+            return
+        }
+
+        isLoading = true
+        os_log("Submitting review for island: %@", log: logger, type: .info, island.islandName ?? "Unknown")
+
+        let newReview = Review(context: viewContext)
+        newReview.stars = Int16(selectedRating.rawValue)
+        newReview.review = reviewText
+        newReview.createdTimestamp = Date()
+        newReview.island = island
+        newReview.reviewID = UUID()
+
+        do {
+            try viewContext.save()
+            os_log("Review saved to CoreData for island: %@", log: logger, type: .info, island.islandName ?? "Unknown")
+
+            let db = Firestore.firestore()
+            db.collection("reviews").document(newReview.reviewID.uuidString).setData([
+                "stars": newReview.stars,
+                "review": newReview.review,
+                "createdTimestamp": newReview.createdTimestamp,
+                "islandID": island.islandID?.uuidString ?? ""
+            ]) { error in
+                if let error = error {
+                    os_log("Error saving review to Firestore: %@", log: logger, type: .error, error.localizedDescription)
+                } else {
+                    os_log("Review saved to Firestore successfully", log: logger, type: .info)
+                }
+            }
+
+            isRatingUpdated = true
+            cachedAverageRating = ReviewUtils.fetchAverageRating(for: island, in: viewContext)
+
+            alertMessage = "Thank you for your review!"
+            presentationMode.wrappedValue.dismiss()
+
+        } catch {
+            os_log("Error saving review to CoreData: %@", log: logger, type: .error, error.localizedDescription)
+            alertMessage = "Failed to save review. Please try again."
+        }
+
+        isLoading = false
+        reviewText = ""
+        DispatchQueue.main.async {
+            showAlert = true
+        }
     }
 }
+
+
 
 // Reusable components for review section
 struct ReviewSection: View {
@@ -295,7 +258,7 @@ struct RatingSection: View {
     var body: some View {
         Section(header: Text("Rate the Gym")) {
             HStack {
-                ForEach(0..<5) { index in
+                ForEach(0..<5, id: \.self) { index in  // Ensure unique IDs
                     Image(systemName: index < selectedRating.rawValue ? "star.fill" : "star")
                         .foregroundColor(index < selectedRating.rawValue ? .yellow : .gray)
                         .onTapGesture {
@@ -312,6 +275,7 @@ struct RatingSection: View {
     }
 }
 
+
 // Ledger for displaying star ratings
 struct StarRatingsLedger: View {
     var body: some View {
@@ -320,9 +284,10 @@ struct StarRatingsLedger: View {
                 .font(.subheadline)
             ForEach(StarRating.allCases, id: \.self) { rating in
                 HStack {
-                    ForEach(rating.stars, id: \.self) { star in
+                    ForEach(Array(rating.stars.enumerated()), id: \.0) { index, star in
                         Image(systemName: star)
                             .font(.caption)
+                            .id(UUID()) // Ensure unique ID
                     }
                     Text("\(rating.description)")
                         .font(.system(size: 10))

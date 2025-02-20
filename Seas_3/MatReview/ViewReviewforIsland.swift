@@ -34,9 +34,8 @@ enum SortType: String, CaseIterable {
     }
 }
 
-
-
 struct ViewReviewforIsland: View {
+    @State private var isReviewViewPresented = false
     @Binding var showReview: Bool
     @Binding var selectedIsland: PirateIsland?
     @State private var selectedSortType: SortType = .latest
@@ -48,8 +47,7 @@ struct ViewReviewforIsland: View {
     // FetchRequest for Reviews related to the selected island
     @FetchRequest private var reviews: FetchedResults<Review>
 
-
-    // Initializer
+    // Initializer to setup FetchRequest for Reviews
     init(selectedIsland: Binding<PirateIsland?>, showReview: Binding<Bool>, enterZipCodeViewModel: EnterZipCodeViewModel) {
         self._selectedIsland = selectedIsland
         self._showReview = showReview
@@ -80,7 +78,7 @@ struct ViewReviewforIsland: View {
                             .padding(.horizontal, 16)
 
                         Text("Reviews \(reviews.count)")
-                        
+
                         if filteredReviews.isEmpty {
                             NavigationLink(
                                 destination: GymMatReviewView(
@@ -95,6 +93,8 @@ struct ViewReviewforIsland: View {
                                     .underline()
                                     .padding()
                             }
+                        } else {
+                            ReviewList(filteredReviews: filteredReviews, selectedSortType: $selectedSortType)
                         }
                     } else {
                         Text("No Gyms Selected")
@@ -119,7 +119,6 @@ struct ViewReviewforIsland: View {
         }
     }
 
-
     var filteredReviews: [Review] {
         let filtered = ReviewUtils.getReviews(from: NSOrderedSet(array: Array(reviews)))
         return filtered.sorted { review1, review2 in
@@ -135,14 +134,13 @@ struct ViewReviewforIsland: View {
     }
 }
 
-
-
 extension ViewReviewforIsland {
     static func getReviews(for island: PirateIsland?, allReviews: FetchedResults<Review>) -> [Review] {
         guard let island = island else { return [] }
         return allReviews.filter { $0.island == island }
     }
 }
+
 
 struct ReviewList: View {
     var filteredReviews: [Review]
@@ -155,7 +153,6 @@ struct ReviewList: View {
                     ForEach(filteredReviews, id: \.reviewID) { review in
                         NavigationLink(destination: FullReviewView(review: review)) {
                             VStack(alignment: .leading) {
-                                // Displaying review text with a character limit
                                 Text(review.review.prefix(100) + (review.review.count > 100 ? "..." : ""))
                                     .font(.body)
                                     .lineLimit(2)
@@ -166,11 +163,14 @@ struct ReviewList: View {
                                         Image(systemName: "star.fill")
                                             .foregroundColor(.yellow)
                                     }
+
                                     Spacer()
+
                                     Text(review.createdTimestamp, style: .date)
                                         .font(.subheadline)
                                         .foregroundColor(.secondary)
                                 }
+                                .padding()
                             }
                         }
                     }
@@ -226,6 +226,7 @@ struct FullReviewView: View {
                         .foregroundColor(.secondary)
                 }
                 .padding()
+
             }
         }
         .navigationTitle("Full Review")
