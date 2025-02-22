@@ -43,13 +43,17 @@ struct GymMatReviewSelect: View {
                 }
 
                 List(filteredIslands, id: \.self) { island in
-                    NavigationLink(destination: SelectedIslandView(
-                        island: island,
-                        enterZipCodeViewModel: enterZipCodeViewModel,
-                        onIslandChange: { newIsland in
-                            self.selectedIsland = newIsland  // No changes needed here as newIsland is already optional
+                    NavigationLink(
+                        destination: GymMatReviewView(
+                            localSelectedIsland: $selectedIsland,
+                            isPresented: .constant(true),
+                            enterZipCodeViewModel: enterZipCodeViewModel,
+                            onIslandChange: self.handleIslandChange
+                        )
+                        .onAppear {
+                            self.handleIslandChange(island)
                         }
-                    )) {
+                    ) {
                         VStack(alignment: .leading) {
                             Text(island.islandName ?? "Unknown Gym")
                                 .font(.headline)
@@ -58,6 +62,7 @@ struct GymMatReviewSelect: View {
                         }
                     }
                 }
+                .frame(minHeight: 400, maxHeight: .infinity)
                 .listStyle(PlainListStyle())
                 .navigationTitle("Select Gym to Review")
                 .alert(isPresented: $showNoMatchAlert) {
@@ -72,6 +77,11 @@ struct GymMatReviewSelect: View {
                 updateFilteredIslands()
             }
         }
+    }
+    
+    func handleIslandChange(_ newIsland: PirateIsland?) {
+        print("SELECTED ISLAND: \(newIsland?.islandName ?? "None")")
+        self.selectedIsland = newIsland
     }
 
     private func updateFilteredIslands() {
@@ -131,9 +141,30 @@ struct GymMatReviewSelect_Previews: PreviewProvider {
             persistenceController: PersistenceController.preview
         )
 
+        // Create sample islands for preview
+        let viewContext = PersistenceController.preview.container.viewContext
+        let sampleIslands: [PirateIsland] = [
+            PirateIsland(context: viewContext),
+            PirateIsland(context: viewContext),
+            PirateIsland(context: viewContext)
+        ]
+        
+        sampleIslands[0].islandName = "Sample Gym 1"
+        sampleIslands[0].islandLocation = "123 Main St, Anytown, USA"
+        
+        sampleIslands[1].islandName = "Sample Gym 2"
+        sampleIslands[1].islandLocation = "456 Elm St, Othertown, USA"
+        
+        sampleIslands[2].islandName = "Sample Gym 3"
+        sampleIslands[2].islandLocation = "789 Oak St, Thistown, USA"
+
+        // Save the sample islands to the preview context
+        try? viewContext.save()
+
         return GymMatReviewSelect(
             selectedIsland: .constant(nil),
             enterZipCodeViewModel: mockEnterZipCodeViewModel
         )
+        .previewDisplayName("List of Sample Gyms")
     }
 }

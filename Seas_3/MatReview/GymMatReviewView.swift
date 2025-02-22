@@ -37,9 +37,8 @@ public enum StarRating: Int, CaseIterable {
 
 // Main view for Gym Mat Review
 struct GymMatReviewView: View {
-    
+    @Binding var localSelectedIsland: PirateIsland?
     @State private var isReviewsFetched = false
-
     @State private var showReview = false
     @State private var activeIsland: PirateIsland?
     @State private var reviewText: String = ""
@@ -50,15 +49,18 @@ struct GymMatReviewView: View {
     @State private var cachedAverageRating: Double = 0
     @State private var isRatingUpdated = false
     @State private var cachedIsland: PirateIsland?
-    @Binding var localSelectedIsland: PirateIsland?
+    
     @Binding var isPresented: Bool
     @StateObject var enterZipCodeViewModel: EnterZipCodeViewModel
+
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.presentationMode) private var presentationMode
+
     @FetchRequest(
         entity: PirateIsland.entity(),
         sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.islandName, ascending: true)]
     ) private var islands: FetchedResults<PirateIsland>
+
     @State private var isReviewValid: Bool = false
 
     let onIslandChange: (PirateIsland?) -> Void
@@ -78,23 +80,18 @@ struct GymMatReviewView: View {
     var body: some View {
         VStack {
             Form {
-                IslandSection(islands: Array(islands), selectedIsland: $activeIsland, showReview: $showReview)
-                    .onChange(of: activeIsland) { newIsland in
-                        os_log("Island selection changed: %@", log: logger, type: .info, String(describing: newIsland))
-
-                        // Only fetch reviews if the selected island actually changed
-                        if let island = newIsland, island != cachedIsland {
-                            cachedIsland = island
-                            localSelectedIsland = island
-                            isReviewsFetched = false // Reset the flag to allow fetching
-
-                            // Call onIslandChange only when it's actually a new island
-                            onIslandChange(island)
-                        }
+                IslandSection(islands: Array(islands), selectedIsland: $localSelectedIsland, showReview: $showReview)
+                    .onChange(of: localSelectedIsland) { newIsland in
+                        guard let island = newIsland else { return }
+                        print("FROM GymMatReviewView: Island selection changed to \(island.islandName ?? "Unknown Gym")")
+                        cachedIsland = island
+                        isReviewsFetched = false      // Reset fetching state
+                        onIslandChange(island)        // Notify parent view
                     }
-
+                
                 ReviewSection(reviewText: $reviewText, isReviewValid: isReviewValid)
                 RatingSection(selectedRating: $selectedRating)
+
                 Button(action: submitReview) {
                     Text("Submit Review")
                 }
@@ -106,6 +103,7 @@ struct GymMatReviewView: View {
                         dismissButton: .default(Text("OK"))
                     )
                 }
+
                 Section(header: Text("Average Rating")) {
                     HStack {
                         ForEach(0..<Int(cachedAverageRating.rounded()), id: \.self) { index in
@@ -126,26 +124,26 @@ struct GymMatReviewView: View {
                 .background(Color.white.opacity(0.8))
                 .cornerRadius(10)
         }
+        .onChange(of: localSelectedIsland) { newIsland in
+            if let island = newIsland {
+                print("GymMatReviewView selectedIsland changed to: \(island.islandName ?? "None")")
+                self.activeIsland = island // Ensure it syncs correctly
+            } else {
+                print("GymMatReviewView selectedIsland changed to: None")
+            }
+        }
         .navigationTitle("Gym Mat Review")
         .onAppear {
+            if let selectedIsland = localSelectedIsland {
+                print("GymMatReviewView1 appeared with selectedIsland: \(selectedIsland.islandName ?? "None")")
+                self.activeIsland = selectedIsland // Ensure it syncs correctly
+            } else {
+                print("GymMatReviewView2 appeared with selectedIsland: None")
+            }
+
             os_log("GymMatReviewView appeared", log: logger, type: .info)
-            
-            if !isReviewsFetched {
-                isReviewsFetched = true
-                // Trigger fetching logic for reviews (if necessary)
-                os_log("Fetching reviews...", log: logger, type: .info)
-            }
-            
-            DispatchQueue.main.async {
-                os_log("GymMatReviewView finished loading and rendering", log: logger, type: .info)
-            }
-        }
-        .onDisappear {
-            os_log("GymMatReviewView disappeared", log: logger, type: .info)
         }
     }
-
-
 
     private func submitReview() {
         guard let island = localSelectedIsland else {

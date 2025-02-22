@@ -16,36 +16,23 @@ struct IslandSection: View {
 
     var body: some View {
         Section(header: Text("Select A Gym")) {
-            Picker("Select Gym", selection: Binding(
-                get: { selectedIsland },
-                set: { newIsland in
-                    // Only update the selectedIsland if it's really changed
-                    if selectedIsland != newIsland {
-                        selectedIsland = newIsland
-                        print("from IslandSection1: Selected Gym Updated: \(newIsland?.islandName ?? "Unknown Gym")")
-                    }
-                }
-            )) {
-                Text("Select Gym").tag(nil as PirateIsland?)
-
+            Picker("Select Gym", selection: $selectedIsland) {
+                Text("Select a Gym").tag(nil as PirateIsland?)
                 ForEach(islands, id: \.islandID) { island in
                     Text(island.islandName ?? "Unknown Gym")
                         .tag(island as PirateIsland?)
                 }
             }
-            .onAppear {
-                // Set showReview to true only if it's the first time selecting an island
-                if selectedIsland != nil {
-                    showReview = true
-                    print("FROM IslandSection2: Initial selected island: \(selectedIsland?.islandName ?? "Unknown Gym")")
+            .onChange(of: islands) { _ in
+                if !islands.isEmpty, selectedIsland == nil {
+                    selectedIsland = islands.first
                 }
             }
+            .onAppear {
+                print("FROM IslandSection2: Initial selected island: \(selectedIsland?.islandName ?? "No island selected initially.")")
+            }
             .onChange(of: selectedIsland) { newIsland in
-                // Show the review UI only if the island changes
-                if let newIsland = newIsland {
-                    showReview = true
-                    print("FROM IslandSection3: Selected Gym: \(newIsland.islandName ?? "Unknown Gym")")
-                }
+                print("FROM IslandSection3: Selected Gym: \(newIsland?.islandName ?? "No island selected.")")
             }
         }
     }

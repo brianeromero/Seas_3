@@ -30,12 +30,7 @@ struct SearchHeader: View {
     }
 }
 
-struct SearchHeader_Previews: PreviewProvider {
-    static var previews: some View {
-        SearchHeader()
-            .previewLayout(.sizeThatFits)
-    }
-}
+
 
 struct SearchBar: View {
     @Binding var text: String
@@ -63,23 +58,7 @@ struct SearchBar: View {
     }
 }
 
-struct SearchBar_Previews: PreviewProvider {
-    static var previews: some View {
-        Group {
-            SearchBar(text: .constant("Search..."))
-                .previewLayout(.sizeThatFits)
-                .previewDisplayName("With Text")
 
-            SearchBar(text: .constant(""))
-                .previewLayout(.sizeThatFits)
-                .previewDisplayName("Empty Text")
-
-            SearchBar(text: .constant("Canvas Preview"))
-                .previewLayout(.fixed(width: 300, height: 100))
-                .previewDisplayName("Canvas Preview")
-        }
-    }
-}
 
 struct GrayPlaceholderTextField: View {
     private let placeholder: String
@@ -132,6 +111,8 @@ class IslandListViewModel: ObservableObject {
 
 struct IslandListItem: View {
     let island: PirateIsland
+    @Binding var selectedIsland: PirateIsland?
+
 
     var body: some View {
         os_log("Rendering IslandListItem for %@", log: logger, island.islandName ?? "Unknown")
@@ -145,35 +126,34 @@ struct IslandListItem: View {
     }
 }
 
-
 struct IslandList: View {
     let islands: [PirateIsland]
     @Binding var selectedIsland: PirateIsland?
+    @Binding var searchText: String
     let navigationDestination: NavigationDestination
     let title: String
     @State private var showNavigationDestination = false
 
-    init(
-        islands: [PirateIsland],
-        selectedIsland: Binding<PirateIsland?>,
-        navigationDestination: NavigationDestination,
-        title: String
-    ) {
-        self.islands = islands
-        self._selectedIsland = selectedIsland
-        self.navigationDestination = navigationDestination
-        self.title = title
+    var filteredIslands: [PirateIsland] {
+        if searchText.isEmpty {
+            return islands
+        } else {
+            return islands.filter { island in
+                island.islandName?.lowercased().contains(searchText.lowercased()) ?? false ||
+                island.islandLocation?.lowercased().contains(searchText.lowercased()) ?? false
+            }
+        }
     }
 
     var body: some View {
         NavigationStack {
             List {
-                ForEach(islands, id: \.self) { island in
+                ForEach(filteredIslands, id: \.self) { island in
                     Button(action: {
                         selectedIsland = island
                         showNavigationDestination = true
                     }) {
-                        IslandListItem(island: island)
+                        IslandListItem(island: island, selectedIsland: $selectedIsland)
                     }
                 }
             }
@@ -243,37 +223,72 @@ struct ReviewDestinationView: View {
 }
 
 struct IslandList_Previews: PreviewProvider {
-    static var previews: some View {
-        os_log("Creating test island", log: logger)
-        let context = PersistenceController.preview.container.viewContext
-        let island = PirateIsland(context: context)
-        island.islandName = "Test Island"
-        island.islandLocation = "Test Location"
+    struct Preview: View {
+        @State private var searchText = ""
 
-        return Group {
-            IslandList(
-                islands: [island],
-                selectedIsland: .constant(nil),
-                navigationDestination: .editExistingIsland,
-                title: "Preview Title"
-            )
-            .previewLayout(.sizeThatFits)
-            .previewDisplayName("Default")
-            .onAppear {
-                os_log("Preview appeared", log: logger)
-            }
+        var body: some View {
+            os_log("Creating test island", log: logger)
+            let context = PersistenceController.preview.container.viewContext
+            let island = PirateIsland(context: context)
+            island.islandName = "Test Island"
+            island.islandLocation = "Test Location"
 
-            IslandList(
-                islands: [island],
-                selectedIsland: .constant(nil),
-                navigationDestination: .viewReviewForIsland,
-                title: "Canvas Preview Title"
-            )
-            .previewLayout(.fixed(width: 400, height: 600))
-            .previewDisplayName("Canvas Preview")
-            .onAppear {
-                os_log("Canvas preview appeared", log: logger)
+            return Group {
+                IslandList(
+                    islands: [island],
+                    selectedIsland: .constant(nil),
+                    searchText: $searchText,
+                    navigationDestination: .editExistingIsland,
+                    title: "Preview Title"
+                )
+                .previewLayout(.sizeThatFits)
+                .previewDisplayName("Default")
+                .onAppear {
+                    os_log("Preview appeared", log: logger)
+                }
+
+                IslandList(
+                    islands: [island],
+                    selectedIsland: .constant(nil),
+                    searchText: $searchText,
+                    navigationDestination: .viewReviewForIsland,
+                    title: "Canvas Preview Title"
+                )
+                .previewLayout(.fixed(width: 400, height: 600))
+                .previewDisplayName("Canvas Preview")
+                .onAppear {
+                    os_log("Canvas preview appeared", log: logger)
+                }
             }
         }
+    }
+
+    static var previews: some View {
+        Preview()
+    }
+}
+
+struct SearchBar_Previews: PreviewProvider {
+    static var previews: some View {
+        Group {
+            SearchBar(text: .constant("Search..."))
+                .previewLayout(.sizeThatFits)
+                .previewDisplayName("With Text")
+
+            SearchBar(text: .constant(""))
+                .previewLayout(.sizeThatFits)
+                .previewDisplayName("Empty Text")
+
+            SearchBar(text: .constant("Canvas Preview"))
+                .previewLayout(.fixed(width: 300, height: 100))
+                .previewDisplayName("Canvas Preview")
+        }
+    }
+}
+
+struct SearchHeader_Previews: PreviewProvider {
+    static var previews: some View {
+        SearchHeader()
+            .previewLayout(.sizeThatFits)
     }
 }

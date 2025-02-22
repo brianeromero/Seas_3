@@ -27,7 +27,7 @@ struct ViewReviewSearch: View {
                 SearchBar(text: $viewModel.searchQuery)
                 IslandList(
                     islands: viewModel.filteredIslands,
-                    selectedIsland: $selectedIsland,
+                    selectedIsland: $selectedIsland, searchText: $viewModel.searchQuery,
                     navigationDestination: .review,
                     title: titleString
                 )
@@ -141,7 +141,7 @@ struct ViewReviewSearch_Previews: PreviewProvider {
         return Group {
             ViewReviewSearch(
                 selectedIsland: .constant(mockIsland1),
-                titleString: "Explore Gym Reviews",
+                titleString: "Explore Gym Reviews2",
                 enterZipCodeViewModel: mockEnterZipCodeViewModel
             )
             .previewLayout(.sizeThatFits)
@@ -149,7 +149,7 @@ struct ViewReviewSearch_Previews: PreviewProvider {
 
             ViewReviewSearch(
                 selectedIsland: .constant(nil),
-                titleString: "Explore Gym Reviews",
+                titleString: "Explore Gym Reviews3",
                 enterZipCodeViewModel: mockEnterZipCodeViewModel
             )
             .previewLayout(.sizeThatFits)
@@ -157,7 +157,7 @@ struct ViewReviewSearch_Previews: PreviewProvider {
 
             ViewReviewSearch(
                 selectedIsland: .constant(nil),
-                titleString: "Explore Gym Reviews",
+                titleString: "Explore Gym Reviews4",
                 enterZipCodeViewModel: mockEnterZipCodeViewModel
             )
             .previewLayout(.sizeThatFits)

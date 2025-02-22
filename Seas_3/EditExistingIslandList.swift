@@ -43,7 +43,7 @@ struct EditExistingIslandListContent: View {
                 }
             IslandList(
                 islands: filteredIslands,
-                selectedIsland: $selectedIsland,
+                selectedIsland: $selectedIsland, searchText: $searchQuery,
                 navigationDestination: .editExistingIsland,
                 title: "Edit Gyms"
             )
