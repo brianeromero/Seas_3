@@ -42,8 +42,8 @@ struct AllMapView: View {
             let latitude = island.latitude
             let longitude = island.longitude
             
-            // Use ReviewUtils to get the reviews for the island
-            let reviews = ReviewUtils.getReviews(from: island.reviews)
+            // Use ReviewUtils to get the reviews for the island, with added caller function logging
+            let reviews = ReviewUtils.getReviews(from: island.reviews, callerFunction: #function)
             
             // Example: Printing reviews for debugging
             print("Reviews for \(title): \(reviews)")

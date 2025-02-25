@@ -13,66 +13,56 @@ import os.log
 import os
 
 struct ReviewUtils {
-    static func fetchAverageRating(for island: PirateIsland, in context: NSManagedObjectContext) -> Double {
-        os_log("Called fetchAverageRating from function: %@, in file: %@, line: %d, for island: %@", log: logger, type: .info, #function, #file, #line, island.islandName ?? "Unknown")
+    static func fetchAverageRating(for island: PirateIsland, in context: NSManagedObjectContext, callerFunction: String = #function) -> Double {
+        os_log("Called fetchAverageRating from function: %@ (caller: %@), in file: %@, line: %d, for island: %@",
+               log: logger, type: .info, #function, callerFunction, #file, #line, island.islandName ?? "Unknown")
         
         let fetchRequest = Review.fetchRequest(context: context, selectedIsland: island)
 
         do {
             let reviewsArray = try context.fetch(fetchRequest)
-            os_log("Fetched %d reviews for island: %@", log: logger, type: .info, reviewsArray.count, island.islandName ?? "Unknown")
+            os_log("Fetched %d reviews for island: %@ (caller: %@)",
+                   log: logger, type: .info, reviewsArray.count, island.islandName ?? "Unknown", callerFunction)
 
             guard !reviewsArray.isEmpty else {
-                os_log("No reviews found for island: %@", log: logger, type: .info, island.islandName ?? "Unknown")
+                os_log("No reviews found for island: %@ (caller: %@)",
+                       log: logger, type: .info, island.islandName ?? "Unknown", callerFunction)
                 return 0.0
             }
 
             let averageRating = reviewsArray.map { Double($0.stars) }.reduce(0, +) / Double(reviewsArray.count)
-            os_log("Average rating calculated: %.2f for island: %@", log: logger, type: .info, averageRating, island.islandName ?? "Unknown")
+            os_log("Average rating calculated: %.2f for island: %@ (caller: %@)",
+                   log: logger, type: .info, averageRating, island.islandName ?? "Unknown", callerFunction)
             return averageRating
         } catch {
-            os_log("Error fetching reviews for island %@: %@", log: logger, type: .error, island.islandName ?? "Unknown", error.localizedDescription)
+            os_log("Error fetching reviews for island %@ (caller: %@): %@",
+                   log: logger, type: .error, island.islandName ?? "Unknown", callerFunction, error.localizedDescription)
             return 0.0
         }
     }
 
     static var isReviewsFetched = false
 
-    static func getReviews(from reviews: Any?) -> [Review] {
-        os_log("Called getReviews from function: %@, in file: %@, line: %d", log: logger, type: .info, #function, #file, #line)
-        
-        // Check if reviews are already fetched
-        os_log("isReviewsFetched is currently: %@", log: logger, type: .info, String(isReviewsFetched))
-        
-        if !isReviewsFetched {
-            os_log("Reviews not fetched yet, fetching reviews...", log: logger, type: .info)
-            
-            // Fetch reviews logic here
-            fetchReviews()
-            
-            // After fetching, set the flag to true
-            isReviewsFetched = true
-            os_log("isReviewsFetched set to true", log: logger, type: .info)
-        } else {
-            os_log("Reviews already fetched, skipping fetch", log: logger, type: .info)
-        }
-        
-        // Check if reviews is of type NSOrderedSet
+    static func getReviews(from reviews: Any?, callerFunction: String = #function) -> [Review] {
+        os_log("Called getReviews from function: %@ (caller: %@), in file: %@, line: %d",
+               log: logger, type: .info, #function, callerFunction, #file, #line)
+
         if let orderedReviews = reviews as? NSOrderedSet {
-            os_log("Processing reviews from NSOrderedSet, count: %d", log: logger, type: .info, orderedReviews.count)
+            os_log("Processing reviews from NSOrderedSet, count: %d (caller: %@)",
+                   log: logger, type: .info, orderedReviews.count, callerFunction)
             return orderedReviews.compactMap { $0 as? Review }
                 .sorted(by: { $0.createdTimestamp > $1.createdTimestamp })
         }
-        
-        // Check if reviews is of type NSSet
+
         if let setReviews = reviews as? NSSet {
-            os_log("Processing reviews from NSSet, count: %d", log: logger, type: .info, setReviews.count)
+            os_log("Processing reviews from NSSet, count: %d (caller: %@)",
+                   log: logger, type: .info, setReviews.count, callerFunction)
             return setReviews.allObjects.compactMap { $0 as? Review }
                 .sorted(by: { $0.createdTimestamp > $1.createdTimestamp })
         }
-        
-        // If no valid review data is found
-        os_log("No valid review data found, returning empty array", log: logger, type: .info)
+
+        os_log("No valid review data found, returning empty array (caller: %@)",
+               log: logger, type: .info, callerFunction)
         return []
     }
 

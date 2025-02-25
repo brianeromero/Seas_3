@@ -1,4 +1,3 @@
-//
 //  ViewReviewforIsland.swift
 //  Seas_3
 //
@@ -36,16 +35,27 @@ enum SortType: String, CaseIterable {
 
 struct ViewReviewforIsland: View {
     @State private var isReviewViewPresented = false
+
     @Binding var showReview: Bool
     @Binding var selectedIsland: PirateIsland?
     @State private var selectedSortType: SortType = .latest
     @ObservedObject var enterZipCodeViewModel: EnterZipCodeViewModel
 
+    @State private var previousReviewCount = 0
+    @State private var previousSortType: SortType = .latest
+    @State private var filteredReviewsCache: [Review] = [] // Cache for filtered reviews
+    
+    @State private var hasInitializedGymMatReviewView = false
+    
+
     // FetchRequest for Pirate Islands
-    @FetchRequest(entity: PirateIsland.entity(), sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.islandName, ascending: true)]) private var islands: FetchedResults<PirateIsland>
+    @FetchRequest(entity: PirateIsland.entity(), sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.islandName, ascending: true)])
+    private var islands: FetchedResults<PirateIsland>
 
     // FetchRequest for Reviews related to the selected island
     @FetchRequest private var reviews: FetchedResults<Review>
+    
+    
 
     // Initializer to setup FetchRequest for Reviews
     init(selectedIsland: Binding<PirateIsland?>, showReview: Binding<Bool>, enterZipCodeViewModel: EnterZipCodeViewModel) {
@@ -53,21 +63,34 @@ struct ViewReviewforIsland: View {
         self._showReview = showReview
         self.enterZipCodeViewModel = enterZipCodeViewModel
 
-        // Define the fetch request for reviews
         let sortDescriptor = NSSortDescriptor(key: "createdTimestamp", ascending: false)
-        let predicate: NSPredicate = selectedIsland.wrappedValue == nil ?
-            NSPredicate(value: false) :
-            NSPredicate(format: "island == %@", selectedIsland.wrappedValue!.objectID)
 
-        self._reviews = FetchRequest(
-            entity: Review.entity(),
-            sortDescriptors: [sortDescriptor],
-            predicate: predicate
-        )
+        // Predicate that ensures reviews are fetched for the selected island
+        let predicate: NSPredicate
+        if let island = selectedIsland.wrappedValue {
+            predicate = NSPredicate(format: "island == %@", island.objectID)
+        } else {
+            // Log an error or handle the case where selectedIsland is unexpectedly nil
+            os_log("Error: selectedIsland is nil", log: logger, type: .error)
+            predicate = NSPredicate(value: false) // Avoid fetching anything if unexpectedly nil
+        }
+
+        let fetchLimit = 10 // Limit the number of reviews fetched
+
+        os_log("Initializing ViewReviewforIsland with selectedIsland: %@", log: logger, type: .info, selectedIsland.wrappedValue?.islandName ?? "None")
+
+        // Typecast the fetch request to NSFetchRequest<Review>
+        let request = Review.fetchRequest() as! NSFetchRequest<Review>
+        request.sortDescriptors = [sortDescriptor]
+        request.predicate = predicate
+        request.fetchLimit = fetchLimit // Set fetch limit
+
+        self._reviews = FetchRequest(fetchRequest: request, animation: .default)
     }
 
+
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ScrollView {
                 VStack(alignment: .leading) {
                     IslandSection(islands: Array(islands), selectedIsland: $selectedIsland, showReview: $showReview)
@@ -79,49 +102,62 @@ struct ViewReviewforIsland: View {
 
                         Text("Reviews \(reviews.count)")
 
-                        if filteredReviews.isEmpty {
-                            NavigationLink(
-                                destination: GymMatReviewView(
+
+                        if reviews.isEmpty {
+                            if !hasInitializedGymMatReviewView {
+                                NavigationLink(destination: GymMatReviewView(
                                     localSelectedIsland: $selectedIsland,
-                                    isPresented: .constant(false),
-                                    enterZipCodeViewModel: enterZipCodeViewModel
-                                ) { _ in }
-                            ) {
-                                Text("No reviews available. Be the first to write a review!")
-                                    .font(.headline)
-                                    .foregroundColor(.blue)
-                                    .underline()
-                                    .padding()
+                                    enterZipCodeViewModel: enterZipCodeViewModel,
+                                    onIslandChange: { _ in }
+                                )) {
+                                    Text("No reviews available. Be the first to write a review!")
+                                        .font(.headline)
+                                        .foregroundColor(.blue)
+                                        .underline()
+                                        .padding()
+                                }
+                                .simultaneousGesture(TapGesture().onEnded {
+                                    os_log("NavigationLink tapped", log: logger, type: .info)
+                                    os_log("Selected island: %@", log: logger, type: .info, selectedIsland?.islandName ?? "None")
+                                    hasInitializedGymMatReviewView = true
+                                })
                             }
-                        } else {
-                            ReviewList(filteredReviews: filteredReviews, selectedSortType: $selectedSortType)
                         }
-                    } else {
-                        Text("No Gyms Selected")
-                            .foregroundColor(.gray)
-                            .font(.headline)
-                            .padding()
                     }
                 }
+                .padding()
             }
-        }
-        .navigationTitle("View Reviews for Gym")
-        .onAppear {
-            os_log("ViewReviewforIsland appeared", log: logger, type: .info)
-
-            // Logging when view finishes loading
-            DispatchQueue.main.async {
-                os_log("ViewReviewforIsland finished loading and rendering", log: logger, type: .info)
-            }
-        }
-        .onChange(of: selectedSortType) { newSortType in
-            os_log("Selected Sort Type: %@", log: logger, type: .info, newSortType.rawValue)
+            .navigationTitle("View Reviews for Gym")
         }
     }
 
+
+
+    // Commented out the filteredReviews property for now
+    /*
     var filteredReviews: [Review] {
-        let filtered = ReviewUtils.getReviews(from: NSOrderedSet(array: Array(reviews)))
-        return filtered.sorted { review1, review2 in
+        // Log whenever the computed property is called
+        os_log("filteredReviews called", log: logger, type: .info)
+
+        if reviews.count == previousReviewCount && selectedSortType == previousSortType {
+            // No change in reviews or sort type, skip filtering
+            os_log("Returning cached filtered reviews", log: logger, type: .info)
+            return filteredReviewsCache
+        }
+
+        os_log("Filtering %d reviews using sort type: %@", log: logger, type: .info, reviews.count, selectedSortType.rawValue)
+
+        os_log("Reviews count before checking empty: %d", log: logger, type: .info, reviews.count)
+        if reviews.isEmpty { // Check if initial fetch is empty
+            os_log("Initial reviews fetch is empty, skipping further filtering.", log: logger, type: .info)
+            previousReviewCount = reviews.count
+            previousSortType = selectedSortType
+            return []
+        }
+
+        let filteredByIsland = ReviewUtils.getReviews(from: reviews)
+
+        let sortedReviews = filteredByIsland.sorted { review1, review2 in
             switch selectedSortType {
             case .latest:
                 return review1.createdTimestamp > review2.createdTimestamp
@@ -131,26 +167,35 @@ struct ViewReviewforIsland: View {
                 return review1.stars > review2.stars
             }
         }
+
+        // Log the number of reviews after sorting
+        os_log("Sorted %d reviews", log: logger, type: .info, sortedReviews.count)
+
+        // Cache the filtered reviews to avoid re-filtering if nothing has changed
+        previousReviewCount = reviews.count
+        previousSortType = selectedSortType
+        filteredReviewsCache = sortedReviews
+
+        return sortedReviews
     }
+    */
 }
 
-extension ViewReviewforIsland {
-    static func getReviews(for island: PirateIsland?, allReviews: FetchedResults<Review>) -> [Review] {
-        guard let island = island else { return [] }
-        return allReviews.filter { $0.island == island }
-    }
-}
 
+// Placeholder for future filtering logic
+// ReviewList(filteredReviews: Array(reviews), selectedSortType: $selectedSortType)
 
 struct ReviewList: View {
-    var filteredReviews: [Review]
+    // var filteredReviews: [Review] // Commented out
     @Binding var selectedSortType: SortType
 
     var body: some View {
         VStack {
-            if !filteredReviews.isEmpty {
+            // if !filteredReviews.isEmpty { // Commented out
+            if ![].isEmpty { // Temporary placeholder to prevent errors
                 List {
-                    ForEach(filteredReviews, id: \.reviewID) { review in
+                    // ForEach(filteredReviews, id: \.reviewID) { review in // Commented out
+                    ForEach([] as [Review], id: \.reviewID) { review in // Temporary empty array
                         NavigationLink(destination: FullReviewView(review: review)) {
                             VStack(alignment: .leading) {
                                 Text(review.review.prefix(100) + (review.review.count > 100 ? "..." : ""))
@@ -182,6 +227,7 @@ struct ReviewList: View {
         }
     }
 }
+
 
 struct SortSection: View {
     @Binding var selectedSortType: SortType

@@ -146,7 +146,6 @@ struct IslandModalView: View {
 
                                 NavigationLink(destination: GymMatReviewView(
                                     localSelectedIsland: .constant(selectedIsland),
-                                    isPresented: .constant(false),
                                     enterZipCodeViewModel: enterZipCodeViewModel,
                                     onIslandChange: { newIsland in
                                         // Handle island change

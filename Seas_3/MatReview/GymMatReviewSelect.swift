@@ -46,7 +46,6 @@ struct GymMatReviewSelect: View {
                     NavigationLink(
                         destination: GymMatReviewView(
                             localSelectedIsland: $selectedIsland,
-                            isPresented: .constant(true),
                             enterZipCodeViewModel: enterZipCodeViewModel,
                             onIslandChange: self.handleIslandChange
                         )
@@ -119,12 +118,11 @@ extension GymMatReviewSelect {
 struct SelectedIslandView: View {
     let island: PirateIsland
     var enterZipCodeViewModel: EnterZipCodeViewModel
-    var onIslandChange: (PirateIsland?) -> Void  // Changed to accept optional PirateIsland
+    var onIslandChange: (PirateIsland?) -> Void
 
     var body: some View {
         GymMatReviewView(
             localSelectedIsland: .constant(island),
-            isPresented: .constant(false),
             enterZipCodeViewModel: enterZipCodeViewModel,
             onIslandChange: onIslandChange
         )

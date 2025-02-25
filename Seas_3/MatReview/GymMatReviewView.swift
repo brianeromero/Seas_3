@@ -37,6 +37,7 @@ public enum StarRating: Int, CaseIterable {
 
 // Main view for Gym Mat Review
 struct GymMatReviewView: View {
+
     @Binding var localSelectedIsland: PirateIsland?
     @State private var isReviewsFetched = false
     @State private var showReview = false
@@ -49,9 +50,10 @@ struct GymMatReviewView: View {
     @State private var cachedAverageRating: Double = 0
     @State private var isRatingUpdated = false
     @State private var cachedIsland: PirateIsland?
-    
-    @Binding var isPresented: Bool
-    @StateObject var enterZipCodeViewModel: EnterZipCodeViewModel
+    @State private var hasInitialized = false
+
+    // ✅ Use @ObservedObject since it’s coming from the parent
+    @ObservedObject var enterZipCodeViewModel: EnterZipCodeViewModel
 
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.presentationMode) private var presentationMode
@@ -62,19 +64,21 @@ struct GymMatReviewView: View {
     ) private var islands: FetchedResults<PirateIsland>
 
     @State private var isReviewValid: Bool = false
+    @State private var reviews: [Review] = []
+    var onIslandChange: (PirateIsland?) -> Void
+    
+    @State private var isReviewViewPresented = false
 
-    let onIslandChange: (PirateIsland?) -> Void
 
     init(
         localSelectedIsland: Binding<PirateIsland?>,
-        isPresented: Binding<Bool>,
         enterZipCodeViewModel: EnterZipCodeViewModel,
         onIslandChange: @escaping (PirateIsland?) -> Void
     ) {
         self._localSelectedIsland = localSelectedIsland
-        self._isPresented = isPresented
-        self._enterZipCodeViewModel = StateObject(wrappedValue: enterZipCodeViewModel)
+        self.enterZipCodeViewModel = enterZipCodeViewModel
         self.onIslandChange = onIslandChange
+        os_log("GymMatReviewView initialized", log: logger, type: .info)
     }
 
     var body: some View {
@@ -83,12 +87,13 @@ struct GymMatReviewView: View {
                 IslandSection(islands: Array(islands), selectedIsland: $localSelectedIsland, showReview: $showReview)
                     .onChange(of: localSelectedIsland) { newIsland in
                         guard let island = newIsland else { return }
-                        print("FROM GymMatReviewView: Island selection changed to \(island.islandName ?? "Unknown Gym")")
+                        os_log("Island selection changed to: %@", log: logger, type: .info, island.islandName ?? "Unknown Gym")
                         cachedIsland = island
                         isReviewsFetched = false      // Reset fetching state
                         onIslandChange(island)        // Notify parent view
+                        os_log("Island selection change completed", log: logger, type: .info)
                     }
-                
+
                 ReviewSection(reviewText: $reviewText, isReviewValid: isReviewValid)
                 RatingSection(selectedRating: $selectedRating)
 
@@ -126,27 +131,43 @@ struct GymMatReviewView: View {
         }
         .onChange(of: localSelectedIsland) { newIsland in
             if let island = newIsland {
-                print("GymMatReviewView selectedIsland changed to: \(island.islandName ?? "None")")
-                self.activeIsland = island // Ensure it syncs correctly
+                os_log("GymMatReviewView selectedIsland changed to: %@", log: logger, type: .info, island.islandName ?? "None")
+                self.activeIsland = island
+
+                // Fetch reviews for the selected island
+                let request: NSFetchRequest<Review> = NSFetchRequest<Review>(entityName: "Review")
+                request.predicate = NSPredicate(format: "island == %@", island.objectID)
+                do {
+                    self.reviews = try viewContext.fetch(request)
+                } catch {
+                    os_log("Error fetching reviews: %@", log: logger, type: .error, error.localizedDescription)
+                }
+
+                // Update the review count
+                self.cachedAverageRating = ReviewUtils.fetchAverageRating(for: island, in: viewContext, callerFunction: #function)
+                os_log("Average rating for island %@: %.2f", log: logger, type: .info, island.islandName ?? "Unknown", self.cachedAverageRating)
+
             } else {
-                print("GymMatReviewView selectedIsland changed to: None")
+                os_log("GymMatReviewView selectedIsland changed to: None", log: logger, type: .info)
             }
         }
         .navigationTitle("Gym Mat Review")
         .onAppear {
-            if let selectedIsland = localSelectedIsland {
-                print("GymMatReviewView1 appeared with selectedIsland: \(selectedIsland.islandName ?? "None")")
-                self.activeIsland = selectedIsland // Ensure it syncs correctly
-            } else {
-                print("GymMatReviewView2 appeared with selectedIsland: None")
-            }
+            if !hasInitialized {
+                hasInitialized = true
 
-            os_log("GymMatReviewView appeared", log: logger, type: .info)
+                os_log("GymMatReviewView body appeared", log: logger, type: .info)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                    os_log("GymMatReviewView body still visible after 1 second", log: logger, type: .info)
+                    os_log("GymMatReviewView initialized", log: logger, type: .info)
+                }
+            }
         }
     }
 
     private func submitReview() {
         guard let island = localSelectedIsland else {
+            os_log("Review submission failed, no island selected", log: logger, type: .error)
             alertMessage = "Please Select a Gym"
             showAlert = true
             return
@@ -161,6 +182,8 @@ struct GymMatReviewView: View {
         newReview.createdTimestamp = Date()
         newReview.island = island
         newReview.reviewID = UUID()
+
+        os_log("Saving review to CoreData", log: logger, type: .info)
 
         do {
             try viewContext.save()
@@ -181,7 +204,8 @@ struct GymMatReviewView: View {
             }
 
             isRatingUpdated = true
-            cachedAverageRating = ReviewUtils.fetchAverageRating(for: island, in: viewContext)
+            // let avgRating = ReviewUtils.fetchAverageRating(for: island, in: viewContext, callerFunction: #function)
+            //os_log("Average rating for island %@: %.2f", log: logger, type: .info, island.islandName ?? "Unknown", avgRating)
 
             alertMessage = "Thank you for your review!"
             presentationMode.wrappedValue.dismiss()
@@ -194,6 +218,7 @@ struct GymMatReviewView: View {
         isLoading = false
         reviewText = ""
         DispatchQueue.main.async {
+            os_log("Review submission completed", log: logger, type: .info)
             showAlert = true
         }
     }
@@ -318,7 +343,6 @@ struct PreviewView: View {
         NavigationView {
             GymMatReviewView(
                 localSelectedIsland: $selectedIsland,
-                isPresented: .constant(true),
                 enterZipCodeViewModel: enterZipCodeViewModel
             ) { newIsland in
                 selectedIsland = newIsland
