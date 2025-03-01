@@ -81,8 +81,11 @@ class AppDayOfWeekRepository: ObservableObject {
     }
 
     func generateName(for island: PirateIsland, day: DayOfWeek) -> String {
-        return "\(island.islandName ?? "Unknown Gym") \(day.displayName)"
+        let name = "\(island.islandName ?? "Unknown Gym") \(day.displayName)"
+        print("Generated name: \(name)")  // Add this line
+        return name
     }
+
     
     func generateAppDayOfWeekID(for island: PirateIsland, day: DayOfWeek) -> String {
         return "\(island.islandName ?? "Unknown Gym")-\(day.rawValue)"
@@ -96,13 +99,21 @@ class AppDayOfWeekRepository: ObservableObject {
     func updateAppDayOfWeekName(_ appDayOfWeek: AppDayOfWeek, with island: PirateIsland, dayOfWeek: DayOfWeek, context: NSManagedObjectContext) {
         appDayOfWeek.name = generateName(for: island, day: dayOfWeek)
         appDayOfWeek.appDayOfWeekID = generateAppDayOfWeekID(for: island, day: dayOfWeek)
-        
+
+        // Check if name is nil
+        if appDayOfWeek.name == nil {
+            print("Warning: AppDayOfWeek name is nil!")
+            // Optionally, you can set a default name
+            appDayOfWeek.name = "Default Name"  // Example of setting a default
+        }
+
         do {
             try context.save()
         } catch {
             print("Failed to save context: \(error)")
         }
     }
+
 
     func updateAppDayOfWeek(_ appDayOfWeek: AppDayOfWeek?, with island: PirateIsland, dayOfWeek: DayOfWeek, context: NSManagedObjectContext) {
         if let unwrappedAppDayOfWeek = appDayOfWeek {
@@ -183,6 +194,7 @@ class AppDayOfWeekRepository: ObservableObject {
                 let newAppDayOfWeek = AppDayOfWeek(context: context)
                 newAppDayOfWeek.pIsland = pirateIsland
                 newAppDayOfWeek.day = day.displayName
+                newAppDayOfWeek.name = day.displayName // Set the name attribute
                 
                 try context.save()
                 return newAppDayOfWeek
@@ -192,6 +204,7 @@ class AppDayOfWeekRepository: ObservableObject {
             return nil
         }
     }
+
     
     // MARK:
     func addNewAppDayOfWeek(for day: DayOfWeek) {

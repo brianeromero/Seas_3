@@ -42,7 +42,7 @@ struct ScheduleFormView: View {
     @State private var alertTitle = ""
     @State private var alertMessage = ""
     @State private var daySelected = false
-    @State private var selectedDay: DayOfWeek? = .monday // Optional
+    @State private var selectedDay: DayOfWeek? = nil // No default selection
     @State private var showReview = false
     @State private var showClassScheduleModal = false
 
@@ -70,6 +70,10 @@ struct ScheduleFormView: View {
                     )
                     print("Island changed: \(island.islandName ?? ""), day: \(day)")
                 }
+            }
+            .onChange(of: selectedDay) { _ in
+                daySelected = true
+                print("ScheduleFormView: Selected day changed to \(selectedDay?.displayName ?? "None")")
             }
 
             daySelectionSection
@@ -155,13 +159,13 @@ struct ScheduleFormView: View {
         Section(header: Text("Select Day")) {
             Picker("Day", selection: $selectedDay) {
                 ForEach(DayOfWeek.allCases, id: \.self) { day in
-                    Text(day.displayName)
-                        .tag(day)
+                    Text(day.displayName).tag(day as DayOfWeek?)
                 }
             }
             .pickerStyle(SegmentedPickerStyle())
         }
     }
+
 
     private var errorHandlingSection: some View {
         Group {
@@ -195,6 +199,7 @@ struct ScheduleFormView: View {
         }
     }
 }
+
 
 struct CornerRadiusStyle: ViewModifier {
     let radius: CGFloat

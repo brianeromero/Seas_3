@@ -27,7 +27,7 @@ struct ScheduledMatTimesSection: View {
                 if !matTimes.isEmpty {
                     MatTimesList(day: day, matTimes: matTimes)
                 } else {
-                    Text("No mat times available for \(day.rawValue.capitalized) at \(island.islandName ?? "this gym").")
+                    Text("No mat times available/or have been entered for \(day.rawValue.capitalized) at \(island.islandName ?? "this gym").")
                         .foregroundColor(.gray)
                 }
             }

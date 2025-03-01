@@ -22,17 +22,12 @@ struct DaysOfWeekFormView: View {
     @Binding var selectedIsland: PirateIsland?
     @Binding var selectedMatTime: MatTime?
     @Binding var showReview: Bool
-    @State private var isLoading = false
-    @State private var isError = false
-    @State private var errorDescription = ""
-
-    @State private var showClassScheduleModal = false
-    @State private var selectedAppDayOfWeek: AppDayOfWeek?
-    @State private var showNoMatchAlert = false
-    @State private var searchQuery = ""
+    @State private var searchQuery: String = ""
     @State private var filteredIslands: [PirateIsland] = []
-
+    @State private var showNoMatchAlert: Bool = false
     @Environment(\.managedObjectContext) private var viewContext
+    @State private var isSelected = false
+
 
     init(viewModel: AppDayOfWeekViewModel, selectedIsland: Binding<PirateIsland?>, selectedMatTime: Binding<MatTime?>, showReview: Binding<Bool>) {
         self.viewModel = viewModel
@@ -49,7 +44,7 @@ struct DaysOfWeekFormView: View {
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Search by: gym name, postal code, or address/location")
+                Section(header: Text("Search by: gym name, zip code, or address/location")
                             .font(.headline)
                             .foregroundColor(.gray)) {
                     SearchBar(text: $searchQuery)
@@ -58,96 +53,71 @@ struct DaysOfWeekFormView: View {
                         }
                 }
 
-                IslandSection(
-                    islands: filteredIslands,
-                    selectedIsland: $selectedIsland,
-                    showReview: $showReview
-                )
-
-                if selectedIsland != nil {
+                List(filteredIslands, id: \.self) { island in
                     NavigationLink(
                         destination: ScheduleFormView(
                             islands: filteredIslands,
-                            selectedAppDayOfWeek: $selectedAppDayOfWeek,
+                            selectedAppDayOfWeek: .constant(nil),
                             selectedIsland: $selectedIsland,
                             viewModel: viewModel,
-                            matTimes: .constant([]) // Add this line
+                            matTimes: .constant([])
                         )
                     ) {
-                        Text("View Schedule")
-                    }
-                    .onChange(of: selectedIsland) { newIsland in
-                        if let island = newIsland {
-                            print("Navigating to ScheduleFormView for island: \(island.islandName ?? "Unknown Gym")")
+                        VStack(alignment: .leading) {
+                            Text(island.islandName ?? "Unknown Gym")
+                                .font(.headline)
+                            Text(island.islandLocation ?? "")
+                                .foregroundColor(.secondary)
                         }
                     }
                 }
-
-                if let matTime = selectedMatTime {
-                    Section(header: Text("Edit Mat Time")) {
-                        TextField("Time", text: Binding(
-                            get: { matTime.time ?? "" },
-                            set: { matTime.time = $0 }
-                        ))
-                    }
-                }
-
-                if isLoading {
-                    ProgressView("Loading...")
-                        .zIndex(1)
-                }
-
-                if isError {
-                    ErrorView(
-                        description: errorDescription,
-                        isError: $isError,
-                        retryAction: {
-                            Task {
-                                isLoading = true
-                                viewModel.fetchPirateIslands()
-                                isLoading = false
-                                updateFilteredIslands()
-                            }
-                        }
+                .frame(minHeight: 400, maxHeight: .infinity)
+                .listStyle(PlainListStyle())
+                .navigationTitle("Select Gym to View/Add Schedule")
+                .alert(isPresented: $showNoMatchAlert) {
+                    Alert(
+                        title: Text("No Match Found"),
+                        message: Text("No gyms match your search criteria."),
+                        dismissButton: .default(Text("OK"))
                     )
-                    .zIndex(1)
                 }
             }
-            .alert(isPresented: $showNoMatchAlert) {
-                Alert(
-                    title: Text("No Match Found"),
-                    message: Text("No gyms match your search criteria."),
-                    dismissButton: .default(Text("OK"))
-                )
-            }
-            .navigationBarTitle("Select Gym to View/Add Schedule")
             .onAppear {
-                print("DaysOfWeekFormView: selectedIsland = \(String(describing: selectedIsland))")
-                Task {
-                    isLoading = true
-                    viewModel.fetchPirateIslands()
-                    isLoading = false
-                    updateFilteredIslands()
-                }
+                print("Islands: \(islands.count)")
+                print("Filtered Islands: \(filteredIslands.count)")
+                updateFilteredIslands()
             }
         }
     }
 
     private func updateFilteredIslands() {
-        let lowercasedQuery = searchQuery.lowercased()
+        print("Updating filtered islands...")
+        debounce(0.5) {
+            self.performFiltering()
+        }
+    }
 
+    private func performFiltering() {
+        print("Performing filtering...")
+        let lowercasedQuery = searchQuery.lowercased()
+        
         if !searchQuery.isEmpty {
-            filteredIslands = islands.filter { island in
-                let predicate = NSPredicate(format: "islandName CONTAINS[c] %@ OR islandLocation CONTAINS[c] %@ OR gymWebsite.absoluteString CONTAINS[c] %@", argumentArray: [lowercasedQuery, lowercasedQuery, lowercasedQuery])
-                return predicate.evaluate(with: island)
-            }
-            print("Filtered Islands: \(filteredIslands.map { $0.islandName })")
+            let predicate = NSPredicate(format: "islandName CONTAINS[c] %@ OR islandLocation CONTAINS[c] %@ OR gymWebsite.absoluteString CONTAINS[c] %@", lowercasedQuery, lowercasedQuery, lowercasedQuery)
+            filteredIslands = islands.filter { predicate.evaluate(with: $0) }
         } else {
             filteredIslands = Array(islands)
-            print("All Islands: \(filteredIslands.map { $0.islandName })")
         }
-
+        
         showNoMatchAlert = filteredIslands.isEmpty && !searchQuery.isEmpty
+    }
+}
+
+// Custom Debounce Function
+extension DaysOfWeekFormView {
+    func debounce(_ interval: TimeInterval, action: @escaping () -> Void) {
+        Timer.scheduledTimer(withTimeInterval: interval, repeats: false) { _ in
+            action()
+        }
     }
 }
 

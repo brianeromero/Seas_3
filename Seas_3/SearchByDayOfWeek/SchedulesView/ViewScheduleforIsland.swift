@@ -55,7 +55,7 @@ struct ViewScheduleForIsland: View {
                         .frame(height: 250) // Set a fixed height for the section
                         
                     } else {
-                        Text("No mat times available for \(day.displayName) at \(island.islandName ?? "Unknown Gym").")
+                        Text("No mat times available for3 \(day.displayName) at \(island.islandName ?? "Unknown Gym").")
                             .foregroundColor(.gray)
                             .frame(height: 200) // Match the height of the scheduled section
                     }

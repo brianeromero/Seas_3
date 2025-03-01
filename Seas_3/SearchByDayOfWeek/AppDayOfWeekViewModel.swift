@@ -273,8 +273,10 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
         for appDayOfWeek: AppDayOfWeek
     ) throws -> MatTime {
         print("Using updateOrCreateMatTime, updating/creating MatTime for AppDayOfWeek with day: \(appDayOfWeek.day)")
-        
-        // Create or reuse the MatTime object
+
+        // Set the name attribute of the AppDayOfWeek instance
+        appDayOfWeek.name = appDayOfWeek.day
+
         let matTime = existingMatTime ?? MatTime(context: viewContext)
         matTime.configure(
             time: time,
@@ -287,26 +289,34 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
             goodForBeginners: goodForBeginners,
             kids: kids
         )
-        
-        // Add to AppDayOfWeek if it's a new MatTime
+
         if existingMatTime == nil {
             appDayOfWeek.addToMatTimes(matTime)
+            print("Added new MatTime to AppDayOfWeek.")
         }
-        
-        // Save context
-        do {
-            try viewContext.save()
-            print("Context saved successfully.")
-        } catch {
-            print("Failed to save context: \(error)")
-            throw error
+
+        if viewContext.hasChanges {
+            do {
+                // Fetch or create UserInfo entity
+                let fetchRequest: NSFetchRequest<UserInfo> = UserInfo.fetchRequest()
+                let results = try viewContext.fetch(fetchRequest)
+                if let userInfo = results.first {
+                    userInfo.name = "John Doe" // Set the name attribute
+                }
+                
+                try viewContext.save()
+                print("Context saved successfully for MatTime.")
+            } catch {
+                print("Failed to save context: \(error.localizedDescription)")
+                throw error
+            }
+        } else {
+            print("No changes detected in viewContext for MatTime.")
         }
-        
-        // Refresh mat times
+
         refreshMatTimes()
         print("MatTimes refreshed.")
-        
-        // Return the created or updated MatTime
+
         return matTime
     }
 

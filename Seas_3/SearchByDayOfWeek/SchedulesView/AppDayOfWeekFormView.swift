@@ -23,6 +23,9 @@ struct AppDayOfWeekFormView: View {
         animation: .default
     ) private var islands: FetchedResults<PirateIsland>
     
+    @ObservedObject var viewModel: AppDayOfWeekViewModel
+
+    
     var body: some View {
         Form {
             Section(header: Text("Day Information")) {
@@ -44,7 +47,7 @@ struct AppDayOfWeekFormView: View {
             }
             
             Button("Save") {
-                saveAppDayOfWeek()
+                viewModel.saveAppDayOfWeek()
             }
         }
     }
@@ -68,38 +71,14 @@ struct AppDayOfWeekFormView: View {
         }
     }
     
-    private func saveAppDayOfWeekToFirestore() {
-        guard let island = selectedIsland else { return }
-        
-        let data: [String: Any] = [
-            "day": day,
-            "name": name,
-            "appDayOfWeekID": appDayOfWeekID,
-            "pIsland": island.islandID ?? "",
-            "createdByUserId": "Unknown User",
-            "createdTimestamp": Date(),
-            "lastModifiedByUserId": "Unknown User",
-            "lastModifiedTimestamp": Date()
-        ]
-        
-        Firestore.firestore().collection("appDayOfWeek").document(appDayOfWeekID).setData(data) { error in
-            if let error = error {
-                print("Failed to save AppDayOfWeek to Firestore: \(error.localizedDescription)")
-            } else {
-                self.saveAppDayOfWeekLocally()
-            }
-        }
-    }
-    
-    private func saveAppDayOfWeek() {
-        saveAppDayOfWeekToFirestore()
-    }
-}
 
+}
 
 struct AppDayOfWeekFormView_Previews: PreviewProvider {
     static var previews: some View {
-        AppDayOfWeekFormView()
+        let repository = AppDayOfWeekRepository(persistenceController: PersistenceController.preview)
+        let enterZipCodeViewModel = EnterZipCodeViewModel(repository: repository, persistenceController: PersistenceController.preview)
+        AppDayOfWeekFormView(viewModel: AppDayOfWeekViewModel(repository: repository, enterZipCodeViewModel: enterZipCodeViewModel))
             .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
     }
 }

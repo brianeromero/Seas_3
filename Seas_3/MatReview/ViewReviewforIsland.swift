@@ -132,9 +132,6 @@ struct ViewReviewforIsland: View {
     }
 
 
-
-    // Commented out the filteredReviews property for now
-    /*
     var filteredReviews: [Review] {
         // Log whenever the computed property is called
         os_log("filteredReviews called", log: logger, type: .info)
@@ -178,24 +175,20 @@ struct ViewReviewforIsland: View {
 
         return sortedReviews
     }
-    */
 }
 
 
-// Placeholder for future filtering logic
 // ReviewList(filteredReviews: Array(reviews), selectedSortType: $selectedSortType)
 
 struct ReviewList: View {
-    // var filteredReviews: [Review] // Commented out
+    var filteredReviews: [Review]
     @Binding var selectedSortType: SortType
 
     var body: some View {
         VStack {
-            // if !filteredReviews.isEmpty { // Commented out
-            if ![].isEmpty { // Temporary placeholder to prevent errors
+            if !filteredReviews.isEmpty {
                 List {
-                    // ForEach(filteredReviews, id: \.reviewID) { review in // Commented out
-                    ForEach([] as [Review], id: \.reviewID) { review in // Temporary empty array
+                    ForEach(filteredReviews, id: \.reviewID) { review in
                         NavigationLink(destination: FullReviewView(review: review)) {
                             VStack(alignment: .leading) {
                                 Text(review.review.prefix(100) + (review.review.count > 100 ? "..." : ""))

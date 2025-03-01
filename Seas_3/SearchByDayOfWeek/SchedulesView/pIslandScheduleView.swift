@@ -72,7 +72,7 @@ struct pIslandScheduleView: View {
                             }
                         }
                     } else {
-                        Text("No mat times available for \(day.displayName)")
+                        Text("No mat times available for1 \(day.displayName)")
                             .foregroundColor(.gray)
                             .padding()
                     }

@@ -30,7 +30,7 @@ struct AddClassScheduleView: View {
         VStack {
             Form {
                 Section(header: Text("Class Details")) {
-                    Picker("Select Day", selection: $selectedDay) {
+                    Picker("Select Day2", selection: $selectedDay) {
                         ForEach(DayOfWeek.allCases, id: \.self) { day in
                             Text(day.rawValue.capitalized).tag(day)
                         }

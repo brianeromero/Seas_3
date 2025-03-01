@@ -52,7 +52,7 @@ struct AddOpenMatFormView: View {
     }
 
     var daySelectionSection: some View {
-        Section(header: Text("Select Day")) {
+        Section(header: Text("Select Day3")) {
             Picker("Day", selection: $viewModel.selectedDay) {
                 ForEach(DayOfWeek.allCases) { day in
                     Text(day.displayName).tag(day as DayOfWeek?)
