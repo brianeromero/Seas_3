@@ -12,7 +12,7 @@ import CoreData
 struct AddNewMatTimeSection: View {
     @Binding var selectedIsland: PirateIsland?
     @Binding var selectedAppDayOfWeek: AppDayOfWeek?
-    @Binding var selectedDay: DayOfWeek
+    @Binding var selectedDay: DayOfWeek?
     @StateObject var matTimesViewModel = MatTimesViewModel()
     @Binding var daySelected: Bool
     @State var matTime: MatTime?
@@ -20,11 +20,8 @@ struct AddNewMatTimeSection: View {
     @State private var showAlert: Bool = false
     @State private var alertTitle: String = ""
     @State private var alertMessage: String = ""
-
     @State private var selectedTime: Date = Date().roundToNearestHour()
     @State private var restrictionDescriptionInput: String = ""
-
-    // Define state properties for toggles
     @State private var gi: Bool = false
     @State private var noGi: Bool = false
     @State private var openMat: Bool = false
@@ -33,7 +30,24 @@ struct AddNewMatTimeSection: View {
     @State private var restrictions: Bool = false
     @ObservedObject var viewModel: AppDayOfWeekViewModel
     @State private var showRestrictionsTooltip = false
+    @State private var isAppDayOfWeekLoaded = false
+    @State private var isLoading = false
 
+    // Computed property for button disable state
+    var isAddNewMatTimeDisabled: Bool {
+        let result = !(daySelected && isMatTimeSet && !isLoading && (gi || noGi || openMat) && selectedAppDayOfWeek != nil)
+        
+        print("=== Add New Mat Time Button State ===")
+        print("Day Selected: \(daySelected)")
+        print("Is Mat Time Set: \(isMatTimeSet)")
+        print("Is Loading: \(isLoading)")
+        print("Mat Type Selected (Gi/NoGi/OpenMat): \(gi || noGi || openMat)")
+        print("Selected AppDayOfWeek: \(selectedAppDayOfWeek?.day ?? "None")")
+        print("Final Disabled State: \(result)")
+        print("=====================================")
+        
+        return result
+    }
 
     var body: some View {
         Section(header: Text("Add New Mat Time")) {
@@ -43,7 +57,6 @@ struct AddNewMatTimeSection: View {
                         isMatTimeSet = true
                         print("Selected time changed to: \(formatDateToString(newValue))")
                     }
-
 
                 ToggleView(title: "Gi", isOn: $gi)
                     .onChange(of: gi) { newValue in
@@ -59,8 +72,10 @@ struct AddNewMatTimeSection: View {
                     .onChange(of: openMat) { newValue in
                         print("Open Mat toggled: \(newValue)")
                     }
+
                 ToggleView(title: "Good for Beginners", isOn: $goodForBeginners)
                 ToggleView(title: "Kids Class", isOn: $kids)
+
                 HStack {
                     Text("Restrictions")
                     InfoTooltip(text: "*", tooltipMessage: "e.g., White Gis Only, Competition Class, Mat Fees Required, etc.")
@@ -83,23 +98,48 @@ struct AddNewMatTimeSection: View {
                     print("Selected AppDayOfWeek: \(selectedAppDayOfWeek?.day ?? "None")")
                     print("Mat Type Selection - Gi: \(gi), NoGi: \(noGi), Open Mat: \(openMat)")
                     
-                    if validateInput() {
-                        Task {
-                            await saveMatTime()
+                    if isAppDayOfWeekLoaded {
+                        if validateInput() {
+                            Task {
+                                await saveMatTime()
+                            }
                         }
+                    } else {
+                        alertTitle = "Error"
+                        alertMessage = "Please wait for the app day of week to load."
+                        showAlert = true
                     }
                 }) {
                     Text("Add New Mat Time")
                 }
-                .disabled(!(daySelected && isMatTimeSet && selectedAppDayOfWeek != nil && (gi || noGi || openMat)))
-
+                .disabled(isAddNewMatTimeDisabled) // Using computed property for clarity
             }
         }
         .onChange(of: selectedDay) { _ in
             daySelected = true
-            print("Selected day: \(selectedDay.displayName)")
+            print("Selected day changed to: \(selectedDay!.displayName)")
+            
             if let selectedIsland = selectedIsland {
-                selectIslandAndDay(island: selectedIsland, day: selectedDay)
+                Task {
+                    isLoading = true
+                    if let appDayOfWeek = await selectIslandAndDay(island: selectedIsland, day: selectedDay!) {
+                        selectedAppDayOfWeek = appDayOfWeek
+                        isAppDayOfWeekLoaded = true
+                    } else {
+                        print("Error: Failed to fetch or create AppDayOfWeek")
+                        alertTitle = "Error"
+                        alertMessage = "Failed to fetch or create AppDayOfWeek."
+                        showAlert = true
+                    }
+                    isLoading = false
+                }
+            }
+        }
+        .onChange(of: selectedAppDayOfWeek) { _ in
+            print("Selected AppDayOfWeek changed to: \(String(describing: selectedAppDayOfWeek?.day))")
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                print("Delayed check: Selected AppDayOfWeek is \(String(describing: selectedAppDayOfWeek?.day))")
             }
         }
         .alert(isPresented: $showAlert) {
@@ -108,6 +148,8 @@ struct AddNewMatTimeSection: View {
     }
 
     func validateInput() -> Bool {
+        print("Validating input with selectedAppDayOfWeek: \(String(describing: selectedAppDayOfWeek?.day))")
+        
         if !daySelected {
             alertTitle = "Error"
             alertMessage = "Please select a day."
@@ -124,7 +166,7 @@ struct AddNewMatTimeSection: View {
         
         if selectedAppDayOfWeek == nil {
             alertTitle = "Error"
-            alertMessage = "Please select an app day of week."
+            alertMessage = "Please wait for the app day of the week to load."
             showAlert = true
             return false
         }
@@ -138,6 +180,7 @@ struct AddNewMatTimeSection: View {
         
         return true
     }
+
 
     
     func saveMatTime() async {
@@ -164,7 +207,7 @@ struct AddNewMatTimeSection: View {
         print("Saving mat time for AppDayOfWeek: \(appDayOfWeek.day)")
 
         do {
-            let matTime = try viewModel.updateOrCreateMatTime(
+            let matTime = try await viewModel.updateOrCreateMatTime(
                 nil,
                 time: time,
                 type: matTimeType,
@@ -215,8 +258,6 @@ struct AddNewMatTimeSection: View {
         }
     }
 
-
-
     func resetStateVariables() {
         selectedTime = Date()
         gi = false
@@ -250,18 +291,19 @@ struct AddNewMatTimeSection: View {
         return matTimeType.joined(separator: ", ")
     }
 
-    func selectIslandAndDay(island: PirateIsland, day: DayOfWeek) {
-        if let appDayOfWeek = viewModel.repository.fetchOrCreateAppDayOfWeek(for: day, pirateIsland: island, context: viewModel.viewContext) {
-            selectedAppDayOfWeek = appDayOfWeek // Update selectedAppDayOfWeek here
-            print("Fetched/Created AppDayOfWeek: \(selectedAppDayOfWeek?.day ?? "None")")
+    func selectIslandAndDay(island: PirateIsland, day: DayOfWeek) async -> AppDayOfWeek? {
+        print("Attempting to select island and day")
+        
+        let (appDayOfWeek, _) = await viewModel.fetchCurrentDayOfWeek(for: island, day: day, selectedDayBinding: Binding(get: { self.selectedDay }, set: { self.selectedDay = $0 ?? .monday }))
+        
+        if let appDayOfWeek = appDayOfWeek {
+            print("Successfully fetched AppDayOfWeek")
+            return appDayOfWeek
         } else {
-            print("Error: Failed to fetch or create AppDayOfWeek for \(day.rawValue) at \(island.islandName ?? "")")
-            alertTitle = "Error"
-            alertMessage = "Failed to fetch or create AppDayOfWeek."
-            showAlert = true
+            print("Failed to fetch AppDayOfWeek")
+            return nil
         }
     }
-    
     
     func formatDateToString(_ date: Date) -> String {
         return DateFormat.time.string(from: date)
@@ -299,8 +341,9 @@ extension Date {
     }
 }
 
+/*
 struct AddNewMatTimeSection_Previews: PreviewProvider {
-    @State private static var selectedDay: DayOfWeek = .monday
+    @State private static var selectedDay: DayOfWeek? = .monday
 
     static var previews: some View {
         let pirateIsland = PirateIsland(context: PersistenceController.preview.container.viewContext)
@@ -341,3 +384,4 @@ struct AddNewMatTimeSection_Previews: PreviewProvider {
         }
     }
 }
+*/

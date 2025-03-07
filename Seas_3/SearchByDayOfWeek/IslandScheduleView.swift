@@ -80,17 +80,19 @@ struct IslandScheduleView: View {
                 // Use a default or previously selected day here
                 let dayToFetch: DayOfWeek = selectedDay ?? .monday
                 
-                _ = viewModel.fetchCurrentDayOfWeek(
-                    for: pIsland,
-                    day: dayToFetch,
-                    selectedDayBinding: Binding(
-                        get: { viewModel.selectedDay },
-                        set: { viewModel.selectedDay = $0 }
+                Task {
+                    _ = await viewModel.fetchCurrentDayOfWeek(
+                        for: pIsland,
+                        day: dayToFetch,
+                        selectedDayBinding: Binding(
+                            get: { viewModel.selectedDay },
+                            set: { viewModel.selectedDay = $0 }
+                        )
                     )
-                )
+                }
             }
         }
-    } // Closing bracket for body
+    }
 
     private func scheduleView(for schedule: AppDayOfWeek) -> some View {
         VStack(alignment: .leading, spacing: 8) {

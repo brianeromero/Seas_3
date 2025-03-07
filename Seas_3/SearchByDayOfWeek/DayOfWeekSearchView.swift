@@ -226,7 +226,7 @@ struct IslandAnnotationView: View {
         }
     }
 }
-
+/*
 struct DayOfWeekSearchView_Previews: PreviewProvider {
     
     private static func clearExistingData(viewContext: NSManagedObjectContext) {
@@ -345,3 +345,4 @@ struct DayOfWeekSearchView_Previews: PreviewProvider {
         .environment(\.managedObjectContext, viewContext)
     }
 }
+*/

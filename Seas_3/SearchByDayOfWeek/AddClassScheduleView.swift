@@ -76,7 +76,9 @@ struct AddClassScheduleView: View {
             }
         }
         .onAppear {
-            viewModel.initializeNewMatTime()
+            Task {
+                await viewModel.initializeNewMatTime()
+            }
         }
     }
 }

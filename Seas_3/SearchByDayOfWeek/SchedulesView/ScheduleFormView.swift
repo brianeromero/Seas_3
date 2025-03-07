@@ -42,7 +42,7 @@ struct ScheduleFormView: View {
     @State private var alertTitle = ""
     @State private var alertMessage = ""
     @State private var daySelected = false
-    @State private var selectedDay: DayOfWeek? = nil // No default selection
+    @State private var selectedDay: DayOfWeek? = nil
     @State private var showReview = false
     @State private var showClassScheduleModal = false
 
@@ -56,12 +56,16 @@ struct ScheduleFormView: View {
             .id(selectedIsland)
             .onAppear {
                 print("Selected Island: \(selectedIsland?.islandName ?? "No island selected")")
-                handleOnAppear()
+                Task {
+                    await handleOnAppear()
+                }
             }
 
             .onChange(of: selectedIsland) { newIsland in
                 print("Selected Island changed: \(String(describing: newIsland))")
-                setupInitialSelection()
+                Task {
+                    await setupInitialSelection()
+                }
             }
             .onChange(of: selectedAppDayOfWeek) { newSelectedAppDay in
                 print("selectedAppDayOfWeek changed: \(String(describing: newSelectedAppDay))")
@@ -75,7 +79,7 @@ struct ScheduleFormView: View {
             AddNewMatTimeSection(
                 selectedIsland: $selectedIsland,
                 selectedAppDayOfWeek: $selectedAppDayOfWeek,
-                selectedDay: selectedDayBinding,
+                selectedDay: $selectedDay,
                 daySelected: $daySelected,
                 viewModel: viewModel
             )
@@ -101,32 +105,42 @@ struct ScheduleFormView: View {
             Alert(title: Text(alertTitle), message: Text(alertMessage), dismissButton: .default(Text("OK")))
         }
         .onAppear {
-            logInitialSetup()
+            print("Selected Island: \(selectedIsland?.islandName ?? "No island selected")")
+            Task {
+                await logInitialSetup()
+            }
         }
     }
     
-    private func handleOnAppear() {
+    private func handleOnAppear() async {
         if selectedIsland == nil, let firstIsland = islands.first {
             selectedIsland = firstIsland // Ensure a default selection
         }
         
         print("handleOnAppear - Selected Island: \(selectedIsland?.islandName ?? "No island selected")")
 
-        setupInitialSelection() // Ensure this runs after selecting an island
+        await setupInitialSelection() // Ensure this runs after selecting an island
     }
 
-
-    private func logInitialSetup() {
+    private func logInitialSetup() async {
         if let island = selectedIsland {
             let day = selectedDay ?? .monday
-            _ = viewModel.fetchCurrentDayOfWeek(
+            
+            let (_, matTimes) = await viewModel.fetchCurrentDayOfWeek(
                 for: island,
                 day: day,
-                selectedDayBinding: Binding(get: { viewModel.selectedDay }, set: { viewModel.selectedDay = $0 })
+                selectedDayBinding: .init(get: { viewModel.selectedDay }, set: { viewModel.selectedDay = $0 ?? .monday })
             )
+
+            // Directly update @Published properties (already on main thread)
+            if let matTimes = matTimes {
+                viewModel.matTimesForDay[day] = matTimes
+            }
+
             print("Initial island set: \(island.islandName ?? ""), day: \(day)")
         }
     }
+
     
     private var selectedDayBinding: Binding<DayOfWeek> {
         Binding(get: {
@@ -134,13 +148,13 @@ struct ScheduleFormView: View {
         }, set: { selectedDay = $0 })
     }
     
-    private func setupInitialSelection() {
-        updateDayOfWeek()
+    private func setupInitialSelection() async {
+        await updateDayOfWeek()
     }
 
-    func updateDayOfWeek() {
+    func updateDayOfWeek() async {
         if let island = selectedIsland, let day = selectedDay {
-            _ = viewModel.fetchCurrentDayOfWeek(
+            _ = await viewModel.fetchCurrentDayOfWeek(
                 for: island,
                 day: day,
                 selectedDayBinding: Binding(get: { viewModel.selectedDay }, set: { viewModel.selectedDay = $0 })
@@ -157,6 +171,9 @@ struct ScheduleFormView: View {
                 }
             }
             .pickerStyle(SegmentedPickerStyle())
+        }
+        .onChange(of: selectedDay) { newDay in
+            print("Selected day: \(newDay?.displayName ?? "None")")
         }
     }
 

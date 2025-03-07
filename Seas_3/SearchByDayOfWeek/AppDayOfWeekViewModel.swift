@@ -87,19 +87,21 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
     }
     
     // Method to fetch AppDayOfWeek later
-    func updateDayAndFetch(day: DayOfWeek) {
+    func updateDayAndFetch(day: DayOfWeek) async {
         guard let island = selectedIsland else {
             print("Island is not set.")
             return
         }
         
-        // Fetch and assign the current day of the week
-        if let _ = fetchCurrentDayOfWeek(for: island, day: day, selectedDayBinding: Binding(get: { self.selectedDay }, set: { self.selectedDay = $0 })) {
+        let (appDayOfWeek, matTimes) = await fetchCurrentDayOfWeek(for: island, day: day, selectedDayBinding: Binding(get: { self.selectedDay }, set: { self.selectedDay = $0 ?? .monday }))
+        
+        if appDayOfWeek != nil && matTimes != nil {
             print("Updated day and fetched MatTimes.")
         } else {
             print("Failed to update day and fetch MatTimes.")
         }
     }
+    
     
     // MARK: - Methods
     func saveData() async {
@@ -171,7 +173,8 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
     }
     
     // MARK: - Ensure Initialization
-    func ensureInitialization() {
+    // MARK: - Ensure Initialization
+    func ensureInitialization() async {
         if selectedIsland == nil {
             errorMessage = "Island is not selected."
             print("Error: Island is not selected.")
@@ -185,8 +188,9 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
             return
         }
         
-        // Fetch and assign the current day of the week
-        if let _ = fetchCurrentDayOfWeek(for: selectedIsland!, day: selectedDay, selectedDayBinding: Binding(get: { self.selectedDay }, set: { self.selectedDay = $0 })) {
+        let (appDayOfWeek, matTimes) = await fetchCurrentDayOfWeek(for: selectedIsland!, day: selectedDay, selectedDayBinding: Binding(get: { self.selectedDay }, set: { self.selectedDay = $0 ?? .monday }))
+        
+        if appDayOfWeek != nil && matTimes != nil {
             print("Current day of the week initialized.")
         } else {
             print("Failed to fetch current day of the week.")
@@ -195,10 +199,15 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
     
     // MARK: - Fetch Current Day Of Week
     // Populates the matTimesForDay dictionary with the scheduled mat times for each day
-    func fetchCurrentDayOfWeek(for island: PirateIsland, day: DayOfWeek, selectedDayBinding: Binding<DayOfWeek?>) -> AppDayOfWeek? {
+    @MainActor
+    func fetchCurrentDayOfWeek(for island: PirateIsland, day: DayOfWeek, selectedDayBinding: Binding<DayOfWeek?>) async -> (AppDayOfWeek?, [MatTime]?) {
+        print("Attempting to fetch current day of week for island: \(island.islandName ?? ""), day: \(day)")
+
         if let appDayOfWeek = repository.fetchOrCreateAppDayOfWeek(for: day, pirateIsland: island, context: repository.getViewContext()) {
-            selectedDayBinding.wrappedValue = day
+            print("Successfully fetched or created AppDayOfWeek")
             
+            selectedDayBinding.wrappedValue = day // ✅ Runs on the main thread
+
             // Refresh the context
             repository.getViewContext().refresh(appDayOfWeek, mergeChanges: true)
             
@@ -210,30 +219,28 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
                     print("MatTime \(matTime.time ?? "Unknown Time") has appDayOfWeek: \(matTime.appDayOfWeek?.day ?? "None")")
                 }
             }
-            
-            // Update matTimesForDay dictionary
-            matTimesForDay[day] = appDayOfWeek.matTimes?.allObjects as? [MatTime] ?? []
-            
+
             // Fetch from Firestore
-            firestore.collection("appDayOfWeek").document(day.rawValue).getDocument { document, error in
-                if let error = error {
-                    print("Failed to fetch AppDayOfWeek from Firestore: \(error.localizedDescription)")
-                    return
-                }
-                
-                if let document = document, let data = document.data() {
+            do {
+                let document = try await firestore.collection("appDayOfWeek").document(day.rawValue).getDocument()
+                if let data = document.data() {
                     // Update AppDayOfWeek properties
-                    appDayOfWeek.configure(day: data)  // Now works with the updated configure method
+                    appDayOfWeek.configure(day: data)  // ✅ This now runs on the main thread
+                    print("Successfully fetched AppDayOfWeek from Firestore")
+                } else {
+                    print("Failed to fetch AppDayOfWeek from Firestore: No data found")
                 }
+            } catch {
+                print("Failed to fetch AppDayOfWeek from Firestore: \(error.localizedDescription)")
             }
-            
-            return appDayOfWeek
+
+            return (appDayOfWeek, appDayOfWeek.matTimes?.allObjects as? [MatTime] ?? [])
         } else {
-            print("Failed to fetch or create AppDayOfWeek for day: \(day) and island: \(island.islandName ?? "")")
-            matTimesForDay[day] = []
-            return nil
+            print("Failed to fetch or create AppDayOfWeek")
+            return (nil, nil)
         }
     }
+
 
     // MARK: - Add or Update Mat Time
     func addOrUpdateMatTime(
@@ -271,7 +278,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
         goodForBeginners: Bool,
         kids: Bool,
         for appDayOfWeek: AppDayOfWeek
-    ) throws -> MatTime {
+    ) async throws -> MatTime {
         print("Using updateOrCreateMatTime, updating/creating MatTime for AppDayOfWeek with day: \(appDayOfWeek.day)")
 
         // Set the name attribute of the AppDayOfWeek instance
@@ -314,18 +321,20 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
             print("No changes detected in viewContext for MatTime.")
         }
 
-        refreshMatTimes()
+        await refreshMatTimes()
         print("MatTimes refreshed.")
 
         return matTime
     }
 
-    // MARK: - Refresh MatTimes -     // Assuming you have a property to store the selected day
-    func refreshMatTimes() {
+    // MARK: - Refresh MatTimes
+    func refreshMatTimes() async {
         print("Refreshing MatTimes")
         if let selectedIsland = selectedIsland, let unwrappedSelectedDay = selectedDay {
             // Fetch and assign the current day of the week
-            if let _ = fetchCurrentDayOfWeek(for: selectedIsland, day: unwrappedSelectedDay, selectedDayBinding: Binding(get: { self.selectedDay }, set: { self.selectedDay = $0 })) {
+            let (appDayOfWeek, matTimes) = await fetchCurrentDayOfWeek(for: selectedIsland, day: unwrappedSelectedDay, selectedDayBinding: Binding(get: { self.selectedDay }, set: { self.selectedDay = $0 ?? .monday }))
+            
+            if appDayOfWeek != nil && matTimes != nil {
                 print("MatTimes refreshed successfully.")
             } else {
                 print("Failed to refresh MatTimes.")
@@ -333,7 +342,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
         } else {
             print("Error: Either island or day is not selected.")
         }
-        initializeNewMatTime()
+        await initializeNewMatTime()
     }
     
     // MARK: - Fetch MatTimes for Day
@@ -378,10 +387,10 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
             }
             
             await saveData()
-            refreshMatTimes()
+            await refreshMatTimes() // Added await here
         } else {
             // Handle the case where appDayOfWeek is nil, if needed
-            print("Failed to fetch or create AppDayOfWeek.")
+            print("Failed to fetch or create AppDayOfWeek2.")
         }
     }
     
@@ -405,7 +414,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
         print("Day settings initialized: \(dayOfWeekStates)")
     }
     // MARK: - Initialize New MatTime
-    func initializeNewMatTime() {
+    func initializeNewMatTime() async {
         print("Initializing new MatTime")
         newMatTime = MatTime(context: viewContext)
     }
@@ -663,14 +672,17 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
     func handleUserInteraction() {
         guard let name = name, !name.isEmpty else {
             print("Error: Name is empty.")
-            saveEnabled = false
+            DispatchQueue.main.async {
+                self.saveEnabled = false
+            }
             return
         }
         
-        saveEnabled = true
+        DispatchQueue.main.async {
+            self.saveEnabled = true
+        }
         print("User interaction handled: Save enabled.")
     }
-    
     // MARK: - Binding for Day Selection
     func binding(for day: DayOfWeek) -> Binding<Bool> {
         print("Creating binding for day: \(day.displayName)")
@@ -729,7 +741,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
                     if let appDayOfWeek = appDayOfWeek {
                         await addMatTime(matTime: newMatTime, for: day, appDayOfWeek: appDayOfWeek)
                     } else {
-                        print("Failed to fetch or create AppDayOfWeek")
+                        print("Failed to fetch or create AppDayOfWeek3")
                     }
                 }
             }
@@ -790,7 +802,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
                 
                 await addMatTime(matTime: matTime, for: day, appDayOfWeek: appDayOfWeek)
                 await saveData()
-                refreshMatTimes()
+                await refreshMatTimes() // Added await here
                 print("Mat times for day: \(day) - \(matTimesForDay[day] ?? []) FROM func addMatTime")
             }
         }

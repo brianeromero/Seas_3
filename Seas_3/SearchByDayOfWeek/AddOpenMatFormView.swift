@@ -37,14 +37,16 @@ struct AddOpenMatFormView: View {
         .onAppear {
             viewModel.fetchPirateIslands()
             if let selectedIsland = selectedIsland, let selectedDay = viewModel.selectedDay {
-                _ = viewModel.fetchCurrentDayOfWeek(
-                    for: selectedIsland,
-                    day: selectedDay,
-                    selectedDayBinding: Binding(
-                        get: { viewModel.selectedDay },
-                        set: { viewModel.selectedDay = $0 }
+                Task {
+                    _ = await viewModel.fetchCurrentDayOfWeek(
+                        for: selectedIsland,
+                        day: selectedDay,
+                        selectedDayBinding: Binding(
+                            get: { viewModel.selectedDay },
+                            set: { viewModel.selectedDay = $0 }
+                        )
                     )
-                )
+                }
             } else {
                 print("No gym or day selected")
             }
