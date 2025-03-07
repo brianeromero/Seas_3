@@ -23,20 +23,28 @@ struct IslandSection: View {
                         .tag(island as PirateIsland?)
                 }
             }
+            .onAppear {
+                // If selectedIsland is nil, set it to the first island from the list
+                if selectedIsland == nil, !islands.isEmpty {
+                    selectedIsland = islands.first
+                }
+                print("FROM IslandSection2: Initial selected island: \(selectedIsland?.islandName ?? "No island selected initially.")")
+            }
             .onChange(of: islands) { _ in
+                // If islands change and selectedIsland is nil, set to the first one
                 if !islands.isEmpty, selectedIsland == nil {
                     selectedIsland = islands.first
                 }
             }
-            .onAppear {
-                print("FROM IslandSection2: Initial selected island: \(selectedIsland?.islandName ?? "No island selected initially.")")
-            }
             .onChange(of: selectedIsland) { newIsland in
+                // Handle selected island change
                 print("FROM IslandSection3: Selected Gym: \(newIsland?.islandName ?? "No island selected.")")
             }
         }
+        .id(selectedIsland?.islandID ?? UUID()) // Use UUID to force view reload on islandID change
     }
 }
+
 
 
 struct IslandSection_Previews: PreviewProvider {

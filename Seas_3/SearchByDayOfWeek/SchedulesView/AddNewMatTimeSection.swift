@@ -252,8 +252,8 @@ struct AddNewMatTimeSection: View {
 
     func selectIslandAndDay(island: PirateIsland, day: DayOfWeek) {
         if let appDayOfWeek = viewModel.repository.fetchOrCreateAppDayOfWeek(for: day, pirateIsland: island, context: viewModel.viewContext) {
-            selectedAppDayOfWeek = appDayOfWeek
-            print("Fetched/Created AppDayOfWeek: \(selectedAppDayOfWeek?.day ?? "None")") // <--- ADD HERE
+            selectedAppDayOfWeek = appDayOfWeek // Update selectedAppDayOfWeek here
+            print("Fetched/Created AppDayOfWeek: \(selectedAppDayOfWeek?.day ?? "None")")
         } else {
             print("Error: Failed to fetch or create AppDayOfWeek for \(day.rawValue) at \(island.islandName ?? "")")
             alertTitle = "Error"

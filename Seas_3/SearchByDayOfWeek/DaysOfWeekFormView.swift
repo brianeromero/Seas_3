@@ -27,7 +27,7 @@ struct DaysOfWeekFormView: View {
     @State private var showNoMatchAlert: Bool = false
     @Environment(\.managedObjectContext) private var viewContext
     @State private var isSelected = false
-
+    @State private var navigationSelectedIsland: PirateIsland?
 
     init(viewModel: AppDayOfWeekViewModel, selectedIsland: Binding<PirateIsland?>, selectedMatTime: Binding<MatTime?>, showReview: Binding<Bool>) {
         self.viewModel = viewModel
@@ -61,7 +61,9 @@ struct DaysOfWeekFormView: View {
                             selectedIsland: $selectedIsland,
                             viewModel: viewModel,
                             matTimes: .constant([])
-                        )
+                        ),
+                        tag: island,
+                        selection: $navigationSelectedIsland  // Use intermediate state
                     ) {
                         VStack(alignment: .leading) {
                             Text(island.islandName ?? "Unknown Gym")
@@ -73,7 +75,6 @@ struct DaysOfWeekFormView: View {
                 }
                 .frame(minHeight: 400, maxHeight: .infinity)
                 .listStyle(PlainListStyle())
-                .navigationTitle("Select Gym to View/Add Schedule")
                 .alert(isPresented: $showNoMatchAlert) {
                     Alert(
                         title: Text("No Match Found"),
@@ -82,23 +83,32 @@ struct DaysOfWeekFormView: View {
                     )
                 }
             }
+            .navigationTitle("Gym Schedules")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Text("Select Gym to View/Add Schedule")
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                }
+            }
             .onAppear {
-                print("Islands: \(islands.count)")
-                print("Filtered Islands: \(filteredIslands.count)")
+                print("OnAppear triggered, updating filtered islands.")
                 updateFilteredIslands()
+
+                print("Filtered Islands after update: \(filteredIslands.map { $0.islandName ?? "Unknown Gym" })")
+                print("FROM DaysOfWeekFormView Selected Island: \(selectedIsland?.islandName ?? "No island selected")")
+            }
+            // Listen for changes to navigationSelectedIsland and update selectedIsland
+            .onChange(of: navigationSelectedIsland) { newSelection in
+                if let selected = newSelection {
+                    selectedIsland = selected  // Only update when user selects a new island
+                }
             }
         }
     }
 
-    private func updateFilteredIslands() {
-        print("Updating filtered islands...")
-        debounce(0.5) {
-            self.performFiltering()
-        }
-    }
 
-    private func performFiltering() {
-        print("Performing filtering...")
+    private func updateFilteredIslands() {
         let lowercasedQuery = searchQuery.lowercased()
         
         if !searchQuery.isEmpty {
@@ -110,6 +120,23 @@ struct DaysOfWeekFormView: View {
         
         showNoMatchAlert = filteredIslands.isEmpty && !searchQuery.isEmpty
     }
+
+    private func performFiltering() {
+        print("Performing filtering...") // Log when filtering is performed
+        let lowercasedQuery = searchQuery.lowercased()
+        
+        if !searchQuery.isEmpty {
+            let predicate = NSPredicate(format: "islandName CONTAINS[c] %@ OR islandLocation CONTAINS[c] %@ OR gymWebsite.absoluteString CONTAINS[c] %@", lowercasedQuery, lowercasedQuery, lowercasedQuery)
+            filteredIslands = islands.filter { predicate.evaluate(with: $0) }
+            print("Filtered Islands Count: \(filteredIslands.count)") // Log the count after filtering
+        } else {
+            filteredIslands = Array(islands)
+            print("Showing all Islands Count: \(filteredIslands.count)") // Log the count when no query is entered
+        }
+        
+        showNoMatchAlert = filteredIslands.isEmpty && !searchQuery.isEmpty
+        print("No match alert: \(showNoMatchAlert)") // Log the state of the no match alert
+    }
 }
 
 // Custom Debounce Function
@@ -120,6 +147,7 @@ extension DaysOfWeekFormView {
         }
     }
 }
+
 
 
 struct ErrorView: View {

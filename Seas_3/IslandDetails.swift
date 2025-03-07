@@ -129,7 +129,7 @@ class IslandDetails: ObservableObject, Equatable {
     
     // MARK: - Validation Logic
     private func validateForm() {
-        os_log("Validating form 789: islandName = %@", log: .default, type: .debug, islandName)
+        //os_log("Validating form 789: islandName = %@", log: .default, type: .debug, islandName)
 
         let fieldsValid = requiredAddressFields.allSatisfy { field in
             switch field {

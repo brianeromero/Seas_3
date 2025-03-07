@@ -28,13 +28,13 @@ extension MatTime {
     }
 }
 
+
 struct ScheduleFormView: View {
     @Environment(\.managedObjectContext) private var viewContext
     var islands: [PirateIsland] // Receive islands from parent view
     @Binding var selectedAppDayOfWeek: AppDayOfWeek?
-    @Binding var selectedIsland: PirateIsland?
+    @Binding var selectedIsland: PirateIsland? // Binding to the selectedIsland
     @ObservedObject var viewModel: AppDayOfWeekViewModel
-    @State private var cancellable: AnyCancellable?
     @Binding var matTimes: [MatTime]
     @State private var error: String?
 
@@ -55,25 +55,19 @@ struct ScheduleFormView: View {
             )
             .id(selectedIsland)
             .onAppear {
-                print("ScheduleFormView: selectedIsland = \(String(describing: selectedIsland))")
-                setupInitialSelection()
+                print("Selected Island: \(selectedIsland?.islandName ?? "No island selected")")
+                handleOnAppear()
             }
+
             .onChange(of: selectedIsland) { newIsland in
-                setupInitialSelection()
                 print("Selected Island changed: \(String(describing: newIsland))")
-                if let island = newIsland {
-                    let day = selectedDay ?? .monday
-                    _ = viewModel.fetchCurrentDayOfWeek(
-                        for: island,
-                        day: day,
-                        selectedDayBinding: Binding(get: { viewModel.selectedDay }, set: { viewModel.selectedDay = $0 })
-                    )
-                    print("Island changed: \(island.islandName ?? ""), day: \(day)")
-                }
+                setupInitialSelection()
             }
-            .onChange(of: selectedDay) { _ in
-                daySelected = true
-                print("ScheduleFormView: Selected day changed to \(selectedDay?.displayName ?? "None")")
+            .onChange(of: selectedAppDayOfWeek) { newSelectedAppDay in
+                print("selectedAppDayOfWeek changed: \(String(describing: newSelectedAppDay))")
+            }
+            .onChange(of: viewModel.matTimesForDay) { newMatTimes in
+                print("matTimesForDay updated: \(newMatTimes)")
             }
 
             daySelectionSection
@@ -107,28 +101,43 @@ struct ScheduleFormView: View {
             Alert(title: Text(alertTitle), message: Text(alertMessage), dismissButton: .default(Text("OK")))
         }
         .onAppear {
-            // Setting up the initial island and day selection
-            if let island = selectedIsland {
-                let day = selectedDay ?? .monday
-                _ = viewModel.fetchCurrentDayOfWeek(
-                    for: island,
-                    day: day,
-                    selectedDayBinding: Binding(get: { viewModel.selectedDay }, set: { viewModel.selectedDay = $0 })
-                )
-                print("Initial island set: \(island.islandName ?? ""), day: \(day)")
-            }
+            logInitialSetup()
+        }
+    }
+    
+    private func handleOnAppear() {
+        if selectedIsland == nil, let firstIsland = islands.first {
+            selectedIsland = firstIsland // Ensure a default selection
+        }
+        
+        print("handleOnAppear - Selected Island: \(selectedIsland?.islandName ?? "No island selected")")
+
+        setupInitialSelection() // Ensure this runs after selecting an island
+    }
+
+
+    private func logInitialSetup() {
+        if let island = selectedIsland {
+            let day = selectedDay ?? .monday
+            _ = viewModel.fetchCurrentDayOfWeek(
+                for: island,
+                day: day,
+                selectedDayBinding: Binding(get: { viewModel.selectedDay }, set: { viewModel.selectedDay = $0 })
+            )
+            print("Initial island set: \(island.islandName ?? ""), day: \(day)")
         }
     }
     
     private var selectedDayBinding: Binding<DayOfWeek> {
-        return Binding(get: {
-            guard let selectedDay = selectedDay else {
-                return .monday // default value
-            }
-            return selectedDay
+        Binding(get: {
+            selectedDay ?? .monday // default value
         }, set: { selectedDay = $0 })
     }
     
+    private func setupInitialSelection() {
+        updateDayOfWeek()
+    }
+
     func updateDayOfWeek() {
         if let island = selectedIsland, let day = selectedDay {
             _ = viewModel.fetchCurrentDayOfWeek(
@@ -138,21 +147,6 @@ struct ScheduleFormView: View {
             )
             print("Initial island set: \(island.islandName ?? ""), day: \(day)")
         }
-    }
-
-    func setupInitialSelection() {
-        updateDayOfWeek()
-    }
-
-    func handleDayChange(day: DayOfWeek, island: PirateIsland) {
-        guard day != selectedDay else { return }
-        setupInitialSelection()
-        print("Selected Day changed: \(day.displayName)")
-        _ = viewModel.fetchCurrentDayOfWeek(
-            for: island,
-            day: day,
-            selectedDayBinding: Binding(get: { viewModel.selectedDay }, set: { viewModel.selectedDay = $0 })
-        )
     }
 
     private var daySelectionSection: some View {
@@ -166,7 +160,6 @@ struct ScheduleFormView: View {
         }
     }
 
-
     private var errorHandlingSection: some View {
         Group {
             if let error = error {
@@ -175,17 +168,10 @@ struct ScheduleFormView: View {
                         .foregroundColor(.red)
                 }
             } else if selectedAppDayOfWeek == nil || selectedIsland == nil {
+                let errorMessage = selectedIsland == nil ? "No gym has selected." : "No Schedule Set for the Selected Day."
                 Section(header: Text("Error")) {
-                    if selectedAppDayOfWeek == nil {
-                        Text("No AppDayOfWeek instance selected.")
-                            .foregroundColor(.red)
-                    } else if selectedIsland == nil {
-                        Text("No island selected.")
-                            .foregroundColor(.red)
-                    } else {
-                        Text("Unknown error.")
-                            .foregroundColor(.red)
-                    }
+                    Text(errorMessage)
+                        .foregroundColor(.red)
                 }
             }
         }
@@ -227,6 +213,7 @@ extension View {
         self.modifier(CornerRadiusStyle(radius: radius, corners: corners))
     }
 }
+
 
 // Preview
 struct ScheduleFormView_Previews: PreviewProvider {
