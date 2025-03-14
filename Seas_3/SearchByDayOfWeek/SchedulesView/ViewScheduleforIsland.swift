@@ -65,7 +65,7 @@ struct ViewScheduleForIsland: View {
                         .frame(height: 200) // Match the height of the scheduled section
                 }
             }
-            .frame(maxWidth: .infinity) // Ensure it takes full width
+            .frame(maxWidth: .infinity)
             .background(Color(UIColor.systemGroupedBackground)) // Optional: background color for better visibility
         }
         .onAppear {

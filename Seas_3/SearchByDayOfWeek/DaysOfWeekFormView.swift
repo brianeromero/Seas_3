@@ -28,6 +28,9 @@ struct DaysOfWeekFormView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @State private var isSelected = false
     @State private var navigationSelectedIsland: PirateIsland?
+    @State private var selectedDay: DayOfWeek? = nil
+    @State private var selectedMatTimes: [MatTime] = []
+
 
     init(viewModel: AppDayOfWeekViewModel, selectedIsland: Binding<PirateIsland?>, selectedMatTime: Binding<MatTime?>, showReview: Binding<Bool>) {
         self.viewModel = viewModel
@@ -44,44 +47,8 @@ struct DaysOfWeekFormView: View {
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Search by: gym name, zip code, or address/location")
-                            .font(.headline)
-                            .foregroundColor(.gray)) {
-                    SearchBar(text: $searchQuery)
-                        .onChange(of: searchQuery) { _ in
-                            updateFilteredIslands()
-                        }
-                }
-
-                List(filteredIslands, id: \.self) { island in
-                    NavigationLink(
-                        destination: ScheduleFormView(
-                            islands: filteredIslands,
-                            selectedAppDayOfWeek: .constant(nil),
-                            selectedIsland: $selectedIsland,
-                            viewModel: viewModel,
-                            matTimes: .constant([])
-                        ),
-                        tag: island,
-                        selection: $navigationSelectedIsland  // Use intermediate state
-                    ) {
-                        VStack(alignment: .leading) {
-                            Text(island.islandName ?? "Unknown Gym")
-                                .font(.headline)
-                            Text(island.islandLocation ?? "")
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                }
-                .frame(minHeight: 400, maxHeight: .infinity)
-                .listStyle(PlainListStyle())
-                .alert(isPresented: $showNoMatchAlert) {
-                    Alert(
-                        title: Text("No Match Found"),
-                        message: Text("No gyms match your search criteria."),
-                        dismissButton: .default(Text("OK"))
-                    )
-                }
+                searchSection
+                islandList
             }
             .navigationTitle("Gym Schedules")
             .toolbar {
@@ -92,50 +59,76 @@ struct DaysOfWeekFormView: View {
                 }
             }
             .onAppear {
-                print("OnAppear triggered, updating filtered islands.")
                 updateFilteredIslands()
-
-                print("Filtered Islands after update: \(filteredIslands.map { $0.islandName ?? "Unknown Gym" })")
-                print("FROM DaysOfWeekFormView Selected Island: \(selectedIsland?.islandName ?? "No island selected")")
             }
-            // Listen for changes to navigationSelectedIsland and update selectedIsland
             .onChange(of: navigationSelectedIsland) { newSelection in
                 if let selected = newSelection {
-                    selectedIsland = selected  // Only update when user selects a new island
+                    selectedIsland = selected
                 }
             }
         }
     }
 
+    var searchSection: some View {
+        Section(header: Text("Search by: gym name, zip code, or address/location")
+                            .font(.headline)
+                            .foregroundColor(.gray)) {
+            SearchBar(text: $searchQuery)
+                .onChange(of: searchQuery) { _ in
+                    updateFilteredIslands()
+                }
+        }
+    }
+
+    var islandList: some View {
+        List(filteredIslands, id: \.self) { island in
+            NavigationLink(
+                destination: ScheduleFormView(
+                    islands: filteredIslands,
+                    selectedIsland: $selectedIsland,
+                    viewModel: viewModel,
+                    matTimes: $selectedMatTimes
+                ),
+                tag: island,
+                selection: $navigationSelectedIsland
+            ) {
+                VStack(alignment: .leading) {
+                    Text(island.islandName ?? "Unknown Gym")
+                        .font(.headline)
+                    Text(island.islandLocation ?? "")
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+        .frame(minHeight: 400, maxHeight: .infinity)
+        .listStyle(PlainListStyle())
+        .alert(isPresented: $showNoMatchAlert) {
+            Alert(
+                title: Text("No Match Found"),
+                message: Text("No gyms match your search criteria."),
+                dismissButton: .default(Text("OK"))
+            )
+        }
+    }
 
     private func updateFilteredIslands() {
         let lowercasedQuery = searchQuery.lowercased()
-        
-        if !searchQuery.isEmpty {
-            let predicate = NSPredicate(format: "islandName CONTAINS[c] %@ OR islandLocation CONTAINS[c] %@ OR gymWebsite.absoluteString CONTAINS[c] %@", lowercasedQuery, lowercasedQuery, lowercasedQuery)
-            filteredIslands = islands.filter { predicate.evaluate(with: $0) }
-        } else {
-            filteredIslands = Array(islands)
-        }
-        
+        filteredIslands = filterIslands(query: lowercasedQuery)
         showNoMatchAlert = filteredIslands.isEmpty && !searchQuery.isEmpty
     }
 
-    private func performFiltering() {
-        print("Performing filtering...") // Log when filtering is performed
-        let lowercasedQuery = searchQuery.lowercased()
-        
-        if !searchQuery.isEmpty {
-            let predicate = NSPredicate(format: "islandName CONTAINS[c] %@ OR islandLocation CONTAINS[c] %@ OR gymWebsite.absoluteString CONTAINS[c] %@", lowercasedQuery, lowercasedQuery, lowercasedQuery)
-            filteredIslands = islands.filter { predicate.evaluate(with: $0) }
-            print("Filtered Islands Count: \(filteredIslands.count)") // Log the count after filtering
-        } else {
-            filteredIslands = Array(islands)
-            print("Showing all Islands Count: \(filteredIslands.count)") // Log the count when no query is entered
+    private func filterIslands(query: String) -> [PirateIsland] {
+        if query.isEmpty {
+            return Array(islands)
         }
-        
-        showNoMatchAlert = filteredIslands.isEmpty && !searchQuery.isEmpty
-        print("No match alert: \(showNoMatchAlert)") // Log the state of the no match alert
+
+        let islandNamePredicate = NSPredicate(format: "islandName CONTAINS[c] %@", query)
+        let islandLocationPredicate = NSPredicate(format: "islandLocation CONTAINS[c] %@", query)
+        let gymWebsitePredicate = NSPredicate(format: "gymWebsite.absoluteString CONTAINS[c] %@", query)
+
+        let compoundPredicate = NSCompoundPredicate(orPredicateWithSubpredicates: [islandNamePredicate, islandLocationPredicate, gymWebsitePredicate])
+
+        return islands.filter { compoundPredicate.evaluate(with: $0) }
     }
 }
 
@@ -147,7 +140,6 @@ extension DaysOfWeekFormView {
         }
     }
 }
-
 
 
 struct ErrorView: View {
@@ -186,27 +178,20 @@ struct ErrorView: View {
     }
 }
 
-
 class MockAppDayOfWeekRepository: AppDayOfWeekRepository {
     override init(persistenceController: PersistenceController) {
         super.init(persistenceController: persistenceController)
     }
-    
-    // Optionally, mock any methods used in the view model
+
     override func getViewContext() -> NSManagedObjectContext {
         return PersistenceController.shared.viewContext
     }
-    
-    // Add any other methods if needed for your preview scenario
 }
-
 
 class MockEnterZipCodeViewModel: EnterZipCodeViewModel {
     init() {
         super.init(repository: MockAppDayOfWeekRepository(persistenceController: PersistenceController.shared), persistenceController: PersistenceController.shared)
     }
-    
-    // You can mock or override methods if necessary for your preview scenario
 }
 
 struct DaysOfWeekFormView_Previews: PreviewProvider {
@@ -221,10 +206,9 @@ struct DaysOfWeekFormView_Previews: PreviewProvider {
     }
 
     static var previews: some View {
-        let context = PersistenceController.shared.viewContext // Access viewContext directly
+        let context = PersistenceController.shared.viewContext
         let mockIsland = createMockIsland(in: context)
 
-        // Create the mock repository and view model
         let mockRepository = MockAppDayOfWeekRepository(persistenceController: PersistenceController.shared)
         let viewModel = AppDayOfWeekViewModel(
             selectedIsland: mockIsland,
@@ -246,7 +230,7 @@ struct DaysOfWeekFormView_Previews: PreviewProvider {
         )
 
         return DaysOfWeekFormView(viewModel: viewModel, selectedIsland: selectedIsland, selectedMatTime: selectedMatTime, showReview: showReview)
-            .environment(\.managedObjectContext, context) // Inject the managed object context here
+            .environment(\.managedObjectContext, context)
             .previewDisplayName("DaysOfWeekFormView")
     }
 }

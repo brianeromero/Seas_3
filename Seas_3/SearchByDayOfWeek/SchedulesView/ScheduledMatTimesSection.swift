@@ -17,25 +17,25 @@ struct ScheduledMatTimesSection: View {
     @Binding var selectedDay: DayOfWeek?
     @State private var matTimes: [MatTime] = []
     @State private var error: String?
-
     
     private let fetchQueue = DispatchQueue(label: "fetch-queue")
     
     var body: some View {
         Section(header: Text("Scheduled Mat Times")) {
-            Group {
-                if !matTimes.isEmpty {
-                    MatTimesList(day: day, matTimes: matTimes)
-                } else {
-                    Text("No mat times available/or have been entered for \(day.rawValue.capitalized) at \(island.islandName ?? "this gym").")
-                        .foregroundColor(.gray)
-                }
+            if let error = error {
+                // Show error message inside the section
+                Text("⚠️ \(error)")
+                    .foregroundColor(.red)
+            } else if !matTimes.isEmpty {
+                MatTimesList(day: day, matTimes: matTimes)
+            } else {
+                Text("No mat times available or have been entered for \(day.rawValue.capitalized) at \(island.islandName ?? "this gym").")
+                    .foregroundColor(.gray)
             }
         }
-        .onAppear(perform: {
+        .onAppear {
             fetchMatTimes(day: self.day)
-            print("View appeared")
-        })
+        }
         .onChange(of: selectedDay) { _, _ in fetchMatTimes(day: self.selectedDay ?? self.day) }
         .onChange(of: island) { _, _ in fetchMatTimes(day: self.selectedDay ?? self.day) }
         .alert(isPresented: .init(get: { error != nil }, set: { _ in error = nil })) {
@@ -47,13 +47,9 @@ struct ScheduledMatTimesSection: View {
         Task {
             do {
                 let fetchedMatTimes = try viewModel.fetchMatTimes(for: day)
-                print("FROM SCHEDULEDMATTIMESSECTION: Fetched Mat Times: \(fetchedMatTimes)")
                 
                 let filteredMatTimes = filterMatTimes(fetchedMatTimes, for: day, and: island)
-                print("Filtered Mat Times: \(filteredMatTimes)")
-                
                 let sortedMatTimes = sortMatTimes(filteredMatTimes)
-                print("Sorted Mat Times: \(sortedMatTimes)")
                 
                 await MainActor.run {
                     self.matTimes = sortedMatTimes
@@ -65,7 +61,6 @@ struct ScheduledMatTimesSection: View {
                     self.matTimes = []
                     self.error = error.localizedDescription
                 }
-                print("Error fetching mat times: \(error)")
             }
         }
     }
@@ -73,7 +68,8 @@ struct ScheduledMatTimesSection: View {
     func filterMatTimes(_ matTimes: [MatTime], for day: DayOfWeek, and island: PirateIsland) -> [MatTime] {
         return matTimes.filter {
             guard let appDayOfWeek = $0.appDayOfWeek else { return false }
-            return appDayOfWeek.pIsland?.islandID == island.islandID && appDayOfWeek.day.caseInsensitiveCompare(day.rawValue) == .orderedSame
+            return appDayOfWeek.pIsland?.islandID == island.islandID &&
+                   appDayOfWeek.day.caseInsensitiveCompare(day.rawValue) == .orderedSame
         }
     }
 
@@ -81,6 +77,7 @@ struct ScheduledMatTimesSection: View {
         return matTimes.sorted { $0.time ?? "" < $1.time ?? "" }
     }
 }
+
 
 struct MatTimesList: View {
     let day: DayOfWeek

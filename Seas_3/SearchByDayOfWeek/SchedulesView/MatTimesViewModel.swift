@@ -47,15 +47,23 @@ class MatTimesViewModel: ObservableObject {
             "goodForBeginners": matTime.goodForBeginners,
             "kids": matTime.kids,
             "appDayOfWeekID": selectedAppDayOfWeek.appDayOfWeekID ?? "",
-            "pIsland": selectedIsland.islandID?.uuidString ?? "", // Convert UUID to string
+            "pIsland": selectedIsland.islandID?.uuidString ?? "",
             "createdByUserId": "Unknown User",
             "createdTimestamp": Date(),
             "lastModifiedByUserId": "Unknown User",
             "lastModifiedTimestamp": Date()
         ]
         
-        let documentID = UUID().uuidString
-        try await db.collection("matTimes").document(documentID).setData(data)
-        print("MatTime saved successfully to Firestore with document ID: \(documentID)")
+        // Generate a valid Firestore document ID using UUID or custom identifier
+        let documentID = UUID().uuidString  // Use UUID for a valid document ID
+        
+        do {
+            try await db.collection("matTimes").document(documentID).setData(data)
+            print("MatTime saved successfully to Firestore with document ID: \(documentID)")
+        } catch {
+            print("Error saving mat time to Firestore: \(error.localizedDescription)")
+            throw error
+        }
     }
+
 }
