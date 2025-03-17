@@ -115,27 +115,31 @@ struct LoginForm: View {
                 }
                 .disabled(!isSignInEnabled)
 
-                HStack {
-                    GoogleSignInButtonWrapper(
-                        authenticationState: _authenticationState,
-                        handleError: { message in
-                            self.errorMessage = message
-                        },
-                        googleClientID: AppConfig.shared.googleClientID,
-                        managedObjectContext: viewContext  // Pass the existing viewContext
-                    )
-                    .frame(height: 50)
-                    .clipped()
+                VStack {
+                    HStack {
+                        GoogleSignInButtonWrapper(
+                            authenticationState: _authenticationState,
+                            handleError: { message in
+                                self.errorMessage = message
+                            },
+                            googleClientID: AppConfig.shared.googleClientID,
+                            managedObjectContext: viewContext  // Pass the existing viewContext
+                        )
+                        .frame(height: 50)
+                        .clipped()
 
-                    FacebookSignInButtonWrapper(
-                        authenticationState: _authenticationState,
-                        handleError: { message in
-                            self.errorMessage = message
-                        }
-                    )
-                    .frame(height: 50)
-                    .clipped()
+                        FacebookSignInButtonWrapper(
+                            authenticationState: _authenticationState,
+                            handleError: { message in
+                                self.errorMessage = message
+                            }
+                        )
+                        .frame(height: 50)
+                        .clipped()
+                    }
                 }
+                .frame(maxHeight: .infinity, alignment: .center)
+
 
                 if !errorMessage.isEmpty {
                     Text(errorMessage)

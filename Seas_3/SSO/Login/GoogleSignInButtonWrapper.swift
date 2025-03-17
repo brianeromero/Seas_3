@@ -29,8 +29,12 @@ struct GoogleSignInButtonWrapper: UIViewRepresentable {
     }
     
     func updateUIView(_ uiView: GIDSignInButton, context: Context) {
-        print("Updating Google Sign-In button")
+        if uiView.frame.size.width != ButtonStyle.width || uiView.frame.size.height != ButtonStyle.height {
+            print("Updating Google Sign-In button")
+            uiView.frame.size = CGSize(width: ButtonStyle.width, height: ButtonStyle.height)
+        }
     }
+
     
     func makeCoordinator() -> Coordinator {
         print("Creating coordinator for Google Sign-In button")
@@ -94,10 +98,10 @@ struct GoogleSignInButtonWrapper: UIViewRepresentable {
     }
     
     class Coordinator: NSObject {
-        var parent: GoogleSignInButtonWrapper?
+        var parent: GoogleSignInButtonWrapper
         let googleClientID: String
         let googleScopes: [String] = ["openid", "email", "profile"]
-        
+
         init(_ parent: GoogleSignInButtonWrapper) {
             self.parent = parent
             self.googleClientID = parent.googleClientID ?? ""
@@ -105,7 +109,7 @@ struct GoogleSignInButtonWrapper: UIViewRepresentable {
         }
         
         @objc func signIn() {
-            print("Google Sign-In initiated")
+            print("🔹 Google Sign-In initiated")
             
             guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
                   let rootViewController = windowScene.windows.first?.rootViewController else {
@@ -114,68 +118,49 @@ struct GoogleSignInButtonWrapper: UIViewRepresentable {
             }
             
             print("✅ Found root view controller")
-            
-            _ = GIDConfiguration(clientID: googleClientID)
-            print("🛠 GIDConfiguration created with client ID: \(googleClientID)")
-            
-            GIDSignIn.sharedInstance.signIn(
-                withPresenting: rootViewController,
-                hint: nil,
-                additionalScopes: googleScopes,
-                completion: { [weak self] result, error in
-                    guard let self = self else { return }
-                    
-                    if let error = error {
-                        print("❌ Google Sign-In error: \(error.localizedDescription)")
-                        self.parent?.handleError(error.localizedDescription)
-                        return
-                    }
-                    
-                    guard let result = result else {
-                        print("❌ Error: No result found.")
-                        return
-                    }
-                    
-                    let user = result.user
-                    
-                    print("✅ Google Sign-In successful")
-                    let userID = user.userID ?? "Unknown"
-                    let userName = user.profile?.name ?? "Unknown"
-                    let userEmail = user.profile?.email ?? "Unknown"
-                    print("👤 Google User: ID: \(userID), Name: \(userName), Email: \(userEmail)")
-                    
-                    let idToken = user.idToken?.tokenString ?? ""
-                    let accessToken = user.accessToken.tokenString
-                    
-                    if idToken.isEmpty {
-                        print("❌ Google ID Token is missing")
-                    } else {
-                        print("✅ Google ID Token retrieved")
-                    }
-                    
-                    if accessToken.isEmpty {
-                        print("❌ Google Access Token is missing")
-                    } else {
-                        print("✅ Google Access Token retrieved")
-                    }
-                    
-                    let credential = GoogleAuthProvider.credential(withIDToken: idToken, accessToken: accessToken)
-                    
-                    let authenticationManager = AuthenticationManager()
-                    authenticationManager.handleAuthentication(with: credential) { result in
-                        switch result {
-                        case .success(let user):
-                            // Handle successful authentication
-                            print("✅ User authenticated successfully: \(user)")
-                        case .failure(let error):
-                            // Handle authentication error
-                            print("❌ Google Authentication error: \(error.localizedDescription)")
-                            self.parent!.handleError("Google Authentication error: \(error.localizedDescription)")
 
-                        }
+            GIDSignIn.sharedInstance.signIn(withPresenting: rootViewController) { [weak self] signInResult, error in
+                guard let self = self else { return }
+                
+                if let error = error {
+                    print("❌ Google Sign-In error: \(error.localizedDescription)")
+                    self.parent.handleError(error.localizedDescription)
+                    return
+                }
+                
+                guard let result = signInResult else {
+                    print("❌ Error: No result found.")
+                    return
+                }
+                
+                let user = result.user
+                print("✅ Google Sign-In successful")
+                let userID = user.userID ?? "Unknown"
+                let userName = user.profile?.name ?? "Unknown"
+                let userEmail = user.profile?.email ?? "Unknown"
+                print("👤 Google User: ID: \(userID), Name: \(userName), Email: \(userEmail)")
+                
+                guard let idToken = user.idToken?.tokenString else {
+                    print("❌ Google ID Token is missing")
+                    return
+                }
+                
+                let accessToken = user.accessToken.tokenString
+                print("✅ Google ID Token & Access Token retrieved")
+                
+                let credential = GoogleAuthProvider.credential(withIDToken: idToken, accessToken: accessToken)
+                let authenticationManager = AuthenticationManager()
+                
+                authenticationManager.handleAuthentication(with: credential) { result in
+                    switch result {
+                    case .success(let user):
+                        print("✅ User authenticated successfully: \(user)")
+                    case .failure(let error):
+                        print("❌ Google Authentication error: \(error.localizedDescription)")
+                        self.parent.handleError("Google Authentication error: \(error.localizedDescription)")
                     }
                 }
-            )
+            }
         }
     }
 }

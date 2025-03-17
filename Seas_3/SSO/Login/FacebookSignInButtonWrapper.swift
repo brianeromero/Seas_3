@@ -48,33 +48,30 @@ struct FacebookSignInButtonWrapper: UIViewRepresentable {
     }
 
     class Coordinator: NSObject, LoginButtonDelegate {
-        var parent: FacebookSignInButtonWrapper
-
+        var parent: FacebookSignInButtonWrapper?   
+        
         init(_ parent: FacebookSignInButtonWrapper) {
             self.parent = parent
-            print("Coordinator initialized for FacebookSignInButtonWrapper.")
+            print("✅ Facebook Coordinator initialized.")
         }
 
         func loginButton(_ loginButton: FBLoginButton, didCompleteWith result: LoginManagerLoginResult?, error: Error?) {
-            
-            print("Facebook login button pressed.")
+            print("🔹 Facebook login button pressed.")
 
             if let error = error {
-                print("Facebook login error: \(error.localizedDescription)")
-                parent.handleError(error.localizedDescription)
+                print("❌ Facebook login error: \(error.localizedDescription)")
+                parent?.handleError(error.localizedDescription)
                 return
             }
 
             guard let result = result, let token = result.token else {
-                print("Facebook login failed or was cancelled.")
-                parent.handleError("Facebook login was unsuccessful.")
+                print("❌ Facebook login failed or was cancelled.")
+                parent?.handleError("Facebook login was unsuccessful.")
                 return
             }
 
-            print("Facebook login successful. Access Token: \(token.tokenString)")
+            print("✅ Facebook login successful. Access Token: \(token.tokenString)")
 
-            // Exchange Facebook token for Firebase credential
-            // 1. Create Facebook credential
             let credential = FacebookAuthProvider.credential(withAccessToken: token.tokenString)
             let authenticationManager = AuthenticationManager()
             
@@ -82,47 +79,40 @@ struct FacebookSignInButtonWrapper: UIViewRepresentable {
                 switch result {
                 case .success(let user):
                     print("✅ User authenticated successfully: \(user)")
-                    // Update your authentication state, navigate, etc.
                 case .failure(let error):
                     print("❌ FB Authentication error: \(error.localizedDescription)")
-                    self.parent.handleError("FB Authentication error: \(error.localizedDescription)")
+                    self.parent?.handleError("FB Authentication error: \(error.localizedDescription)")
                 }
             }
         }
 
         func loginButtonDidLogOut(_ loginButton: FBLoginButton) {
-            print("User logged out from Facebook.")
-            parent.authenticationState.logout()
+            print("🔹 User logged out from Facebook.")
+            parent?.authenticationState.logout()
 
-            // Clear the cached authentication token
             AccessToken.current = nil
             
-            // Log out from the Facebook SDK
             let loginManager = LoginManager()
             loginManager.logOut()
 
             DispatchQueue.main.async {
                 guard let superview = loginButton.superview else { return }
                 
-                // Remove old button
                 loginButton.removeFromSuperview()
-                
-                // Create new FBLoginButton
+
                 let newButton = FBLoginButton()
                 newButton.delegate = self
                 newButton.permissions = ["public_profile", "email"]
                 
-                // Add new button to the same superview
                 superview.addSubview(newButton)
                 
-                // Auto-layout constraints to match the old button’s position
                 newButton.translatesAutoresizingMaskIntoConstraints = false
                 NSLayoutConstraint.activate([
                     newButton.centerXAnchor.constraint(equalTo: superview.centerXAnchor),
                     newButton.centerYAnchor.constraint(equalTo: superview.centerYAnchor)
                 ])
                 
-                print("Facebook login button reloaded.")
+                print("✅ Facebook login button reloaded.")
             }
         }
     }

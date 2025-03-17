@@ -130,13 +130,20 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         Analytics.setAnalyticsCollectionEnabled(true)
         isFirebaseConfigured = true
 
-        // Firestore setup directly here
-        Firestore.firestore().settings = FirestoreSettings()
+        // Disable Firestore persistence (local cache)
+        let settings = Firestore.firestore().settings
+        settings.isPersistenceEnabled = false  // Disable local cache if needed
+        Firestore.firestore().settings = settings
+
+        // Enable Firestore debug logs
+        UserDefaults.standard.setValue(true, forKey: "FIRFirestoreDebugEnabled")
+        UserDefaults.standard.setValue(true, forKey: "FIRFirestoreVerboseLoggingEnabled")
 
         configureFirebaseLogger()
         configureMessaging()
         configureFirestore()
     }
+
 
     private func configureFirebaseLogger() {
         FirebaseConfiguration.shared.setLoggerLevel(.debug)
