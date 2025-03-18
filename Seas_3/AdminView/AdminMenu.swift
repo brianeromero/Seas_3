@@ -33,7 +33,9 @@ struct AdminMenu: View {
         MenuItem(title: "Manage Gyms", subMenuItems: ["All Gyms", "ALL Gym Schedules", "ALL Mat Schedules"], padding: 15),
         MenuItem(title: "Manage Reviews", subMenuItems: ["View All Reviews", "Moderate Reviews"], padding: 20),
         MenuItem(title: "Delete Gym Record", subMenuItems: ["Delete Gym Record"], padding: 20),
-        MenuItem(title: "Delete AppDayOfWeek Record", subMenuItems: ["Delete AppDayOfWeek Record"], padding: 20)
+        MenuItem(title: "Delete AppDayOfWeek Record", subMenuItems: ["Delete AppDayOfWeek Record"], padding: 20),
+        MenuItem(title: "Manage MatTimes", subMenuItems: ["Delete MatTime Record"], padding: 20),
+
 
     ]
     
@@ -98,6 +100,8 @@ struct AdminMenu: View {
             DeleteUserView(coreDataContext: persistenceController.container.viewContext)
         case "Delete AppDayOfWeek Record":
             DeleteAppDayOfWeekRecordView(coreDataContext: persistenceController.container.viewContext, firestoreManager: firestoreManager)
+        case "Delete MatTime Record":
+            DeleteMatTimeRecordView(coreDataContext: persistenceController.container.viewContext, firestoreManager: firestoreManager)
         default:
             EmptyView()
         }
