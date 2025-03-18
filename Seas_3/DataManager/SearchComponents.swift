@@ -172,8 +172,7 @@ struct IslandList: View {
                         
                     case .viewReviewForIsland:
                         ViewReviewforIsland(
-                            selectedIsland: $selectedIsland,
-                            showReview: .constant(true),
+                            showReview: .constant(true), selectedIsland: $selectedIsland,
                             enterZipCodeViewModel: EnterZipCodeViewModel(
                                 repository: AppDayOfWeekRepository(
                                     persistenceController: PersistenceController.shared
@@ -211,8 +210,7 @@ struct ReviewDestinationView: View {
         return VStack {
             if let selectedIsland = selectedIsland {
                 ViewReviewforIsland(
-                    selectedIsland: .constant(selectedIsland),
-                    showReview: $showReview,
+                    showReview: $showReview, selectedIsland: .constant(selectedIsland),
                     enterZipCodeViewModel: viewModel.enterZipCodeViewModel
                 )
             } else {

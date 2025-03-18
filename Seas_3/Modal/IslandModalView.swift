@@ -135,7 +135,7 @@ struct IslandModalView: View {
                                 }
 
                                 NavigationLink(destination: ViewReviewforIsland(
-                                    selectedIsland: $selectedIsland, showReview: $showReview,
+                                    showReview: $showReview, selectedIsland: $selectedIsland,
                                     enterZipCodeViewModel: enterZipCodeViewModel
                                 )) {
                                     Text("View Reviews")
