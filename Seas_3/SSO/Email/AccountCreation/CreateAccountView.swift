@@ -356,6 +356,7 @@ struct CreateAccountView: View {
                 .navigationDestination(isPresented: $shouldNavigateToLogin) {
                     LoginView(
                         islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.shared),
+                        profileViewModel: profileViewModel,
                         isSelected: .constant(LoginViewSelection(rawValue: selectedTabIndex) ?? .login),
                         navigateToAdminMenu: $authenticationState.navigateToAdminMenu,
                         isLoggedIn: $authenticationState.isLoggedIn

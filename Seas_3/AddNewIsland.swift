@@ -46,7 +46,11 @@ struct AddNewIsland: View {
                 actionButtons
             }
             .navigationDestination(for: String.self) { islandMenuPath in
-                IslandMenu(isLoggedIn: Binding.constant(true), authViewModel: authViewModel)
+                IslandMenu(
+                    isLoggedIn: Binding.constant(true),
+                    authViewModel: authViewModel,
+                    profileViewModel: profileViewModel
+                )
             }
             .navigationBarTitle("Add New Gym", displayMode: .inline)
             .alert(isPresented: $showAlert) {

@@ -11,7 +11,7 @@ import CoreData
 import Firebase
 
 
-class ProfileViewModel: ObservableObject {
+public class ProfileViewModel: ObservableObject {
     @Published var email: String = ""
     @Published var userName: String = ""
     @Published var name: String = ""

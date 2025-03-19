@@ -11,6 +11,9 @@ import CoreData
 import Firebase
 import FirebaseFirestore
 import os
+import os.log
+
+
 
 
 // Enum for star ratings
@@ -29,15 +32,41 @@ public enum StarRating: Int, CaseIterable {
     }
 
     public var stars: [String] {
-        let filledStars = Array(repeating: "star.fill", count: rawValue)
-        let emptyStars = Array(repeating: "star", count: 5 - rawValue)
+        let filledStars = Array(repeating: "star.fill", count: self.rawValue)
+        let emptyStars = Array(repeating: "star", count: 5 - self.rawValue)
         return filledStars + emptyStars
+    }
+
+    // Method to generate star icons based on a given rating
+    static func getStars(for rating: Double) -> [String] {
+        var stars: [String] = []
+        let fullStars = Int(rating)
+        let partialStar = rating - Double(fullStars)
+
+        // Add full stars
+        stars.append(contentsOf: Array(repeating: "star.fill", count: fullStars))
+
+        // Add partial star
+        if partialStar >= 0.75 {
+            stars.append("star.fill")  // 75% full star
+        } else if partialStar >= 0.25 {
+            stars.append("star.lefthalf.fill")  // 50% or 25% full star
+        } else if partialStar > 0 {
+            stars.append("star")  // Empty star for values < 0.25
+        }
+
+        // Add empty stars if necessary
+        stars.append(contentsOf: Array(repeating: "star", count: 5 - stars.count))
+        
+        return stars
     }
 }
 
+
+
 // Main view for Gym Mat Review
 struct GymMatReviewView: View {
-
+    
     @Binding var localSelectedIsland: PirateIsland?
     @State private var isReviewsFetched = false
     @State private var showReview = false
@@ -51,25 +80,22 @@ struct GymMatReviewView: View {
     @State private var isRatingUpdated = false
     @State private var cachedIsland: PirateIsland?
     @State private var hasInitialized = false
-
-    // ✅ Use @ObservedObject since it’s coming from the parent
+    
     @ObservedObject var enterZipCodeViewModel: EnterZipCodeViewModel
-
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.presentationMode) private var presentationMode
-
+    
     @FetchRequest(
         entity: PirateIsland.entity(),
         sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.islandName, ascending: true)]
     ) private var islands: FetchedResults<PirateIsland>
-
+    
     @State private var isReviewValid: Bool = false
     @State private var reviews: [Review] = []
     var onIslandChange: (PirateIsland?) -> Void
     
     @State private var isReviewViewPresented = false
-
-
+    
     init(
         localSelectedIsland: Binding<PirateIsland?>,
         enterZipCodeViewModel: EnterZipCodeViewModel,
@@ -80,7 +106,7 @@ struct GymMatReviewView: View {
         self.onIslandChange = onIslandChange
         os_log("GymMatReviewView initialized", log: logger, type: .info)
     }
-
+    
     var body: some View {
         VStack {
             Form {
@@ -93,14 +119,14 @@ struct GymMatReviewView: View {
                         onIslandChange(island)        // Notify parent view
                         os_log("Island selection change completed", log: logger, type: .info)
                     }
-
-                ReviewSection(reviewText: $reviewText, isReviewValid: isReviewValid)
-                RatingSection(selectedRating: $selectedRating)
-
+                
+                ReviewSection(reviewText: $reviewText, isReviewValid: $isReviewValid)  // Pass binding for validation
+                RatingSection(selectedRating: $selectedRating, isReviewValid: $isReviewValid, reviewText: $reviewText)  // Pass reviewText binding
+                
                 Button(action: submitReview) {
                     Text("Submit Review")
                 }
-                .disabled(isLoading || !isReviewValid)
+                .disabled(isLoading || !isReviewValid)  // Disable button based on validation
                 .alert(isPresented: $showAlert) {
                     Alert(
                         title: Text("Review Submitted"),
@@ -108,7 +134,7 @@ struct GymMatReviewView: View {
                         dismissButton: .default(Text("OK"))
                     )
                 }
-
+                
                 Section(header: Text("Average Rating")) {
                     HStack {
                         ForEach(0..<Int(cachedAverageRating.rounded()), id: \.self) { index in
@@ -120,33 +146,24 @@ struct GymMatReviewView: View {
                     }
                 }
             }
-
+            
             Spacer()
-
+            
             StarRatingsLedger()
                 .frame(height: 150)
                 .padding(.horizontal, 20)
                 .background(Color.white.opacity(0.8))
                 .cornerRadius(10)
         }
+        
         .onChange(of: localSelectedIsland) { newIsland in
             if let island = newIsland {
                 os_log("GymMatReviewView selectedIsland changed to: %@", log: logger, type: .info, island.islandName ?? "None")
                 self.activeIsland = island
-
-                // Fetch reviews for the selected island
-                let request: NSFetchRequest<Review> = NSFetchRequest<Review>(entityName: "Review")
-                request.predicate = NSPredicate(format: "island == %@", island.objectID)
-                do {
-                    self.reviews = try viewContext.fetch(request)
-                } catch {
-                    os_log("Error fetching reviews: %@", log: logger, type: .error, error.localizedDescription)
-                }
-
-                // Update the review count
-                self.cachedAverageRating = ReviewUtils.fetchAverageRating(for: island, in: viewContext, callerFunction: #function)
+                
+                // Fetch average rating directly
+                self.cachedAverageRating = Double(ReviewUtils.fetchAverageRating(for: island, in: viewContext, callerFunction: #function))
                 os_log("Average rating for island %@: %.2f", log: logger, type: .info, island.islandName ?? "Unknown", self.cachedAverageRating)
-
             } else {
                 os_log("GymMatReviewView selectedIsland changed to: None", log: logger, type: .info)
             }
@@ -155,7 +172,7 @@ struct GymMatReviewView: View {
         .onAppear {
             if !hasInitialized {
                 hasInitialized = true
-
+                
                 os_log("GymMatReviewView body appeared", log: logger, type: .info)
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                     os_log("GymMatReviewView body still visible after 1 second", log: logger, type: .info)
@@ -164,7 +181,7 @@ struct GymMatReviewView: View {
             }
         }
     }
-
+    
     private func submitReview() {
         guard let island = localSelectedIsland else {
             os_log("Review submission failed, no island selected", log: logger, type: .error)
@@ -172,67 +189,74 @@ struct GymMatReviewView: View {
             showAlert = true
             return
         }
-
+        
         isLoading = true
         os_log("Submitting review for island: %@", log: logger, type: .info, island.islandName ?? "Unknown")
-
+        
+        // Create review object
+        let reviewID = UUID()
+        
         let newReview = Review(context: viewContext)
         newReview.stars = Int16(selectedRating.rawValue)
         newReview.review = reviewText
         newReview.createdTimestamp = Date()
         newReview.island = island
-        newReview.reviewID = UUID()
-
+        newReview.reviewID = reviewID
+        
         os_log("Saving review to CoreData", log: logger, type: .info)
-
+        
         do {
             try viewContext.save()
-            os_log("Review saved to CoreData for island: %@", log: logger, type: .info, island.islandName ?? "Unknown")
-
-            let db = Firestore.firestore()
-            db.collection("reviews").document(newReview.reviewID.uuidString).setData([
-                "stars": newReview.stars,
-                "review": newReview.review,
-                "createdTimestamp": newReview.createdTimestamp,
-                "islandID": island.islandID?.uuidString ?? ""
-            ]) { error in
-                if let error = error {
-                    os_log("Error saving review to Firestore: %@", log: logger, type: .error, error.localizedDescription)
-                } else {
-                    os_log("Review saved to Firestore successfully", log: logger, type: .info)
-                }
-            }
-
-            isRatingUpdated = true
-            // let avgRating = ReviewUtils.fetchAverageRating(for: island, in: viewContext, callerFunction: #function)
-            //os_log("Average rating for island %@: %.2f", log: logger, type: .info, island.islandName ?? "Unknown", avgRating)
-
-            alertMessage = "Thank you for your review!"
-            presentationMode.wrappedValue.dismiss()
-
+            os_log("Review saved to CoreData successfully", log: logger, type: .info)
         } catch {
             os_log("Error saving review to CoreData: %@", log: logger, type: .error, error.localizedDescription)
-            alertMessage = "Failed to save review. Please try again."
+            let nsError = error as NSError
+            print("Unresolved error \(nsError), \(nsError.userInfo)")
+            
+            DispatchQueue.main.async {
+                self.isLoading = false
+                self.alertMessage = "Failed to save review locally. Please try again."
+                self.showAlert = true
+            }
+            return
         }
-
-        isLoading = false
-        reviewText = ""
-        DispatchQueue.main.async {
-            os_log("Review submission completed", log: logger, type: .info)
-            showAlert = true
+        
+        // Save review to Firestore after successful Core Data save
+        let db = Firestore.firestore()
+        db.collection("reviews").document(reviewID.uuidString).setData([
+            "stars": newReview.stars,
+            "review": newReview.review,
+            "createdTimestamp": newReview.createdTimestamp,
+            "islandID": island.islandID?.uuidString ?? ""
+        ], merge: true) { error in
+            if let error = error {
+                print("Error saving review to Firestore: \(error.localizedDescription)")
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    self.alertMessage = "Failed to save review to Firestore. Please try again."
+                    self.showAlert = true
+                }
+            } else {
+                print("Review saved to Firestore successfully")
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    self.alertMessage = "Thank you for your review!"
+                    self.showAlert = true
+                    self.presentationMode.wrappedValue.dismiss()
+                }
+            }
         }
     }
 }
 
 
-
 // Reusable components for review section
 struct ReviewSection: View {
     @Binding var reviewText: String
+    @Binding var isReviewValid: Bool  // Bind to the parent state
     let textEditorHeight: CGFloat = 150
     let cornerRadius: CGFloat = 8
     let characterLimit: Int = 300
-    var isReviewValid: Bool
 
     var body: some View {
         Section(header: Text("Write Your Review")) {
@@ -242,11 +266,9 @@ struct ReviewSection: View {
                     RoundedRectangle(cornerRadius: cornerRadius)
                         .stroke(Color.gray, lineWidth: 1)
                 )
-                .onReceive(reviewText.publisher.collect()) { newText in
-                    let filteredText = String(newText.prefix(characterLimit))
-                    if filteredText != reviewText {
-                        reviewText = filteredText
-                    }
+                .onChange(of: reviewText) { _ in
+                    // Update validation based on review text
+                    isReviewValid = !reviewText.isEmpty && reviewText.count <= characterLimit
                 }
 
             let charactersUsed = reviewText.count
@@ -274,14 +296,17 @@ struct ReviewSection: View {
     }
 }
 
+
 // Reusable components for rating section
 struct RatingSection: View {
     @Binding var selectedRating: StarRating
+    @Binding var isReviewValid: Bool
+    @Binding var reviewText: String  // Add this line to bind the review text
 
     var body: some View {
         Section(header: Text("Rate the Gym")) {
             HStack {
-                ForEach(0..<5, id: \.self) { index in  // Ensure unique IDs
+                ForEach(0..<5, id: \.self) { index in
                     Image(systemName: index < selectedRating.rawValue ? "star.fill" : "star")
                         .foregroundColor(index < selectedRating.rawValue ? .yellow : .gray)
                         .onTapGesture {
@@ -291,12 +316,16 @@ struct RatingSection: View {
                                 selectedRating = StarRating(rawValue: index + 1) ?? .zero
                             }
                             print("Selected Rating: \(selectedRating.rawValue) star(s)")
+
+                            // Update validation based on rating selection
+                            isReviewValid = selectedRating != .zero && !reviewText.isEmpty
                         }
                 }
             }
         }
     }
 }
+
 
 
 // Ledger for displaying star ratings

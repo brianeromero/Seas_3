@@ -22,7 +22,7 @@ extension Review: Identifiable {
         // Log the island associated with this fetch request
         if let island = selectedIsland {
             os_log("Fetching reviews for Island: %@", log: logger, type: .info, island.islandName ?? "Unknown Island")
-            fetchRequest.predicate = NSPredicate(format: "island == %@", island)  // ✅ Ensure filtering by island
+            fetchRequest.predicate = NSPredicate(format: "island == %@ OR island == nil", island)
         } else {
             os_log("No island selected. Fetching all reviews.", log: logger, type: .info)
         }

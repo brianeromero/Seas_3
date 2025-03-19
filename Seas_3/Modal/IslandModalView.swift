@@ -33,7 +33,6 @@ struct IslandModalView: View {
     @ObservedObject var viewModel: AppDayOfWeekViewModel
     @Binding var selectedAppDayOfWeek: AppDayOfWeek?
 
-    // Remove averageStarRating from initializer
     init(
         customMapMarker: CustomMapMarker?,
         islandName: String,
@@ -68,11 +67,13 @@ struct IslandModalView: View {
         self.enterZipCodeViewModel = enterZipCodeViewModel
     }
 
-    // Calculate average star rating here
+    // Replace the manual average rating calculation with the static method
     private var averageStarRating: Double {
-        ReviewUtils.averageStarRating(for: reviews)
-    }
+        guard let island = selectedIsland else { return 0.0 }
 
+        // Fetch the average rating using the ReviewUtils
+        return Double(ReviewUtils.fetchAverageRating(for: island, in: island.managedObjectContext!))
+    }
 
     var body: some View {
         NavigationView {
@@ -131,7 +132,7 @@ struct IslandModalView: View {
                                 HStack {
                                     Text("Average Rating:")
                                     Spacer()
-                                    Text(String(format: "%.1f", averageStarRating)) // Convert the Double to String
+                                    Text(String(format: "%.1f", averageStarRating))
                                 }
 
                                 NavigationLink(destination: ViewReviewforIsland(
@@ -159,7 +160,6 @@ struct IslandModalView: View {
                                 }
                             }
                         }
-
                         .padding(.top, 20)
 
                         Spacer()

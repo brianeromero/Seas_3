@@ -279,10 +279,13 @@ public struct LoginView: View {
     @State private var showToastMessage: String = ""
     @State private var isToastShown: Bool = false
     @State private var navigateToCreateAccount = false
+    @StateObject private var profileViewModel: ProfileViewModel
+
 
 
     public init(
         islandViewModel: PirateIslandViewModel,
+        profileViewModel: ProfileViewModel,
         isSelected: Binding<LoginViewSelection>,
         navigateToAdminMenu: Binding<Bool>,
         isLoggedIn: Binding<Bool>
@@ -291,6 +294,7 @@ public struct LoginView: View {
         _navigateToAdminMenu = navigateToAdminMenu
         _isLoggedIn = isLoggedIn
         _islandViewModel = StateObject(wrappedValue: islandViewModel)
+        _profileViewModel = StateObject(wrappedValue: profileViewModel)
     }
 
     public var body: some View {
@@ -352,7 +356,11 @@ public struct LoginView: View {
                     emailManager: UnifiedEmailManager.shared
                 )
             } else if authenticationState.isAuthenticated && showMainContent {
-                IslandMenu(isLoggedIn: $authenticationState.isLoggedIn, authViewModel: authViewModel)
+                IslandMenu(
+                    isLoggedIn: $authenticationState.isLoggedIn,
+                    authViewModel: authViewModel,
+                    profileViewModel: profileViewModel
+                )
             } else if isSelected == .login {
                 VStack(spacing: 20) {
                     loginOrCreateAccount
@@ -432,6 +440,10 @@ struct LoginView_Previews: PreviewProvider {
     static var previews: some View {
         LoginView(
             islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.shared),
+            profileViewModel: ProfileViewModel(
+                viewContext: PersistenceController.shared.container.viewContext,
+                authViewModel: AuthViewModel.shared
+            ),
             isSelected: .constant(.login),
             navigateToAdminMenu: .constant(false),
             isLoggedIn: .constant(false)

@@ -9,14 +9,14 @@ import SwiftUI
 import CoreData
 import CoreLocation
 import os.log
-
 import os
 
 struct ReviewUtils {
-    static func fetchAverageRating(for island: PirateIsland, in context: NSManagedObjectContext, callerFunction: String = #function) -> Double {
+    static func fetchAverageRating(for island: PirateIsland, in context: NSManagedObjectContext, callerFunction: String = #function) -> Int16 {
         os_log("Called fetchAverageRating from function: %@ (caller: %@), in file: %@, line: %d, for island: %@",
                log: logger, type: .info, #function, callerFunction, #file, #line, island.islandName ?? "Unknown")
         
+        // Make sure the fetch request is properly constructed based on the island
         let fetchRequest = Review.fetchRequest(context: context, selectedIsland: island)
 
         do {
@@ -27,19 +27,24 @@ struct ReviewUtils {
             guard !reviewsArray.isEmpty else {
                 os_log("No reviews found for island: %@ (caller: %@)",
                        log: logger, type: .info, island.islandName ?? "Unknown", callerFunction)
-                return 0.0
+                return 0
             }
 
-            let averageRating = reviewsArray.map { Double($0.stars) }.reduce(0, +) / Double(reviewsArray.count)
+            // Calculate the average rating
+            let totalStars = reviewsArray.map { Double($0.stars) }.reduce(0, +)
+            let averageRating = Int16(totalStars / Double(reviewsArray.count))
+
             os_log("Average rating calculated: %.2f for island: %@ (caller: %@)",
-                   log: logger, type: .info, averageRating, island.islandName ?? "Unknown", callerFunction)
+                   log: logger, type: .info, Double(averageRating), island.islandName ?? "Unknown", callerFunction)
+            
             return averageRating
         } catch {
             os_log("Error fetching reviews for island %@ (caller: %@): %@",
                    log: logger, type: .error, island.islandName ?? "Unknown", callerFunction, error.localizedDescription)
-            return 0.0
+            return 0
         }
     }
+
 
     static var isReviewsFetched = false
 
@@ -85,20 +90,6 @@ struct ReviewUtils {
             
             // Now you could set `isReviewsFetched = true` here if needed.
         }
-    }
-
-    static func averageStarRating(for reviews: [Review]) -> Double {
-        os_log("Called averageStarRating from function: %@, in file: %@, line: %d, for %d reviews", log: logger, type: .info, #function, #file, #line, reviews.count)
-        
-        guard !reviews.isEmpty else {
-            os_log("No reviews provided for calculating average rating", log: logger, type: .info)
-            return 0
-        }
-        
-        let totalStars = reviews.reduce(0) { $0 + Int($1.stars) }
-        let averageRating = Double(totalStars) / Double(reviews.count)
-        os_log("Calculated average star rating: %.2f", log: logger, type: .info, averageRating)
-        return averageRating
     }
 
     static func openInMaps(latitude: Double, longitude: Double, islandName: String, islandLocation: String) {

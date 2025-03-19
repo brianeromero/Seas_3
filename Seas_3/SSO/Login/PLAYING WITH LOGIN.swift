@@ -287,15 +287,19 @@ struct LoginViewLoginView: View {
     @StateObject private var authViewModel = AuthViewModel.shared
     @Binding var isLoggedIn: Bool
     @State private var persistenceController: PersistenceController
+    let profileViewModel: ProfileViewModel
+
 
     init(
         islandViewModel: PirateIslandViewModel,
+        profileViewModel: ProfileViewModel,
         persistenceController: PersistenceController,
         isSelected: Binding<LoginViewSelection>,
         navigateToAdminMenu: Binding<Bool>,
         isLoggedIn: Binding<Bool>
     ) {
         _islandViewModel = StateObject(wrappedValue: islandViewModel)
+        self.profileViewModel = profileViewModel
         self.persistenceController = persistenceController
         self._isSelected = isSelected
         self._navigateToAdminMenu = navigateToAdminMenu
@@ -319,8 +323,11 @@ struct LoginViewLoginView: View {
                     }
                     // Display IslandMenu if authenticated and 'showMainContent' is true
                     else if authenticationState.isAuthenticated && showMainContent {
-                        IslandMenu(isLoggedIn: $authenticationState.isLoggedIn, authViewModel: authViewModel)
-
+                        IslandMenu(
+                            isLoggedIn: $authenticationState.isLoggedIn,
+                            authViewModel: authViewModel,
+                            profileViewModel: profileViewModel
+                        )
                     }
                     // Display LoginForm when the selected view is 'login'
                     else if isSelected == .login {
@@ -358,10 +365,15 @@ struct LoginViewLoginView_Previews: PreviewProvider {
         let persistenceController = PersistenceController.preview
         let islandViewModel = PirateIslandViewModel(persistenceController: persistenceController)
         let authenticationState = AuthenticationState()
+        let profileViewModel = ProfileViewModel(
+            viewContext: persistenceController.container.viewContext,
+            authViewModel: AuthViewModel.shared
+        )
         
         LoginViewLoginView(
             islandViewModel: islandViewModel,
-            persistenceController: persistenceController, // <-- Add this here
+            profileViewModel: profileViewModel,
+            persistenceController: persistenceController,
             isSelected: .constant(.login),
             navigateToAdminMenu: .constant(false),
             isLoggedIn: .constant(false)

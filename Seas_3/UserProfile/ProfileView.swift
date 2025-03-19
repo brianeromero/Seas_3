@@ -181,6 +181,7 @@ struct ProfileView: View {
             NavigationLink(
                 destination: LoginView(
                     islandViewModel: pirateIslandViewModel,
+                    profileViewModel: profileViewModel,
                     isSelected: $selectedTabIndex,
                     navigateToAdminMenu: $navigateToAdminMenu,
                     isLoggedIn: $profileViewModel.isLoggedIn

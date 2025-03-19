@@ -10,41 +10,40 @@ import SwiftUI
 import CoreData
 import Combine
 
-
 struct PirateIslandView: View {
-    @State private var showWelcomePage = true
-    
+    @ObservedObject var appState: AppState
+
     var body: some View {
-        if showWelcomePage {
-            Text("Mat_Finder")
-                .font(.largeTitle)
-                .padding()
-                .onAppear {
-                    // Use Timer to hide the welcome page after 5 seconds
-                    Timer.scheduledTimer(withTimeInterval: 5, repeats: false) { _ in
-                        showWelcomePage = false
+        Group {
+            if appState.showWelcomeScreen {
+                Text("Mat_Finder")
+                    .font(.largeTitle)
+                    .padding()
+                    .onAppear {
+                        print("👀 PirateIslandView showing Mat_Finder at \(Date())")
                     }
-                }
-        } else {
-            // Placeholder view or navigate to the next screen
-            // You can replace this with your actual main content
-            Text("Where All Your Mat Dreams Come True!!!")
-                .padding()
-                .onAppear {
-                    // Use Timer to perform some action after 5 seconds
-                    Timer.scheduledTimer(withTimeInterval: 15, repeats: false) { _ in
-                        // Add your action here
+                    .onDisappear {
+                        print("👋 Mat_Finder disappeared at \(Date())")
                     }
+            } else {
+                NavigationView {
+                    Text("Where All Your Mat Dreams Come True!!!")
+                        .padding()
+                        .navigationBarTitle("Mat Finder")
+                        .onAppear {
+                            print("✅ NavigationView appeared at \(Date())")
+                        }
                 }
+            }
         }
     }
 }
 
+
 struct PirateIslandView_Previews: PreviewProvider {
     static var previews: some View {
-        PirateIslandView()
+        let appState = AppState()
+        appState.showWelcomeScreen = true // or false, depending on the preview you want
+        return PirateIslandView(appState: appState)
     }
 }
-
-
-

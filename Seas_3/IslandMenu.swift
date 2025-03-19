@@ -32,17 +32,19 @@ struct IslandMenu: View {
     @State private var searchResults: [PirateIsland] = []
     @Binding var isLoggedIn: Bool
     @StateObject var appDayOfWeekViewModel: AppDayOfWeekViewModel
-    @EnvironmentObject var profileViewModel: ProfileViewModel
+    let profileViewModel: ProfileViewModel
+
     let menuLeadingPadding: CGFloat = 50 + 0.5 * 10
     
     // MARK: - Initialization
     // Log authentication event
-    init(isLoggedIn: Binding<Bool>, authViewModel: AuthViewModel) {
+    init(isLoggedIn: Binding<Bool>, authViewModel: AuthViewModel, profileViewModel: ProfileViewModel) {
         os_log("User logged in", log: IslandMenulogger)
         os_log("Initializing IslandMenu", log: IslandMenulogger)
 
         self.authViewModel = authViewModel  // Initialize authViewModel
         self._isLoggedIn = isLoggedIn
+        self.profileViewModel = profileViewModel // Initialize profileViewModel
 
         _appDayOfWeekViewModel = StateObject(wrappedValue: AppDayOfWeekViewModel(
             selectedIsland: nil,
@@ -53,7 +55,6 @@ struct IslandMenu: View {
             )
         ))
     }
-
     
     enum IslandMenuOption: String, CaseIterable {
         case allLocations = "All Locations"
@@ -303,14 +304,18 @@ struct IslandMenu_Previews: PreviewProvider {
     static var previews: some View {
         let previewContext = PersistenceController.preview.container.viewContext
         let authViewModel = AuthViewModel.shared  // Use shared instance or create a new one
+        let profileViewModel = ProfileViewModel(
+            viewContext: previewContext,
+            authViewModel: authViewModel
+        )
 
         return NavigationView {
-            IslandMenu(isLoggedIn: .constant(true), authViewModel: authViewModel)
+            IslandMenu(
+                isLoggedIn: .constant(true),
+                authViewModel: authViewModel,
+                profileViewModel: profileViewModel
+            )
                 .environment(\.managedObjectContext, previewContext)
-                .environmentObject(ProfileViewModel(
-                    viewContext: previewContext,
-                    authViewModel: authViewModel
-                ))
         }
     }
 }

@@ -394,4 +394,5 @@ class AppDayOfWeekRepository: ObservableObject {
             throw error
         }
     }
+    
 }
