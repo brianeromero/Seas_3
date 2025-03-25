@@ -94,7 +94,7 @@ struct AddNewMatTimeSection: View {
                                     await saveMatTime()
                                 } else {
                                     alertTitle = "Error"
-                                    alertMessage = "Failed to fetch or create AppDayOfWeek."
+                                    alertMessage = "Failed to fetch or create AppDayOfWeek2."
                                     showAlert = true
                                 }
                                 isLoading = false
@@ -118,7 +118,7 @@ struct AddNewMatTimeSection: View {
                         viewModel.selectedAppDayOfWeek = appDayOfWeek
                     } else {
                         alertTitle = "Error"
-                        alertMessage = "Failed to fetch or create AppDayOfWeek."
+                        alertMessage = "Failed to fetch or create AppDayOfWeek3."
                         showAlert = true
                     }
                     isLoading = false

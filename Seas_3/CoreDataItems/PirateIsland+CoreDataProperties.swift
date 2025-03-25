@@ -4,18 +4,33 @@
 //
 // Created by Brian Romero on 6/24/24.
 //
-
 import Foundation
 import CoreData
 
 extension PirateIsland: Identifiable {}
 
 extension PirateIsland {
+    // MARK: - Review Relationship Helpers
+    public var reviewsArray: [Review] {
+        // Convert NSOrderedSet to an array of Review objects
+        return (reviews)?.array as? [Review] ?? []
+    }
+
+    func addReview(_ review: Review) {
+        // Add a Review to the reviews relationship
+        let mutableSet = mutableOrderedSetValue(forKey: "reviews")
+        mutableSet.add(review)
+    }
+
+    func removeReview(_ review: Review) {
+        // Remove a Review from the reviews relationship
+        let mutableSet = mutableOrderedSetValue(forKey: "reviews")
+        mutableSet.remove(review)
+    }
 
     @nonobjc public class func fetchRequest() -> NSFetchRequest<PirateIsland> {
         return NSFetchRequest<PirateIsland>(entityName: "PirateIsland")
     }
-
 
     // MARK: - Attributes
     @NSManaged public var createdByUserId: String?
@@ -112,4 +127,23 @@ extension PirateIsland {
 
     @objc(replaceReviewsAtIndexes:withReviews:)
     @NSManaged public func replaceReviews(at indexes: NSIndexSet, with values: [Review])
+
+    // MARK: - Firestore Data Conversion
+    func toFirestoreData() -> [String: Any]? {
+        var data: [String: Any] = [:]
+        
+        // Add properties to the dictionary
+        data["islandID"] = islandID?.uuidString
+        data["islandName"] = islandName
+        data["islandLocation"] = islandLocation
+        data["latitude"] = latitude
+        data["longitude"] = longitude
+        data["country"] = country
+        data["createdByUserId"] = createdByUserId
+        data["createdTimestamp"] = createdTimestamp
+        data["lastModifiedByUserId"] = lastModifiedByUserId
+        data["lastModifiedTimestamp"] = lastModifiedTimestamp
+        
+        return data
+    }
 }

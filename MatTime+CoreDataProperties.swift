@@ -5,7 +5,6 @@
 //  Created by Brian Romero on 7/15/24.
 //
 //
-
 import Foundation
 import CoreData
 
@@ -26,13 +25,22 @@ extension MatTime {
     @NSManaged public var goodForBeginners: Bool
     @NSManaged public var kids: Bool
     @NSManaged public var createdTimestamp: Date?
-
     
     @NSManaged public var appDayOfWeek: AppDayOfWeek?
-    
-    
+
 }
 
-extension MatTime: Identifiable {
+extension MatTime: Identifiable {}
 
+extension MatTime {
+    // MARK: - Firestore Data Conversion
+    func toFirestoreData() -> [String: Any] {
+        var data: [String: Any] = [:]
+        
+        // Add properties to the dictionary
+        data["time"] = time
+        data["description"] = restrictionDescription
+        
+        return data
+    }
 }

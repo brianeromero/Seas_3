@@ -12,13 +12,16 @@ import Combine
 
 
 private func formatDateToString(_ date: Date) -> String {
-    return DateFormat.time.string(from: date)
+    let formatter = DateFormatter()
+    formatter.dateFormat = "h:mm a" // Ensure consistent format
+    return formatter.string(from: date)
 }
 
 private func stringToDate(_ string: String) -> Date? {
-    return DateFormat.time.date(from: string)
+    let formatter = DateFormatter()
+    formatter.dateFormat = "h:mm a"
+    return formatter.date(from: string)
 }
-
 
 
 extension MatTime {
@@ -64,18 +67,21 @@ struct ScheduleFormView: View {
                     await handleOnAppear()
                 }
             }
-            .onChange(of: selectedIsland) { newIsland in
-                print("Selected Island changed: \(String(describing: newIsland))")
+            .onChange(of: selectedIsland) { oldIsland, newIsland in
+                print("Island changed from \(String(describing: oldIsland)) to \(String(describing: newIsland))")
                 Task {
                     await setupInitialSelection()
                 }
             }
-            .onChange(of: selectedAppDayOfWeek) { newSelectedAppDay in
-                print("selectedAppDayOfWeek changed: \(String(describing: newSelectedAppDay))")
+
+            .onChange(of: selectedAppDayOfWeek) { oldValue, newValue in
+                print("AppDayOfWeek changed from \(String(describing: oldValue)) to \(String(describing: newValue))")
             }
-            .onChange(of: viewModel.matTimesForDay) { newMatTimes in
-                print("matTimesForDay updated: \(newMatTimes)")
+
+            .onChange(of: viewModel.matTimesForDay) { oldMatTimes, newMatTimes in
+                print("MatTimes changed from \(oldMatTimes) to \(newMatTimes)")
             }
+
 
             daySelectionSection
 
@@ -174,42 +180,56 @@ struct ScheduleFormView: View {
             }
             .pickerStyle(SegmentedPickerStyle())
         }
-        .onChange(of: selectedDay) { newDay in
+        .onChange(of: selectedDay) { oldDay, newDay in
+            guard let newDay = newDay else {
+                print("No day selected.")
+                return
+            }
+
             daySelected = true
-            print("Selected day changed to: \(newDay?.displayName ?? "None")")
-            
+            print("Selected day changed from \(oldDay?.displayName ?? "No previous day") to \(newDay.displayName)")
+
             if let selectedIsland = selectedIsland {
                 Task {
                     isLoading = true
-                    if let appDayOfWeek = await selectIslandAndDay(island: selectedIsland, day: newDay ?? .monday) {
-                        selectedAppDayOfWeek = appDayOfWeek
+                    if let appDayOfWeek = await selectIslandAndDay(selectedIsland, newDay) {
+                        // ✅ If schedule exists, update the view model
+                        viewModel.selectedAppDayOfWeek = appDayOfWeek
                         isAppDayOfWeekLoaded = true
                     } else {
-                        alertTitle = "Error"
-                        alertMessage = "Failed to fetch or create AppDayOfWeek."
+                        // 🛑 No schedule exists, show the proper message
+                        viewModel.selectedAppDayOfWeek = nil
+                        isAppDayOfWeekLoaded = false
+                        alertTitle = "No Schedule Available"
+                        alertMessage = "No mat times available or have been entered for \(newDay.displayName) at \(selectedIsland.islandName ?? "this gym")."
                         showingAlert = true
                     }
                     isLoading = false
                 }
+            } else {
+                print("Invalid island selected.")
             }
         }
+
     }
 
-    func selectIslandAndDay(island: PirateIsland, day: DayOfWeek) async -> AppDayOfWeek? {
-        print("Attempting to select island and day")
-        
-        // Fetch the AppDayOfWeek based on the island and selected day
-        let (appDayOfWeek, _) = await viewModel.fetchCurrentDayOfWeek(for: island, day: day, selectedDayBinding: Binding(get: { self.selectedDay }, set: { self.selectedDay = $0 ?? .monday }))
-        
-        if let appDayOfWeek = appDayOfWeek {
-            print("Successfully fetched AppDayOfWeek for \(day.displayName): \(appDayOfWeek)")
-            isAppDayOfWeekLoaded = true // Set to true here
-            return appDayOfWeek
-        } else {
-            print("Failed to fetch AppDayOfWeek for \(day.displayName)")
+
+    func selectIslandAndDay(_ island: PirateIsland, _ day: DayOfWeek) async -> AppDayOfWeek? {
+        let context = PersistenceController.shared.container.viewContext
+        let request: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
+
+        // Use the correct relationship name (pIsland)
+        request.predicate = NSPredicate(format: "pIsland.islandID == %@ AND day == %@", island.islandID! as any CVarArg as CVarArg, day.rawValue)
+
+        do {
+            let results = try context.fetch(request)
+            return results.first // Return the first matching AppDayOfWeek or nil
+        } catch {
+            print("Failed to fetch AppDayOfWeek: \(error)")
             return nil
         }
     }
+
 
 
     func formatTime(_ time: String) -> String {

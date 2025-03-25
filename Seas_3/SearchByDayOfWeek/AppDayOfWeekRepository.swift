@@ -64,13 +64,6 @@ class AppDayOfWeekRepository: ObservableObject {
     }
     
     
-    func fetchRequest(for day: String) -> NSFetchRequest<AppDayOfWeek> {
-        let request: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
-        request.entity = NSEntityDescription.entity(forEntityName: "AppDayOfWeek", in: PersistenceController.shared.viewContext)!
-        request.predicate = NSPredicate(format: "day == %@", day)
-        return request
-    }
-
     func saveData() async {
         print("AppDayOfWeekRepository - Saving data")
         do {
