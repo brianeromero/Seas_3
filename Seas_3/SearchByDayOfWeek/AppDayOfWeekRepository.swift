@@ -75,14 +75,14 @@ class AppDayOfWeekRepository: ObservableObject {
 
     func generateName(for island: PirateIsland, day: DayOfWeek) -> String {
         let name = "\(island.islandName ?? "Unknown Gym") \(day.displayName)"
-        print("Generated name: \(name)")  // Add this line
+        print("Generated name: \(name)")
         return name
     }
 
-    
     func generateAppDayOfWeekID(for island: PirateIsland, day: DayOfWeek) -> String {
         return "\(island.islandName ?? "Unknown Gym")-\(day.rawValue)"
     }
+
 
     func getAppDayOfWeek(for day: String, pirateIsland: PirateIsland, context: NSManagedObjectContext) -> AppDayOfWeek? {
         return fetchOrCreateAppDayOfWeek(for: day, pirateIsland: pirateIsland, context: context)
@@ -187,7 +187,10 @@ class AppDayOfWeekRepository: ObservableObject {
                 let newAppDayOfWeek = AppDayOfWeek(context: context)
                 newAppDayOfWeek.pIsland = pirateIsland
                 newAppDayOfWeek.day = day.displayName
-                newAppDayOfWeek.name = day.displayName // Set the name attribute
+                
+                // Generate name and appDayOfWeekID using your existing methods
+                newAppDayOfWeek.name = generateName(for: pirateIsland, day: day) // Assign the generated name
+                newAppDayOfWeek.appDayOfWeekID = generateAppDayOfWeekID(for: pirateIsland, day: day) // Assign the generated ID
                 
                 try context.save()
                 return newAppDayOfWeek

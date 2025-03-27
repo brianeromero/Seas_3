@@ -210,22 +210,22 @@ struct ScheduleFormView: View {
                 print("Invalid island selected.")
             }
         }
-
     }
+
 
 
     func selectIslandAndDay(_ island: PirateIsland, _ day: DayOfWeek) async -> AppDayOfWeek? {
         let context = PersistenceController.shared.container.viewContext
         let request: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
 
-        // Use the correct relationship name (pIsland)
-        request.predicate = NSPredicate(format: "pIsland.islandID == %@ AND day == %@", island.islandID! as any CVarArg as CVarArg, day.rawValue)
+        // Filter by island ID and day
+        request.predicate = NSPredicate(format: "pIsland.islandID == %@ AND day == %@", island.islandID! as CVarArg, day.rawValue)
 
         do {
             let results = try context.fetch(request)
             return results.first // Return the first matching AppDayOfWeek or nil
         } catch {
-            print("Failed to fetch AppDayOfWeek: \(error)")
+            print("❌ Failed to fetch AppDayOfWeek: \(error)")
             return nil
         }
     }

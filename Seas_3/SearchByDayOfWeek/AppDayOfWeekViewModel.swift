@@ -145,11 +145,13 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
     func saveAppDayOfWeekToFirestore() {
         guard let island = selectedIsland,
               let appDayOfWeek = currentAppDayOfWeek,
-              let _ = selectedDay else {
+              let selectedDay = selectedDay else {
             errorMessage = "Gym, AppDayOfWeek, or DayOfWeek is not selected."
-            print("Gym, AppDayOfWeek, or DayOfWeek is not selected.")
+            print("🚫 Missing data: Gym: \(selectedIsland != nil), AppDayOfWeek: \(currentAppDayOfWeek != nil), DayOfWeek: \(selectedDay != nil)")
             return
         }
+
+        print("🛠️ Preparing to save AppDayOfWeek to Firestore...")
         
         // ✅ 1. Convert AppDayOfWeek to Firestore data
         var extendedData = appDayOfWeek.toFirestoreData()
@@ -157,40 +159,59 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
         // ✅ 2. Include PirateIsland as nested data
         if let pirateIsland = island.toFirestoreData() {
             extendedData["pIsland"] = pirateIsland
+            print("✅ Added PirateIsland data: \(pirateIsland)")
         }
 
         // ✅ 3. Reference to the Firestore document
         let appDayRef = firestore.collection("appDayOfWeek").document(appDayOfWeek.appDayOfWeekID!)
+        print("📄 Firestore reference path: \(appDayRef.path)")
 
         // ✅ 4. Save the main `AppDayOfWeek` document
         appDayRef.setData(extendedData) { error in
             if let error = error {
-                print("Failed to save AppDayOfWeek to Firestore: \(error.localizedDescription)")
+                print("🔥 Failed to save AppDayOfWeek: \(error.localizedDescription) | Path: \(appDayRef.path)")
             } else {
-                print("AppDayOfWeek saved successfully!")
+                print("✅ AppDayOfWeek saved successfully at: \(appDayRef.path)")
 
                 // ✅ 5. Save matTimes as sub-collection
                 let matTimesRef = appDayRef.collection("matTimes")
 
                 // Clear existing sub-collection first (optional but prevents duplicates)
                 matTimesRef.getDocuments { snapshot, error in
+                    if let error = error {
+                        print("🔥 Failed to fetch existing MatTimes: \(error.localizedDescription)")
+                        return
+                    }
+
                     if let snapshot = snapshot {
+                        print("🗑️ Deleting \(snapshot.documents.count) existing MatTimes before saving new ones.")
+                        
                         for doc in snapshot.documents {
-                            doc.reference.delete()
+                            doc.reference.delete { deleteError in
+                                if let deleteError = deleteError {
+                                    print("🔥 Failed to delete existing MatTime: \(deleteError.localizedDescription)")
+                                } else {
+                                    print("🗑️ Deleted old MatTime document: \(doc.documentID)")
+                                }
+                            }
                         }
                     }
-                    
-                    // ✅ 6. Add matTimes as sub-documents
+
+                    // ✅ 6. Add new matTimes as sub-documents
                     if let matTimes = appDayOfWeek.matTimes as? Set<MatTime> {
+                        print("🛠️ Saving \(matTimes.count) new MatTime documents...")
+
+                        var savedCount = 0
+
                         for matTime in matTimes {
                             let matTimeData = matTime.toFirestoreData()
-                            
-                            // Save each `matTime` as its own document
+
                             matTimesRef.addDocument(data: matTimeData) { matTimeError in
                                 if let matTimeError = matTimeError {
-                                    print("Failed to save MatTime: \(matTimeError.localizedDescription)")
+                                    print("🔥 Failed to save MatTime: \(matTimeError.localizedDescription)")
                                 } else {
-                                    print("MatTime saved successfully.")
+                                    savedCount += 1
+                                    print("✅ MatTime saved successfully. Total saved: \(savedCount)/\(matTimes.count)")
                                 }
                             }
                         }
@@ -199,9 +220,11 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
 
                 // ✅ 7. Save locally after Firestore sync
                 self.saveAppDayOfWeekLocally()
+                print("💾 Local save completed.")
             }
         }
     }
+
 
 
     

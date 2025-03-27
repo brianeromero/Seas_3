@@ -10,9 +10,8 @@ struct InfoTooltip: View {
         HStack {
             Text(text)
             
-            // Info button to show/hide the tooltip
             Button(action: {
-                print("Tooltip message: \(tooltipMessage)")
+                print("Tooltip button clicked. Current state: \(showTooltip)")
                 showTooltip.toggle()
             }) {
                 Image(systemName: "info.circle")
@@ -24,18 +23,16 @@ struct InfoTooltip: View {
                     Tooltip(text: tooltipMessage)
                         .offset(x: 60, y: -40)
                         .frame(width: 200, height: 100)
-                        .background(Color.clear)    
+                        .background(Color.clear)
+                        .zIndex(1) // Ensure tooltip appears above other elements
+                        .allowsHitTesting(true) // Only tooltip captures taps
                 }
-                Rectangle() // Background rectangle
-                    .fill(Color.clear) // Transparent background
-                    .contentShape(Rectangle()) // Enable tap gesture
-                    .onTapGesture {
-                        showTooltip.toggle()
-                    }
             }
         )
     }
 }
+
+
 
 struct Tooltip: View {
     let text: String
