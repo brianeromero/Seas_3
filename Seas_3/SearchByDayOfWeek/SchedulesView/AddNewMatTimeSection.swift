@@ -93,7 +93,7 @@ struct AddNewMatTimeSection: View {
                 }
 
                 if !daySelected {
-                    Text("Please select a day.")
+                    Text("Please select a day1.")
                         .foregroundColor(.red)
                 }
 
@@ -123,9 +123,9 @@ struct AddNewMatTimeSection: View {
             }
             .onChange(of: selectedDay) { _ in
                 guard let selectedDay = selectedDay else {
-                    alertTitle = "Error"
-                    alertMessage = "Please select a day."
-                    showAlert = true
+                    //alertTitle = "Error"
+                    //alertMessage = "Please select a day2."
+                    //showAlert = true
                     return
                 }
                 daySelected = true
@@ -227,7 +227,7 @@ struct AddNewMatTimeSection: View {
 
         if !daySelected {
             alertTitle = "Error"
-            alertMessage = "Please select a day."
+            alertMessage = "Please select a day3."
             showAlert = true
             return false
         }
