@@ -30,6 +30,9 @@ struct AddNewMatTimeSection: View {
     @ObservedObject var viewModel: AppDayOfWeekViewModel
     @State private var showRestrictionsTooltip = false
     @State private var isLoading = false
+    @State private var showToast = false
+    @State private var toastMessage = ""
+
     
     // Ensure AppDayOfWeekRepository is accessible in your view.
     @ObservedObject var appDayOfWeekRepository = AppDayOfWeekRepository.shared
@@ -57,8 +60,12 @@ struct AddNewMatTimeSection: View {
 
 
     var body: some View {
-        Section(header: Text("Add New Mat Time")) {
+        ZStack {
             VStack(alignment: .leading) {
+                Text("Add New Mat Time")
+                    .font(.headline)
+                    .padding(.bottom, 8)
+
                 DatePicker("Select Time", selection: $selectedTime, displayedComponents: .hourAndMinute)
                     .onChange(of: selectedTime) { newValue in
                         isMatTimeSet = true
@@ -71,7 +78,6 @@ struct AddNewMatTimeSection: View {
                 ToggleView(title: "Good for Beginners", isOn: $goodForBeginners)
                 ToggleView(title: "Kids Class", isOn: $kids)
 
-                // Restrictions section with added spacing
                 HStack {
                     Text("Restrictions")
                     InfoTooltip(text: "", tooltipMessage: "e.g., White Gis Only, Competition Class, Mat Fees Required, etc.")
@@ -91,9 +97,8 @@ struct AddNewMatTimeSection: View {
                         .foregroundColor(.red)
                 }
 
-                Spacer()  // Add spacing below the restrictions section
+                Spacer()
 
-                // Add New Mat Time button with contentShape for proper tap interaction
                 Button(action: {
                     print("Attempting to add new mat time")
                     print("Day selected: \(daySelected)")
@@ -116,35 +121,48 @@ struct AddNewMatTimeSection: View {
                 }
                 .disabled(isAddNewMatTimeDisabled)
             }
-        }
-        .onChange(of: selectedDay) { _ in
-            daySelected = true
-            print("Selected day changed to: \(selectedDay!.displayName)")
-            
-            if let selectedIsland = selectedIsland {
-                Task {
-                    isLoading = true
-                    // Only assign selectedAppDayOfWeek when the async task completes
-                    if let appDayOfWeek = await selectIslandAndDay(selectedIsland, selectedDay!) {
-                        viewModel.selectedAppDayOfWeek = appDayOfWeek
-                    } else {
-                        alertTitle = "Error"
-                        alertMessage = "Failed to fetch or create AppDayOfWeek."
-                        print("Failed to fetch or create AppDayOfWeek.")
-                        showAlert = true
+            .onChange(of: selectedDay) { _ in
+                daySelected = true
+                print("Selected day changed to: \(selectedDay!.displayName)")
+
+                if let selectedIsland = selectedIsland {
+                    Task {
+                        isLoading = true
+                        if let appDayOfWeek = await selectIslandAndDay(selectedIsland, selectedDay!) {
+                            viewModel.selectedAppDayOfWeek = appDayOfWeek
+                        } else {
+                            alertTitle = "Error"
+                            alertMessage = "Failed to fetch or create AppDayOfWeek."
+                            print("Failed to fetch or create AppDayOfWeek.")
+                            showAlert = true
+                        }
+                        isLoading = false
                     }
-                    isLoading = false
                 }
             }
-        }
+            .onChange(of: viewModel.selectedAppDayOfWeek) { _ in
+                print("Selected AppDayOfWeek changed to: \(String(describing: viewModel.selectedAppDayOfWeek?.day))")
+            }
+            .alert(isPresented: $showAlert) {
+                Alert(title: Text(alertTitle), message: Text(alertMessage))
+            }
+            .onChange(of: showToast) { newValue in
+                if newValue {
+                    print("ToastView appeared with message: \(toastMessage)")
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        withAnimation {
+                            showToast = false
+                            print("ToastView dismissed")
+                        }
+                    }
+                }
+            }
 
-        .onChange(of: viewModel.selectedAppDayOfWeek) { _ in
-            print("Selected AppDayOfWeek changed to: \(String(describing: viewModel.selectedAppDayOfWeek?.day))")
-        }
-        .alert(isPresented: $showAlert) {
-            Alert(title: Text(alertTitle), message: Text(alertMessage))
+            ToastView(showToast: $showToast, message: toastMessage)
         }
     }
+
+
     
     
     func handleAddNewMatTime(selectedIsland: PirateIsland, selectedDay: DayOfWeek) async {
@@ -305,6 +323,15 @@ struct AddNewMatTimeSection: View {
 
             // 3. Reset state variables
             DispatchQueue.main.async {
+                self.alertTitle = "Success"
+                self.alertMessage = "New mat time added successfully!"
+                self.showAlert = true
+
+                // Show toast
+                self.toastMessage = "Mat time added!"
+                self.showToast = true
+
+                // Reset form
                 print("🔄 Resetting state variables...")
                 self.resetStateVariables()
             }
