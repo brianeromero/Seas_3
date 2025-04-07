@@ -153,7 +153,7 @@ struct AllpIslandScheduleView: View {
         }
     }
 }
-
+/*
 // MARK: - Preview
 struct AllpIslandScheduleView_Previews: PreviewProvider {
     static var previews: some View {
@@ -193,3 +193,4 @@ struct AllpIslandScheduleView_Previews: PreviewProvider {
         )
     }
 }
+*/

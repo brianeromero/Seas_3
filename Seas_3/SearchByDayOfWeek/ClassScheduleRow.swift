@@ -59,6 +59,7 @@ struct ClassScheduleRow: View {
     }
 }
 
+/*
 struct ClassScheduleRow_Previews: PreviewProvider {
     static var previews: some View {
         // Create an NSManagedObjectContext for preview
@@ -96,3 +97,4 @@ struct ClassScheduleRow_Previews: PreviewProvider {
         }
     }
 }
+*/

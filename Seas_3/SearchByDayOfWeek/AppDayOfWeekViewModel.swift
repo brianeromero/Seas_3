@@ -330,7 +330,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
         noGi: Bool,
         openMat: Bool,
         restrictions: Bool,
-        restrictionDescription: String?,
+        restrictionDescription: String? = "OOGA BOOOGA1", // Default value
         goodForBeginners: Bool,
         kids: Bool,
         for day: DayOfWeek
@@ -364,19 +364,29 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
         // Set the name attribute of the AppDayOfWeek instance
         appDayOfWeek.name = appDayOfWeek.day
 
-        let matTime = existingMatTime ?? MatTime(context: viewContext)
-        matTime.configure(
-            time: time,
-            type: type,
-            gi: gi,
-            noGi: noGi,
-            openMat: openMat,
-            restrictions: restrictions,
-            restrictionDescription: restrictionDescription,
-            goodForBeginners: goodForBeginners,
-            kids: kids
-        )
+        // Safely create matTime if it doesn't exist
+        let matTime: MatTime
+        if let existing = existingMatTime {
+            matTime = existing
+        } else {
+            matTime = MatTime(context: viewContext) // Create a new MatTime object
+            matTime.configure(
+                time: time,
+                type: type,
+                gi: gi,
+                noGi: noGi,
+                openMat: openMat,
+                restrictions: restrictions,
+                restrictionDescription: restrictionDescription,
+                goodForBeginners: goodForBeginners,
+                kids: kids
+            )
+            // Set additional properties if not present
+            matTime.id = UUID()
+            matTime.createdTimestamp = Date() // Set created timestamp
+        }
 
+        // Add new MatTime to AppDayOfWeek if it was newly created
         if existingMatTime == nil {
             appDayOfWeek.addToMatTimes(matTime)
             print("Added new MatTime to AppDayOfWeek.")
@@ -384,21 +394,13 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
 
         if viewContext.hasChanges {
             do {
-                // Fetch or create UserInfo entity
-                let fetchRequest: NSFetchRequest<UserInfo> = UserInfo.fetchRequest()
-                let results = try viewContext.fetch(fetchRequest)
-                if let userInfo = results.first {
-                    userInfo.name = "John Doe" // Set the name attribute
-                }
-                
+                // Save context
                 try viewContext.save()
                 print("Context saved successfully for MatTime.")
             } catch {
                 print("Failed to save context: \(error.localizedDescription)")
                 throw error
             }
-        } else {
-            print("No changes detected in viewContext for MatTime.")
         }
 
         await refreshMatTimes()
@@ -799,7 +801,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
     
     
     // MARK: - Add Mat Times For Day
-    func addMatTimes(day: DayOfWeek, matTimes: [(time: String, type: String, gi: Bool, noGi: Bool, openMat: Bool, restrictions: Bool, restrictionDescription: String?, goodForBeginners: Bool, kids: Bool)]) async {
+    func addMatTimes(day: DayOfWeek, matTimes: [(time: String, type: String, gi: Bool, noGi: Bool, openMat: Bool, restrictions: Bool,         restrictionDescription: String? , goodForBeginners: Bool, kids: Bool)]) async {
         print("Adding mat times: \(matTimes)")
         
         await withTaskGroup(of: Void.self) { group in
@@ -1135,7 +1137,7 @@ extension MatTime {
         noGi: Bool = false,
         openMat: Bool = false,
         restrictions: Bool = false,
-        restrictionDescription: String? = nil,
+        restrictionDescription: String? = "OOGA BOOOGA3", // Default value
         goodForBeginners: Bool = false,
         kids: Bool = false
     ) {

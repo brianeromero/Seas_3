@@ -154,7 +154,7 @@ func debugPrintMatTimes(_ matTimes: [MatTime]) {
     }
 }
 
-
+/*
 struct ScheduledMatTimesSectionPreview_Previews: PreviewProvider {
     static var previews: some View {
         let persistenceController = PersistenceController.preview
@@ -220,3 +220,4 @@ struct ScheduledMatTimesSectionPreview_Previews: PreviewProvider {
         .previewDisplayName("Scheduled Mat Times for Monday Preview")
     }
 }
+*/

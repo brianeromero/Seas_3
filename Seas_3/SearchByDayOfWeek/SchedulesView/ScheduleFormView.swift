@@ -269,7 +269,7 @@ extension View {
     }
 }
 
-
+/*
 // Preview
 struct ScheduleFormView_Previews: PreviewProvider {
     static var previews: some View {
@@ -332,3 +332,4 @@ struct ScheduleFormView_Previews: PreviewProvider {
         .previewDisplayName("Schedule Form View with Sample Data")
     }
 }
+*/

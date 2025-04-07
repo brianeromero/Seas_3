@@ -127,6 +127,7 @@ struct IslandScheduleView: View {
     }
 }
 
+/*
 struct IslandScheduleView_Previews: PreviewProvider {
     static var previews: some View {
         let persistenceController = PersistenceController.preview
@@ -170,3 +171,4 @@ struct IslandScheduleView_Previews: PreviewProvider {
         }
     }
 }
+*/

@@ -81,6 +81,7 @@ struct ViewScheduleForIsland: View {
     }
 }
 
+/*
 // MARK: - Preview
 struct ViewScheduleForIsland_Previews: PreviewProvider {
     static var previews: some View {
@@ -138,3 +139,4 @@ struct ViewScheduleForIsland_Previews: PreviewProvider {
             .padding()
     }
 }
+*/

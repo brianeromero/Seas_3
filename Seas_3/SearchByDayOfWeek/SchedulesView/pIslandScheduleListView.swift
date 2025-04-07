@@ -88,7 +88,7 @@ struct ScheduleRow: View {
         .padding(.vertical, 5)
     }
 }
-
+/*
 #if DEBUG
 struct pIslandScheduleListView_Previews: PreviewProvider {
     static var previews: some View {
@@ -125,3 +125,4 @@ struct pIslandScheduleListView_Previews: PreviewProvider {
     }
 }
 #endif
+*/

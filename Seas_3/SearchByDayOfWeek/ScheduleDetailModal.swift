@@ -60,6 +60,8 @@ struct ScheduleDetailModal: View {
     }
 }
 
+
+/*
 struct ScheduleDetailModal_Previews: PreviewProvider {
     static var previews: some View {
         let persistenceController = PersistenceController.preview
@@ -108,3 +110,4 @@ struct ScheduleDetailModal_Previews: PreviewProvider {
         }
     }
 }
+*/

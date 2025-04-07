@@ -208,7 +208,7 @@ struct EventView: View {
     }
 }
 
-
+/*
 struct IslandScheduleAsCal_Previews: PreviewProvider {
     static var previews: some View {
         let persistenceController = PersistenceController.preview
@@ -271,3 +271,4 @@ struct IslandScheduleAsCal_Previews: PreviewProvider {
             .previewDisplayName("Gym Schedule Preview")
     }
 }
+*/
