@@ -5,6 +5,8 @@
 //  Created by Brian Romero on 7/15/24.
 //
 //
+
+
 import Foundation
 import CoreData
 
@@ -33,14 +35,18 @@ extension MatTime {
 extension MatTime: Identifiable {}
 
 extension MatTime {
-    // MARK: - Firestore Data Conversion
     func toFirestoreData() -> [String: Any] {
-        var data: [String: Any] = [:]
-        
-        // Add properties to the dictionary
-        data["time"] = time
-        data["description"] = restrictionDescription
-        
-        return data
+        return [
+            "time": self.time ?? "",
+            "type": self.type ?? "",
+            "gi": self.gi,
+            "noGi": self.noGi,
+            "openMat": self.openMat,
+            "restrictions": self.restrictions,
+            "restrictionDescription": self.restrictionDescription ?? "",
+            "goodForBeginners": self.goodForBeginners,
+            "kids": self.kids,
+            "createdTimestamp": self.createdTimestamp ?? Date(),
+        ]
     }
 }

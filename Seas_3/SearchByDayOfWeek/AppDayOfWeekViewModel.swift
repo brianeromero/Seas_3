@@ -12,14 +12,25 @@ import FirebaseFirestore
 
 extension AppDayOfWeek {
     func toFirestoreData() -> [String: Any] {
-        return [
-            "id": self.appDayOfWeekID ?? "",  // Directly use the string
+        var data: [String: Any] = [
+            "id": self.appDayOfWeekID ?? "", // Directly use the string
             "day": self.day,
             "name": self.name ?? "",
-            "createdTimestamp": self.createdTimestamp ?? Date()
+            "createdTimestamp": self.createdTimestamp ?? Date(),
+            "pIsland": self.pIsland?.toFirestoreData() ?? [:], // Ensure to include PirateIsland data
         ]
+        
+        // Add matTimes if needed
+        if let matTimes = self.matTimes as? Set<MatTime> {
+            let matTimesData = matTimes.map { $0.toFirestoreData() }
+            data["matTimes"] = matTimesData
+        }
+        
+        return data
     }
 }
+
+
 
 class AppDayOfWeekViewModel: ObservableObject, Equatable {
     @Published var currentAppDayOfWeek: AppDayOfWeek?
@@ -142,12 +153,12 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
         repository.updateAppDayOfWeek(appDayOfWeek, with: island, dayOfWeek: dayOfWeek, context: viewContext)
     }
     
-    func saveAppDayOfWeekToFirestore() {
-        guard let island = selectedIsland,
-              let appDayOfWeek = currentAppDayOfWeek,
-              let selectedDay = selectedDay else {
-            errorMessage = "Gym, AppDayOfWeek, or DayOfWeek is not selected."
-            print("🚫 Missing data: Gym: \(selectedIsland != nil), AppDayOfWeek: \(currentAppDayOfWeek != nil), DayOfWeek: \(selectedDay != nil)")
+    func saveAppDayOfWeekToFirestore(selectedIsland: PirateIsland, selectedDay: DayOfWeek) {
+        print("📣 saveAppDayOfWeekToFirestore() called")
+
+        guard let appDayOfWeek = currentAppDayOfWeek else {
+            errorMessage = "AppDayOfWeek is not selected."
+            print("🚫 Missing data: AppDayOfWeek: \(currentAppDayOfWeek != nil)")
             return
         }
 
@@ -157,14 +168,23 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
         var extendedData = appDayOfWeek.toFirestoreData()
 
         // ✅ 2. Include PirateIsland as nested data
-        if let pirateIsland = island.toFirestoreData() {
+        if let pirateIsland = selectedIsland.toFirestoreData() {
             extendedData["pIsland"] = pirateIsland
             print("✅ Added PirateIsland data: \(pirateIsland)")
         }
+        
+        print("📦 Data being saved: \(extendedData)")
+
 
         // ✅ 3. Reference to the Firestore document
-        let appDayRef = firestore.collection("appDayOfWeek").document(appDayOfWeek.appDayOfWeekID!)
+        guard let appDayOfWeekID = appDayOfWeek.appDayOfWeekID else {
+            print("🚫 appDayOfWeekID is nil — can't save to Firestore.")
+            return
+        }
+
+        let appDayRef = firestore.collection("appDayOfWeek").document(appDayOfWeekID)
         print("📄 Firestore reference path: \(appDayRef.path)")
+
 
         // ✅ 4. Save the main `AppDayOfWeek` document
         appDayRef.setData(extendedData) { error in
@@ -226,12 +246,14 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
     }
 
 
-
-    
     func saveAppDayOfWeek() {
-        saveAppDayOfWeekToFirestore()
+        guard let selectedIsland = selectedIsland, let selectedDay = selectedDay else {
+            print("🚫 Missing data: Gym: \(selectedIsland != nil), DayOfWeek: \(selectedDay != nil)")
+            return
+        }
+        
+        saveAppDayOfWeekToFirestore(selectedIsland: selectedIsland, selectedDay: selectedDay)
     }
-    
     
     func fetchPirateIslands() {
         print("Fetching gyms...")
@@ -296,7 +318,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
 
                 // Fetch or create in Core Data but do not create a new Firestore entry
                 if let newAppDayOfWeek = repository.fetchOrCreateAppDayOfWeek(for: day.rawValue, pirateIsland: island, context: context) {
-                    newAppDayOfWeek.configure(day: data) // Populate with Firestore data
+                    newAppDayOfWeek.configure(data: data) // Populate with Firestore data
 
                     // Save Core Data context
                     try context.save()
@@ -360,16 +382,14 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
         for appDayOfWeek: AppDayOfWeek
     ) async throws -> MatTime {
         print("Using updateOrCreateMatTime, updating/creating MatTime for AppDayOfWeek with day: \(appDayOfWeek.day)")
-
-        // Set the name attribute of the AppDayOfWeek instance
+        
         appDayOfWeek.name = appDayOfWeek.day
-
-        // Safely create matTime if it doesn't exist
         let matTime: MatTime
+
         if let existing = existingMatTime {
             matTime = existing
         } else {
-            matTime = MatTime(context: viewContext) // Create a new MatTime object
+            matTime = MatTime(context: viewContext)
             matTime.configure(
                 time: time,
                 type: type,
@@ -381,33 +401,29 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
                 goodForBeginners: goodForBeginners,
                 kids: kids
             )
-            // Set additional properties if not present
-            matTime.id = UUID()
-            matTime.createdTimestamp = Date() // Set created timestamp
+            matTime.createdTimestamp = Date()
         }
 
-        // Add new MatTime to AppDayOfWeek if it was newly created
+        // ✅ Ensure matTime has a UUID
+        if matTime.id == nil {
+            matTime.id = UUID()
+        }
+
         if existingMatTime == nil {
             appDayOfWeek.addToMatTimes(matTime)
             print("Added new MatTime to AppDayOfWeek.")
         }
 
         if viewContext.hasChanges {
-            do {
-                // Save context
-                try viewContext.save()
-                print("Context saved successfully for MatTime.")
-            } catch {
-                print("Failed to save context: \(error.localizedDescription)")
-                throw error
-            }
+            try viewContext.save()
+            print("Context saved successfully for MatTime and AppDayOfWeek.")
         }
 
         await refreshMatTimes()
-        print("MatTimes refreshed.")
-
         return matTime
     }
+
+
 
     // MARK: - Refresh MatTimes
     func refreshMatTimes() async {
@@ -589,7 +605,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
                 
                 if let document = document, let data = document.data() {
                     // Update AppDayOfWeek properties
-                    appDayOfWeek.configure(day: data)
+                    appDayOfWeek.configure(data: data)
                 }
             }
             
@@ -960,7 +976,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
             
             if let document = document, let data = document.data() {
                 // Update AppDayOfWeek properties
-                self.selectedAppDayOfWeek?.configure(day: data)
+                self.selectedAppDayOfWeek?.configure(data: data)
             }
         }
         
@@ -1062,7 +1078,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
             
             if let document = document, let data = document.data() {
                 // Update AppDayOfWeek properties
-                self.currentAppDayOfWeek?.configure(day: data)
+                self.currentAppDayOfWeek?.configure(data: data)
             }
             
             // Fetch mat times for the current day
@@ -1085,51 +1101,66 @@ extension PirateIsland {
             self.islandID = UUID(uuidString: islandIDString) // Convert String to UUID
         }
         self.islandName = data["islandName"] as? String
-        // Add other properties here as needed
-        // For example:
-        // self.days = data["days"] as? [String] ?? []
+        self.islandLocation = data["islandLocation"] as? String // Corrected to islandLocation
+        self.country = data["country"] as? String  // Add other fields as needed
+
+        // Map days (which should be a relationship to AppDayOfWeek) if needed
+        if let days = data["days"] as? [String] {
+            // Create AppDayOfWeek objects and assign them
+            // You need to create and associate AppDayOfWeek objects for each day if necessary
+        }
     }
 }
 
 
-
 extension AppDayOfWeek {
-    func configure(
-        day: String? = nil,
-        matTimes: [MatTime]? = nil
-    ) {
-        self.day = day!
-        self.matTimes = NSSet(array: matTimes ?? [])
-    }
-}
-
-extension AppDayOfWeek {
-    func configure(day data: [String: Any]) {
-        // Assuming your AppDayOfWeek has properties like 'day' and other fields you want to configure
+    func configure(data: [String: Any]) {
+        // Map Firestore data to AppDayOfWeek properties
         if let dayValue = data["day"] as? String {
             self.day = dayValue
         }
-        // Map other data fields similarly
-        // Example:
-        // self.matTimes = data["matTimes"] as? [MatTime] ?? []
+        if let nameValue = data["name"] as? String {
+            self.name = nameValue
+        }
+        if let createdTimestamp = data["createdTimestamp"] as? Date {
+            self.createdTimestamp = createdTimestamp
+        }
+        
+        // If 'matTimes' is part of the Firestore document, map it here
+        if let matTimesData = data["matTimes"] as? [[String: Any]] {
+            self.matTimes = NSSet(array: matTimesData.compactMap { matData in
+                let matTime = MatTime(context: self.managedObjectContext!)
+                matTime.configure(data: matData) // Assuming you have a configure method for MatTime
+                return matTime
+            })
+        }
+        
+        // Add 'pIsland' mapping if needed
+        if let pIslandData = data["pIsland"] as? [String: Any] {
+            let pirateIsland = PirateIsland(context: self.managedObjectContext!)
+            pirateIsland.configure(pIslandData) // Map PirateIsland data
+            self.pIsland = pirateIsland
+        }
     }
 }
 
-
-
 extension MatTime {
-    func reset() {
-        self.time = ""
-        self.type = ""
-        self.gi = false
-        self.noGi = false
-        self.openMat = false
-        self.restrictions = false
-        self.restrictionDescription = ""
-        self.goodForBeginners = false
-        self.kids = false
+    // Configure from a Firestore-style dictionary
+    func configure(data: [String: Any]) {
+        self.time = data["time"] as? String
+        self.type = data["type"] as? String
+        self.gi = data["gi"] as? Bool ?? false
+        self.noGi = data["noGi"] as? Bool ?? false
+        self.openMat = data["openMat"] as? Bool ?? false
+        self.restrictions = data["restrictions"] as? Bool ?? false
+        self.restrictionDescription = data["restrictionDescription"] as? String ?? ""
+        self.goodForBeginners = data["goodForBeginners"] as? Bool ?? false
+        self.kids = data["kids"] as? Bool ?? false
+        self.id = UUID(uuidString: data["id"] as? String ?? "") ?? UUID()
+        self.createdTimestamp = data["createdTimestamp"] as? Date ?? Date()
     }
-    
+
+    // Direct in-app configuration
     func configure(
         time: String? = nil,
         type: String? = nil,
@@ -1137,7 +1168,7 @@ extension MatTime {
         noGi: Bool = false,
         openMat: Bool = false,
         restrictions: Bool = false,
-        restrictionDescription: String? = "OOGA BOOOGA3", // Default value
+        restrictionDescription: String? = "",
         goodForBeginners: Bool = false,
         kids: Bool = false
     ) {
@@ -1152,6 +1183,9 @@ extension MatTime {
         self.kids = kids
     }
 }
+
+
+
 
 private extension String {
     var isNilOrEmpty: Bool {

@@ -7,6 +7,8 @@
 
 import SwiftUI
 import CoreData
+import FirebaseFirestore
+
 
 
 struct AddNewMatTimeSection: View {
@@ -36,28 +38,39 @@ struct AddNewMatTimeSection: View {
     
     // Ensure AppDayOfWeekRepository is accessible in your view.
     @ObservedObject var appDayOfWeekRepository = AppDayOfWeekRepository.shared
-
     @StateObject var userProfileViewModel = UserProfileViewModel()
-
-    
     let selectIslandAndDay: (PirateIsland, DayOfWeek) async -> AppDayOfWeek?
+    
+    var isDaySelected: Bool {
+        selectedDay != nil
+    }
+
+    var isMatTypeSelected: Bool {
+        gi || noGi || openMat
+    }
+
 
     // Computed property for button disable state
     var isAddNewMatTimeDisabled: Bool {
-        let result = !(selectedDay != nil && isMatTimeSet && !isLoading && (gi || noGi || openMat))
+        let isDaySelected = selectedDay != nil
+        let isMatTimeSet = self.isMatTimeSet
+        let isLoading = self.isLoading
+        let isMatTypeSelected = gi || noGi || openMat
 
+        let result = !(isDaySelected && isMatTimeSet && !isLoading && isMatTypeSelected)
+
+        // Debugging outputs
         print("=== Add New Mat Time Button State ===")
         print("Day Selected: \(selectedDay?.displayName ?? "None")")
         print("Is Mat Time Set: \(isMatTimeSet)")
         print("Is Loading: \(isLoading)")
-        print("Mat Type Selected (Gi/NoGi/OpenMat): \(gi || noGi || openMat)")
+        print("Mat Type Selected (Gi/NoGi/OpenMat): \(isMatTypeSelected)")
         print("Selected AppDayOfWeek: \(viewModel.selectedAppDayOfWeek?.day ?? "None")")
         print("Final Disabled State: \(result)")
         print("=====================================")
-        
+
         return result
     }
-
 
     var body: some View {
         ZStack {
@@ -72,47 +85,17 @@ struct AddNewMatTimeSection: View {
                         print("Selected time changed to: \(formatDateToString(newValue))")
                     }
 
-                ToggleView(title: "Gi", isOn: $gi)
-                ToggleView(title: "No Gi", isOn: $noGi)
-                ToggleView(title: "Open Mat", isOn: $openMat)
-                ToggleView(title: "Good for Beginners", isOn: $goodForBeginners)
-                ToggleView(title: "Kids Class", isOn: $kids)
-
-                HStack {
-                    Text("Restrictions")
-                    InfoTooltip(text: "", tooltipMessage: "e.g., White Gis Only, Competition Class, Mat Fees Required, etc.")
-                        .padding(.leading, 4)
-
-                    Spacer()
-
-                    ToggleView(title: "", isOn: $restrictions)
-                }
-
-                if restrictions {
-                    TextField("Restriction Description", text: $restrictionDescriptionInput)
-                }
-
+                MatTypeTogglesView(gi: $gi, noGi: $noGi, openMat: $openMat, goodForBeginners: $goodForBeginners, kids: $kids)
+                RestrictionsView(restrictions: $restrictions, restrictionDescriptionInput: $restrictionDescriptionInput)
+                
                 if !daySelected {
-                    Text("Please select a day1.")
+                    Text("Select a Day to View or Add Daily Mat Times.")
                         .foregroundColor(.red)
                 }
 
                 Spacer()
 
-                Button(action: {
-                    print("Attempting to add new mat time")
-                    print("Day selected: \(daySelected)")
-                    print("Is Mat Time Set: \(isMatTimeSet)")
-                    print("Selected AppDayOfWeek: \(viewModel.selectedAppDayOfWeek?.day ?? "None")")
-
-                    guard validateInput() else { return }
-                    guard let selectedIsland = selectedIsland, let selectedDay = selectedDay else { return }
-
-                    Task {
-                        isLoading = true
-                        await handleAddNewMatTime(selectedIsland: selectedIsland, selectedDay: selectedDay)
-                    }
-                }) {
+                Button(action: addNewMatTime) {
                     Text("Add New Mat Time")
                         .padding()
                         .background(isAddNewMatTimeDisabled ? Color.gray : Color.blue)
@@ -122,34 +105,12 @@ struct AddNewMatTimeSection: View {
                 .disabled(isAddNewMatTimeDisabled)
             }
             .onChange(of: selectedDay) { _ in
-                guard let selectedDay = selectedDay else {
-                    //alertTitle = "Error"
-                    //alertMessage = "Please select a day2."
-                    //showAlert = true
-                    return
-                }
-                daySelected = true
-                print("Selected day changed to: \(selectedDay.displayName)")
-
-                if let selectedIsland = selectedIsland {
-                    Task {
-                        isLoading = true
-                        if let appDayOfWeek = await selectIslandAndDay(selectedIsland, selectedDay) {
-                            viewModel.selectedAppDayOfWeek = appDayOfWeek
-                        } else {
-                            alertTitle = "Error"
-                            alertMessage = "Failed to fetch or create AppDayOfWeek."
-                            print("Failed to fetch or create AppDayOfWeek.")
-                            showAlert = true
-                        }
-                        isLoading = false
-                    }
-                }
+                handleSelectedDayChange()
+            }
+            .onChange(of: viewModel.selectedAppDayOfWeek) { newValue in
+                print("Selected AppDayOfWeek changed to: \(String(describing: newValue?.day))")
             }
 
-            .onChange(of: viewModel.selectedAppDayOfWeek) { _ in
-                print("Selected AppDayOfWeek changed to: \(String(describing: viewModel.selectedAppDayOfWeek?.day))")
-            }
             .alert(isPresented: $showAlert) {
                 Alert(title: Text(alertTitle), message: Text(alertMessage))
             }
@@ -168,10 +129,58 @@ struct AddNewMatTimeSection: View {
             ToastView(showToast: $showToast, message: toastMessage)
         }
     }
+    
+    func handleSelectedDayChange() {
+        guard let selectedDay = selectedDay else { return }
+
+        daySelected = true
+        print("Selected day changed to: \(selectedDay.displayName)")
+
+        if let selectedIsland = selectedIsland {
+            Task {
+                isLoading = true
+                print("Fetching AppDayOfWeek for \(selectedIsland.islandName ?? "Unknown") on \(selectedDay.displayName)")
+
+                if let appDayOfWeek = await selectIslandAndDay(selectedIsland, selectedDay) {
+                    viewModel.selectedAppDayOfWeek = appDayOfWeek
+                } else {
+                    alertTitle = "No Mat Times Found"
+                    alertMessage = "No mat times are available or have been entered for \(selectedDay.displayName)."
+                    print("Failed to fetch or create AppDayOfWeek-No mat times available or have been entered for \(selectedDay.displayName).")
+                    showAlert = true
+                }
+                isLoading = false
+            }
+        }
+    }
+    
+    
+    func addNewMatTime() {
+        print("Attempting to add new mat time")
+        print("Day selected: \(daySelected)")
+        print("Is Mat Time Set: \(isMatTimeSet)")
+        print("Selected AppDayOfWeek: \(viewModel.selectedAppDayOfWeek?.day ?? "None")")
+
+        guard validateInput() else { return }
+        guard let selectedIsland = selectedIsland, let selectedDay = selectedDay else { return }
+
+        Task {
+            isLoading = true
+            print("About to add mat time with:")
+            print("- selectedDay: \(selectedDay.displayName)")
+            print("- selectedIsland: \(selectedIsland.islandName ?? "nil")")
+            print("- selectedAppDayOfWeek: \(viewModel.selectedAppDayOfWeek?.day ?? "nil")")
+
+            await handleAddNewMatTime(selectedIsland: selectedIsland, selectedDay: selectedDay)
+        }
+    }
+
 
     
     func handleAddNewMatTime(selectedIsland: PirateIsland, selectedDay: DayOfWeek) async {
         if let appDayOfWeek = viewModel.selectedAppDayOfWeek {
+            // Sync current with selected
+            viewModel.currentAppDayOfWeek = appDayOfWeek
             await saveMatTime(appDayOfWeek: appDayOfWeek)
         } else {
             print("No existing AppDayOfWeek, creating a new one...")
@@ -189,7 +198,7 @@ struct AddNewMatTimeSection: View {
             let context = PersistenceController.shared.container.viewContext
             let generatedName = appDayOfWeekRepository.generateName(for: selectedIsland, day: selectedDay)
             let newAppDayOfWeek = AppDayOfWeek(context: context)
-            
+
             // Set required properties
             newAppDayOfWeek.id = UUID()
             newAppDayOfWeek.day = selectedDay.rawValue
@@ -205,7 +214,11 @@ struct AddNewMatTimeSection: View {
             do {
                 try context.save()
                 print("New AppDayOfWeek created: \(selectedDay.displayName)")
+                
+                // Sync both selected and current
                 viewModel.selectedAppDayOfWeek = newAppDayOfWeek
+                viewModel.currentAppDayOfWeek = newAppDayOfWeek
+
                 await saveMatTime(appDayOfWeek: newAppDayOfWeek)
             } catch {
                 print("Failed to create AppDayOfWeek: \(error)")
@@ -220,7 +233,7 @@ struct AddNewMatTimeSection: View {
         print("Mat time saved successfully.")
         isLoading = false
     }
-    
+
 
     func validateInput() -> Bool {
         print("Validating input with selectedAppDayOfWeek: \(String(describing: viewModel.selectedAppDayOfWeek?.day))")
@@ -253,7 +266,7 @@ struct AddNewMatTimeSection: View {
     func saveMatTime(appDayOfWeek: AppDayOfWeek) async {
         print("💾 Starting saveMatTime()")
 
-        guard let selectedIsland = selectedIsland else {
+        guard selectedIsland != nil else {
             print("❌ Missing necessary information: Island is nil")
             alertTitle = "Error"
             alertMessage = "Missing necessary information."
@@ -271,12 +284,13 @@ struct AddNewMatTimeSection: View {
         print("RestrictionDescription: \(restrictionDescription)")
         print("Gi: \(gi), NoGi: \(noGi), OpenMat: \(openMat)")
 
-
         do {
-            // 1. Save to Firestore
-            print("🔥 Saving AppDayOfWeek to Firestore: \(appDayOfWeek.day)")
-            viewModel.saveAppDayOfWeekToFirestore()
-
+            // 1. Sync current AppDayOfWeek and Save AppDayOfWeek to Firestore
+            viewModel.currentAppDayOfWeek = appDayOfWeek
+            print("🔥 Saving AppDayOfWeek to Firestore...")
+            viewModel.saveAppDayOfWeekToFirestore(selectedIsland: selectedIsland!, selectedDay: selectedDay!)
+            
+            // 2. Create and Save MatTime object
             print("💾 Creating MatTime object...")
             let matTime = try await viewModel.updateOrCreateMatTime(
                 nil,
@@ -291,20 +305,24 @@ struct AddNewMatTimeSection: View {
                 kids: kids,
                 for: appDayOfWeek
             )
-
+            
             // MatTime object is now created or updated
             print("✅ MatTime created successfully: \(matTime.id?.uuidString ?? UUID().uuidString)")
 
-            // 2. Save MatTime to Firestore
+            // 3. Save MatTime to Firestore
             print("💾 Saving MatTime to Firestore...")
-            try await matTimesViewModel.saveMatTimeToFirestore(
-                matTime: matTime,
-                selectedAppDayOfWeek: appDayOfWeek,
-                selectedIsland: selectedIsland
-            )
-            print("✅ MatTime saved successfully to Firestore")
+            
+            var matTimeData: [String: Any] = matTime.toFirestoreData()
+            let matTimeRef = Firestore.firestore().collection("MatTime").document(matTime.id?.uuidString ?? UUID().uuidString)
+            
+            // Include a reference to AppDayOfWeek in MatTime
+            matTimeData["appDayOfWeek"] = Firestore.firestore().collection("AppDayOfWeek").document(appDayOfWeek.appDayOfWeekID ?? UUID().uuidString)
+            
+            // Save MatTime document
+            try await matTimeRef.setData(matTimeData)
+            print("✅ MatTime saved to Firestore: \(matTime.id?.uuidString ?? UUID().uuidString)")
 
-            // 3. Save MatTime to Core Data
+            // 4. Save MatTime to Core Data
             let context = PersistenceController.shared.container.viewContext
             appDayOfWeek.addToMatTimes(matTime)
 
@@ -313,7 +331,7 @@ struct AddNewMatTimeSection: View {
             try context.save()
             print("✅ Core Data save successful")
 
-            // 4. Reset state variables
+            // 5. Reset state variables
             DispatchQueue.main.async {
                 self.alertTitle = "Success"
                 self.alertMessage = "New mat time added successfully!"
@@ -383,19 +401,7 @@ struct AddNewMatTimeSection: View {
         return DateFormat.time.string(from: date)
     }
 
-    struct ToggleView: View {
-        let title: String
-        @Binding var isOn: Bool
 
-        var body: some View {
-            Toggle(isOn: $isOn) {
-                Text(title)
-            }
-            .onChange(of: isOn) { newValue in
-                print("\(title): \(newValue ? "Enabled" : "Disabled")")
-            }
-        }
-    }
 }
 
 extension Date {
