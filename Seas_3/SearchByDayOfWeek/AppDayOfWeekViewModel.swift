@@ -150,8 +150,15 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
             return
         }
         
+        // Check if name is nil and generate it if necessary
+        if appDayOfWeek.name == nil {
+            appDayOfWeek.name = AppDayOfWeekRepository.shared.generateName(for: island, day: dayOfWeek)
+        }
+        
+        // Use the repository to save the AppDayOfWeek data
         repository.updateAppDayOfWeek(appDayOfWeek, with: island, dayOfWeek: dayOfWeek, context: viewContext)
     }
+
     
     func saveAppDayOfWeekToFirestore(selectedIsland: PirateIsland, selectedDay: DayOfWeek) {
         print("📣 saveAppDayOfWeekToFirestore() called")
@@ -182,7 +189,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
             return
         }
 
-        let appDayRef = firestore.collection("appDayOfWeek").document(appDayOfWeekID)
+        let appDayRef = firestore.collection("AppDayOfWeek").document(appDayOfWeekID)
         print("📄 Firestore reference path: \(appDayRef.path)")
 
 
@@ -1105,7 +1112,7 @@ extension PirateIsland {
         self.country = data["country"] as? String  // Add other fields as needed
 
         // Map days (which should be a relationship to AppDayOfWeek) if needed
-        if let days = data["days"] as? [String] {
+        if data["days"] is [String] {
             // Create AppDayOfWeek objects and assign them
             // You need to create and associate AppDayOfWeek objects for each day if necessary
         }

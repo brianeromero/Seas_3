@@ -93,7 +93,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
                 await downloadFirestoreRecordsToLocal(collectionName: "pirateIslands", records: pirateIslandRecords)
                 await downloadFirestoreRecordsToLocal(collectionName: "reviews", records: reviewRecords)
                 await downloadFirestoreRecordsToLocal(collectionName: "matTimes", records: matTimeRecords)
-                await downloadFirestoreRecordsToLocal(collectionName: "appDayOfWeeks", records: appDayOfWeekRecords)
+                await downloadFirestoreRecordsToLocal(collectionName: "AppDayOfWeek", records: appDayOfWeekRecords)
             } catch {
                 print("Error creating Firestore collection or downloading records: \(error.localizedDescription)")
             }
@@ -223,13 +223,23 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         let collectionsToCheck = [
             "pirateIslands",
             "reviews",
-            "matTimes",
-            "appDayOfWeeks"
+            "MatTime",
+            "AppDayOfWeek"
         ]
 
         for collectionName in collectionsToCheck {
             do {
                 let querySnapshot = try await Firestore.firestore().collection(collectionName).getDocuments()
+                
+                if collectionName == "MatTime" || collectionName == "AppDayOfWeek" {
+                    if querySnapshot.documents.isEmpty {
+                        print("No documents found in collection \(collectionName).")
+                    } else {
+                        print("Collection \(collectionName) has \(querySnapshot.documents.count) documents.")
+                        print("Document IDs in collection \(collectionName): \(querySnapshot.documents.map { $0.documentID })")
+                    }
+                }
+                
                 await self.checkLocalRecordsAndCreateFirestoreRecordsIfNecessary(collectionName: collectionName, querySnapshot: querySnapshot)
             } catch {
                 print("Error checking Firestore records: \(error)")
@@ -253,6 +263,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         
         if let localRecords = try? await PersistenceController.shared.fetchLocalRecords(forCollection: collectionName) {
             print("Local records for \(collectionName): \(localRecords)")
+            
+            
             
             // Query records using both hyphenated and non-hyphenated IDs
             var localRecordsNotInFirestore: [String] = []
@@ -280,11 +292,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
             let firestoreRecordsNotInLocal = firestoreRecords.filter { !localRecordsWithoutHyphens.contains($0.replacingOccurrences(of: "-", with: "")) }
             
             
-            if collectionName == "appDayOfWeeks" {
-                await syncAppDayOfWeekRecords()
-            } else {
-                await syncRecords(localRecords: localRecords, firestoreRecords: firestoreRecords, collectionName: collectionName)
-            }
+            await syncRecords(localRecords: localRecords, firestoreRecords: firestoreRecords, collectionName: collectionName)
 
             if !localRecordsNotInFirestore.isEmpty || !firestoreRecordsNotInLocal.isEmpty {
                 print("Records are out of sync for collection: \(collectionName)")
@@ -306,6 +314,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
             }
         } else {
             print("No local records found for collection: \(collectionName)")
+            await syncRecords(localRecords: [], firestoreRecords: firestoreRecords, collectionName: collectionName)
         }
         
         print("Finished checking local records for collection: \(collectionName)")
@@ -353,7 +362,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
                     "createdTimestamp": review.createdTimestamp,
                     "averageStar": review.averageStar
                 ]
-            case "matTimes":
+            case "MatTime":
                 guard let matTime = localRecord as? MatTime else { continue }
                 recordData = [
                     "id": matTime.id?.uuidString ?? "", // Convert UUID to string
@@ -366,9 +375,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
                     "restrictionDescription": matTime.restrictionDescription ?? "",
                     "goodForBeginners": matTime.goodForBeginners,
                     "kids": matTime.kids,
-                    "createdTimestamp": matTime.createdTimestamp ?? Date()
+                    "createdTimestamp": matTime.createdTimestamp ?? Date(),
+                    "appDayOfWeekID": matTime.appDayOfWeek?.appDayOfWeekID ?? "" // Add appDayOfWeekID field
                 ]
-            case "appDayOfWeeks":
+
+                
+            case "AppDayOfWeek":
                 guard let appDayOfWeek = localRecord as? AppDayOfWeek else { continue }
                 recordData = [
                     "id": appDayOfWeek.appDayOfWeekID ?? "", // Convert UUID to string
@@ -376,6 +388,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
                     "name": appDayOfWeek.name ?? "",
                     "createdTimestamp": appDayOfWeek.createdTimestamp ?? Date()
                 ]
+                
+                
+                
             // Add other collection types as needed
             default:
                 print("Unknown collection name: \(collectionName)")
@@ -410,12 +425,19 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         // Upload local records to Firestore if they don't exist
         await uploadLocalRecordsToFirestore(collectionName: collectionName, records: localRecordsNotInFirestore)
 
-        // Download Firestore records to Core Data if they don't exist locally
-        await downloadFirestoreRecordsToLocal(collectionName: collectionName, records: firestoreRecordsNotInLocal)
+        // Prioritized download process
+        let orderedCollections = ["pirateIslands", "reviews","AppDayOfWeek", "MatTime"]
+        for collection in orderedCollections {
+            let recordIDs = firestoreRecordsNotInLocal // You can use firestoreRecordsNotInLocal or update this logic as needed
+            await downloadFirestoreRecordsToLocal(collectionName: collection, records: recordIDs)
+        }
     }
+
 
     // New function to download Firestore records to Core Data
     private func downloadFirestoreRecordsToLocal(collectionName: String, records: [String]) async {
+        print("Downloading Firestore records to local Core Data for collection: \(collectionName)")
+
         // Get a reference to the Core Data context
         let context = PersistenceController.shared.container.viewContext
         let db = Firestore.firestore()
@@ -447,12 +469,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
                             pirateIsland.islandLocation = docSnapshot.get("location") as? String
                             pirateIsland.country = docSnapshot.get("country") as? String
                             pirateIsland.createdByUserId = docSnapshot.get("createdByUserId") as? String
-                            pirateIsland.createdTimestamp = docSnapshot.get("createdTimestamp") as? Date
+                            pirateIsland.createdTimestamp = (docSnapshot.get("createdTimestamp") as? Timestamp)?.dateValue()
                             pirateIsland.gymWebsite = docSnapshot.get("gymWebsite") as? URL
                             pirateIsland.latitude = docSnapshot.get("latitude") as? Double ?? 0.0
                             pirateIsland.longitude = docSnapshot.get("longitude") as? Double ?? 0.0
                             pirateIsland.lastModifiedByUserId = docSnapshot.get("lastModifiedByUserId") as? String
-                            pirateIsland.lastModifiedTimestamp = docSnapshot.get("lastModifiedTimestamp") as? Date
+                            pirateIsland.lastModifiedTimestamp = (docSnapshot.get("lastModifiedTimestamp") as? Timestamp)?.dateValue()
                         }
 
                     case "reviews":
@@ -466,18 +488,19 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
 
                             review.stars = docSnapshot.get("stars") as? Int16 ?? 0
                             review.review = docSnapshot.get("review") as? String ?? ""
-                            review.createdTimestamp = docSnapshot.get("createdTimestamp") as? Date ?? Date()
+                            review.createdTimestamp = (docSnapshot.get("createdTimestamp") as? Timestamp)?.dateValue() ?? Date()
                             review.averageStar = docSnapshot.get("averageStar") as? Int16 ?? 0
                         }
+                        
+                    case "MatTime":
+                        // Check if the MatTime already exists in Core Data
+                        var matTime = fetchMatTimeByID(record)
+                        if matTime == nil {
+                            matTime = MatTime(context: context)
+                            matTime?.id = UUID(uuidString: record)
+                        }
 
-                    case "matTimes":
-                        newRecord = MatTime(context: context)
-                        if let matTime = newRecord as? MatTime {
-                            if let uuid = UUID(uuidString: record) {
-                                matTime.id = uuid
-                            } else {
-                                print("Invalid UUID string: \(record)")
-                            }
+                        if let matTime = matTime {
                             matTime.type = docSnapshot.get("type") as? String
                             matTime.time = docSnapshot.get("time") as? String
                             matTime.gi = docSnapshot.get("gi") as? Bool ?? false
@@ -487,32 +510,56 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
                             matTime.restrictionDescription = docSnapshot.get("restrictionDescription") as? String
                             matTime.goodForBeginners = docSnapshot.get("goodForBeginners") as? Bool ?? false
                             matTime.kids = docSnapshot.get("kids") as? Bool ?? false
-                            matTime.createdTimestamp = docSnapshot.get("createdTimestamp") as? Date
+                            matTime.createdTimestamp = (docSnapshot.get("createdTimestamp") as? Timestamp)?.dateValue()
+                            
+                            // Link to AppDayOfWeek
+                            if let appDayOfWeekRef = docSnapshot.get("appDayOfWeek") as? DocumentReference {
+                                let appDayOfWeekID = appDayOfWeekRef.documentID
+                                if let appDayOfWeek = fetchAppDayOfWeekByID(appDayOfWeekID) {
+                                    matTime.appDayOfWeek = appDayOfWeek
+                                }
+                            }
                         }
 
-                    case "appDayOfWeeks":
-                        newRecord = AppDayOfWeek(context: context)
-                        if let appDayOfWeek = newRecord as? AppDayOfWeek {
-                            if let uuid = UUID(uuidString: record) {
-                                appDayOfWeek.appDayOfWeekID = uuid.uuidString // Set appDayOfWeekID as a string from UUID
-                            } else {
-                                print("Invalid UUID string: \(record)")
-                            }
-                            appDayOfWeek.day = docSnapshot.get("day") as? String ?? "" // Make sure it's non-optional
-                            appDayOfWeek.name = docSnapshot.get("name") as? String
-                            appDayOfWeek.createdTimestamp = docSnapshot.get("createdTimestamp") as? Date
+                    case "AppDayOfWeek":
+                        var appDayOfWeek = fetchAppDayOfWeekByID(record)
+                        if appDayOfWeek == nil {
+                            appDayOfWeek = AppDayOfWeek(context: context)
+                        }
 
-                            // Handle relationships if needed
-                            if let pirateIslandID = docSnapshot.get("pirateIslandID") as? String {
-                                // Fetch the associated PirateIsland and set the relationship
+                        if let appDayOfWeek = appDayOfWeek {
+                            appDayOfWeek.appDayOfWeekID = record
+                            appDayOfWeek.day = docSnapshot.get("day") as? String ?? ""  // Non-Optional
+                            appDayOfWeek.name = docSnapshot.get("name") as? String
+                            appDayOfWeek.createdTimestamp = (docSnapshot.get("createdTimestamp") as? Timestamp)?.dateValue()
+                            // Get full pIsland map
+                            if let pIsland = docSnapshot.get("pIsland") as? [String: Any],
+                               let pirateIslandID = pIsland["islandID"] as? String {
+
                                 if let pirateIsland = fetchPirateIslandByID(pirateIslandID) {
                                     appDayOfWeek.pIsland = pirateIsland
+                                } else {
+                                    // Auto-create PirateIsland from Firestore data
+                                    let newIsland = PirateIsland(context: context)
+
+                                    if let uuid = UUID(uuidString: pirateIslandID) {
+                                        newIsland.islandID = uuid
+                                    } else {
+                                        print("Failed to convert islandID string to UUID: \(pirateIslandID)")
+                                    }
+
+                                    newIsland.islandName = pIsland["islandName"] as? String
+                                    newIsland.islandLocation = pIsland["islandLocation"] as? String
+                                    newIsland.country = pIsland["country"] as? String
+                                    newIsland.latitude = pIsland["latitude"] as? Double ?? 0
+                                    newIsland.longitude = pIsland["longitude"] as? Double ?? 0
+
+                                    appDayOfWeek.pIsland = newIsland
+                                    print("Created new PirateIsland from Firestore: \(pirateIslandID)")
                                 }
                             }
 
-                            // Handle matTimes relationship
                             if let matTimesArray = docSnapshot.get("matTimes") as? [String] {
-                                // Loop through matTimes array and add to the matTimes relationship
                                 for matTimeID in matTimesArray {
                                     if let matTime = fetchMatTimeByID(matTimeID) {
                                         appDayOfWeek.addToMatTimes(matTime)
@@ -521,18 +568,19 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
                             }
                         }
 
+
                     default:
-                        print("Unknown collection name: \(collectionName)")
+                        print("Unknown collection: \(collectionName)")
                         return
                     }
 
-                    // Save the new record to Core Data
+                    // Save to Core Data
                     await context.perform {
                         do {
                             try context.save()
-                            print("Downloaded Firestore record \(record) to Core Data")
+                            print("Successfully synced Firestore \(collectionName) record \(record) to Core Data.")
                         } catch let error {
-                            print("Error downloading Firestore record \(record) to Core Data: \(error.localizedDescription)")
+                            print("Error syncing \(collectionName) record \(record) from Firestore to Core Data: \(error.localizedDescription)")
                         }
                     }
                 } else {
@@ -543,12 +591,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
             }
         }
     }
-
+    
     private func fetchPirateIslandByID(_ id: String) -> PirateIsland? {
+        let context = PersistenceController.shared.container.viewContext
         let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
         fetchRequest.predicate = NSPredicate(format: "islandID == %@", id)
+
         do {
-            let results = try PersistenceController.shared.container.viewContext.fetch(fetchRequest)
+            let results = try context.fetch(fetchRequest)
             return results.first
         } catch {
             print("Error fetching PirateIsland by ID: \(error.localizedDescription)")
@@ -567,17 +617,33 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
             return nil
         }
     }
+    
+    // Add this method to the appropriate place in your Core Data manager or persistence controller
+    private func fetchAppDayOfWeekByID(_ id: String) -> AppDayOfWeek? {
+        let context = PersistenceController.shared.container.viewContext
+        let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "appDayOfWeekID == %@", id)
+
+        do {
+            let results = try context.fetch(fetchRequest)
+            return results.first // Return the first match, or nil if none found
+        } catch {
+            print("Error fetching AppDayOfWeek by ID: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
 
     private func syncAppDayOfWeekRecords() async {
-        // Fetch Firestore records for "appDayOfWeeks"
+        // Fetch Firestore records for "AppDayOfWeek"
         let db = Firestore.firestore()
-        let collectionRef = db.collection("appDayOfWeeks")
+        let collectionRef = db.collection("AppDayOfWeek")
         do {
             let querySnapshot = try await collectionRef.getDocuments()
             let firestoreRecords = querySnapshot.documents.compactMap { $0.documentID }
 
-            // Fetch local Core Data records for "appDayOfWeeks"
-            let localRecords = try? await PersistenceController.shared.fetchLocalRecords(forCollection: "appDayOfWeeks")
+            // Fetch local Core Data records for "AppDayOfWeek"
+            let localRecords = try? await PersistenceController.shared.fetchLocalRecords(forCollection: "AppDayOfWeek")
 
             // Identify records that exist in Firestore but not in Core Data
             let localRecordsSet = Set(localRecords ?? [])
@@ -594,7 +660,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         // Get a reference to the Core Data context
         let context = PersistenceController.shared.container.viewContext
         let db = Firestore.firestore()
-        let collectionRef = db.collection("appDayOfWeeks")
+        let collectionRef = db.collection("AppDayOfWeek")
 
         // Loop through each record to download
         for record in records {
@@ -612,7 +678,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
                     newRecord.appDayOfWeekID = record
                     newRecord.day = docSnapshot.get("day") as? String ?? ""
                     newRecord.name = docSnapshot.get("name") as? String
-                    newRecord.createdTimestamp = docSnapshot.get("createdTimestamp") as? Date
+                    newRecord.createdTimestamp = (docSnapshot.get("createdTimestamp") as? Timestamp)?.dateValue()
 
                     // Save the new record to Core Data
                     await context.perform {

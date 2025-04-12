@@ -24,7 +24,6 @@ struct AppDayOfWeekFormView: View {
     ) private var islands: FetchedResults<PirateIsland>
     
     @ObservedObject var viewModel: AppDayOfWeekViewModel
-
     
     var body: some View {
         Form {
@@ -42,37 +41,16 @@ struct AppDayOfWeekFormView: View {
             
             Section(header: Text("MatTimes")) {
                 // You can implement a more advanced MatTime management UI here
-                // For simplicity, this example doesn't include that part
                 Text("Add and manage MatTimes here")
             }
             
             Button("Save") {
-                viewModel.saveAppDayOfWeek()
+                viewModel.saveAppDayOfWeekLocally() // Call the save method in viewModel
             }
         }
     }
-    
-    private func saveAppDayOfWeekLocally() {
-        let newAppDayOfWeek = AppDayOfWeek(context: viewContext)
-        newAppDayOfWeek.day = day
-        newAppDayOfWeek.name = name
-        newAppDayOfWeek.appDayOfWeekID = appDayOfWeekID
-        newAppDayOfWeek.pIsland = selectedIsland
-        
-        // Add MatTimes if needed
-        matTimes.forEach { matTime in
-            newAppDayOfWeek.addToMatTimes(matTime)
-        }
-        
-        do {
-            try viewContext.save()
-        } catch {
-            print("Failed to save AppDayOfWeek locally: \(error.localizedDescription)")
-        }
-    }
-    
-
 }
+
 
 struct AppDayOfWeekFormView_Previews: PreviewProvider {
     static var previews: some View {

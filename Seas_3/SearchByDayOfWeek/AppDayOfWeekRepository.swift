@@ -74,10 +74,12 @@ class AppDayOfWeekRepository: ObservableObject {
     }
 
     func generateName(for island: PirateIsland, day: DayOfWeek) -> String {
-        let name = "\(island.islandName ?? "Unknown Gym") \(day.displayName)"
+        let islandName = island.islandName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "Unknown Gym"
+        let name = "\(islandName) -\(day.rawValue.lowercased())"
         print("Generated name: \(name)")
         return name
     }
+
 
     func generateAppDayOfWeekID(for island: PirateIsland, day: DayOfWeek) -> String {
         return "\(island.islandName ?? "Unknown Gym")-\(day.rawValue)"
@@ -90,22 +92,26 @@ class AppDayOfWeekRepository: ObservableObject {
 
 
     func updateAppDayOfWeekName(_ appDayOfWeek: AppDayOfWeek, with island: PirateIsland, dayOfWeek: DayOfWeek, context: NSManagedObjectContext) {
+        // ✅ Explicitly update all related fields
+        appDayOfWeek.day = dayOfWeek.rawValue
+        appDayOfWeek.pIsland = island
         appDayOfWeek.name = generateName(for: island, day: dayOfWeek)
         appDayOfWeek.appDayOfWeekID = generateAppDayOfWeekID(for: island, day: dayOfWeek)
 
-        // Check if name is nil
+        // Optional: safeguard against nil (but generateName should prevent that)
         if appDayOfWeek.name == nil {
-            print("Warning: AppDayOfWeek name is nil!")
-            // Optionally, you can set a default name
-            appDayOfWeek.name = "Default Name"  // Example of setting a default
+            print("⚠️ Warning: AppDayOfWeek name is nil! Setting fallback.")
+            appDayOfWeek.name = "Default Name"
         }
 
+        // ✅ Save context
         do {
             try context.save()
         } catch {
-            print("Failed to save context: \(error)")
+            print("❌ Failed to save context: \(error)")
         }
     }
+
 
 
     func updateAppDayOfWeek(_ appDayOfWeek: AppDayOfWeek?, with island: PirateIsland, dayOfWeek: DayOfWeek, context: NSManagedObjectContext) {
