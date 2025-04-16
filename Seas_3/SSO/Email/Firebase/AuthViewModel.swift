@@ -9,6 +9,8 @@ import Firebase
 import CryptoSwift
 import CoreData
 import Combine
+import os
+import os.log
 
 // Define AuthError enum
 enum AuthError: Error, LocalizedError {
@@ -672,4 +674,80 @@ class AuthViewModel: ObservableObject {
     }
 
     
+    // Convert FirebaseAuth.User to your custom UserInfo type
+    func convertToAppUser(from firebaseUser: FirebaseAuth.User) -> UserInfo {
+        let userInfo = UserInfo(context: context)
+        userInfo.userID = firebaseUser.uid
+        userInfo.name = firebaseUser.displayName ?? "Anonymous"
+        userInfo.userName = firebaseUser.displayName ?? "anonymous_user"
+        userInfo.email = firebaseUser.email ?? "no-email@unknown.com"
+        userInfo.passwordHash = Data()
+        userInfo.salt = Data()
+        userInfo.isVerified = false
+        userInfo.isBanned = false
+
+        // Do NOT save to Core Data if you don't persist users
+        return userInfo
+    }
+    
+    
+    func handleUserLogin(firebaseUser: FirebaseAuth.User) {
+        let appUser = convertToAppUser(from: firebaseUser)
+
+        // Also upload to Firestore
+        let db = Firestore.firestore()
+        db.collection("users").document(appUser.userID).setData([
+            "name": appUser.name,
+            "userName": appUser.userName,
+            "email": appUser.email,
+            "isVerified": appUser.isVerified,
+            "isBanned": appUser.isBanned
+        ], merge: true)
+
+        do {
+            try context.save()
+            os_log("New user saved to Core Data: %@", log: logger, type: .info, appUser.name)
+        } catch {
+            os_log("Failed to save new user: %@", log: logger, type: .error, error.localizedDescription)
+        }
+    }
+
+    func getCurrentUser(completion: @escaping (UserInfo?) -> Void) {
+        guard let firebaseUser = Auth.auth().currentUser else {
+            os_log("No Firebase Auth user currently signed in", log: logger, type: .error)
+            completion(nil)
+            return
+        }
+
+        // Attempt to fetch user data from Firestore
+        let db = Firestore.firestore()
+        let documentRef = db.collection("users").document(firebaseUser.uid)
+
+        documentRef.getDocument { [self] snapshot, error in
+            if let error = error {
+                os_log("Firestore fetch failed: %@", log: logger, type: .error, error.localizedDescription)
+                completion(nil)
+                return
+            }
+
+            guard let data = snapshot?.data() else {
+                os_log("No Firestore data found for UID: %@", log: logger, type: .error, firebaseUser.uid)
+                completion(nil)
+                return
+            }
+
+            // Use Firestore data (e.g., userName) and pass it to the completion handler
+            let username = data["userName"] as? String ?? "Unknown User"
+            os_log("Fetched user from Firestore: %@", log: logger, type: .info, username)
+
+            // Call the completion handler with the fetched data
+            let userInfo = UserInfo(context: context)
+            userInfo.userID = firebaseUser.uid
+            userInfo.userName = username
+            
+            completion(userInfo)
+        }
+    }
+
+
 }

@@ -39,6 +39,7 @@ struct ViewReviewforIsland: View {
     @Binding var selectedIsland: PirateIsland?
     @State private var selectedSortType: SortType = .latest
     @ObservedObject var enterZipCodeViewModel: EnterZipCodeViewModel
+    @ObservedObject var authViewModel: AuthViewModel
 
     @State private var filteredReviewsCache: [Review] = []
     @State private var averageRating: Double = 0.0
@@ -46,44 +47,40 @@ struct ViewReviewforIsland: View {
     @FetchRequest(entity: PirateIsland.entity(), sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.islandName, ascending: true)])
     private var islands: FetchedResults<PirateIsland>
 
+    
+    
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading) {
-                    IslandSection(islands: Array(islands), selectedIsland: $selectedIsland, showReview: $showReview)
-                        .padding(.horizontal, 16)
+                    IslandSection(
+                        islands: Array(islands),
+                        selectedIsland: $selectedIsland,
+                        showReview: $showReview
+                    )
+                    .padding(.horizontal, 16)
 
                     if selectedIsland != nil {
                         SortSection(selectedSortType: $selectedSortType)
                             .padding(.horizontal, 16)
 
-                        Text("Reviews \(filteredReviews.count); Average Rating: \(String(format: "%.1f", averageRating))")
-                            .font(.headline)
-
-                        HStack {
-                            ForEach(StarRating.getStars(for: averageRating), id: \.self) { star in
-                                Image(systemName: star)
-                                    .foregroundColor(.yellow)
-                                    .font(.system(size: 20))
-                            }
-                        }
-                        .padding(.vertical, 4)
-
+                        ReviewSummaryView(
+                            averageRating: averageRating,
+                            reviewCount: filteredReviews.count
+                        )
 
                         if filteredReviews.isEmpty {
-                            NavigationLink(destination: GymMatReviewView(
-                                localSelectedIsland: $selectedIsland,
+                            NoReviewsView(
+                                selectedIsland: $selectedIsland,
                                 enterZipCodeViewModel: enterZipCodeViewModel,
-                                onIslandChange: { _ in }
-                            )) {
-                                Text("No reviews available. Be the first to write a review!")
-                                    .font(.headline)
-                                    .foregroundColor(.blue)
-                                    .underline()
-                                    .padding()
-                            }
+                                authViewModel: authViewModel
+                            )
+
                         } else {
-                            ReviewList(filteredReviews: filteredReviews, selectedSortType: $selectedSortType)
+                            ReviewList(
+                                filteredReviews: filteredReviews,
+                                selectedSortType: $selectedSortType
+                            )
                         }
                     }
                 }
@@ -94,14 +91,54 @@ struct ViewReviewforIsland: View {
                 os_log("ViewReviewforIsland appeared", log: logger, type: .info)
                 loadReviews()
             }
-            .onChange(of: selectedSortType) { _ in
-                loadReviews()
-            }
-            .onChange(of: selectedIsland) { _ in
-                loadReviews()
+            .onChange(of: selectedSortType) { _ in loadReviews() }
+            .onChange(of: selectedIsland) { _ in loadReviews() }
+        }
+    }
+    
+    private struct ReviewSummaryView: View {
+        let averageRating: Double
+        let reviewCount: Int
+
+        var body: some View {
+            VStack(alignment: .leading) {
+                Text("Reviews \(reviewCount); Average Rating: \(String(format: "%.1f", averageRating))")
+                    .font(.headline)
+
+                HStack {
+                    ForEach(StarRating.getStars(for: averageRating), id: \.self) { star in
+                        Image(systemName: star)
+                            .foregroundColor(.yellow)
+                            .font(.system(size: 20))
+                    }
+                }
+                .padding(.vertical, 4)
             }
         }
     }
+    
+    private struct NoReviewsView: View {
+        @Binding var selectedIsland: PirateIsland?
+        var enterZipCodeViewModel: EnterZipCodeViewModel
+        @ObservedObject var authViewModel: AuthViewModel
+
+        var body: some View {
+            NavigationLink(destination: GymMatReviewView(
+                localSelectedIsland: $selectedIsland,
+                enterZipCodeViewModel: enterZipCodeViewModel,
+                authViewModel: authViewModel,
+                onIslandChange: { _ in }
+            )) {
+                Text("No reviews available. Be the first to write a review!")
+                    .font(.headline)
+                    .foregroundColor(.blue)
+                    .underline()
+                    .padding()
+            }
+        }
+    }
+
+
 
     // ✅ Computed property for filtered reviews
     var filteredReviews: [Review] {
@@ -238,7 +275,7 @@ struct FullReviewView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 }
-
+/*
 struct ViewReviewforIsland_Previews: PreviewProvider {
     static var previews: some View {
         IslandReviewPreview()
@@ -247,7 +284,7 @@ struct ViewReviewforIsland_Previews: PreviewProvider {
 
 struct IslandReviewPreview: View {
     @State private var selectedIsland: PirateIsland?
-    @State private var showReview: Bool = false // Initialize showReview as a state variable
+    @State private var showReview: Bool = false
 
     var body: some View {
         let persistenceController = PersistenceController.preview
@@ -258,28 +295,34 @@ struct IslandReviewPreview: View {
         mockIsland.islandName = "Mock Island"
         mockIsland.islandLocation = "Mock Location"
 
-        // Create a variety of mock reviews for the island
+        // Create mock reviews
         for i in 1...5 {
             let mockReview = Review(context: context)
             mockReview.review = "Review \(i): This is a sample review for the mock island."
-            mockReview.stars = Int16(i) // Use sequential stars for clear testing (1 to 5)
-            mockReview.createdTimestamp = Date().addingTimeInterval(TimeInterval(-i * 86400)) // Offset each review by a day
-            mockReview.island = mockIsland // Correctly set the relationship
+            mockReview.stars = Int16(i)
+            mockReview.createdTimestamp = Date().addingTimeInterval(TimeInterval(-i * 86400))
+            mockReview.island = mockIsland
         }
-        
-        // Save the context
+
         try? context.save()
 
-        // Set the selected island
         selectedIsland = mockIsland
 
-        let mockViewModel = EnterZipCodeViewModel(
+        let mockEnterZipViewModel = EnterZipCodeViewModel(
             repository: AppDayOfWeekRepository.shared,
             persistenceController: persistenceController
         )
 
+        let mockAuthViewModel = AuthViewModel() // Replace with actual init if needed
+
         return ScrollView {
-            ViewReviewforIsland(showReview: $showReview, selectedIsland: $selectedIsland, enterZipCodeViewModel: mockViewModel) // Pass showReview binding here
+            ViewReviewforIsland(
+                showReview: $showReview,
+                selectedIsland: $selectedIsland,
+                enterZipCodeViewModel: mockEnterZipViewModel,
+                authViewModel: mockAuthViewModel
+            )
         }
     }
 }
+*/

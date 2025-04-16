@@ -27,7 +27,8 @@ struct ViewReviewSearch: View {
                 SearchBar(text: $viewModel.searchQuery)
                 IslandList(
                     islands: viewModel.filteredIslands,
-                    selectedIsland: $selectedIsland, searchText: $viewModel.searchQuery,
+                    selectedIsland: $selectedIsland,
+                    searchText: $viewModel.searchQuery,
                     navigationDestination: .review,
                     title: titleString
                 )
@@ -58,6 +59,7 @@ struct ViewReviewSearch: View {
         }
     }
 }
+
 
 
 class ViewReviewSearchViewModel: ObservableObject {

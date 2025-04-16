@@ -32,6 +32,9 @@ struct IslandModalView: View {
     @Binding var selectedIsland: PirateIsland?
     @ObservedObject var viewModel: AppDayOfWeekViewModel
     @Binding var selectedAppDayOfWeek: AppDayOfWeek?
+    @StateObject private var authViewModel = AuthViewModel(
+        managedObjectContext: PersistenceController.preview.container.viewContext
+    )
 
     init(
         customMapMarker: CustomMapMarker?,
@@ -136,18 +139,21 @@ struct IslandModalView: View {
                                 }
 
                                 NavigationLink(destination: ViewReviewforIsland(
-                                    showReview: $showReview, selectedIsland: $selectedIsland,
-                                    enterZipCodeViewModel: enterZipCodeViewModel
+                                    showReview: $showReview,
+                                    selectedIsland: $selectedIsland,
+                                    enterZipCodeViewModel: enterZipCodeViewModel,
+                                    authViewModel: authViewModel
                                 )) {
                                     Text("View Reviews")
                                 }
+
                             } else {
                                 Text("No reviews available.")
                                     .foregroundColor(.secondary)
 
                                 NavigationLink(destination: GymMatReviewView(
                                     localSelectedIsland: .constant(selectedIsland),
-                                    enterZipCodeViewModel: enterZipCodeViewModel,
+                                    enterZipCodeViewModel: enterZipCodeViewModel, authViewModel: authViewModel,
                                     onIslandChange: { newIsland in
                                         // Handle island change
                                     }
@@ -156,7 +162,7 @@ struct IslandModalView: View {
                                         Text("Be the first to write a review!")
                                         Image(systemName: "pencil.and.ellipsis.rectangle")
                                     }
-                                    .foregroundColor(.blue) // Ensures both icon and text are blue
+                                    .foregroundColor(.blue)
                                 }
                             }
                         }
@@ -203,71 +209,5 @@ struct IslandModalView: View {
                 isLoadingData = false
             }
         }
-    }
-}
-
-
-
-struct IslandModalView_Previews: PreviewProvider {
-    static var previews: some View {
-        let persistenceController = PersistenceController.preview
-        
-        let mockIsland = PirateIsland(
-            context: persistenceController.container.viewContext
-        )
-        mockIsland.islandName = "Big Bad Island"
-        mockIsland.islandLocation = "Gym Address"
-        mockIsland.latitude = 37.7749
-        mockIsland.longitude = -122.4194
-        mockIsland.createdTimestamp = Date()
-        mockIsland.lastModifiedTimestamp = Date()
-
-        let mockEnterZipCodeViewModel = EnterZipCodeViewModel(
-            repository: AppDayOfWeekRepository.shared,
-            persistenceController: persistenceController
-        )
-        let mockAppDayOfWeekViewModel = AppDayOfWeekViewModel(
-            selectedIsland: mockIsland,
-            repository: MockAppDayOfWeekRepository(persistenceController: persistenceController),
-            enterZipCodeViewModel: mockEnterZipCodeViewModel
-        )
-
-        let mockCustomMapMarker = CustomMapMarker(
-            id: UUID(),
-            coordinate: CLLocationCoordinate2D(latitude: mockIsland.latitude, longitude: mockIsland.longitude),
-            title: "Title",
-            pirateIsland: mockIsland
-        )
-
-        // Create mock reviews
-        let mockReview1 = Review(context: persistenceController.container.viewContext)
-        mockReview1.stars = 5
-        mockReview1.createdTimestamp = Date()
-
-        let mockReview2 = Review(context: persistenceController.container.viewContext)
-        mockReview2.stars = 4
-        mockReview2.createdTimestamp = Date()
-
-        let mockReviews = [mockReview1, mockReview2]
-
-        let islandModalView = IslandModalView(
-            customMapMarker: mockCustomMapMarker,
-            islandName: mockIsland.islandName ?? "",
-            islandLocation: mockIsland.islandLocation ?? "",
-            formattedCoordinates: "\(mockIsland.latitude), \(mockIsland.longitude)",
-            createdTimestamp: "2022-01-01 12:00:00",
-            formattedTimestamp: "2022-01-01 12:00:00",
-            gymWebsite: URL(string: "https://www.example.com"),
-            reviews: mockReviews,
-            dayOfWeekData: [.monday, .tuesday, .wednesday],
-            selectedAppDayOfWeek: .constant(nil),
-            selectedIsland: .constant(mockIsland),
-            viewModel: mockAppDayOfWeekViewModel,
-            selectedDay: .constant(.monday),
-            showModal: .constant(true),
-            enterZipCodeViewModel: mockEnterZipCodeViewModel
-        )
-
-        return islandModalView
     }
 }

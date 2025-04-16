@@ -12,15 +12,23 @@ import CoreData
 struct EditExistingIslandList: View {
     @StateObject private var persistenceController = PersistenceController.shared
     @State private var selectedIsland: PirateIsland? = nil
+    @StateObject private var authViewModel = AuthViewModel()
 
     var body: some View {
-        EditExistingIslandListContent(viewContext: persistenceController.viewContext, selectedIsland: $selectedIsland)
-            .padding()
+        EditExistingIslandListContent(
+            viewContext: persistenceController.viewContext,
+            authViewModel: authViewModel,
+            selectedIsland: $selectedIsland
+        )
+        .padding()
     }
 }
 
+
 struct EditExistingIslandListContent: View {
     let viewContext: NSManagedObjectContext
+    @ObservedObject var authViewModel: AuthViewModel
+
     @FetchRequest(
         entity: PirateIsland.entity(),
         sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.createdTimestamp, ascending: true)]
@@ -43,9 +51,10 @@ struct EditExistingIslandListContent: View {
                 }
             IslandList(
                 islands: filteredIslands,
-                selectedIsland: $selectedIsland, searchText: $searchQuery,
+                selectedIsland: $selectedIsland,
+                searchText: $searchQuery,
                 navigationDestination: .editExistingIsland,
-                title: "Edit Gyms"
+                title: "Edit Gyms",
             )
             .alert(isPresented: $showNoMatchAlert) {
                 Alert(
@@ -61,6 +70,7 @@ struct EditExistingIslandListContent: View {
             createNewPirateIslandIfNeeded()
         }
     }
+
     
     
     private func createNewPirateIslandIfNeeded() {

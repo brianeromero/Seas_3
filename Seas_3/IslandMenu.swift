@@ -275,7 +275,8 @@ struct IslandMenu: View {
                 enterZipCodeViewModel: EnterZipCodeViewModel(
                     repository: AppDayOfWeekRepository(persistenceController: PersistenceController.shared),
                     persistenceController: PersistenceController.shared
-                )
+                ),
+                authViewModel: authViewModel
             )
 
             

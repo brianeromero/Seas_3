@@ -18,12 +18,16 @@ struct GymMatReviewSelect: View {
     @Environment(\.managedObjectContext) private var viewContext
     var enterZipCodeViewModel: EnterZipCodeViewModel
     @State private var debounceTimer: Timer?
+    @ObservedObject var authViewModel: AuthViewModel
 
 
-    init(selectedIsland: Binding<PirateIsland?>, enterZipCodeViewModel: EnterZipCodeViewModel) {
+
+    init(selectedIsland: Binding<PirateIsland?>, enterZipCodeViewModel: EnterZipCodeViewModel, authViewModel: AuthViewModel) {
         _selectedIsland = selectedIsland
         self.enterZipCodeViewModel = enterZipCodeViewModel
+        self.authViewModel = authViewModel
     }
+
 
     @FetchRequest(
         entity: PirateIsland.entity(),
@@ -46,7 +50,7 @@ struct GymMatReviewSelect: View {
                     NavigationLink(
                         destination: GymMatReviewView(
                             localSelectedIsland: $selectedIsland,
-                            enterZipCodeViewModel: enterZipCodeViewModel,
+                            enterZipCodeViewModel: enterZipCodeViewModel, authViewModel: authViewModel,
                             onIslandChange: self.handleIslandChange
                         )
                         .onAppear {
@@ -119,50 +123,14 @@ struct SelectedIslandView: View {
     let island: PirateIsland
     var enterZipCodeViewModel: EnterZipCodeViewModel
     var onIslandChange: (PirateIsland?) -> Void
+    var authViewModel: AuthViewModel
+
 
     var body: some View {
         GymMatReviewView(
             localSelectedIsland: .constant(island),
-            enterZipCodeViewModel: enterZipCodeViewModel,
+            enterZipCodeViewModel: enterZipCodeViewModel, authViewModel: authViewModel,
             onIslandChange: onIslandChange
         )
-    }
-}
-
-
-// Preview Setup
-struct GymMatReviewSelect_Previews: PreviewProvider {
-    static var previews: some View {
-        let mockRepository = AppDayOfWeekRepository(persistenceController: PersistenceController.preview)
-        let mockEnterZipCodeViewModel = EnterZipCodeViewModel(
-            repository: mockRepository,
-            persistenceController: PersistenceController.preview
-        )
-
-        // Create sample islands for preview
-        let viewContext = PersistenceController.preview.container.viewContext
-        let sampleIslands: [PirateIsland] = [
-            PirateIsland(context: viewContext),
-            PirateIsland(context: viewContext),
-            PirateIsland(context: viewContext)
-        ]
-        
-        sampleIslands[0].islandName = "Sample Gym 1"
-        sampleIslands[0].islandLocation = "123 Main St, Anytown, USA"
-        
-        sampleIslands[1].islandName = "Sample Gym 2"
-        sampleIslands[1].islandLocation = "456 Elm St, Othertown, USA"
-        
-        sampleIslands[2].islandName = "Sample Gym 3"
-        sampleIslands[2].islandLocation = "789 Oak St, Thistown, USA"
-
-        // Save the sample islands to the preview context
-        try? viewContext.save()
-
-        return GymMatReviewSelect(
-            selectedIsland: .constant(nil),
-            enterZipCodeViewModel: mockEnterZipCodeViewModel
-        )
-        .previewDisplayName("List of Sample Gyms")
     }
 }

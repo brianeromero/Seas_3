@@ -167,18 +167,22 @@ struct IslandList: View {
                             islandViewModel: PirateIslandViewModel(
                                 persistenceController: PersistenceController.shared
                             ),
-                            profileViewModel: ProfileViewModel(viewContext: PersistenceController.shared.container.viewContext)
+                            profileViewModel: ProfileViewModel(
+                                viewContext: PersistenceController.shared.container.viewContext,
+                                authViewModel: AuthViewModel.shared
+                            )
                         )
-                        
                     case .viewReviewForIsland:
                         ViewReviewforIsland(
-                            showReview: .constant(true), selectedIsland: $selectedIsland,
+                            showReview: .constant(true),
+                            selectedIsland: $selectedIsland,
                             enterZipCodeViewModel: EnterZipCodeViewModel(
                                 repository: AppDayOfWeekRepository(
                                     persistenceController: PersistenceController.shared
                                 ),
                                 persistenceController: PersistenceController.shared
-                            )
+                            ),
+                            authViewModel: AuthViewModel.shared
                         )
                     case .review:
                         ReviewDestinationView(
@@ -211,7 +215,7 @@ struct ReviewDestinationView: View {
             if let selectedIsland = selectedIsland {
                 ViewReviewforIsland(
                     showReview: $showReview, selectedIsland: .constant(selectedIsland),
-                    enterZipCodeViewModel: viewModel.enterZipCodeViewModel
+                    enterZipCodeViewModel: viewModel.enterZipCodeViewModel, authViewModel: AuthViewModel()
                 )
             } else {
                 EmptyView()

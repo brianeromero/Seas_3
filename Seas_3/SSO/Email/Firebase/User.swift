@@ -46,23 +46,22 @@ class User: Codable, Identifiable {
 
     // New initializer to create a User from UserInfo
     convenience init(from userInfo: UserInfo) {
-        // Assign default values for passwordHash, salt, and iterations if not available
-        let passwordHash = userInfo.passwordHash
-        let salt = userInfo.salt
-        let iterations = userInfo.iterations
-
+        let passwordHash = Data(base64Encoded: userInfo.passwordHash) ?? Data()
+        let salt = Data(base64Encoded: userInfo.salt) ?? Data()
+        
         self.init(
             email: userInfo.email,
             userName: userInfo.userName,
             name: userInfo.name,
             passwordHash: passwordHash,
             salt: salt,
-            iterations: iterations,
+            iterations: userInfo.iterations,
             isVerified: userInfo.isVerified,
             belt: userInfo.belt,
             verificationToken: userInfo.verificationToken,
             userID: UUID(uuidString: userInfo.userID) ?? UUID()
         )
     }
+
 
 }

@@ -353,15 +353,20 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
                     "lastModifiedByUserId": pirateIsland.lastModifiedByUserId ?? "",
                     "lastModifiedTimestamp": pirateIsland.lastModifiedTimestamp ?? Date()
                 ]
+                
             case "reviews":
                 guard let review = localRecord as? Review else { continue }
                 recordData = [
-                    "id": review.reviewID.uuidString, // Convert UUID to string
+                    "id": review.reviewID.uuidString,
                     "stars": review.stars,
                     "review": review.review,
+                    "name": review.name ?? "Anonymous",
                     "createdTimestamp": review.createdTimestamp,
-                    "averageStar": review.averageStar
+                    "islandID": review.island?.islandID?.uuidString ?? ""
                 ]
+
+                
+                
             case "MatTime":
                 guard let matTime = localRecord as? MatTime else { continue }
                 recordData = [
@@ -479,18 +484,31 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
 
                     case "reviews":
                         newRecord = Review(context: context)
+                        
                         if let review = newRecord as? Review {
+                            // 🆔 Review ID (from Firestore document ID)
                             if let uuid = UUID(uuidString: record) {
                                 review.reviewID = uuid
                             } else {
                                 print("Invalid UUID string: \(record)")
                             }
 
+                            // ⭐️ Review content
                             review.stars = docSnapshot.get("stars") as? Int16 ?? 0
                             review.review = docSnapshot.get("review") as? String ?? ""
+                            review.name = docSnapshot.get("name") as? String ?? "Anonymous"
                             review.createdTimestamp = (docSnapshot.get("createdTimestamp") as? Timestamp)?.dateValue() ?? Date()
-                            review.averageStar = docSnapshot.get("averageStar") as? Int16 ?? 0
+
+                            // 🌴 Link to the correct island
+                            if let islandIDString = docSnapshot.get("islandID") as? String,
+                               let island = fetchPirateIslandByID(islandIDString) {
+                                review.island = island
+                            } else {
+                                print("Failed to link review to island: \(docSnapshot.get("islandID") ?? "nil")")
+                            }
                         }
+
+
                         
                     case "MatTime":
                         // Check if the MatTime already exists in Core Data
@@ -595,7 +613,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
     private func fetchPirateIslandByID(_ id: String) -> PirateIsland? {
         let context = PersistenceController.shared.container.viewContext
         let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "islandID == %@", id)
+
+        guard let uuid = UUID(uuidString: id) else {
+            print("Invalid UUID string: \(id)")
+            return nil
+        }
+
+        fetchRequest.predicate = NSPredicate(format: "islandID == %@", uuid as CVarArg)
 
         do {
             let results = try context.fetch(fetchRequest)
@@ -605,6 +629,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
             return nil
         }
     }
+
 
     private func fetchMatTimeByID(_ id: String) -> MatTime? {
         let fetchRequest: NSFetchRequest<MatTime> = MatTime.fetchRequest()

@@ -616,31 +616,7 @@ struct CreateAccountView: View {
         
         os_log("Debug: Island validation result - isValid: %@", type: .debug, isValid ? "Passed" : "Failed", errorMessage)
         
-        /*
-         guard isValid else {
-         self.errorMessage = errorMessage
-         showErrorAlert = true
-         return
-         }
-         
-         if let urlError = ValidationUtility.validateURL(gymWebsite), !gymWebsite.isEmpty {
-         errorMessage = "Invalid gym website URL: \(urlError)"
-         showErrorAlert = true
-         os_log("Invalid gym website URL", type: .error)
-         return
-         }
-         
-         if islandDetails.islandName.trimmingCharacters(in: .whitespaces).isEmpty {
-         errorMessage = "Please provide a valid island name."
-         showErrorAlert = true
-         return
-         }
-         
-         guard islandDetails.selectedCountry != nil else {
-         toastMessage = "Error: No country selected123"
-         showToast = true
-         return
-         } */
+ 
         
         guard let selectedCountry = selectedCountry else {
             toastMessage = "Error: No country selected456"
