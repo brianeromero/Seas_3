@@ -690,40 +690,52 @@ class AuthViewModel: ObservableObject {
         return userInfo
     }
     
+    func createUserObject(from firebaseUser: FirebaseAuth.User) -> User {
+        return User(
+            email: firebaseUser.email ?? "",
+            userName: firebaseUser.displayName ?? "anonymous_user",
+            name: firebaseUser.displayName ?? "Anonymous",
+            passwordHash: Data(), // unused for Firebase auth
+            salt: Data(),
+            iterations: 0,
+            isVerified: false,
+            belt: nil,
+            verificationToken: nil,
+            userID: UUID(uuidString: firebaseUser.uid) ?? UUID()
+        )
+    }
+
     
     func handleUserLogin(firebaseUser: FirebaseAuth.User) {
-        let appUser = convertToAppUser(from: firebaseUser)
+        let appUser = createUserObject(from: firebaseUser)
 
-        // Also upload to Firestore
         let db = Firestore.firestore()
-        db.collection("users").document(appUser.userID).setData([
+        db.collection("users").document(firebaseUser.uid).setData([
             "name": appUser.name,
             "userName": appUser.userName,
             "email": appUser.email,
             "isVerified": appUser.isVerified,
-            "isBanned": appUser.isBanned
-        ], merge: true)
-
-        do {
-            try context.save()
-            os_log("New user saved to Core Data: %@", log: logger, type: .info, appUser.name)
-        } catch {
-            os_log("Failed to save new user: %@", log: logger, type: .error, error.localizedDescription)
+            "isBanned": false
+        ], merge: true) { error in
+            if let error = error {
+                os_log("Failed to upload user to Firestore: %@", log: logger, type: .error, error.localizedDescription)
+            } else {
+                os_log("User uploaded to Firestore: %@", log: logger, type: .info, appUser.name)
+            }
         }
     }
 
-    func getCurrentUser(completion: @escaping (UserInfo?) -> Void) {
+    func getCurrentUser(completion: @escaping (User?) -> Void) {
         guard let firebaseUser = Auth.auth().currentUser else {
             os_log("No Firebase Auth user currently signed in", log: logger, type: .error)
             completion(nil)
             return
         }
 
-        // Attempt to fetch user data from Firestore
         let db = Firestore.firestore()
         let documentRef = db.collection("users").document(firebaseUser.uid)
 
-        documentRef.getDocument { [self] snapshot, error in
+        documentRef.getDocument { snapshot, error in
             if let error = error {
                 os_log("Firestore fetch failed: %@", log: logger, type: .error, error.localizedDescription)
                 completion(nil)
@@ -736,18 +748,27 @@ class AuthViewModel: ObservableObject {
                 return
             }
 
-            // Use Firestore data (e.g., userName) and pass it to the completion handler
-            let username = data["userName"] as? String ?? "Unknown User"
-            os_log("Fetched user from Firestore: %@", log: logger, type: .info, username)
+            let user = User(
+                email: data["email"] as? String ?? "",
+                userName: data["userName"] as? String ?? "",
+                name: data["name"] as? String ?? "",
+                passwordHash: Data(),
+                salt: Data(),
+                iterations: 0,
+                isVerified: data["isVerified"] as? Bool ?? false,
+                belt: data["belt"] as? String,
+                verificationToken: nil,
+                userID: UUID(uuidString: firebaseUser.uid) ?? UUID()
+            )
 
-            // Call the completion handler with the fetched data
-            let userInfo = UserInfo(context: context)
-            userInfo.userID = firebaseUser.uid
-            userInfo.userName = username
-            
-            completion(userInfo)
+            os_log("Fetched Firestore user info: Email=%@, Name=%@, Belt=%@, Verified=%@",
+                   log: logger, type: .info,
+                   user.email,
+                   user.name,
+                   user.belt ?? "nil",
+                   String(user.isVerified))
+
+            completion(user)
         }
     }
-
-
 }

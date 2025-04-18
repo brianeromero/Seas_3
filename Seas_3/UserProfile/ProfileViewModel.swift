@@ -10,7 +10,6 @@ import SwiftUI
 import CoreData
 import Firebase
 
-
 public class ProfileViewModel: ObservableObject {
     @Published var email: String = ""
     @Published var userName: String = ""
@@ -23,6 +22,8 @@ public class ProfileViewModel: ObservableObject {
     @Published var isSignInEnabled: Bool = true
     @Published var errorMessage: String = ""
     @Published var isLoggedIn: Bool = false
+    @Published var isProfileLoaded: Bool = false
+    @Published var isVerified: Bool = false
     
     private var viewContext: NSManagedObjectContext
     private var authViewModel: AuthViewModel
@@ -30,65 +31,75 @@ public class ProfileViewModel: ObservableObject {
     init(viewContext: NSManagedObjectContext, authViewModel: AuthViewModel = .shared) {
         self.viewContext = viewContext
         self.authViewModel = authViewModel
-        loadProfile()
     }
+    
+    // Load the profile information
+    func loadProfile() async {
+        guard let userId = authViewModel.currentUser?.userID else {
+            print("No user ID found")
+            await MainActor.run {
+                isProfileLoaded = true
+            }
+            return
+        }
 
-    func loadProfile() {
-        let fetchRequest = NSFetchRequest<UserInfo>(entityName: "UserInfo")
+        print("Current user ID:", userId)
+
+        let userRef = Firestore.firestore().collection("users").document(userId)
         do {
-            if let userInfo = try viewContext.fetch(fetchRequest).first {
-                email = userInfo.email
-                userName = userInfo.userName
-                name = userInfo.name
-                belt = userInfo.belt ?? ""
+            let document = try await userRef.getDocument()
+            if document.exists {
+                let data = document.data()
+                print("Profile data loaded from Firestore: \(String(describing: data))")
+                await MainActor.run {
+                    email = data?["email"] as? String ?? ""
+                    userName = data?["userName"] as? String ?? ""
+                    name = data?["name"] as? String ?? ""
+                    belt = data?["belt"] as? String ?? ""
+                    print("Loaded profile - Email: \(email), Username: \(userName), Name: \(name), Belt: \(belt)")
+                    isProfileLoaded = true
+                }
             } else {
-                print("No user profile found.")
+                print("No user profile found in Firestore")
+                await MainActor.run {
+                    isProfileLoaded = true
+                }
             }
         } catch {
             print("Error loading profile: \(error.localizedDescription)")
+            await MainActor.run {
+                isProfileLoaded = true
+            }
         }
     }
 
+    // Update profile information
     func updateProfile() async {
         guard !showPasswordChange || newPassword == confirmPassword else {
             errorMessage = "Passwords do not match"
             return
         }
 
-        let fetchRequest = NSFetchRequest<UserInfo>(entityName: "UserInfo")
+        print("Updating profile - Email: \(email), Username: \(userName), Name: \(name), Belt: \(belt)")
+
         do {
-            if let userInfo = try viewContext.fetch(fetchRequest).first {
-                userInfo.email = email
-                userInfo.userName = userName
-                userInfo.name = name
-                userInfo.belt = belt
-
-                if showPasswordChange {
-                    let hashPassword = HashPassword()
-                    let hashedPassword = try hashPassword.hashPasswordScrypt(newPassword)
-                    userInfo.passwordHash = hashedPassword.hash
-                    try await authViewModel.updatePassword(newPassword)
-                }
-
-                try viewContext.save()
+            try await updateFirestoreDocument()
+            if showPasswordChange {
+                try await authViewModel.updatePassword(newPassword)
             }
         } catch {
             print("Error updating profile: \(error.localizedDescription)")
         }
-
-        do {
-            try await updateFirestoreDocument()
-        } catch {
-            print("Error updating Firestore document: \(error.localizedDescription)")
-        }
     }
 
+    // Helper to update Firestore document
     private func updateFirestoreDocument() async throws {
         guard let userId = authViewModel.currentUser?.userID else {
             throw NSError(domain: "User not authenticated", code: 401, userInfo: nil)
         }
 
         let userRef = Firestore.firestore().collection("users").document(userId)
+        print("Saving profile data to Firestore: Email: \(email), Username: \(userName), Name: \(name), Belt: \(belt)")
         try await userRef.setData([
             "email": email,
             "userName": userName,
@@ -97,6 +108,7 @@ public class ProfileViewModel: ObservableObject {
         ], merge: true)
     }
 
+    // Validate the profile fields
     func validateProfile() -> Bool {
         let emailError = validateEmail(email)
         let userNameError = validateUserName(userName)
@@ -106,6 +118,8 @@ public class ProfileViewModel: ObservableObject {
         return [emailError, userNameError, nameError, passwordError].allSatisfy { $0 == nil }
     }
 
+
+    // Validate individual fields
     func validateEmail(_ email: String) -> String? {
         return ValidationUtility.validateField(email, type: .email)?.rawValue
     }
@@ -121,7 +135,8 @@ public class ProfileViewModel: ObservableObject {
     func validatePassword(_ password: String) -> String? {
         return ValidationUtility.validateField(password, type: .password)?.rawValue
     }
-    
+
+    // Reset profile to default values
     func resetProfile() {
         email = ""
         userName = ""
@@ -131,5 +146,4 @@ public class ProfileViewModel: ObservableObject {
         newPassword = ""
         confirmPassword = ""
     }
-    
 }
