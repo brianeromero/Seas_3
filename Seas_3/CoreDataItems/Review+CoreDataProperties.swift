@@ -45,7 +45,7 @@ extension Review: Identifiable {
     @NSManaged public var review: String
     @NSManaged public var createdTimestamp: Date
     @NSManaged public var reviewID: UUID
-    @NSManaged public var name: String?
+    @NSManaged public var userName: String?
 
 
     // MARK: - Relationships

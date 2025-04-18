@@ -45,10 +45,10 @@
     </entity>
     <entity name="Review" representedClassName="Review" syncable="YES">
         <attribute name="createdTimestamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
-        <attribute name="name" optional="YES" attributeType="String"/>
         <attribute name="review" optional="YES" attributeType="String"/>
         <attribute name="reviewID" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="stars" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="userName" optional="YES" attributeType="String"/>
         <relationship name="island" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PirateIsland" inverseName="reviews" inverseEntity="PirateIsland"/>
     </entity>
     <entity name="UserInfo" representedClassName="UserInfo" syncable="YES">

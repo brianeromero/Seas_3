@@ -359,6 +359,8 @@ struct GymMatReviewView: View {
             self.isLoading = true
             os_log("Submitting review for island: %@", log: logger, type: .info, island.islandName ?? "Unknown")
             os_log("Current user submitting review: %@", log: logger, type: .info, currentUser.name)
+            os_log("Current user submitting review: %@", log: logger, type: .info, currentUser.userName)
+
 
             let reviewID = UUID()
             let newReview = Review(context: self.viewContext)
@@ -367,7 +369,7 @@ struct GymMatReviewView: View {
             newReview.createdTimestamp = Date()
             newReview.island = island
             newReview.reviewID = reviewID
-            newReview.name = currentUser.name
+            newReview.userName = currentUser.userName
 
             do {
                 try self.viewContext.save()
@@ -389,7 +391,7 @@ struct GymMatReviewView: View {
                 "review": newReview.review,
                 "createdTimestamp": timestamp,
                 "islandID": island.islandID?.uuidString ?? "",
-                "name": newReview.name ?? "Anonymous",
+                "name": newReview.userName ?? "Anonymous",
                 "reviewID": newReview.reviewID.uuidString,
             ], merge: true) { error in
                 if let error = error {

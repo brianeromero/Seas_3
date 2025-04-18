@@ -360,7 +360,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
                     "id": review.reviewID.uuidString,
                     "stars": review.stars,
                     "review": review.review,
-                    "name": review.name ?? "Anonymous",
+                    "name": review.userName ?? "Anonymous",
                     "createdTimestamp": review.createdTimestamp,
                     "islandID": review.island?.islandID?.uuidString ?? ""
                 ]
@@ -494,9 +494,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
                             }
 
                             // ⭐️ Review content
+                            
                             review.stars = docSnapshot.get("stars") as? Int16 ?? 0
                             review.review = docSnapshot.get("review") as? String ?? ""
-                            review.name = docSnapshot.get("name") as? String ?? "Anonymous"
+                            review.userName = docSnapshot.get("userName") as? String ??
+                                              docSnapshot.get("name") as? String ?? "Anonymous"
                             review.createdTimestamp = (docSnapshot.get("createdTimestamp") as? Timestamp)?.dateValue() ?? Date()
 
                             // 🌴 Link to the correct island
