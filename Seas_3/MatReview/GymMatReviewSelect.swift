@@ -117,20 +117,3 @@ extension GymMatReviewSelect {
         }
     }
 }
-
-// New View for Selected Island
-struct SelectedIslandView: View {
-    let island: PirateIsland
-    var enterZipCodeViewModel: EnterZipCodeViewModel
-    var onIslandChange: (PirateIsland?) -> Void
-    var authViewModel: AuthViewModel
-
-
-    var body: some View {
-        GymMatReviewView(
-            localSelectedIsland: .constant(island),
-            enterZipCodeViewModel: enterZipCodeViewModel, authViewModel: authViewModel,
-            onIslandChange: onIslandChange
-        )
-    }
-}

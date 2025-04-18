@@ -55,6 +55,14 @@ struct EditExistingIslandListContent: View {
                 searchText: $searchQuery,
                 navigationDestination: .editExistingIsland,
                 title: "Edit Gyms",
+                enterZipCodeViewModel: EnterZipCodeViewModel(
+                    repository: AppDayOfWeekRepository(
+                        persistenceController: PersistenceController.shared
+                    ),
+                    persistenceController: PersistenceController.shared
+                ),
+                authViewModel: authViewModel,
+                onIslandChange: { _ in }
             )
             .alert(isPresented: $showNoMatchAlert) {
                 Alert(

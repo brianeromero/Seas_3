@@ -264,9 +264,11 @@ struct IslandMenu: View {
         case .searchReviews:
             ViewReviewSearch(
                 selectedIsland: $selectedIsland,
-                titleString: "Explore Gym Reviews",  // Add this
-                enterZipCodeViewModel: appDayOfWeekViewModel.enterZipCodeViewModel  // Add this
+                titleString: "Read Gym Reviews",
+                enterZipCodeViewModel: appDayOfWeekViewModel.enterZipCodeViewModel,
+                authViewModel: authViewModel // Add this parameter
             )
+
 
             
         case .submitReview:

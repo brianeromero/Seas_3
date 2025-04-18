@@ -13,40 +13,70 @@ struct ViewReviewSearch: View {
     @Binding var selectedIsland: PirateIsland?
     var titleString: String
     var enterZipCodeViewModel: EnterZipCodeViewModel
+    var authViewModel: AuthViewModel
 
     @StateObject private var viewModel = ViewReviewSearchViewModel()
+
     @FetchRequest(
         entity: PirateIsland.entity(),
         sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.islandName, ascending: true)]
     ) private var pirateIslands: FetchedResults<PirateIsland>
+
+    private func handleIslandChange(_ island: PirateIsland?) {
+        selectedIsland = island
+    }
+
+    // Break down the List row content into a separate function
+    private func islandRow(island: PirateIsland) -> some View {
+        VStack(alignment: .leading) {
+            Text(island.islandName ?? "Unknown Gym")
+                .font(.headline)
+            Text(island.islandLocation ?? "")
+                .foregroundColor(.secondary)
+        }
+    }
+
+    // Break down the NavigationLink into a separate function
+    private func navigationLink(island: PirateIsland) -> some View {
+        NavigationLink(
+            destination: SelectedIslandView(
+                island: island,
+                selectedIsland: $selectedIsland,
+                enterZipCodeViewModel: enterZipCodeViewModel,
+                onIslandChange: handleIslandChange,
+                authViewModel: authViewModel,
+                destinationView: .viewReviewForIsland
+            )
+        ) {
+            islandRow(island: island)
+        }
+    }
 
     var body: some View {
         NavigationView {
             VStack(alignment: .leading) {
                 SearchHeader()
                 SearchBar(text: $viewModel.searchQuery)
-                IslandList(
-                    islands: viewModel.filteredIslands,
-                    selectedIsland: $selectedIsland,
-                    searchText: $viewModel.searchQuery,
-                    navigationDestination: .review,
-                    title: titleString
-                )
-            }
-            .navigationTitle(titleString)
-            .alert(isPresented: $viewModel.showNoMatchAlert) {
-                Alert(
-                    title: Text("No Match Found"),
-                    message: Text("No gyms match your search criteria."),
-                    dismissButton: .default(Text("OK"))
-                )
+                    .onChange(of: viewModel.searchQuery) { _ in
+                        viewModel.updateFilteredIslands(with: pirateIslands)
+                    }
+
+                List(viewModel.searchQuery.isEmpty ? Array(pirateIslands) : viewModel.filteredIslands, id: \.self) { island in
+                    navigationLink(island: island)
+                }
+                .frame(minHeight: 400, maxHeight: .infinity)
+                .listStyle(PlainListStyle())
+                .navigationTitle(titleString)
+                .alert(isPresented: $viewModel.showNoMatchAlert) {
+                    Alert(
+                        title: Text("No Match Found"),
+                        message: Text("No gyms match your search criteria."),
+                        dismissButton: .default(Text("OK"))
+                    )
+                }
             }
             .onAppear {
                 os_log("ViewReviewSearch appeared", log: OSLog.default, type: .info)
-                viewModel.updateFilteredIslands(with: pirateIslands)
-            }
-            .onChange(of: viewModel.searchQuery) { newValue in
-                os_log("Search query changed: %@", log: OSLog.default, type: .info, newValue)
                 viewModel.updateFilteredIslands(with: pirateIslands)
             }
             .onChange(of: selectedIsland) { newIsland in
@@ -62,6 +92,7 @@ struct ViewReviewSearch: View {
 
 
 
+
 class ViewReviewSearchViewModel: ObservableObject {
     @Published var searchQuery: String = ""
     @Published var filteredIslands: [PirateIsland] = []
@@ -73,9 +104,13 @@ class ViewReviewSearchViewModel: ObservableObject {
     private var debounceTimer: Timer?
     
     func updateFilteredIslands(with pirateIslands: FetchedResults<PirateIsland>) {
-        debounceTimer?.invalidate()
-        debounceTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { _ in
-            self.performFiltering(with: pirateIslands)
+        if searchQuery.isEmpty {
+            filteredIslands = Array(pirateIslands)
+        } else {
+            debounceTimer?.invalidate()
+            debounceTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { _ in
+                self.performFiltering(with: pirateIslands)
+            }
         }
     }
     
@@ -93,6 +128,7 @@ class ViewReviewSearchViewModel: ObservableObject {
             }
         }
     }
+
     
     private func filterIslands(_ pirateIslands: FetchedResults<PirateIsland>, query: String) -> [PirateIsland] {
         pirateIslands.compactMap { island -> PirateIsland? in
@@ -139,28 +175,32 @@ struct ViewReviewSearch_Previews: PreviewProvider {
 
         let mockRepository = AppDayOfWeekRepository(persistenceController: persistenceController)
         let mockEnterZipCodeViewModel = EnterZipCodeViewModel(repository: mockRepository, persistenceController: persistenceController)
+        let authViewModel = AuthViewModel.shared // Provide the authViewModel instance
 
         return Group {
             ViewReviewSearch(
                 selectedIsland: .constant(mockIsland1),
-                titleString: "Explore Gym Reviews2",
-                enterZipCodeViewModel: mockEnterZipCodeViewModel
+                titleString: "Read Gym Reviews2",
+                enterZipCodeViewModel: mockEnterZipCodeViewModel,
+                authViewModel: authViewModel
             )
             .previewLayout(.sizeThatFits)
             .previewDisplayName("default")
 
             ViewReviewSearch(
                 selectedIsland: .constant(nil),
-                titleString: "Explore Gym Reviews3",
-                enterZipCodeViewModel: mockEnterZipCodeViewModel
+                titleString: "Read Gym Reviews3",
+                enterZipCodeViewModel: mockEnterZipCodeViewModel,
+                authViewModel: authViewModel
             )
             .previewLayout(.sizeThatFits)
             .previewDisplayName("emptySearchQuery")
 
             ViewReviewSearch(
                 selectedIsland: .constant(nil),
-                titleString: "Explore Gym Reviews4",
-                enterZipCodeViewModel: mockEnterZipCodeViewModel
+                titleString: "Read Gym Reviews4",
+                enterZipCodeViewModel: mockEnterZipCodeViewModel,
+                authViewModel: authViewModel
             )
             .previewLayout(.sizeThatFits)
             .previewDisplayName("noMatchesFound")

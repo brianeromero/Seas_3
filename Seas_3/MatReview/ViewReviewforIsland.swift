@@ -86,9 +86,9 @@ struct ViewReviewforIsland: View {
                 }
                 .padding()
             }
-            .navigationTitle("View Reviews for Gym")
+            .navigationTitle("Read Gym Reviews")
             .onAppear {
-                os_log("ViewReviewforIsland appeared", log: logger, type: .info)
+                os_log("Read Gym Reviews page appeared", log: logger, type: .info)
                 loadReviews()
             }
             .onChange(of: selectedSortType) { _ in loadReviews() }

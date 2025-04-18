@@ -132,6 +132,9 @@ struct IslandList: View {
     @Binding var searchText: String
     let navigationDestination: NavigationDestination
     let title: String
+    let enterZipCodeViewModel: EnterZipCodeViewModel
+    let authViewModel: AuthViewModel
+    let onIslandChange: (PirateIsland?) -> Void // Change here
     @State private var showNavigationDestination = false
 
     var filteredIslands: [PirateIsland] {
@@ -151,6 +154,7 @@ struct IslandList: View {
                 ForEach(filteredIslands, id: \.self) { island in
                     Button(action: {
                         selectedIsland = island
+                        onIslandChange(selectedIsland) // Change here
                         showNavigationDestination = true
                     }) {
                         IslandListItem(island: island, selectedIsland: $selectedIsland)
@@ -169,25 +173,22 @@ struct IslandList: View {
                             ),
                             profileViewModel: ProfileViewModel(
                                 viewContext: PersistenceController.shared.container.viewContext,
-                                authViewModel: AuthViewModel.shared
+                                authViewModel: authViewModel
                             )
                         )
                     case .viewReviewForIsland:
                         ViewReviewforIsland(
                             showReview: .constant(true),
                             selectedIsland: $selectedIsland,
-                            enterZipCodeViewModel: EnterZipCodeViewModel(
-                                repository: AppDayOfWeekRepository(
-                                    persistenceController: PersistenceController.shared
-                                ),
-                                persistenceController: PersistenceController.shared
-                            ),
-                            authViewModel: AuthViewModel.shared
+                            enterZipCodeViewModel: enterZipCodeViewModel,
+                            authViewModel: authViewModel
                         )
                     case .review:
-                        ReviewDestinationView(
-                            viewModel: IslandListViewModel.shared,
-                            selectedIsland: island
+                        GymMatReviewView(
+                            localSelectedIsland: $selectedIsland,
+                            enterZipCodeViewModel: enterZipCodeViewModel,
+                            authViewModel: authViewModel,
+                            onIslandChange: onIslandChange
                         )
                     }
                 } else {
@@ -235,13 +236,27 @@ struct IslandList_Previews: PreviewProvider {
             island.islandName = "Test Island"
             island.islandLocation = "Test Location"
 
+            let enterZipCodeViewModel = EnterZipCodeViewModel(
+                repository: AppDayOfWeekRepository(
+                    persistenceController: PersistenceController.preview
+                ),
+                persistenceController: PersistenceController.preview
+            )
+
+            let authViewModel = AuthViewModel.shared
+
             return Group {
                 IslandList(
                     islands: [island],
                     selectedIsland: .constant(nil),
                     searchText: $searchText,
                     navigationDestination: .editExistingIsland,
-                    title: "Preview Title"
+                    title: "Preview Title",
+                    enterZipCodeViewModel: enterZipCodeViewModel,
+                    authViewModel: authViewModel,
+                    onIslandChange: { island in
+                        os_log("Island changed: %@", log: logger, island?.islandName ?? "")
+                    }
                 )
                 .previewLayout(.sizeThatFits)
                 .previewDisplayName("Default")
@@ -254,7 +269,12 @@ struct IslandList_Previews: PreviewProvider {
                     selectedIsland: .constant(nil),
                     searchText: $searchText,
                     navigationDestination: .viewReviewForIsland,
-                    title: "Canvas Preview Title"
+                    title: "Canvas Preview Title",
+                    enterZipCodeViewModel: enterZipCodeViewModel,
+                    authViewModel: authViewModel,
+                    onIslandChange: { island in
+                        os_log("Island changed: %@", log: logger, island?.islandName ?? "")
+                    }
                 )
                 .previewLayout(.fixed(width: 400, height: 600))
                 .previewDisplayName("Canvas Preview")
@@ -292,5 +312,40 @@ struct SearchHeader_Previews: PreviewProvider {
     static var previews: some View {
         SearchHeader()
             .previewLayout(.sizeThatFits)
+    }
+}
+
+// New View for Selected Island
+enum DestinationView {
+    case gymMatReview
+    case viewReviewForIsland
+}
+
+// New View for Selected Island
+struct SelectedIslandView: View {
+    let island: PirateIsland
+    @Binding var selectedIsland: PirateIsland?  // Change to @Binding
+    var enterZipCodeViewModel: EnterZipCodeViewModel
+    var onIslandChange: (PirateIsland?) -> Void
+    var authViewModel: AuthViewModel
+    var destinationView: DestinationView
+
+    var body: some View {
+        switch destinationView {
+        case .gymMatReview:
+            GymMatReviewView(
+                localSelectedIsland: $selectedIsland,  // Bind to selectedIsland
+                enterZipCodeViewModel: enterZipCodeViewModel,
+                authViewModel: authViewModel,
+                onIslandChange: onIslandChange
+            )
+        case .viewReviewForIsland:
+            ViewReviewforIsland(
+                showReview: .constant(false),
+                selectedIsland: $selectedIsland,
+                enterZipCodeViewModel: enterZipCodeViewModel,
+                authViewModel: authViewModel
+            )
+        }
     }
 }
