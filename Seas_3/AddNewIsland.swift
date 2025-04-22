@@ -193,9 +193,15 @@ struct AddNewIsland: View {
 
     private func validateForm() {
         print("Validating form...123")
+        
+        // 🔍 Debug tip: Print the current state of islandDetails
+        print("Current islandDetails: \(islandDetails)")
+
         let requiredFields = islandDetails.requiredAddressFields
         print("Required fields: \(requiredFields.map { $0.rawValue })")
+
         isSaveEnabled = true // Assume the form is valid initially
+
         for field in requiredFields {
             print("Checking field \(field.rawValue): \(isValidField(field))")
             if !isValidField(field) {
@@ -205,10 +211,13 @@ struct AddNewIsland: View {
                 return
             }
         }
-        let finalIsValid = !islandDetails.islandName.isEmpty
+
+        let finalIsValid = !islandDetails.islandName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         print("Final validation result: \(finalIsValid)")
+        
         isSaveEnabled = isSaveEnabled && finalIsValid // Update isSaveEnabled
     }
+
 
     private func isValidField(_ field: AddressFieldType) -> Bool {
         guard let keyPath = fieldValues.first(where: { $1 == field })?.0 else {
@@ -255,15 +264,20 @@ struct AddNewIsland: View {
                 onSave()
             } catch {
                 if let error = error as? PirateIslandError {
+                    print("PirateIslandError: \(error)")
+                    if case .geocodingError(let underlyingError) = error {
+                        print("Underlying geocoding error: \(underlyingError)")
+                    }
                     toastMessage = "Error saving island: \(error.localizedDescription)"
                     showToast = true
                 } else {
+                    print("Unexpected error: \(error)")
                     toastMessage = "An unexpected error occurred: \(error.localizedDescription)"
                     showToast = true
                 }
             }
         } else {
-            toastMessage = "Please fill in all required fields789"
+            toastMessage = "Please fill in all required fields"
             showToast = true
         }
     }

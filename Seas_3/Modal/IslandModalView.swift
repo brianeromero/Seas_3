@@ -32,9 +32,8 @@ struct IslandModalView: View {
     @Binding var selectedIsland: PirateIsland?
     @ObservedObject var viewModel: AppDayOfWeekViewModel
     @Binding var selectedAppDayOfWeek: AppDayOfWeek?
-    @StateObject private var authViewModel = AuthViewModel(
-        managedObjectContext: PersistenceController.preview.container.viewContext
-    )
+    @StateObject private var authViewModel = AuthViewModel()
+
 
     init(
         customMapMarker: CustomMapMarker?,

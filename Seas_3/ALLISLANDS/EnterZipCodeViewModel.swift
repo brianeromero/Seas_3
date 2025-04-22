@@ -54,18 +54,35 @@ class EnterZipCodeViewModel: ObservableObject {
     func fetchLocation(for address: String) {
         Task {
             do {
-                let coordinate = try await MapUtils.fetchLocation(for: address)
-                
+                let coordinate = try await MapUtils.geocodeAddressWithFallback(address)
+
                 await MainActor.run {
-                    self.region = MKCoordinateRegion(center: coordinate, span: MKCoordinateSpan(latitudeDelta: self.currentRadius / 69.0, longitudeDelta: self.currentRadius / 69.0))
-                    self.enteredLocation = CustomMapMarker(id: UUID(), coordinate: coordinate, title: address, pirateIsland: nil)
-                    self.fetchPirateIslandsNear(CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude), within: self.currentRadius * 1609.34)
+                    self.region = MKCoordinateRegion(
+                        center: coordinate,
+                        span: MKCoordinateSpan(
+                            latitudeDelta: self.currentRadius / 69.0,
+                            longitudeDelta: self.currentRadius / 69.0
+                        )
+                    )
+
+                    self.enteredLocation = CustomMapMarker(
+                        id: UUID(),
+                        coordinate: coordinate,
+                        title: address,
+                        pirateIsland: nil
+                    )
+
+                    self.fetchPirateIslandsNear(
+                        CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude),
+                        within: self.currentRadius * 1609.34
+                    )
                 }
             } catch {
                 print("Geocoding error: \(error.localizedDescription)")
             }
         }
     }
+
 
     func fetchPirateIslandsNear(_ location: CLLocation, within radius: Double) {
         let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()

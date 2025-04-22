@@ -8,7 +8,7 @@ import Combine
 import os
 
 
-class IslandDetails: ObservableObject, Equatable {
+public class IslandDetails: ObservableObject, Equatable {
     // MARK: - Published Properties
     @Published var islandName: String = "" { didSet { validateForm() } }
     @Published var street: String = "" { didSet { validateForm() } }
@@ -185,7 +185,7 @@ class IslandDetails: ObservableObject, Equatable {
     }
     
     // MARK: - Equatable Protocol
-    static func == (lhs: IslandDetails, rhs: IslandDetails) -> Bool {
+    public static func == (lhs: IslandDetails, rhs: IslandDetails) -> Bool {
         lhs.islandName == rhs.islandName &&
         lhs.street == rhs.street &&
         lhs.city == rhs.city &&
@@ -203,4 +203,27 @@ class IslandDetails: ObservableObject, Equatable {
         lhs.gymWebsite == rhs.gymWebsite // Added gymWebsite
     }
 
+}
+
+
+extension IslandDetails: CustomStringConvertible {
+    public var description: String {
+        return """
+        IslandDetails:
+        - Name: \(islandName)
+        - Street: \(street)
+        - City: \(city)
+        - State: \(state)
+        - Postal Code: \(postalCode)
+        - Country Code: \(selectedCountry?.cca2 ?? country)
+        - Gym Website: \(gymWebsite)
+        - County: \(county)
+        - Region: \(region)
+        - Province: \(province)
+        - District: \(district)
+        - Latitude: \(latitude?.description ?? "nil")
+        - Longitude: \(longitude?.description ?? "nil")
+        - Required Fields: \(requiredAddressFields.map { "\($0)" }.joined(separator: ", "))
+        """
+    }
 }

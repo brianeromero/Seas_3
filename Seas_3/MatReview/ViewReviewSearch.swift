@@ -14,6 +14,8 @@ struct ViewReviewSearch: View {
     var titleString: String
     var enterZipCodeViewModel: EnterZipCodeViewModel
     var authViewModel: AuthViewModel
+    @State private var navigateToReviewPage = false
+
 
     @StateObject private var viewModel = ViewReviewSearchViewModel()
 
@@ -38,19 +40,14 @@ struct ViewReviewSearch: View {
 
     // Break down the NavigationLink into a separate function
     private func navigationLink(island: PirateIsland) -> some View {
-        NavigationLink(
-            destination: SelectedIslandView(
-                island: island,
-                selectedIsland: $selectedIsland,
-                enterZipCodeViewModel: enterZipCodeViewModel,
-                onIslandChange: handleIslandChange,
-                authViewModel: authViewModel,
-                destinationView: .viewReviewForIsland
-            )
-        ) {
+        Button {
+            selectedIsland = island
+            navigateToReviewPage = true
+        } label: {
             islandRow(island: island)
         }
     }
+
 
     var body: some View {
         NavigationView {
@@ -66,14 +63,28 @@ struct ViewReviewSearch: View {
                 }
                 .frame(minHeight: 400, maxHeight: .infinity)
                 .listStyle(PlainListStyle())
-                .navigationTitle(titleString)
-                .alert(isPresented: $viewModel.showNoMatchAlert) {
-                    Alert(
-                        title: Text("No Match Found"),
-                        message: Text("No gyms match your search criteria."),
-                        dismissButton: .default(Text("OK"))
-                    )
+
+                // ✅ This is the hidden NavigationLink that drives the navigation
+                NavigationLink(
+                    destination: ViewReviewforIsland(
+                        showReview: .constant(true),
+                        selectedIsland: $selectedIsland,
+                        enterZipCodeViewModel: enterZipCodeViewModel,
+                        authViewModel: authViewModel
+                    ),
+                    isActive: $navigateToReviewPage
+                ) {
+                    EmptyView()
                 }
+                .hidden()
+            }
+            .navigationTitle(titleString)
+            .alert(isPresented: $viewModel.showNoMatchAlert) {
+                Alert(
+                    title: Text("No Match Found"),
+                    message: Text("No gyms match your search criteria."),
+                    dismissButton: .default(Text("OK"))
+                )
             }
             .onAppear {
                 os_log("ViewReviewSearch appeared", log: OSLog.default, type: .info)
@@ -88,6 +99,7 @@ struct ViewReviewSearch: View {
             }
         }
     }
+
 }
 
 

@@ -7,7 +7,7 @@ import Firebase
 import FirebaseFirestore
 import os
 
-enum PirateIslandError: Error {
+public enum PirateIslandError: Error {
     case invalidInput
     case islandExists
     case geocodingError(String)
@@ -58,31 +58,31 @@ public class PirateIslandViewModel: ObservableObject {
         self.persistenceController = persistenceController
     }
     
-    // MARK: - Geocoding
-    public func geocodeAddress(_ address: String) async throws -> (latitude: Double, longitude: Double) {
-        try await geocode(address: address, apiKey: GeocodingConfig.apiKey)
-    }
-    
+
     // MARK: - Create Pirate Island
-    func createPirateIsland(islandDetails: IslandDetails, createdByUserId: String, gymWebsite: String?, country: String, selectedCountry: Country) async throws -> PirateIsland {
+    public func createPirateIsland(islandDetails: IslandDetails, createdByUserId: String, gymWebsite: String?, country: String, selectedCountry: Country) async throws -> PirateIsland {
         os_log("createPirateIsland called with Island Name: %@, Location: %@", log: logger, type: .info, islandDetails.islandName, islandDetails.fullAddress)
 
+        // Log the address being passed for geocoding
+        os_log("Geocoding address: %@", log: logger, type: .info, islandDetails.fullAddress)
+
         // Step 1: Validate the island details
-        // Generate a new UUID
-        let newIslandID = UUID()
+        do {
+            let isValid = try validateIslandDetails(islandDetails, createdByUserId, country, selectedCountry)
+            if !isValid {
+                // Handle invalid state if necessary
+                throw PirateIslandError.invalidInput
+            }
+        } catch {
+            // Handle validation errors
+            os_log("Validation error: %@", log: logger, error.localizedDescription)
+            throw error
+        }
 
         // Update islandDetails.country with the selected country on the main thread
         await MainActor.run {
             islandDetails.country = country
         }
-
-   /*     // Step 2: Validate the island details
-        guard validateIslandDetails(islandDetails, createdByUserId, country, selectedCountry) else {
-            throw PirateIslandError.invalidInput
-        }
-
-        os_log("Validation succeeded for Island Name: %@, Full Address999: %@", log: logger, type: .info, islandDetails.islandName, islandDetails.fullAddress)
-    */
 
         // Step 3: Check if the island already exists
         guard !pirateIslandExists(name: islandDetails.islandName) else {
@@ -92,19 +92,28 @@ public class PirateIslandViewModel: ObservableObject {
 
         // Step 4: Geocode the address to get coordinates
         os_log("Attempting geocoding for address: %@", log: logger, type: .info, islandDetails.fullAddress)
+
         let coordinates: (latitude: Double, longitude: Double)
 
         do {
-            coordinates = try await geocodeAddress(islandDetails.fullAddress)
+            // You can still print the raw address if needed
+            print("Full Address: \(islandDetails.fullAddress)")
+            
+            coordinates = try await geocodeAddress(islandDetails.fullAddress.cleanedForGeocoding)
+            
             os_log("Geocoding successful: Lat: %@, Long: %@", log: logger, "\(coordinates.latitude)", "\(coordinates.longitude)")
+            print("Geocoding response coordinates: \(coordinates)")
+            print("Geocoding response full address: \(islandDetails.fullAddress)")
         } catch {
             os_log("Geocoding failed: %@", log: logger, type: .error, error.localizedDescription)
+            print("Geocoding error: \(error)")
             throw PirateIslandError.geocodingError(error.localizedDescription)
         }
 
+
         // Step 5: Create the new PirateIsland object
         let newIsland = PirateIsland(context: persistenceController.viewContext)
-        newIsland.islandID = newIslandID  // Assign new UUID
+        newIsland.islandID = UUID()  // Assign new UUID
         newIsland.islandName = islandDetails.islandName
         newIsland.islandLocation = islandDetails.fullAddress
         newIsland.country = selectedCountry.name.common
@@ -114,9 +123,19 @@ public class PirateIslandViewModel: ObservableObject {
         newIsland.lastModifiedTimestamp = Date()
 
         // Step 6: Set the gym website URL
-        if let website = islandDetails.gymWebsiteURL {
-            newIsland.gymWebsite = website
+        if let websiteURL = islandDetails.gymWebsiteURL {
+            let websiteString = websiteURL.absoluteString
+            if !websiteString.isEmpty {
+                if websiteString.isValidURL() {
+                    newIsland.gymWebsite = websiteURL
+                } else {
+                    os_log("Invalid gym website URL: %@", log: logger, type: .error, websiteString)
+                    throw PirateIslandError.invalidGymWebsite
+                }
+            }
         }
+
+
 
         newIsland.latitude = coordinates.latitude
         newIsland.longitude = coordinates.longitude
@@ -139,6 +158,8 @@ public class PirateIslandViewModel: ObservableObject {
         return newIsland
     }
 
+
+
     // Add this code below the createPirateIsland function
     func savePirateIslandToFirestore(island: PirateIsland, selectedCountry: Country) async throws {
         print("Saving island to Firestore: \(island.safeIslandName)")
@@ -160,11 +181,10 @@ public class PirateIslandViewModel: ObservableObject {
     }
     
     // MARK: - Validation
-    func validateIslandDetails(_ details: IslandDetails, _ createdByUserId: String?, _ countryCode: String, _ selectedCountry: Country?) -> Bool {
+    func validateIslandDetails(_ details: IslandDetails, _ createdByUserId: String?, _ countryCode: String, _ selectedCountry: Country?) throws -> Bool {
         do {
             let requiredFields = try getAddressFields(for: selectedCountry?.cca2.uppercased() ?? "")
-            var isValid = true
-
+            
             // Prepare field values for logging and validation
             let fieldValues: [String: String?] = [
                 "street": requiredFields.contains(.street) ? details.street : nil,
@@ -191,21 +211,27 @@ public class PirateIslandViewModel: ObservableObject {
             for (fieldName, value) in fieldValues {
                 os_log("Validating %@: %@", log: logger, fieldName, value ?? "nil")
                 let camelCaseFieldName = fieldName.capitalizingFirstLetter()
-                if let field = AddressField(rawValue: camelCaseFieldName), requiredFields.contains(AddressFieldType(rawValue: field.rawValue)!) {
-                    if let value = value, value.trimmingCharacters(in: .whitespaces).isEmpty {
-                        os_log("Validation failed: %@ is missing (%@)", log: logger, fieldName, value)
-                        isValid = false
-                    }
+                
+                // Validate fields that are required
+                if let field = AddressField(rawValue: camelCaseFieldName),
+                   let fieldType = AddressFieldType(rawValue: field.rawValue),
+                   requiredFields.contains(fieldType) {
                     
+                    // If value is missing or empty, throw the corresponding error
+                    if value?.trimmingCharacters(in: .whitespaces).isEmpty ?? true {
+                        os_log("Validation failed: %@ is missing (%@)", log: logger, fieldName, value ?? "nil")
+                        throw PirateIslandError.fieldMissing(fieldName)
+                    }
                 }
             }
 
-            return isValid
+            return true // All fields are valid
         } catch {
-            os_log("Error getting address fields for country code 313233 %@: %@", log: logger, countryCode, "\(error)")
-            return false
+            os_log("Error getting address fields for country code %@: %@", log: logger, countryCode, "\(error)")
+            throw error // Rethrow the caught error
         }
     }
+
     // MARK: - Check Existing Islands
     private func pirateIslandExists(name: String) -> Bool {
         let fetchRequest = PirateIsland.fetchRequest()
@@ -234,6 +260,20 @@ public class PirateIslandViewModel: ObservableObject {
 
 extension String {
     func capitalizingFirstLetter() -> String {
-        return prefix(1).uppercased() + dropFirst()
+        prefix(1).uppercased() + dropFirst()
     }
+
+    var cleanedForGeocoding: String {
+        replacingOccurrences(of: "\n", with: " ")
+            .replacingOccurrences(of: "\r", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    func isValidURL() -> Bool {
+        guard let url = URL(string: self), UIApplication.shared.canOpenURL(url) else {
+            return false
+        }
+        return true
+    }
+
 }

@@ -59,7 +59,7 @@ struct UnifiedCountryPickerView: View {
             if let country = newCountry {
                 let countryCode = country.cca2 // no need for `if let` since `cca2` is non-optional
                 let normalizedCountryCode = countryCode.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
-                print("Normalized Country Code Set 456: \(normalizedCountryCode)")
+                print("Normalized Country Code Set: \(normalizedCountryCode)")
                 
                 // Fetch address fields
                 fetchAddressFields(forCountry: normalizedCountryCode)

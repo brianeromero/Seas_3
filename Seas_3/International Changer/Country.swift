@@ -8,7 +8,7 @@
 import Foundation
 import SwiftUI
 
-struct Country: Codable, Hashable {
+public struct Country: Codable, Hashable {
     let name: Name
     let cca2: String
     let flag: String

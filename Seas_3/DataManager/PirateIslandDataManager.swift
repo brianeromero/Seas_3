@@ -8,7 +8,7 @@
 import Foundation
 import CoreData
 
-class PirateIslandDataManager {
+public class PirateIslandDataManager {
     private var viewContext: NSManagedObjectContext
 
     init(viewContext: NSManagedObjectContext) {

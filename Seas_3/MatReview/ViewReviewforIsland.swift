@@ -46,8 +46,6 @@ struct ViewReviewforIsland: View {
 
     @FetchRequest(entity: PirateIsland.entity(), sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.islandName, ascending: true)])
     private var islands: FetchedResults<PirateIsland>
-
-    
     
     var body: some View {
         NavigationStack {
@@ -75,12 +73,25 @@ struct ViewReviewforIsland: View {
                                 enterZipCodeViewModel: enterZipCodeViewModel,
                                 authViewModel: authViewModel
                             )
-
                         } else {
                             ReviewList(
                                 filteredReviews: filteredReviews,
                                 selectedSortType: $selectedSortType
                             )
+                            
+                            // ✅ ADD THIS: "Add My Own Review!" link when reviews exist
+                            NavigationLink(destination: GymMatReviewView(
+                                localSelectedIsland: $selectedIsland,
+                                enterZipCodeViewModel: enterZipCodeViewModel,
+                                authViewModel: authViewModel,
+                                onIslandChange: { _ in }
+                            )) {
+                                Text("Add My Own Review!")
+                                    .font(.headline)
+                                    .foregroundColor(.blue)
+                                    .underline()
+                                    .padding()
+                            }
                         }
                     }
                 }
@@ -89,12 +100,14 @@ struct ViewReviewforIsland: View {
             .navigationTitle("Read Gym Reviews")
             .onAppear {
                 os_log("Read Gym Reviews page appeared", log: logger, type: .info)
+                os_log("ViewReviewforIsland - Selected Island: %@", selectedIsland?.islandName ?? "nil")
                 loadReviews()
             }
             .onChange(of: selectedSortType) { _ in loadReviews() }
             .onChange(of: selectedIsland) { _ in loadReviews() }
         }
     }
+
     
     private struct ReviewSummaryView: View {
         let averageRating: Double
@@ -275,6 +288,7 @@ struct FullReviewView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 }
+
 /*
 struct ViewReviewforIsland_Previews: PreviewProvider {
     static var previews: some View {

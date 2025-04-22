@@ -72,23 +72,23 @@ struct EnterZipCodeView: View {
     private func search() {
         Task {
             do {
-                let coordinate = try await MapUtils.fetchLocation(for: locationInput)
-                
+                let coordinate = try await MapUtils.geocodeAddressWithFallback(locationInput)
+
                 // Update the region with the new coordinates
                 self.region = MKCoordinateRegion(
                     center: coordinate,
                     span: MKCoordinateSpan(
-                        latitudeDelta: self.selectedRadius * 0.01, // Convert miles to degrees
+                        latitudeDelta: self.selectedRadius * 0.01,
                         longitudeDelta: self.selectedRadius * 0.01
                     )
                 )
-                
+
                 // Fetch Pirate Islands near the found location
                 self.enterZipCodeViewModel.fetchPirateIslandsNear(
                     CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude),
-                    within: self.selectedRadius * 1609.34 // Convert miles to meters
+                    within: self.selectedRadius * 1609.34
                 )
-                
+
                 // Filter results based on the selected radius
                 let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
                 self.searchResults = self.enterZipCodeViewModel.pirateIslands.compactMap { $0.pirateIsland }.filter {

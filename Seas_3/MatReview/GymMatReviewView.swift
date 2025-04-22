@@ -84,12 +84,14 @@ struct ReviewSection: View {
                         .stroke(Color.gray, lineWidth: 1)
                 )
                 .onChange(of: reviewText) { _ in
+                    // Check conditions and update isReviewValid accordingly
                     if selectedRating == .zero {
                         isReviewValid = reviewText.count >= 150
                     } else {
                         isReviewValid = !reviewText.isEmpty && reviewText.count <= characterLimit
                     }
                 }
+
 
             let charactersUsed = reviewText.count
             let overLimit = max(0, charactersUsed - characterLimit)
@@ -204,7 +206,8 @@ struct GymMatReviewView: View {
     @State private var hasInitialized = false
     @ObservedObject var authViewModel: AuthViewModel
     
-    
+    @Environment(\.dismiss) private var dismiss
+
     
     @ObservedObject var enterZipCodeViewModel: EnterZipCodeViewModel
     @Environment(\.managedObjectContext) private var viewContext
@@ -262,22 +265,23 @@ struct GymMatReviewView: View {
                 ReviewSection(
                     reviewText: $reviewText,
                     isReviewValid: $isReviewValid,
-                    selectedRating: $selectedRating  // 👈 Add this in
+                    selectedRating: $selectedRating
                 )
                 
-                RatingSection(selectedRating: $selectedRating, isReviewValid: $isReviewValid, reviewText: $reviewText)  // Pass reviewText binding
+                RatingSection(selectedRating: $selectedRating, isReviewValid: $isReviewValid, reviewText: $reviewText)
                 
                 Button(action: submitReview) {
                     Text("Submit Review")
                 }
-                .disabled(isLoading || !isReviewValid)  // Disable button based on validation
+                .disabled(isLoading)
                 .alert(isPresented: $showAlert) {
                     Alert(
-                        title: Text("Review Submitted"),
+                        title: Text("Review Submission Notice:"),
                         message: Text(alertMessage),
                         dismissButton: .default(Text("OK"))
                     )
                 }
+
                 
                 Section(header: Text("Average Rating")) {
                     HStack {
@@ -301,7 +305,7 @@ struct GymMatReviewView: View {
         }
         
         
-        .navigationTitle("Gym Mat Review")
+        .navigationTitle("Add Gym Review")
         .onAppear {
             if !hasInitialized {
                 hasInitialized = true
@@ -327,19 +331,22 @@ struct GymMatReviewView: View {
     
     private func submitReview() {
         guard let island = localSelectedIsland else {
-            os_log("Review submission failed, no island selected", log: logger, type: .error)
-            alertMessage = "Please Select a Gym"
+            alertMessage = "Please select a Gym."
             showAlert = true
             return
         }
 
-        guard isReviewValid else {
-            alertMessage = "Please make sure your review is complete and valid."
+        if !isReviewValid {
+            alertMessage = """
+            Please ensure that:
+
+            - If rating is zero, review should be at least 150 characters long.
+            - Other ratings, review cannot exceed 300 characters.
+            """
             showAlert = true
             return
         }
-        
-        // Handle async user retrieval without `weak`
+
         authViewModel.getCurrentUser { currentUser in
             guard let currentUser = currentUser else {
                 os_log("Review submission failed, no user logged in", log: logger, type: .error)
@@ -361,7 +368,6 @@ struct GymMatReviewView: View {
             os_log("Current user submitting review: %@", log: logger, type: .info, currentUser.name)
             os_log("Current user submitting review: %@", log: logger, type: .info, currentUser.userName)
 
-
             let reviewID = UUID()
             let newReview = Review(context: self.viewContext)
             newReview.stars = Int16(self.selectedRating.rawValue)
@@ -374,6 +380,45 @@ struct GymMatReviewView: View {
             do {
                 try self.viewContext.save()
                 os_log("Review saved to CoreData successfully", log: logger, type: .info)
+
+                // 🆕 Update cached average
+                self.cachedAverageRating = Double(ReviewUtils.fetchAverageRating(for: island, in: self.viewContext, callerFunction: #function))
+
+                // 🆕 Clear form
+                self.reviewText = ""
+                self.selectedRating = .zero
+                self.isReviewValid = false
+
+                let db = Firestore.firestore()
+                let timestamp = Timestamp(date: newReview.createdTimestamp)
+                db.collection("reviews").document(reviewID.uuidString).setData([
+                    "stars": newReview.stars,
+                    "review": newReview.review,
+                    "createdTimestamp": timestamp,
+                    "islandID": island.islandID?.uuidString ?? "",
+                    "name": newReview.userName ?? "Anonymous",
+                    "reviewID": newReview.reviewID.uuidString
+                ], merge: true) { error in
+                    DispatchQueue.main.async {
+                        self.isLoading = false
+                        if let error = error {
+                            os_log("Error uploading review to Firestore: %@", log: logger, type: .error, error.localizedDescription)
+                            self.alertMessage = "Failed to save review to Firestore. Please try again."
+                        } else {
+                            os_log("Review saved to Firestore successfully", log: logger, type: .info)
+                            self.alertMessage = "Thanks for your review!"
+
+                            // ✅ Auto-dismiss after short delay
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                                withAnimation {
+                                    self.dismiss()
+                                }
+                            }
+                        }
+                        self.showAlert = true
+                    }
+                }
+
             } catch {
                 os_log("Error saving review to CoreData: %@", log: logger, type: .error, error.localizedDescription)
                 DispatchQueue.main.async {
@@ -381,41 +426,10 @@ struct GymMatReviewView: View {
                     self.alertMessage = "Failed to save review locally. Please try again."
                     self.showAlert = true
                 }
-                return
-            }
-
-            let db = Firestore.firestore()
-            let timestamp = Timestamp(date: newReview.createdTimestamp)
-            db.collection("reviews").document(reviewID.uuidString).setData([
-                "stars": newReview.stars,
-                "review": newReview.review,
-                "createdTimestamp": timestamp,
-                "islandID": island.islandID?.uuidString ?? "",
-                "name": newReview.userName ?? "Anonymous",
-                "reviewID": newReview.reviewID.uuidString,
-            ], merge: true) { error in
-                if let error = error {
-                    print("Error saving review to Firestore: \(error.localizedDescription)")
-                    DispatchQueue.main.async {
-                        self.isLoading = false
-                        self.alertMessage = "Failed to save review to Firestore. Please try again."
-                        self.showAlert = true
-                    }
-                } else {
-                    print("Review saved to Firestore successfully")
-                    DispatchQueue.main.async {
-                        self.isLoading = false
-                        self.alertMessage = "Thank you for your review!"
-                        self.showAlert = true
-                        self.reviewText = ""
-                        self.selectedRating = .zero
-                        self.isReviewValid = false
-                        self.cachedAverageRating = Double(ReviewUtils.fetchAverageRating(for: island, in: self.viewContext, callerFunction: #function))
-                    }
-                }
             }
         }
     }
+
 
 }
 
@@ -448,7 +462,7 @@ struct PreviewView: View {
             ) { newIsland in
                 selectedIsland = newIsland
             }
-            .navigationTitle("Gym Mat Review")
+            .navigationTitle("Add Gym Review")
         }
     }
 }

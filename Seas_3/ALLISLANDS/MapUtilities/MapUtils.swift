@@ -18,25 +18,40 @@ struct MapUtils {
         return fromLocation.distance(from: toLocation) * metersToMilesConversionFactor
     }
     
-    static func fetchLocation(for address: String) async throws -> CLLocationCoordinate2D {
-        let geocoder = CLGeocoder()
-        
-        let placemarks: [CLPlacemark]? = try await withCheckedThrowingContinuation { [geocoder] continuation in
-            geocoder.geocodeAddressString(address) { result, error in
-                if let error = error {
-                    continuation.resume(throwing: error)
-                } else {
-                    continuation.resume(returning: result)
+    static func fetchLocation(for address: String, retryCount: Int = 2) async throws -> CLLocationCoordinate2D {
+        var attempts = 0
+        while attempts <= retryCount {
+            do {
+                let geocoder = CLGeocoder()
+                let placemarks: [CLPlacemark]? = try await withCheckedThrowingContinuation { continuation in
+                    geocoder.geocodeAddressString(address) { result, error in
+                        if let error = error {
+                            continuation.resume(throwing: error)
+                        } else {
+                            continuation.resume(returning: result)
+                        }
+                    }
                 }
+
+                guard let placemark = placemarks?.first, let location = placemark.location else {
+                    throw NSError(domain: "GeocodingError", code: 0, userInfo: [NSLocalizedDescriptionKey: "No results found for the address provided."])
+                }
+
+                return location.coordinate
+            } catch {
+                attempts += 1
+                if attempts > retryCount {
+                    throw error
+                }
+                
+                print("Geocoding failed on attempt \(attempts). Retrying...")
+                try await Task.sleep(nanoseconds: 1_000_000_000) // 1-second delay before retry
             }
         }
-        
-        guard let placemark = placemarks?.first, let location = placemark.location else {
-            throw NSError(domain: "GeocodingError", code: 0, userInfo: [NSLocalizedDescriptionKey: "No results found for the address provided."])
-        }
-        
-        return location.coordinate
+
+        throw NSError(domain: "GeocodingError", code: 0, userInfo: [NSLocalizedDescriptionKey: "Unexpected error occurred."])
     }
+
     
     static func updateRegion(markers: [CustomMapMarker], selectedRadius: Double, center: CLLocationCoordinate2D) -> MKCoordinateRegion {
         let latitudeDelta = selectedRadius / 69.0
@@ -87,4 +102,15 @@ struct MapUtils {
         let region = MKCoordinateRegion(center: centerCoordinate, span: validSpan)
         mapView.setRegion(region, animated: true)
     }
+    
+    static func geocodeAddressWithFallback(_ address: String) async throws -> CLLocationCoordinate2D {
+        do {
+            return try await fetchLocation(for: address)
+        } catch {
+            print("CLGeocoder failed, trying Google API: \(error.localizedDescription)")
+            let coordinates = try await geocode(address: address, apiKey: GeocodingConfig.apiKey)
+            return CLLocationCoordinate2D(latitude: coordinates.latitude, longitude: coordinates.longitude)
+        }
+    }
+
 }
