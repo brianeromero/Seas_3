@@ -725,27 +725,21 @@ class AuthViewModel: ObservableObject {
         }
     }
 
-    func getCurrentUser(completion: @escaping (User?) -> Void) {
+    func getCurrentUser() async -> User? {
         guard let firebaseUser = Auth.auth().currentUser else {
             os_log("No Firebase Auth user currently signed in", log: logger, type: .error)
-            completion(nil)
-            return
+            return nil
         }
 
         let db = Firestore.firestore()
         let documentRef = db.collection("users").document(firebaseUser.uid)
 
-        documentRef.getDocument { snapshot, error in
-            if let error = error {
-                os_log("Firestore fetch failed: %@", log: logger, type: .error, error.localizedDescription)
-                completion(nil)
-                return
-            }
-
-            guard let data = snapshot?.data() else {
+        do {
+            let snapshot = try await documentRef.getDocument()
+            
+            guard let data = snapshot.data() else {
                 os_log("No Firestore data found for UID: %@", log: logger, type: .error, firebaseUser.uid)
-                completion(nil)
-                return
+                return nil
             }
 
             let user = User(
@@ -768,7 +762,11 @@ class AuthViewModel: ObservableObject {
                    user.belt ?? "nil",
                    String(user.isVerified))
 
-            completion(user)
+            return user
+
+        } catch {
+            os_log("Firestore fetch failed: %@", log: logger, type: .error, error.localizedDescription)
+            return nil
         }
     }
 }

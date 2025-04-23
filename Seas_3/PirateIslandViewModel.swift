@@ -60,7 +60,15 @@ public class PirateIslandViewModel: ObservableObject {
     
 
     // MARK: - Create Pirate Island
-    public func createPirateIsland(islandDetails: IslandDetails, createdByUserId: String, gymWebsite: String?, country: String, selectedCountry: Country) async throws -> PirateIsland {
+    func createPirateIsland(
+        islandDetails: IslandDetails,
+        createdByUserId: String,
+        gymWebsite: String?,
+        country: String,
+        selectedCountry: Country,
+        createdByUser: User
+    ) async throws -> PirateIsland {
+
         os_log("createPirateIsland called with Island Name: %@, Location: %@", log: logger, type: .info, islandDetails.islandName, islandDetails.fullAddress)
 
         // Log the address being passed for geocoding
@@ -152,7 +160,7 @@ public class PirateIslandViewModel: ObservableObject {
         }
 
         // Step 8:  Then save to Firestore
-        try await savePirateIslandToFirestore(island: newIsland, selectedCountry: selectedCountry)
+        try await savePirateIslandToFirestore(island: newIsland, selectedCountry: selectedCountry, createdByUser: createdByUser)
 
         os_log("Successfully created PirateIsland with name: %@", log: logger, newIsland.islandName ?? "Unknown Island Name")
         return newIsland
@@ -161,7 +169,12 @@ public class PirateIslandViewModel: ObservableObject {
 
 
     // Add this code below the createPirateIsland function
-    func savePirateIslandToFirestore(island: PirateIsland, selectedCountry: Country) async throws {
+    func savePirateIslandToFirestore(
+        island: PirateIsland,
+        selectedCountry: Country,
+        createdByUser: User // <-- new parameter
+    ) async throws {
+
         print("Saving island to Firestore: \(island.safeIslandName)")
         
         // Add some debug prints here
@@ -173,7 +186,12 @@ public class PirateIslandViewModel: ObservableObject {
         
 
         do {
-            try await FirestoreManager.shared.saveIslandToFirestore(island: island, selectedCountry: selectedCountry)
+            try await FirestoreManager.shared.saveIslandToFirestore(
+                island: island,
+                selectedCountry: selectedCountry,
+                createdByUser: createdByUser
+            )
+
         } catch {
             os_log("Error saving island to Firestore: %@", log: logger, error.localizedDescription)
             throw error

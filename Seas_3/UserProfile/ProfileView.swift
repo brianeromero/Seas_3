@@ -197,27 +197,25 @@ struct ProfileView: View {
                 try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
 
                 // Use AuthViewModel to get the current user
-                authViewModel.getCurrentUser { userInfo in
-                    if let userInfo = userInfo {
-                        // Update the profileViewModel with all available fields
-                        profileViewModel.email = userInfo.email
-                        profileViewModel.userName = userInfo.userName
-                        profileViewModel.name = userInfo.name
-                        profileViewModel.belt = userInfo.belt ?? ""
-                        profileViewModel.isVerified = userInfo.isVerified
+                if let userInfo = await authViewModel.getCurrentUser() {
+                    // Update the profileViewModel with all available fields
+                    profileViewModel.email = userInfo.email
+                    profileViewModel.userName = userInfo.userName
+                    profileViewModel.name = userInfo.name
+                    profileViewModel.belt = userInfo.belt ?? ""
+                    profileViewModel.isVerified = userInfo.isVerified
 
-                        profileViewModel.isProfileLoaded = true
-                        
-                        // Print all the info for debugging
-                        print("Profile loaded for user: \(userInfo.userName)")
-                        print("Email: \(userInfo.email)")
-                        print("Name: \(userInfo.name)")
-                        print("Belt: \(userInfo.belt ?? "None")")
-                        print("Is Verified: \(userInfo.isVerified)")
-                        print("UserID: \(userInfo.userID.uuidString)")
-                    } else {
-                        print("User not signed in yet — cannot load profile")
-                    }
+                    profileViewModel.isProfileLoaded = true
+
+                    // Print all the info for debugging
+                    print("Profile loaded for user: \(userInfo.userName)")
+                    print("Email: \(userInfo.email)")
+                    print("Name: \(userInfo.name)")
+                    print("Belt: \(userInfo.belt ?? "None")")
+                    print("Is Verified: \(userInfo.isVerified)")
+                    print("UserID: \(userInfo.userID.uuidString)")
+                } else {
+                    print("User not signed in yet — cannot load profile")
                 }
             }
         }

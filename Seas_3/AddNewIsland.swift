@@ -136,14 +136,32 @@ struct AddNewIsland: View {
     private var saveButton: some View {
         Button("Save") {
             os_log("Save button clicked", log: OSLog.default, type: .info)
+            
+            // Ensure getCurrentUser correctly fetches the user
             Task {
-                await saveIsland {
-                    navigationPath.append("IslandMenu")
+                // Now we await the current user
+                if let currentUser = await authViewModel.getCurrentUser() {
+                    if currentUser.name.isEmpty {
+                        self.alertMessage = "Could not find your profile info. Please log in again."
+                        self.showAlert = true
+                        return
+                    }
+                    
+                    // Proceed with saving the island once the user is verified
+                    await saveIsland(currentUser: currentUser) {
+                        // Once the save operation completes, navigate
+                        navigationPath.append("IslandMenu")
+                    }
+                } else {
+                    self.alertMessage = "You must be logged in to save a new gym."
+                    self.showAlert = true
                 }
             }
         }
         .disabled(!isSaveEnabled)
     }
+
+
 
     private var cancelButton: some View {
         Button("Cancel") {
@@ -228,59 +246,42 @@ struct AddNewIsland: View {
     }
 
 
-    private func saveIsland(onSave: @escaping () -> Void) async {
-        if isSaveEnabled {
-            do {
-                let newIsland = try await islandViewModel.createPirateIsland(
-                    islandDetails: islandDetails,
-                    createdByUserId: profileViewModel.name,
-                    gymWebsite: gymWebsite,
-                    country: islandDetails.selectedCountry?.cca2 ?? "",
-                    selectedCountry: islandDetails.selectedCountry!
-                )
-
-                // Store the country and gym website URL in the new island
-                newIsland.country = islandDetails.selectedCountry?.name.common
-
-                if !gymWebsite.isEmpty {
-                    if let url = URL(string: gymWebsite) {
-                        newIsland.gymWebsite = url
-                    } else {
-                        // Handle invalid URL
-                        toastMessage = "Invalid gym website URL"
-                        showToast = true
-                        return
-                    }
-                }
-
-                //CONFIRM IF I NEED THIS SINCEislandViewModel.createPirateIsland ALREADY DOES THE SAVE
-                try viewContext.save()
-                
-
-                toastMessage = "Island saved successfully: \(newIsland.islandName ?? "Unknown Name")"
-                clearFields()
-
-                // Call the onSave callback
-                onSave()
-            } catch {
-                if let error = error as? PirateIslandError {
-                    print("PirateIslandError: \(error)")
-                    if case .geocodingError(let underlyingError) = error {
-                        print("Underlying geocoding error: \(underlyingError)")
-                    }
-                    toastMessage = "Error saving island: \(error.localizedDescription)"
-                    showToast = true
-                } else {
-                    print("Unexpected error: \(error)")
-                    toastMessage = "An unexpected error occurred: \(error.localizedDescription)"
-                    showToast = true
-                }
-            }
-        } else {
+    private func saveIsland(currentUser: User, onSave: @escaping () -> Void) async {
+        guard isSaveEnabled else {
             toastMessage = "Please fill in all required fields"
+            showToast = true
+            return
+        }
+
+        do {
+            let newIsland = try await islandViewModel.createPirateIsland(
+                islandDetails: islandDetails,
+                createdByUserId: currentUser.userName,
+                gymWebsite: gymWebsite,
+                country: islandDetails.selectedCountry?.cca2 ?? "",
+                selectedCountry: islandDetails.selectedCountry!,
+                createdByUser: currentUser
+            )
+
+            toastMessage = "Island saved successfully: \(newIsland.islandName ?? "Unknown Name")"
+            clearFields()
+            onSave()
+
+        } catch let error as PirateIslandError {
+            print("PirateIslandError: \(error)")
+            if case .geocodingError(let underlyingError) = error {
+                print("Underlying geocoding error: \(underlyingError)")
+            }
+            toastMessage = "Error saving island: \(error.localizedDescription)"
+            showToast = true
+
+        } catch {
+            print("Unexpected error: \(error)")
+            toastMessage = "An unexpected error occurred: \(error.localizedDescription)"
             showToast = true
         }
     }
+
 
 
     private func clearFields() {

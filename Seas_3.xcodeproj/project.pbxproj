@@ -384,7 +384,6 @@
 				Login/LoginViewModel.swift,
 				Login/MFBACKGROUND.swift,
 				"Login/Modal for EmailPassyPrompt/PromptForEmailPasswordView.swift",
-				"Login/PLAYING WITH LOGIN.swift",
 				Login/UserFetcher.swift,
 				Login/UserProfileViewModel.swift,
 			);

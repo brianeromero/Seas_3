@@ -15,6 +15,9 @@ struct ContentView: View {
         viewContext: PersistenceController.shared.viewContext,
         authViewModel: AuthViewModel.shared
     )
+    
+    private let authViewModel = AuthViewModel.shared
+
 
     @State private var showAddIslandForm = false
     @State private var islandName = ""
@@ -85,6 +88,7 @@ struct ContentView: View {
                     AddIslandFormView(
                         islandViewModel: viewModel,
                         profileViewModel: profileViewModel,
+                        authViewModel: authViewModel,
                         islandDetails: islandDetails
                     )
                     .environment(\.managedObjectContext, persistenceController.viewContext)

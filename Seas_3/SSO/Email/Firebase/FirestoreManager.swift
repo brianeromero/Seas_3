@@ -44,32 +44,46 @@ public class FirestoreManager {
     
 
     // Also add the disabled check in other methods that interact with Firestore
-    func saveIslandToFirestore(island: PirateIsland, selectedCountry: Country) async throws {
+    func saveIslandToFirestore(
+        island: PirateIsland,
+        selectedCountry: Country,
+        createdByUser: User // <- new parameter
+    ) async throws {
         if disabled { return }
         print("Saving island to Firestore: \(island.safeIslandName)")
-        
+
         guard let islandName = island.islandName, !islandName.isEmpty,
               let islandLocation = island.islandLocation, !islandLocation.isEmpty else {
             print("Invalid data: Island name or location is missing")
             return
         }
-        
+
         let islandRef = db.collection("pirateIslands").document(island.islandID?.uuidString ?? UUID().uuidString)
-        try await islandRef.setData([
+
+        let islandData: [String: Any] = [
             "id": island.islandID?.uuidString ?? UUID().uuidString,
             "name": island.safeIslandName,
             "location": island.safeIslandLocation,
             "country": selectedCountry.name.common,
             "createdByUserId": island.createdByUserId ?? "Unknown User",
+            "createdBy": [
+                "id": createdByUser.id.uuidString,
+                "name": createdByUser.userName,
+                "email": createdByUser.email
+            ],
             "createdTimestamp": island.createdTimestamp ?? Date(),
             "lastModifiedByUserId": island.lastModifiedByUserId ?? "",
             "lastModifiedTimestamp": island.lastModifiedTimestamp ?? Date(),
             "latitude": island.latitude,
             "longitude": island.longitude,
             "gymWebsite": island.gymWebsite?.absoluteString ?? ""
-        ])
+        ]
+
+
+        try await islandRef.setData(islandData, merge: true)
         print("Island saved successfully to Firestore")
     }
+
 
     // MARK: - Collection Management
     enum Collection: String {

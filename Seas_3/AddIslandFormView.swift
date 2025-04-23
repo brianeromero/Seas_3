@@ -15,10 +15,13 @@ struct AddIslandFormView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.presentationMode) private var presentationMode
     
+    
     // MARK: - Observed Objects
     @ObservedObject var islandViewModel: PirateIslandViewModel
     @ObservedObject var profileViewModel: ProfileViewModel
     @State var islandDetails: IslandDetails
+    @ObservedObject var authViewModel: AuthViewModel
+
     
     // MARK: - State Variables
     @State private var isSaveEnabled = false
@@ -29,6 +32,7 @@ struct AddIslandFormView: View {
     @State private var isGeocoding = false
     @State private var error: String?
     @State private var requiredFields: [AddressFieldType] = []
+    
 
 
 
@@ -36,12 +40,15 @@ struct AddIslandFormView: View {
     init(
         islandViewModel: PirateIslandViewModel,
         profileViewModel: ProfileViewModel,
+        authViewModel: AuthViewModel,
         islandDetails: IslandDetails
     ) {
         self.islandViewModel = islandViewModel
         self.profileViewModel = profileViewModel
+        self.authViewModel = authViewModel
         self.islandDetails = islandDetails
     }
+
     
     // MARK: - Body
     var body: some View {
@@ -208,26 +215,39 @@ struct AddIslandFormView: View {
     
     // MARK: - Private Methods
     private func saveIsland() {
-        guard !profileViewModel.name.isEmpty else { return }
-        
         Task {
+            guard let currentUser = await authViewModel.getCurrentUser() else {
+                toastMessage = "You must be logged in to save a gym."
+                showToast = true
+                return
+            }
+
+            if currentUser.name.isEmpty {
+                toastMessage = "Your profile info is incomplete. Please log in again."
+                showToast = true
+                return
+            }
+
             do {
                 _ = try await islandViewModel.createPirateIsland(
                     islandDetails: islandDetails,
-                    createdByUserId: profileViewModel.name,
+                    createdByUserId: currentUser.userName,
                     gymWebsite: nil,
                     country: islandDetails.country,
-                    selectedCountry: islandDetails.selectedCountry!
+                    selectedCountry: islandDetails.selectedCountry!,
+                    createdByUser: currentUser
                 )
+
                 toastMessage = "Island saved successfully!"
                 clearFields()
             } catch {
                 toastMessage = "Error saving island: \(error.localizedDescription)"
             }
+
             showToast = true
         }
     }
-    
+
     private func clearFields() {
         islandDetails.islandName = ""
         islandDetails.street = ""
@@ -278,16 +298,18 @@ struct AddIslandFormView: View {
 // MARK: - Preview
 struct AddIslandFormView_Previews: PreviewProvider {
     static var previews: some View {
+        let authViewModel = AuthViewModel.shared
+
         let profileViewModel = ProfileViewModel(
             viewContext: PersistenceController.preview.viewContext,
-            authViewModel: AuthViewModel.shared
+            authViewModel: authViewModel
         )
         profileViewModel.name = "Brian Romero"
 
         // Simulate an actual selected country
         let exampleCountry = Country(
-            name: .init(common: "France"),  // Example country
-            cca2: "FR",                     // Ensure correct cca2 format
+            name: .init(common: "France"),
+            cca2: "FR",
             flag: "🇫🇷"
         )
 
@@ -305,7 +327,9 @@ struct AddIslandFormView_Previews: PreviewProvider {
         return AddIslandFormView(
             islandViewModel: islandViewModel,
             profileViewModel: profileViewModel,
+            authViewModel: authViewModel,
             islandDetails: islandDetails
         )
     }
 }
+

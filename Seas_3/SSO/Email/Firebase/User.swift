@@ -21,7 +21,9 @@ class User: Codable, Identifiable {
     var userID: UUID
     var iterations: Int64
 
-    // Existing initializer
+    // Computed property for Identifiable
+    var id: UUID { userID }
+
     init(email: String,
          userName: String,
          name: String,
@@ -44,7 +46,6 @@ class User: Codable, Identifiable {
         self.userID = userID
     }
 
-    // New initializer to create a User from UserInfo
     convenience init(from userInfo: UserInfo) {
         let passwordHash = Data(base64Encoded: userInfo.passwordHash) ?? Data()
         let salt = Data(base64Encoded: userInfo.salt) ?? Data()
@@ -62,6 +63,4 @@ class User: Codable, Identifiable {
             userID: UUID(uuidString: userInfo.userID) ?? UUID()
         )
     }
-
-
 }

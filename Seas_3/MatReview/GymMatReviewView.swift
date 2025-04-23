@@ -347,89 +347,83 @@ struct GymMatReviewView: View {
             return
         }
 
-        authViewModel.getCurrentUser { currentUser in
-            guard let currentUser = currentUser else {
-                os_log("Review submission failed, no user logged in", log: logger, type: .error)
-                self.alertMessage = "Please log in to submit a review."
-                self.showAlert = true
-                return
-            }
-
-            if currentUser.name.isEmpty {
-                os_log("Current user name is empty", log: logger, type: .error)
-                self.alertMessage = "Could not find your profile info. Please log in again."
-                print("Could not find your profile info. Please log in again.")
-                self.showAlert = true
-                return
-            }
-
-            self.isLoading = true
-            os_log("Submitting review for island: %@", log: logger, type: .info, island.islandName ?? "Unknown")
-            os_log("Current user submitting review: %@", log: logger, type: .info, currentUser.name)
-            os_log("Current user submitting review: %@", log: logger, type: .info, currentUser.userName)
-
-            let reviewID = UUID()
-            let newReview = Review(context: self.viewContext)
-            newReview.stars = Int16(self.selectedRating.rawValue)
-            newReview.review = self.reviewText
-            newReview.createdTimestamp = Date()
-            newReview.island = island
-            newReview.reviewID = reviewID
-            newReview.userName = currentUser.userName
-
-            do {
-                try self.viewContext.save()
-                os_log("Review saved to CoreData successfully", log: logger, type: .info)
-
-                // 🆕 Update cached average
-                self.cachedAverageRating = Double(ReviewUtils.fetchAverageRating(for: island, in: self.viewContext, callerFunction: #function))
-
-                // 🆕 Clear form
-                self.reviewText = ""
-                self.selectedRating = .zero
-                self.isReviewValid = false
-
-                let db = Firestore.firestore()
-                let timestamp = Timestamp(date: newReview.createdTimestamp)
-                db.collection("reviews").document(reviewID.uuidString).setData([
-                    "stars": newReview.stars,
-                    "review": newReview.review,
-                    "createdTimestamp": timestamp,
-                    "islandID": island.islandID?.uuidString ?? "",
-                    "name": newReview.userName ?? "Anonymous",
-                    "reviewID": newReview.reviewID.uuidString
-                ], merge: true) { error in
-                    DispatchQueue.main.async {
-                        self.isLoading = false
-                        if let error = error {
-                            os_log("Error uploading review to Firestore: %@", log: logger, type: .error, error.localizedDescription)
-                            self.alertMessage = "Failed to save review to Firestore. Please try again."
-                        } else {
-                            os_log("Review saved to Firestore successfully", log: logger, type: .info)
-                            self.alertMessage = "Thanks for your review!"
-
-                            // ✅ Auto-dismiss after short delay
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-                                withAnimation {
-                                    self.dismiss()
-                                }
-                            }
-                        }
-                        self.showAlert = true
-                    }
+        Task {
+            if let currentUser = await authViewModel.getCurrentUser() {
+                if currentUser.name.isEmpty {
+                    os_log("Current user name is empty", log: logger, type: .error)
+                    self.alertMessage = "Could not find your profile info. Please log in again."
+                    self.showAlert = true
+                    return
                 }
 
-            } catch {
-                os_log("Error saving review to CoreData: %@", log: logger, type: .error, error.localizedDescription)
-                DispatchQueue.main.async {
+                self.isLoading = true
+                os_log("Submitting review for island: %@", log: logger, type: .info, island.islandName ?? "Unknown")
+                os_log("Current user submitting review: %@", log: logger, type: .info, currentUser.name)
+                os_log("Current user submitting review: %@", log: logger, type: .info, currentUser.userName)
+
+                let reviewID = UUID()
+                let newReview = Review(context: self.viewContext)
+                newReview.stars = Int16(self.selectedRating.rawValue)
+                newReview.review = self.reviewText
+                newReview.createdTimestamp = Date()
+                newReview.island = island
+                newReview.reviewID = reviewID
+                newReview.userName = currentUser.userName
+
+                do {
+                    try self.viewContext.save()
+                    os_log("Review saved to CoreData successfully", log: logger, type: .info)
+
+                    self.cachedAverageRating = Double(ReviewUtils.fetchAverageRating(for: island, in: self.viewContext, callerFunction: #function))
+
+                    self.reviewText = ""
+                    self.selectedRating = .zero
+                    self.isReviewValid = false
+
+                    let db = Firestore.firestore()
+                    let timestamp = Timestamp(date: newReview.createdTimestamp)
+
+                    do {
+                        try await db.collection("reviews").document(reviewID.uuidString).setData([
+                            "stars": newReview.stars,
+                            "review": newReview.review,
+                            "createdTimestamp": timestamp,
+                            "islandID": island.islandID?.uuidString ?? "",
+                            "name": newReview.userName ?? "Anonymous",
+                            "reviewID": newReview.reviewID.uuidString
+                        ], merge: true)
+
+                        os_log("Review saved to Firestore successfully", log: logger, type: .info)
+                        self.alertMessage = "Thanks for your review!"
+                        self.showAlert = true
+
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                            withAnimation {
+                                self.dismiss()
+                            }
+                        }
+                    } catch {
+                        os_log("Error uploading review to Firestore: %@", log: logger, type: .error, error.localizedDescription)
+                        self.alertMessage = "Failed to save review to Firestore. Please try again."
+                        self.showAlert = true
+                    }
+
+                } catch {
+                    os_log("Error saving review to CoreData: %@", log: logger, type: .error, error.localizedDescription)
                     self.isLoading = false
                     self.alertMessage = "Failed to save review locally. Please try again."
                     self.showAlert = true
                 }
+
+                self.isLoading = false
+
+            } else {
+                os_log("Review submission failed, no user logged in", log: logger, type: .error)
+                self.alertMessage = "Please log in to submit a review."
+                self.showAlert = true
             }
         }
     }
-
 
 }
 

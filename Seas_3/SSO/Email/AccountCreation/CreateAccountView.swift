@@ -584,6 +584,7 @@ struct CreateAccountView: View {
     private func createPirateIslandIfValid() async {
         os_log("Debug: Validating island form...", type: .debug)
         
+        // Logging inputs
         os_log("createPirateIslandIfValid islandName: %@", type: .info, islandDetails.islandName)
         os_log("createPirateIslandIfValid street: %@", type: .info, islandDetails.street)
         os_log("createPirateIslandIfValid city: %@", type: .info, islandDetails.city)
@@ -593,12 +594,12 @@ struct CreateAccountView: View {
         os_log("createPirateIslandIfValid complement: %@", type: .info, complement)
         os_log("createPirateIslandIfValid province: %@", type: .info, province)
         os_log("createPirateIslandIfValid region: %@", type: .info, region)
-        os_log("createPirateIslandIfValid overnorate: %@", type: .info, governorate)
+        os_log("createPirateIslandIfValid governorate: %@", type: .info, governorate)
         os_log("createPirateIslandIfValid selectedCountry: %@", type: .info, selectedCountry?.name.common ?? "nil")
         os_log("createPirateIslandIfValid createdByUserId: %@", type: .info, formState.userName)
         os_log("createPirateIslandIfValid gymWebsite: %@", type: .info, gymWebsite)
         
-        
+        // Form validation
         let (isValid, errorMessage) = ValidationUtility.validateIslandForm(
             islandName: islandDetails.islandName,
             street: islandDetails.street,
@@ -614,67 +615,72 @@ struct CreateAccountView: View {
             gymWebsite: gymWebsite
         )
         
-        os_log("Debug: Island validation result - isValid: %@", type: .debug, isValid ? "Passed" : "Failed", errorMessage)
+        os_log("Debug: Island validation result - isValid: %@, errorMessage: %@", type: .debug, isValid ? "Passed" : "Failed", errorMessage)
         
- 
-        
-        guard let selectedCountry = selectedCountry else {
-            toastMessage = "Error: No country selected456"
+        guard isValid else {
+            toastMessage = errorMessage
             showToast = true
             return
         }
 
-        // Directly use the createdByUserId from profileViewModel
-        let createdByUserId = formState.userName
+        guard let selectedCountry = selectedCountry else {
+            toastMessage = "Error: No country selected"
+            showToast = true
+            return
+        }
+
+        // ✅ Await the current user
+        guard let currentUser = await authViewModel.getCurrentUser() else {
+            toastMessage = "Error: No user logged in"
+            showToast = true
+            return
+        }
+
+        let createdByUserId = currentUser.userName
 
         do {
             print("Creating pirate island...")
-            
+
             let newIsland = try await islandViewModel.createPirateIsland(
                 islandDetails: islandDetails,
-                createdByUserId: createdByUserId,
+                createdByUserId: currentUser.userName,
                 gymWebsite: gymWebsite,
                 country: selectedCountry.cca2,
-                selectedCountry: selectedCountry
+                selectedCountry: selectedCountry,
+                createdByUser: currentUser // ✅ Pass the currentUser directly
             )
-            
+
             print("Pirate island created: \(newIsland.islandName ?? "Unknown Name")")
             
-            // Store the country and gym website URL in the new island
             newIsland.country = islandDetails.selectedCountry?.name.common
-            
             print("Country set: \(newIsland.country ?? "Unknown Country")")
             
             if !gymWebsite.isEmpty {
                 print("Setting gym website URL...")
-                
                 if let url = URL(string: gymWebsite) {
                     newIsland.gymWebsite = url
                     print("Gym website URL set: \(url.absoluteString)")
                 } else {
-                    // Handle invalid URL
                     print("Invalid gym website URL: \(gymWebsite)")
                     toastMessage = "Invalid gym website URL"
                     showToast = true
                     return
                 }
             }
-            
+
             toastMessage = "Island saved successfully: \(newIsland.islandName ?? "Unknown Name")"
             print("Island saved successfully")
         } catch {
             print("Error creating pirate island: \(error.localizedDescription)")
-            
             if let error = error as? PirateIslandError {
                 toastMessage = "Error saving island: \(error.localizedDescription)"
-                showToast = true
             } else {
-                let errorMessage = getErrorMessage(error)
-                toastMessage = errorMessage
-                showToast = true
+                toastMessage = getErrorMessage(error)
             }
+            showToast = true
         }
     }
+
 
 
     
