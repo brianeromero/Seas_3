@@ -35,6 +35,7 @@ struct AddNewIsland: View {
     @State private var navigationPath = NavigationPath()
     
     @Binding var islandDetails: IslandDetails
+    @State private var isSuccessAlert = false
 
     
     // Body
@@ -54,12 +55,20 @@ struct AddNewIsland: View {
             }
             .navigationBarTitle("Add New Gym", displayMode: .inline)
             .alert(isPresented: $showAlert) {
-                Alert(title: Text("Error"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
+                Alert(
+                    title: Text(isSuccessAlert ? "Success" : "Error"),
+                    message: Text(alertMessage),
+                    dismissButton: .default(Text("OK")) {
+                        if isSuccessAlert {
+                            navigationPath = NavigationPath()
+                        }
+                    }
+
+                )
             }
             .onAppear {
                 loadCountries()
             }
-            .overlay(toastOverlay)
             .onChange(of: islandDetails) { _ in validateForm() }
             .onChange(of: islandDetails.islandName) { _ in validateForm() }
             .onChange(of: islandDetails.requiredAddressFields) { _ in validateForm() }
@@ -220,16 +229,6 @@ struct AddNewIsland: View {
 
         isSaveEnabled = true // Assume the form is valid initially
 
-        for field in requiredFields {
-            print("Checking field \(field.rawValue): \(isValidField(field))")
-            if !isValidField(field) {
-                toastMessage = "Please fill in \(field.rawValue)"
-                showToast = true
-                isSaveEnabled = false // Update isSaveEnabled to false
-                return
-            }
-        }
-
         let finalIsValid = !islandDetails.islandName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         print("Final validation result: \(finalIsValid)")
         
@@ -253,17 +252,26 @@ struct AddNewIsland: View {
             return
         }
 
+        guard let selectedCountry = islandDetails.selectedCountry else {
+            toastMessage = "Please select a country."
+            showToast = true
+            return
+        }
+
         do {
             let newIsland = try await islandViewModel.createPirateIsland(
                 islandDetails: islandDetails,
                 createdByUserId: currentUser.userName,
                 gymWebsite: gymWebsite,
-                country: islandDetails.selectedCountry?.cca2 ?? "",
-                selectedCountry: islandDetails.selectedCountry!,
+                country: selectedCountry.cca2,
+                selectedCountry: selectedCountry,
                 createdByUser: currentUser
             )
 
             toastMessage = "Island saved successfully: \(newIsland.islandName ?? "Unknown Name")"
+            alertMessage = "Gym Added Successfully!"
+            isSuccessAlert = true
+            showAlert = true
             clearFields()
             onSave()
 
@@ -283,7 +291,6 @@ struct AddNewIsland: View {
     }
 
 
-
     private func clearFields() {
         islandDetails.islandName = ""
         islandDetails.street = ""
@@ -300,23 +307,12 @@ struct AddNewIsland: View {
         islandDetails.governorate = ""
         islandDetails.province = ""
         islandDetails.additionalInfo = ""
-        gymWebsite = "" // Clear gymWebsite when cancelling
+        gymWebsite = ""
+        islandDetails.gymWebsite = "" // ✅ the actual field tied to the TextField
+        gymWebsiteURL = nil           // ✅ also reset the processed URL if needed
+
     }
 
-
-    private var toastOverlay: some View {
-        Group {
-            if showToast {
-                ToastView(showToast: $showToast, message: toastMessage)
-                    .transition(.move(edge: .bottom))
-                    .onAppear {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                            showToast = false
-                        }
-                    }
-            }
-        }
-    }
 }
 
 // MARK: - Preview

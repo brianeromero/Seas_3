@@ -223,12 +223,14 @@ struct IslandFormSections: View {
     // MARK: - Website Section
     var websiteSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Gym Website")
-            TextField("Enter Gym Website", text: $islandDetails.gymWebsite)
+            Text("Instagram/Facebook/Website")
+                .font(.headline)
+            TextField("Enter Instagram/Facebook/Website", text: $islandDetails.gymWebsite)
                 .onChange(of: islandDetails.gymWebsite) { processWebsiteURL($0) }
                 .textFieldStyle(RoundedBorderTextFieldStyle())
         }
     }
+
     
     private func getValue(for field: AddressFieldType) -> String {
         // Use a dictionary to map fields to values dynamically
