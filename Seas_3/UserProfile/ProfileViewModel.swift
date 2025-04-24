@@ -10,6 +10,20 @@ import SwiftUI
 import CoreData
 import Firebase
 
+enum ProfileError: Error, LocalizedError {
+    case passwordsDoNotMatch
+
+    var errorDescription: String? {
+        switch self {
+        case .passwordsDoNotMatch:
+            return "Passwords do not match."
+        }
+    }
+}
+
+
+
+
 public class ProfileViewModel: ObservableObject {
     @Published var email: String = ""
     @Published var userName: String = ""
@@ -74,23 +88,22 @@ public class ProfileViewModel: ObservableObject {
     }
 
     // Update profile information
-    func updateProfile() async {
-        guard !showPasswordChange || newPassword == confirmPassword else {
-            errorMessage = "Passwords do not match"
-            return
+    func updateProfile() async throws {
+        guard (authViewModel.currentUser?.userID) != nil else {
+            throw NSError(domain: "User not authenticated", code: 401, userInfo: nil)
         }
 
+        // If the guard passes, proceed with updating the profile
         print("Updating profile - Email: \(email), Username: \(userName), Name: \(name), Belt: \(belt)")
 
-        do {
-            try await updateFirestoreDocument()
-            if showPasswordChange {
-                try await authViewModel.updatePassword(newPassword)
-            }
-        } catch {
-            print("Error updating profile: \(error.localizedDescription)")
+        try await updateFirestoreDocument()
+
+        if showPasswordChange {
+            try await authViewModel.updatePassword(newPassword)
         }
     }
+
+
 
     // Helper to update Firestore document
     private func updateFirestoreDocument() async throws {
@@ -100,20 +113,29 @@ public class ProfileViewModel: ObservableObject {
 
         let userRef = Firestore.firestore().collection("users").document(userId)
         print("Saving profile data to Firestore: Email: \(email), Username: \(userName), Name: \(name), Belt: \(belt)")
-        try await userRef.setData([
-            "email": email,
-            "userName": userName,
-            "name": name,
-            "belt": belt
-        ], merge: true)
+
+        do {
+            try await userRef.setData([
+                "email": email,
+                "userName": userName,
+                "name": name,
+                "belt": belt
+            ], merge: true)
+            print("Firestore update succeeded")
+        } catch {
+            // Catch Firestore errors here and log them
+            print("Error saving profile data to Firestore: \(error.localizedDescription)")
+            throw error // Re-throw the error to be handled by the calling function
+        }
     }
+
 
     // Validate the profile fields
     func validateProfile() -> Bool {
         let emailError = validateEmail(email)
         let userNameError = validateUserName(userName)
         let nameError = validateName(name)
-        let passwordError = validatePassword(password)
+        let passwordError = showPasswordChange ? validatePassword(newPassword) : nil
 
         return [emailError, userNameError, nameError, passwordError].allSatisfy { $0 == nil }
     }

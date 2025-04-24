@@ -95,15 +95,42 @@ class AuthViewModel: ObservableObject {
     public let context: NSManagedObjectContext
     private let emailManager: UnifiedEmailManager
 
+    var authStateHandle: AuthStateDidChangeListenerHandle?
+
     public init(managedObjectContext: NSManagedObjectContext = PersistenceController.shared.container.viewContext,
                 emailManager: UnifiedEmailManager = .shared) {
         self.context = managedObjectContext
         self.emailManager = emailManager
+        authStateHandle = auth.addStateDidChangeListener { [weak self] auth, user in
+            Task {
+                await self?.updateCurrentUser(user: user)
+            }
+        }
     }
 
 
     // MARK: Create Firebase user with email/password
     @MainActor
+    func updateCurrentUser(user: FirebaseAuth.User?) async {
+        if let user = user {
+            let currentUser = await getCurrentUser()
+            if let currentUser = currentUser {
+                let userInfo = UserInfo(context: self.context)
+                userInfo.email = currentUser.email
+                userInfo.userName = currentUser.userName
+                userInfo.name = currentUser.name
+                userInfo.isVerified = currentUser.isVerified
+                userInfo.belt = currentUser.belt
+                userInfo.userID = user.uid
+                self.currentUser = userInfo
+            }
+            self.userSession = user
+        } else {
+            self.currentUser = nil
+            self.userSession = nil
+        }
+    }
+    
     func createUser(withEmail email: String, password: String, userName: String, name: String, belt: String?) async throws {
         guard !email.isEmpty, !password.isEmpty, !userName.isEmpty, !name.isEmpty else {
             throw AuthError.invalidInput
@@ -726,22 +753,26 @@ class AuthViewModel: ObservableObject {
     }
 
     func getCurrentUser() async -> User? {
+        // Check if there is a currently authenticated user
         guard let firebaseUser = Auth.auth().currentUser else {
             os_log("No Firebase Auth user currently signed in", log: logger, type: .error)
-            return nil
+            return nil // If no user is signed in, return nil
         }
 
         let db = Firestore.firestore()
         let documentRef = db.collection("users").document(firebaseUser.uid)
 
         do {
+            // Fetch user data from Firestore using the UID
             let snapshot = try await documentRef.getDocument()
             
+            // If no data is found, return nil
             guard let data = snapshot.data() else {
                 os_log("No Firestore data found for UID: %@", log: logger, type: .error, firebaseUser.uid)
                 return nil
             }
 
+            // Initialize the User object using the Firestore data
             let user = User(
                 email: data["email"] as? String ?? "",
                 userName: data["userName"] as? String ?? "",
@@ -752,7 +783,7 @@ class AuthViewModel: ObservableObject {
                 isVerified: data["isVerified"] as? Bool ?? false,
                 belt: data["belt"] as? String,
                 verificationToken: nil,
-                userID: UUID(uuidString: firebaseUser.uid) ?? UUID()
+                userID: UUID(uuidString: firebaseUser.uid) ?? UUID() // Safely convert UID to UUID
             )
 
             os_log("Fetched Firestore user info: Email=%@, Name=%@, Belt=%@, Verified=%@",
@@ -765,8 +796,10 @@ class AuthViewModel: ObservableObject {
             return user
 
         } catch {
+            // Handle Firestore fetch failure
             os_log("Firestore fetch failed: %@", log: logger, type: .error, error.localizedDescription)
             return nil
         }
     }
+
 }
