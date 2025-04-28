@@ -58,16 +58,20 @@ public class FirestoreManager {
             return
         }
 
-        let islandRef = db.collection("pirateIslands").document(island.islandID?.uuidString ?? UUID().uuidString)
+        // Convert UUID to String explicitly for Firestore (assuming Firestore expects a String)
+        let islandIDString = (island.islandID)?.uuidString ?? UUID().uuidString
+        let createdByUserIDString = createdByUser.id
+
+        let islandRef = db.collection("pirateIslands").document(islandIDString)
 
         let islandData: [String: Any] = [
-            "id": island.islandID?.uuidString ?? UUID().uuidString,
+            "id": islandIDString, // Use the String version of islandID
             "name": island.safeIslandName,
             "location": island.safeIslandLocation,
             "country": selectedCountry.name.common,
             "createdByUserId": island.createdByUserId ?? "Unknown User",
             "createdBy": [
-                "id": createdByUser.id.uuidString,
+                "id": createdByUserIDString, // Use the String version of createdByUser.id
                 "name": createdByUser.userName,
                 "email": createdByUser.email
             ],
@@ -78,7 +82,6 @@ public class FirestoreManager {
             "longitude": island.longitude,
             "gymWebsite": island.gymWebsite?.absoluteString ?? ""
         ]
-
 
         try await islandRef.setData(islandData, merge: true)
         print("Island saved successfully to Firestore")

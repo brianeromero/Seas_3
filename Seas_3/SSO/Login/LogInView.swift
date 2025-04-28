@@ -448,7 +448,7 @@ struct LoginView_Previews: PreviewProvider {
             navigateToAdminMenu: .constant(false),
             isLoggedIn: .constant(false)
         )
-        .environmentObject(AuthenticationState())
+        .environmentObject(AuthenticationState(hashPassword: HashPassword()))
         .environment(\.managedObjectContext, PersistenceController.shared.container.viewContext)
     }
 }

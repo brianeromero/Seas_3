@@ -367,6 +367,7 @@
 				Email/Firebase/AuthViewModel.swift,
 				Email/Firebase/EmailSignOn.swift,
 				Email/Firebase/FirestoreManager.swift,
+				Email/Firebase/HashedPassword.swift,
 				Email/Firebase/User.swift,
 				Email/ForgotYourPassword.swift,
 				Email/hashPassword.swift,

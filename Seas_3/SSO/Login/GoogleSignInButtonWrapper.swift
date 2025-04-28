@@ -83,6 +83,7 @@ struct GoogleSignInButtonWrapper: UIViewRepresentable {
                 }
                 
                 // Update user info
+                print("Object type: \(type(of: userInfo))")
                 userInfo.email = userEmail
                 userInfo.name = userName
                 userInfo.userName = userName
@@ -166,15 +167,14 @@ struct GoogleSignInButtonWrapper: UIViewRepresentable {
 }
 
 struct GoogleSignInButtonWrapper_Previews: PreviewProvider {
-    @StateObject static var authenticationState = AuthenticationState()
-
     static var previews: some View {
-        GoogleSignInButtonWrapper(
+        let authenticationState = AuthenticationState(hashPassword: HashPassword())
+        return GoogleSignInButtonWrapper(
             handleError: { message in
                 print("Error: \(message)")
             },
             googleClientID: AppConfig.shared.googleClientID,
-            managedObjectContext: PersistenceController.shared.container.viewContext // Pass a valid context here
+            managedObjectContext: PersistenceController.shared.container.viewContext
         )
         .environmentObject(authenticationState)
         .frame(maxWidth: .infinity, maxHeight: .infinity)

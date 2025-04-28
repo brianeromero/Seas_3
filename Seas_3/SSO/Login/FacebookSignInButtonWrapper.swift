@@ -79,11 +79,16 @@ struct FacebookSignInButtonWrapper: UIViewRepresentable {
                 switch result {
                 case .success(let user):
                     print("✅ User authenticated successfully: \(user)")
+                    DispatchQueue.main.async {
+                        self.parent?.authenticationState.login(user: user)
+                    }
+
                 case .failure(let error):
                     print("❌ FB Authentication error: \(error.localizedDescription)")
                     self.parent?.handleError("FB Authentication error: \(error.localizedDescription)")
                 }
             }
+
         }
 
         func loginButtonDidLogOut(_ loginButton: FBLoginButton) {
@@ -119,13 +124,10 @@ struct FacebookSignInButtonWrapper: UIViewRepresentable {
 }
 
 
-
-
 struct FacebookSignInButtonWrapper_Previews: PreviewProvider {
-    @StateObject static var authenticationState = AuthenticationState()
-
     static var previews: some View {
-        FacebookSignInButtonWrapper(
+        let authenticationState = AuthenticationState(hashPassword: HashPassword())
+        return FacebookSignInButtonWrapper(
             handleError: { message in
                 print("Error: \(message)")
             }

@@ -138,7 +138,7 @@ struct AccountAuthView_Previews: PreviewProvider {
             emailManager: UnifiedEmailManager.shared
         )
         .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
-        .environmentObject(AuthenticationState())
+        .environmentObject(AuthenticationState(hashPassword: HashPassword()))
         .previewLayout(.sizeThatFits)
         .previewDisplayName("Account Creation Form - UserProfile Active")
 

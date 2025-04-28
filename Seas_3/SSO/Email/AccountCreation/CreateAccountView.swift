@@ -636,7 +636,7 @@ struct CreateAccountView: View {
             return
         }
 
-        let createdByUserId = currentUser.userName
+        _ = currentUser.userName
 
         do {
             print("Creating pirate island...")
@@ -793,7 +793,7 @@ struct CreateAccountView_Previews: PreviewProvider {
             selectedTabIndex: $selectedTabIndex,
             emailManager: UnifiedEmailManager.shared
         )
-        .environmentObject(AuthenticationState())
+        .environmentObject(AuthenticationState(hashPassword: HashPassword()))
         .environment(\.managedObjectContext, PersistenceController.shared.container.viewContext)
     }
 }

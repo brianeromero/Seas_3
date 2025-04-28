@@ -33,86 +33,84 @@ class AuthenticationManager {
 
     /// Handles authentication using a given credential (Google, Facebook, etc.)
     func handleAuthentication(with credential: AuthCredential, completion: @escaping (Result<Seas_3.User, Error>) -> Void) {
-        // Check if there is already a user signed in
+        // Log current user (if any)
         if let currentUser = Auth.auth().currentUser {
             self.log(message: "Currently signed in as \(currentUser.uid)", level: .info)
-            print("Currently signed in as \(currentUser.uid)") // Additional print for debugging
         } else {
             self.log(message: "No user currently authenticated. Please log in first.", level: .warning)
-            print("No user currently authenticated. Please log in first.") // Additional print for debugging
         }
         
         self.log(message: "Attempting to authenticate with Firebase using provided credential.", level: .info)
-        print("Attempting to authenticate with Firebase using provided credential: \(credential)") // Log the credential for debugging
-        
+
         Auth.auth().signIn(with: credential) { result, error in
             if let error = error {
                 self.log(message: "Error authenticating with Firebase: \(error.localizedDescription)", level: .error)
-                print("Error authenticating with Firebase: \(error.localizedDescription)") // Additional print for debugging
-                
+
                 let errorCode = AuthErrorCode(rawValue: (error as NSError).code)
-                print("Firebase error code: \(errorCode?.rawValue ?? -1)") // Print the error code for additional debugging
-                
-                // Handle the case when the account exists with a different credential
-                if errorCode == .accountExistsWithDifferentCredential {
-                    self.log(message: "Account exists with different credential. Attempting to link credentials.", level: .info)
-                    print("Account exists with different credential. Attempting to link credentials.") // Additional print for debugging
+
+                // Handle 'account exists with different credential'
+                if errorCode == .accountExistsWithDifferentCredential,
+                   let email = (error as NSError).userInfo[AuthErrorUserInfoEmailKey] as? String {
+
+                    self.log(message: "Fetching sign-in methods for \(email)", level: .info)
                     
-                    guard let currentUser = Auth.auth().currentUser else {
-                        self.log(message: "1No Firebase user found.", level: .error)
-                        print("No Firebase user found during credential linking.") // Additional print for debugging
-                        completion(.failure(NSError(domain: "AuthenticationError", code: 0, userInfo: nil)))
-                        return
-                    }
-                    
-                    print("Attempting to link credentials with current user: \(currentUser.uid)") // Log user UID for linking
-                    
-                    self.handleAccountExistsWithDifferentCredential(user: currentUser, existingCredential: credential) { result in
-                        switch result {
-                        case .success(let firebaseUser):
-                            self.createUserFromFirebaseUser(firebaseUser) { result in
-                                switch result {
-                                case .success(let user):
-                                    self.log(message: "Successfully created user from Firebase data.", level: .info)
-                                    print("Successfully created user from Firebase data: \(user)") // Additional print for debugging
-                                    completion(.success(user))
-                                case .failure(let error):
-                                    self.log(message: "Error creating user from Firebase data: \(error.localizedDescription)", level: .error)
-                                    print("Error creating user from Firebase data: \(error.localizedDescription)") // Additional print for debugging
-                                    completion(.failure(error))
+                    // Skipping sign-in methods check due to email enumeration protection
+                    self.log(message: "Email enumeration protection may be enabled — proceeding with password prompt", level: .warning)
+
+                    self.promptForEmailPassword(email: email) { password in
+                        Auth.auth().signIn(withEmail: email, password: password) { result, error in
+                            if let error = error {
+                                self.log(message: "Error signing in with password: \(error.localizedDescription)", level: .error)
+                                completion(.failure(error))
+                                return
+                            }
+
+                            guard let signedInUser = result?.user else {
+                                self.log(message: "No Firebase user after password sign-in", level: .error)
+                                completion(.failure(NSError(domain: "AuthenticationError", code: 0, userInfo: nil)))
+                                return
+                            }
+
+                            signedInUser.link(with: credential) { linkResult, linkError in
+                                if let linkError = linkError {
+                                    self.log(message: "Failed to link credential: \(linkError.localizedDescription)", level: .error)
+                                    completion(.failure(linkError))
+                                } else if let linkedUser = linkResult?.user {
+                                    self.log(message: "Successfully linked credentials for \(linkedUser.uid)", level: .info)
+                                    self.createUserFromFirebaseUser(linkedUser, completion: completion)
+                                } else {
+                                    self.log(message: "Link result is nil", level: .error)
+                                    completion(.failure(NSError(domain: "AuthenticationError", code: 0, userInfo: nil)))
                                 }
                             }
-                        case .failure(let error):
-                            self.log(message: "Error linking credentials: \(error.localizedDescription)", level: .error)
-                            print("Error linking credentials: \(error.localizedDescription)") // Additional print for debugging
-                            completion(.failure(error))
                         }
                     }
                     return
                 }
-                
-                // For other errors, just return the error
-                print("Returning error: \(error.localizedDescription)") // Additional print for debugging
+
+                // Handle other errors
                 completion(.failure(error))
                 return
             }
             
+            // Successful authentication
             self.log(message: "Authenticated with Firebase successfully.", level: .info)
-            print("Authenticated with Firebase successfully.") // Additional print for debugging
-            
+
             guard let firebaseUser = result?.user else {
-                self.log(message: "2No Firebase user found.", level: .error)
-                print("No Firebase user found after successful authentication.") // Additional print for debugging
+                self.log(message: "No Firebase user found after successful authentication.", level: .error)
                 completion(.failure(NSError(domain: "AuthenticationError", code: 0, userInfo: nil)))
                 return
             }
             
-            self.log(message: "Creating user from Firebase data.", level: .info)
-            print("Creating user from Firebase data: \(firebaseUser)") // Log Firebase user info for debugging
             
+            // 👉 ADD THIS LINE:
+            print("✅ Firebase User UID: \(firebaseUser.uid)")
+            
+            self.log(message: "Creating user from Firebase data.", level: .info)
             self.createUserFromFirebaseUser(firebaseUser, completion: completion)
         }
     }
+
 
 
 
@@ -142,25 +140,23 @@ class AuthenticationManager {
     }
 
     /// Converts Firebase User into a Seas_3.User model
-    ///
     func createUserFromFirebaseUser(_ firebaseUser: FirebaseAuth.User, completion: @escaping (Result<Seas_3.User, Error>) -> Void) {
-        let userID = UUID(uuidString: firebaseUser.uid) ?? UUID()
+        let appUser = Seas_3.User(
+            email: firebaseUser.email ?? "",
+            userName: firebaseUser.displayName ?? "",
+            name: "",
+            passwordHash: Data(),
+            salt: Data(),
+            iterations: 0,
+            isVerified: firebaseUser.isEmailVerified,
+            belt: nil,
+            verificationToken: nil,
+            userID: firebaseUser.uid
+        )
         
-        let userInfo = UserInfo()
-        userInfo.email = firebaseUser.email ?? ""
-        userInfo.userName = firebaseUser.displayName ?? ""
-        userInfo.name = ""
-        userInfo.passwordHash = Data()
-        userInfo.salt = Data()
-        userInfo.iterations = 0
-        userInfo.isVerified = firebaseUser.isEmailVerified
-        userInfo.userID = userID.uuidString
-        userInfo.belt = nil
-        userInfo.verificationToken = nil
-        
-        let appUser = Seas_3.User(from: userInfo)
         completion(.success(appUser))
     }
+
 
     /// Handles Firebase authentication errors
     private func handleFirebaseError(_ error: Error, user: FirebaseAuth.User?, credential: AuthCredential, completion: @escaping (Result<FirebaseAuth.User, Error>) -> Void) {
@@ -245,26 +241,33 @@ class AuthenticationManager {
         
         let cancelAction = UIAlertAction(title: "Cancel", style: .cancel)
         let submitAction = UIAlertAction(title: "Submit", style: .default) { _ in
-            if let password = alertController.textFields?.first?.text {
+            if let password = alertController.textFields?.first?.text, !password.isEmpty {
                 completion(password)
             } else {
-                self.log(message: "Password entry failed.", level: .error)
+                self.log(message: "No password entered.", level: .warning)
                 completion("")
             }
         }
+
         
         alertController.addAction(cancelAction)
         alertController.addAction(submitAction)
         
         // Present the alert controller
-        if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let window = scene.windows.first,
+        if let windowScene = UIApplication.shared.connectedScenes
+            .compactMap({ $0 as? UIWindowScene })
+            .first,
+           let window = windowScene.windows.first(where: { $0.isKeyWindow }),
            let rootViewController = window.rootViewController {
-            rootViewController.present(alertController, animated: true) {
-                print("Alert controller presented")
+            
+            DispatchQueue.main.async {
+                rootViewController.present(alertController, animated: true) {
+                    print("Alert controller presented")
+                }
             }
         } else {
             self.log(message: "No root view controller found", level: .error)
         }
+
     }
 }

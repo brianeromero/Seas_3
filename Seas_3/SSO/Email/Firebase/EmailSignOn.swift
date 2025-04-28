@@ -29,7 +29,7 @@ class EmailSignOn {
                      isVerified: false,
                      belt: nil,
                      verificationToken: nil,
-                     userID: UUID())
+                     userID: UUID().uuidString) // Convert UUID to String here
             
             // Verify password
             if try hashPassword.verifyPasswordScrypt(userPassword, againstHash: hashedPassword) {

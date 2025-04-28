@@ -50,6 +50,7 @@ class UnifiedEmailManager {
 
         // Fetch or create UserInfo entity
         let userInfo = EmailUtility.fetchUserInfo(byEmail: email) ?? UserInfo(context: managedObjectContext)
+        print("Object type: \(type(of: userInfo))")
         userInfo.email = email
         userInfo.userName = userName
         userInfo.verificationToken = verificationToken

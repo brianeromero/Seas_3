@@ -9,13 +9,6 @@ import Foundation
 import SwiftUI
 import CoreData
 
-struct HashedPassword {
-    var hash: Data
-    var salt: Data
-    var iterations: Int
-}
-
-
 class AuthenticationHelper {
     static func verifyUserPassword(inputPassword: String, storedHash: HashedPassword) throws -> Bool {
         let hashPassword = HashPassword()

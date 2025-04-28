@@ -26,7 +26,7 @@ struct URLHandler: View {
 struct Seas_3App: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject var appState = AppState()
-    @StateObject var authenticationState = AuthenticationState()
+    @StateObject var authenticationState = AuthenticationState(hashPassword: HashPassword())
     @StateObject private var persistenceController = PersistenceController.shared
     @StateObject var profileViewModel = ProfileViewModel(
         viewContext: PersistenceController.shared.container.viewContext,

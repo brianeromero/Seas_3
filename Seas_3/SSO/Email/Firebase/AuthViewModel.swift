@@ -116,6 +116,8 @@ class AuthViewModel: ObservableObject {
             let currentUser = await getCurrentUser()
             if let currentUser = currentUser {
                 let userInfo = UserInfo(context: self.context)
+                print("Object type: \(type(of: userInfo))")
+
                 userInfo.email = currentUser.email
                 userInfo.userName = currentUser.userName
                 userInfo.name = currentUser.name
@@ -707,6 +709,8 @@ class AuthViewModel: ObservableObject {
         userInfo.userID = firebaseUser.uid
         userInfo.name = firebaseUser.displayName ?? "Anonymous"
         userInfo.userName = firebaseUser.displayName ?? "anonymous_user"
+        print("Object type: \(type(of: userInfo))")
+
         userInfo.email = firebaseUser.email ?? "no-email@unknown.com"
         userInfo.passwordHash = Data()
         userInfo.salt = Data()
@@ -728,7 +732,7 @@ class AuthViewModel: ObservableObject {
             isVerified: false,
             belt: nil,
             verificationToken: nil,
-            userID: UUID(uuidString: firebaseUser.uid) ?? UUID()
+            userID: firebaseUser.uid
         )
     }
 
@@ -783,7 +787,7 @@ class AuthViewModel: ObservableObject {
                 isVerified: data["isVerified"] as? Bool ?? false,
                 belt: data["belt"] as? String,
                 verificationToken: nil,
-                userID: UUID(uuidString: firebaseUser.uid) ?? UUID() // Safely convert UID to UUID
+                userID: firebaseUser.uid // Use the Firebase UID as a String
             )
 
             os_log("Fetched Firestore user info: Email=%@, Name=%@, Belt=%@, Verified=%@",

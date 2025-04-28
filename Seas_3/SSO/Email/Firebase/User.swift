@@ -9,7 +9,7 @@ import CryptoSwift
 import FirebaseFirestore
 import FirebaseAuth
 
-class User: Codable, Identifiable {
+public class User: Codable, Identifiable {
     var email: String
     var userName: String
     var name: String
@@ -18,11 +18,11 @@ class User: Codable, Identifiable {
     var isVerified: Bool
     var belt: String?
     var verificationToken: String?
-    var userID: UUID
+    public var userID: String
     var iterations: Int64
 
     // Computed property for Identifiable
-    var id: UUID { userID }
+    public var id: String { userID }
 
     init(email: String,
          userName: String,
@@ -33,7 +33,7 @@ class User: Codable, Identifiable {
          isVerified: Bool = false,
          belt: String? = nil,
          verificationToken: String? = nil,
-         userID: UUID = UUID()) {
+         userID: String = UUID().uuidString) {
         self.email = email
         self.userName = userName
         self.name = name
@@ -46,6 +46,7 @@ class User: Codable, Identifiable {
         self.userID = userID
     }
 
+    // Convenience initializer from UserInfo (if needed)
     convenience init(from userInfo: UserInfo) {
         let passwordHash = Data(base64Encoded: userInfo.passwordHash) ?? Data()
         let salt = Data(base64Encoded: userInfo.salt) ?? Data()
@@ -60,7 +61,7 @@ class User: Codable, Identifiable {
             isVerified: userInfo.isVerified,
             belt: userInfo.belt,
             verificationToken: userInfo.verificationToken,
-            userID: UUID(uuidString: userInfo.userID) ?? UUID()
+            userID: userInfo.userID
         )
     }
 }

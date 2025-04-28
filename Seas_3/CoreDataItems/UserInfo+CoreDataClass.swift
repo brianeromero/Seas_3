@@ -24,9 +24,10 @@ public class UserInfo: NSManagedObject {
         self.init(context: context)
         
         // Map Firestore fields to Core Data attributes
-        self.userID = document.documentID // Assuming Firestore documentID is the userID
+        self.userID = document.documentID
         self.email = document.data()["email"] as? String ?? ""
         self.userName = document.data()["username"] as? String ?? ""
+        self.name = document.data()["name"] as? String ?? "" // ✅ ADD THIS
         self.passwordHash = document.data()["passwordHash"] as? Data ?? Data()
         self.salt = document.data()["salt"] as? Data ?? Data()
         self.iterations = document.data()["iterations"] as? Int64 ?? 1000

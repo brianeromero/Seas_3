@@ -133,7 +133,7 @@ struct AdminMenu_Previews: PreviewProvider {
         return NavigationView {
             AdminMenu()
                 .environment(\.persistenceController, persistenceController)
-                .environmentObject(AuthenticationState())
+                .environmentObject(AuthenticationState(hashPassword: HashPassword()))
         }
     }
 }
