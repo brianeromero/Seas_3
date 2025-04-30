@@ -215,8 +215,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
 
 
     func application(_ application: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
-        return GIDSignIn.sharedInstance.handle(url)
+        let handledByFacebook = ApplicationDelegate.shared.application(application, open: url, options: options)
+        let handledByGoogle = GIDSignIn.sharedInstance.handle(url)
+        return handledByFacebook || handledByGoogle
     }
+
 
     
     private func createFirestoreCollection() async throws {

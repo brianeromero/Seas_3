@@ -72,24 +72,11 @@ struct FacebookSignInButtonWrapper: UIViewRepresentable {
 
             print("✅ Facebook login successful. Access Token: \(token.tokenString)")
 
-            let credential = FacebookAuthProvider.credential(withAccessToken: token.tokenString)
-            let authenticationManager = AuthenticationManager()
-            
-            authenticationManager.handleAuthentication(with: credential) { result in
-                switch result {
-                case .success(let user):
-                    print("✅ User authenticated successfully: \(user)")
-                    DispatchQueue.main.async {
-                        self.parent?.authenticationState.login(user: user)
-                    }
-
-                case .failure(let error):
-                    print("❌ FB Authentication error: \(error.localizedDescription)")
-                    self.parent?.handleError("FB Authentication error: \(error.localizedDescription)")
-                }
-            }
-
+            // Use the FacebookHelper to handle the login flow
+            let authManager = AuthenticationManager()
+            FacebookHelper.handleFacebookLogin(authManager: authManager)  // This handles token validation and Firebase authentication
         }
+
 
         func loginButtonDidLogOut(_ loginButton: FBLoginButton) {
             print("🔹 User logged out from Facebook.")
