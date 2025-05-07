@@ -7,11 +7,14 @@
 
 import Foundation
 import SwiftUI
-import GoogleSignIn
+import GoogleSignInSwift
 import CoreData
-import Firebase
+import FirebaseCore
+import FirebaseFirestore
 import FirebaseAuth
 import GoogleSignIn
+import GoogleSignInSwift
+
 
 
 struct GoogleSignInButtonWrapper: UIViewRepresentable {

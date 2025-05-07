@@ -3,7 +3,8 @@ import Foundation
 import CoreData
 import Combine
 import CoreLocation
-import Firebase
+import FirebaseCore
+import FirebaseAuth
 import FirebaseFirestore
 import os
 

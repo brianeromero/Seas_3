@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import GoogleSignIn
+import GoogleSignInSwift
 
 
 struct Config: Decodable {

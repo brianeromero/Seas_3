@@ -6,21 +6,23 @@
 //
 
 import Foundation
+import GoogleSignInSwift
 import SwiftUI
-import GoogleSignIn
 
-struct GoogleSignInButton: UIViewRepresentable {
-    func makeUIView(context: Context) -> GIDSignInButton {
-        let button = GIDSignInButton()
-        return button
+
+struct GoogleSignInButtonView: View {
+    var body: some View {
+        GoogleSignInButton(action: {
+            print("Google Sign-In tapped")
+        })
+        .frame(height: 50)
+        .padding()
     }
-    
-    func updateUIView(_ uiView: GIDSignInButton, context: Context) {}
 }
 
-struct GoogleSignInButton_Previews: PreviewProvider {
+struct GoogleSignInButtonView_Previews: PreviewProvider {
     static var previews: some View {
-        GoogleSignInButton()
+        GoogleSignInButtonView()
             .previewLayout(.sizeThatFits)
             .padding()
     }

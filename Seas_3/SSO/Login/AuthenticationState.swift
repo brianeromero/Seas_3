@@ -8,9 +8,10 @@
 import Foundation
 import SwiftUI
 import Combine
-import Firebase
+import FirebaseCore
+import FirebaseFirestore
 import FirebaseAuth
-import GoogleSignIn
+import GoogleSignInSwift
 import FBSDKLoginKit
 
 

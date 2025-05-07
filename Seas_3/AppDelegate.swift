@@ -8,18 +8,17 @@ import AdSupport
 import DeviceCheck
 
 // Firebase
-import Firebase
 import FirebaseAppCheck
 import FirebaseAnalytics
 import FirebaseAuth
 import FirebaseCore
-import FirebaseDatabase
 import FirebaseFirestore
 import FirebaseMessaging
 
+
 // Google
 import GoogleMobileAds
-import GoogleSignIn
+import GoogleSignInSwift
 
 // Facebook
 import FacebookCore

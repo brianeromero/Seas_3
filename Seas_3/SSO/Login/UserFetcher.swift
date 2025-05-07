@@ -5,10 +5,10 @@
 //  Created by Brian Romero on 2/3/25.
 //
 import Foundation
-import Firebase
-import FirebaseAuth
+import FirebaseCore
 import FirebaseFirestore
-import CoreData  
+import FirebaseAuth
+import CoreData
 
 class UserFetcher {
     private let db = Firestore.firestore()

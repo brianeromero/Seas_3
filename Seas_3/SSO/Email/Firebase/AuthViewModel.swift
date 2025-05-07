@@ -4,7 +4,9 @@
 // Created by Brian Romero on 10/22/24.
 
 import Foundation
-import Firebase
+import FirebaseCore
+import FirebaseFirestore
+import FirebaseAppCheck
 @preconcurrency import FirebaseAuth
 import CryptoSwift
 import CoreData

@@ -1,0 +1,2 @@
+#include "Pods/Target Support Files/Pods-Seas_3/Pods-Seas_3.debug.xcconfig"
+INSTALL_OBJC_COMPATIBILITY_HEADER = YES

@@ -6,9 +6,10 @@
 //
 
 import Foundation
-import Firebase
+import FirebaseCore
+import FirebaseFirestore
 import FirebaseAuth
-import GoogleSignIn
+import GoogleSignInSwift
 
 class AuthenticationManager {
     

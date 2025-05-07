@@ -8,8 +8,9 @@ import Foundation
 import SwiftUI
 import CoreData
 import CryptoKit
-import Firebase
+import FirebaseCore
 import FirebaseAuth
+import FirebaseFirestore
 import FirebaseAppCheck
 import CryptoSwift
 import Combine

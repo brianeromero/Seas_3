@@ -7,7 +7,6 @@
 import SwiftUI
 import FirebaseAuth
 import FirebaseFirestore
-import FirebaseFunctions
 import os.log
 
 struct ResetUserVerificationView: View {

@@ -3,7 +3,7 @@ import FirebaseAuth
 import FirebaseFirestore
 import CoreData
 import SwiftUI
-import GoogleSignIn
+import GoogleSignInSwift
 import FBSDKLoginKit
 import Security
 import CryptoSwift

@@ -5,7 +5,10 @@
 
 import SwiftUI
 import CoreData
-import Firebase
+import FirebaseCore
+import FirebaseAuth
+import FirebaseFirestore
+
 
 struct ProfileView: View {
     @Environment(\.managedObjectContext) private var viewContext

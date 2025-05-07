@@ -10,8 +10,6 @@
 		0C00086E2CA895D600CA5181 /* SearchComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C00086D2CA895D600CA5181 /* SearchComponents.swift */; };
 		0C00087A2CAB092B00CA5181 /* ErrorHandling.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0008792CAB092B00CA5181 /* ErrorHandling.swift */; };
 		0C0008862CAB420100CA5181 /* Errors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0008852CAB420100CA5181 /* Errors.swift */; };
-		0C02EA7D2D56D73100134160 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 0C02EA7C2D56D73100134160 /* GoogleSignIn */; };
-		0C02EA7F2D56D73100134160 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 0C02EA7E2D56D73100134160 /* GoogleSignInSwift */; };
 		0C07B0712C2CFD0300D0BFB2 /* IslandMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0702C2CFD0300D0BFB2 /* IslandMenu.swift */; };
 		0C07B0732C2CFD2800D0BFB2 /* AddNewIsland.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0722C2CFD2800D0BFB2 /* AddNewIsland.swift */; };
 		0C07B0752C2CFD4900D0BFB2 /* EditExistingIslandList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0742C2CFD4900D0BFB2 /* EditExistingIslandList.swift */; };
@@ -53,17 +51,12 @@
 		0C1893D32C7F95FB007BFADB /* ViewReviewforIsland.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1893D22C7F95FB007BFADB /* ViewReviewforIsland.swift */; };
 		0C1893D52C7F9621007BFADB /* ViewScheduleforIsland.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1893D42C7F9621007BFADB /* ViewScheduleforIsland.swift */; };
 		0C276CCC2CC9A8FD00A6B6D6 /* SeasAppCheckProviderFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C276CA72CC9A8FD00A6B6D6 /* SeasAppCheckProviderFactory.swift */; };
-		0C276CDF2CC9D2C700A6B6D6 /* FirebaseDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = 0C276CDE2CC9D2C700A6B6D6 /* FirebaseDatabase */; };
 		0C2CEC9D2CBA1F5400926D0D /* IslandFormSections.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C2CEC9C2CBA1F5400926D0D /* IslandFormSections.swift */; };
 		0C2EE2AF2C9DEF110029432F /* ViewReviewSearch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C2EE2AE2C9DEF110029432F /* ViewReviewSearch.swift */; };
 		0C33DBE12CC081C1002C4835 /* Config.plist in Resources */ = {isa = PBXBuildFile; fileRef = 0C33DBDF2CC081C1002C4835 /* Config.plist */; };
 		0C33DC052CC095CF002C4835 /* FirebaseMLModelDownloader in Frameworks */ = {isa = PBXBuildFile; productRef = 0C33DC042CC095CF002C4835 /* FirebaseMLModelDownloader */; };
 		0C33DC152CC09E7C002C4835 /* PrivacyPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C33DC142CC09E7C002C4835 /* PrivacyPolicy.swift */; };
 		0C33DC172CC09FBC002C4835 /* TermsOfService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C33DC162CC09FBC002C4835 /* TermsOfService.swift */; };
-		0C4A7B4B2CC0D43A008CE1EA /* iAd.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C4A7B4A2CC0D43A008CE1EA /* iAd.framework */; };
-		0C4A7B4D2CC0D443008CE1EA /* AdSupport.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C4A7B4C2CC0D443008CE1EA /* AdSupport.framework */; };
-		0C4A7B4F2CC0D507008CE1EA /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C4A7B4E2CC0D507008CE1EA /* CoreLocation.framework */; };
-		0C4A7B512CC0D50F008CE1EA /* DeviceCheck.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C4A7B502CC0D50F008CE1EA /* DeviceCheck.framework */; };
 		0C4B34362C61A32700FD6893 /* PirateIslandDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4B34352C61A32700FD6893 /* PirateIslandDataManager.swift */; };
 		0C4F3C412C3C4645008D04B9 /* IslandScheduleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4F3C402C3C4645008D04B9 /* IslandScheduleView.swift */; };
 		0C524E8C2C2F408F008D6623 /* ExampleUsuageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C524E8B2C2F408F008D6623 /* ExampleUsuageView.swift */; };
@@ -74,12 +67,10 @@
 		0C524E932C308DB9008D6623 /* AllEnteredLocationsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C524E922C308DB9008D6623 /* AllEnteredLocationsViewModel.swift */; };
 		0C524E952C308E4A008D6623 /* EnterZipCodeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C524E942C308E4A008D6623 /* EnterZipCodeViewModel.swift */; };
 		0C524E972C30E859008D6623 /* AppDayOfWeek+Extensions..swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C524E962C30E859008D6623 /* AppDayOfWeek+Extensions..swift */; };
-		0C6CA7AE2CEFCFCE004FF120 /* AdServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C6CA7AD2CEFCFCE004FF120 /* AdServices.framework */; };
 		0C6F7BD92C79193B00072237 /* Review+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCA11C52C79105F003CAB7C /* Review+CoreDataClass.swift */; };
 		0C6F7BDA2C79194500072237 /* Review+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCA11C62C79105F003CAB7C /* Review+CoreDataProperties.swift */; };
 		0C6F7BDC2C7931E600072237 /* GymMatReviewSelect.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C6F7BDB2C7931E600072237 /* GymMatReviewSelect.swift */; };
 		0C6F7BDE2C7B146200072237 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C6F7BDD2C7B146200072237 /* Extensions.swift */; };
-		0C7E22F92CDC0F5D004C46C8 /* Logging in Frameworks */ = {isa = PBXBuildFile; productRef = 0C7E22F82CDC0F5D004C46C8 /* Logging */; };
 		0C8817752C3371B7008FE469 /* MapDetails.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8817742C3371B7008FE469 /* MapDetails.swift */; };
 		0C8AEC252C59301F00D38635 /* ScheduleFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8AEC242C59301F00D38635 /* ScheduleFormView.swift */; };
 		0C8AEC272C59679300D38635 /* AppDayOfWeekFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8AEC262C59679300D38635 /* AppDayOfWeekFormView.swift */; };
@@ -95,38 +86,10 @@
 		0CA142262C3EF7F200C366CF /* IslandScheduleAsCalViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA142252C3EF7F200C366CF /* IslandScheduleAsCalViewController.swift */; };
 		0CA73BF22CB739F3000A66E2 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 0CA73BF12CB739F2000A66E2 /* GoogleService-Info.plist */; };
 		0CB8BB572CC9A3E6002F57E8 /* firebase-ios-sdk in Resources */ = {isa = PBXBuildFile; fileRef = 0CB8BB562CC9A3E6002F57E8 /* firebase-ios-sdk */; };
-		0CBA13062CC19BC100A74C2A /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 0CBA13052CC19BC100A74C2A /* GoogleSignIn */; };
-		0CBA13082CC19BC100A74C2A /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 0CBA13072CC19BC100A74C2A /* GoogleSignInSwift */; };
 		0CBA130A2CC19BC700A74C2A /* CryptoSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 0CBA13092CC19BC700A74C2A /* CryptoSwift */; };
-		0CBA130C2CC19BF100A74C2A /* FacebookAEM in Frameworks */ = {isa = PBXBuildFile; productRef = 0CBA130B2CC19BF100A74C2A /* FacebookAEM */; };
-		0CBA130E2CC19BFA00A74C2A /* FacebookBasics in Frameworks */ = {isa = PBXBuildFile; productRef = 0CBA130D2CC19BFA00A74C2A /* FacebookBasics */; };
-		0CBA13102CC19C0500A74C2A /* FacebookCore in Frameworks */ = {isa = PBXBuildFile; productRef = 0CBA130F2CC19C0500A74C2A /* FacebookCore */; };
-		0CBA13122CC19C0D00A74C2A /* FacebookLogin in Frameworks */ = {isa = PBXBuildFile; productRef = 0CBA13112CC19C0D00A74C2A /* FacebookLogin */; };
-		0CBA13142CC19C1400A74C2A /* FacebookShare in Frameworks */ = {isa = PBXBuildFile; productRef = 0CBA13132CC19C1400A74C2A /* FacebookShare */; };
-		0CBA13162CC19C4100A74C2A /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = 0CBA13152CC19C4100A74C2A /* GoogleMobileAds */; };
-		0CBA13182CC19C5A00A74C2A /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 0CBA13172CC19C5A00A74C2A /* FirebaseAnalytics */; };
-		0CBA131A2CC19C6500A74C2A /* FirebaseAppCheck in Frameworks */ = {isa = PBXBuildFile; productRef = 0CBA13192CC19C6500A74C2A /* FirebaseAppCheck */; };
-		0CBA131C2CC19C7100A74C2A /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 0CBA131B2CC19C7100A74C2A /* FirebaseAuth */; };
-		0CBA131E2CC19C7A00A74C2A /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = 0CBA131D2CC19C7A00A74C2A /* FirebaseCrashlytics */; };
-		0CBA13202CC19C8600A74C2A /* FirebaseDynamicLinks in Frameworks */ = {isa = PBXBuildFile; productRef = 0CBA131F2CC19C8600A74C2A /* FirebaseDynamicLinks */; };
-		0CBA13222CC19C8E00A74C2A /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 0CBA13212CC19C8E00A74C2A /* FirebaseFirestore */; };
-		0CBA13242CC19CAC00A74C2A /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = 0CBA13232CC19CAC00A74C2A /* FirebaseFunctions */; };
-		0CBA13262CC19CB600A74C2A /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 0CBA13252CC19CB600A74C2A /* FirebaseMessaging */; };
-		0CBA13282CC19CC600A74C2A /* FirebasePerformance in Frameworks */ = {isa = PBXBuildFile; productRef = 0CBA13272CC19CC600A74C2A /* FirebasePerformance */; };
-		0CBA132A2CC19D0C00A74C2A /* MapKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0CBA13292CC19D0C00A74C2A /* MapKit.framework */; };
-		0CBA132C2CC19D1600A74C2A /* CoreData.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0CBA132B2CC19D1600A74C2A /* CoreData.framework */; };
-		0CBA132E2CC19D4100A74C2A /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0CBA132D2CC19D4100A74C2A /* SwiftUI.framework */; };
-		0CBA13302CC19D5400A74C2A /* CoreML.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0CBA132F2CC19D5400A74C2A /* CoreML.framework */; };
 		0CC1120F2C45F7D80066CF80 /* MatTime+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC1120D2C45F7D80066CF80 /* MatTime+CoreDataClass.swift */; };
 		0CC112102C45F7D80066CF80 /* MatTime+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC1120E2C45F7D80066CF80 /* MatTime+CoreDataProperties.swift */; };
 		0CC29C802CEC49AA00FC48F9 /* IslandDetails.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC29C7F2CEC49AA00FC48F9 /* IslandDetails.swift */; };
-		0CC76A702D56E59600154832 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 0CC76A6F2D56E59600154832 /* GoogleSignIn */; };
-		0CC76A722D56E59600154832 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 0CC76A712D56E59600154832 /* GoogleSignInSwift */; };
-		0CC76A752D56E7E100154832 /* FacebookAEM in Frameworks */ = {isa = PBXBuildFile; productRef = 0CC76A742D56E7E100154832 /* FacebookAEM */; };
-		0CC76A772D56E7E100154832 /* FacebookBasics in Frameworks */ = {isa = PBXBuildFile; productRef = 0CC76A762D56E7E100154832 /* FacebookBasics */; };
-		0CC76A792D56E7E100154832 /* FacebookCore in Frameworks */ = {isa = PBXBuildFile; productRef = 0CC76A782D56E7E100154832 /* FacebookCore */; };
-		0CC76A7B2D56E7E100154832 /* FacebookLogin in Frameworks */ = {isa = PBXBuildFile; productRef = 0CC76A7A2D56E7E100154832 /* FacebookLogin */; };
-		0CC76A7D2D56E7E100154832 /* FacebookShare in Frameworks */ = {isa = PBXBuildFile; productRef = 0CC76A7C2D56E7E100154832 /* FacebookShare */; };
 		0CD376E02CED4C7200491DD8 /* AdSettings+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CD376DE2CED4C7200491DD8 /* AdSettings+CoreDataClass.swift */; };
 		0CD376E12CED4C7200491DD8 /* AdSettings+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CD376DF2CED4C7200491DD8 /* AdSettings+CoreDataProperties.swift */; };
 		0CD4E2BF2C7CDA0C005082AC /* ScheduledMatTimesSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CD4E2BE2C7CDA0C005082AC /* ScheduledMatTimesSection.swift */; };
@@ -166,6 +129,7 @@
 		0CF13E7C2C2A36B500D714C0 /* PirateIsland+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E762C2A36B500D714C0 /* PirateIsland+CoreDataProperties.swift */; };
 		0CF13E7D2C2A36B500D714C0 /* UserInfo+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E772C2A36B500D714C0 /* UserInfo+CoreDataClass.swift */; };
 		0CF13E7E2C2A36B500D714C0 /* UserInfo+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E782C2A36B500D714C0 /* UserInfo+CoreDataProperties.swift */; };
+		D9087660B273B47D52C05E81 /* Pods_Seas_3.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AE0816169FBD0660E8F2D48C /* Pods_Seas_3.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -321,6 +285,9 @@
 		0CF13E772C2A36B500D714C0 /* UserInfo+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UserInfo+CoreDataClass.swift"; sourceTree = "<group>"; };
 		0CF13E782C2A36B500D714C0 /* UserInfo+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UserInfo+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		0CF247E92CB470D2008B02AA /* Seas_3.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Seas_3.entitlements; sourceTree = "<group>"; };
+		35574D331C0CC8B90B007876 /* Pods-Seas_3.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Seas_3.debug.xcconfig"; path = "Target Support Files/Pods-Seas_3/Pods-Seas_3.debug.xcconfig"; sourceTree = "<group>"; };
+		AE0816169FBD0660E8F2D48C /* Pods_Seas_3.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Seas_3.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		F68C43B73D9B1C49E270992D /* Pods-Seas_3.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Seas_3.release.xcconfig"; path = "Target Support Files/Pods-Seas_3/Pods-Seas_3.release.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -395,6 +362,8 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		0C21FF472DA58B2C00E49039 /* AddNewMatTimeHelp */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = AddNewMatTimeHelp;
 			sourceTree = "<group>";
 		};
@@ -408,6 +377,8 @@
 		};
 		0C343B6E2CD937EC00468E89 /* UserProfile */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = UserProfile;
 			sourceTree = "<group>";
 		};
@@ -421,16 +392,22 @@
 		};
 		0C882BF52CE6598600E03B02 /* International Changer */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = "International Changer";
 			sourceTree = "<group>";
 		};
 		0C882BFA2CE666B600E03B02 /* IDFA Analytrics */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = "IDFA Analytrics";
 			sourceTree = "<group>";
 		};
 		0C8E21722CCDAD0B0093CEB3 /* AdminView */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = AdminView;
 			sourceTree = "<group>";
 		};
@@ -449,44 +426,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0CBA13302CC19D5400A74C2A /* CoreML.framework in Frameworks */,
-				0CBA132E2CC19D4100A74C2A /* SwiftUI.framework in Frameworks */,
-				0C7E22F92CDC0F5D004C46C8 /* Logging in Frameworks */,
-				0C02EA7F2D56D73100134160 /* GoogleSignInSwift in Frameworks */,
-				0C4A7B4D2CC0D443008CE1EA /* AdSupport.framework in Frameworks */,
-				0CBA132C2CC19D1600A74C2A /* CoreData.framework in Frameworks */,
-				0CBA132A2CC19D0C00A74C2A /* MapKit.framework in Frameworks */,
-				0CC76A792D56E7E100154832 /* FacebookCore in Frameworks */,
-				0CC76A772D56E7E100154832 /* FacebookBasics in Frameworks */,
-				0C4A7B4F2CC0D507008CE1EA /* CoreLocation.framework in Frameworks */,
-				0CC76A7D2D56E7E100154832 /* FacebookShare in Frameworks */,
-				0C02EA7D2D56D73100134160 /* GoogleSignIn in Frameworks */,
-				0CBA13282CC19CC600A74C2A /* FirebasePerformance in Frameworks */,
-				0CC76A752D56E7E100154832 /* FacebookAEM in Frameworks */,
-				0CBA13182CC19C5A00A74C2A /* FirebaseAnalytics in Frameworks */,
-				0CBA130E2CC19BFA00A74C2A /* FacebookBasics in Frameworks */,
-				0CBA13102CC19C0500A74C2A /* FacebookCore in Frameworks */,
-				0CBA13142CC19C1400A74C2A /* FacebookShare in Frameworks */,
-				0C6CA7AE2CEFCFCE004FF120 /* AdServices.framework in Frameworks */,
-				0CBA13222CC19C8E00A74C2A /* FirebaseFirestore in Frameworks */,
-				0CBA130C2CC19BF100A74C2A /* FacebookAEM in Frameworks */,
-				0CC76A702D56E59600154832 /* GoogleSignIn in Frameworks */,
-				0CBA13202CC19C8600A74C2A /* FirebaseDynamicLinks in Frameworks */,
-				0CBA13242CC19CAC00A74C2A /* FirebaseFunctions in Frameworks */,
-				0CBA13062CC19BC100A74C2A /* GoogleSignIn in Frameworks */,
-				0CC76A722D56E59600154832 /* GoogleSignInSwift in Frameworks */,
-				0CBA13262CC19CB600A74C2A /* FirebaseMessaging in Frameworks */,
-				0CBA13162CC19C4100A74C2A /* GoogleMobileAds in Frameworks */,
-				0CC76A7B2D56E7E100154832 /* FacebookLogin in Frameworks */,
-				0C4A7B512CC0D50F008CE1EA /* DeviceCheck.framework in Frameworks */,
-				0CBA13122CC19C0D00A74C2A /* FacebookLogin in Frameworks */,
-				0CBA13082CC19BC100A74C2A /* GoogleSignInSwift in Frameworks */,
-				0C4A7B4B2CC0D43A008CE1EA /* iAd.framework in Frameworks */,
-				0CBA131E2CC19C7A00A74C2A /* FirebaseCrashlytics in Frameworks */,
-				0CBA131A2CC19C6500A74C2A /* FirebaseAppCheck in Frameworks */,
-				0C276CDF2CC9D2C700A6B6D6 /* FirebaseDatabase in Frameworks */,
 				0CBA130A2CC19BC700A74C2A /* CryptoSwift in Frameworks */,
-				0CBA131C2CC19C7100A74C2A /* FirebaseAuth in Frameworks */,
+				D9087660B273B47D52C05E81 /* Pods_Seas_3.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -615,6 +556,7 @@
 				0C4A7B4E2CC0D507008CE1EA /* CoreLocation.framework */,
 				0C4A7B4C2CC0D443008CE1EA /* AdSupport.framework */,
 				0C4A7B4A2CC0D43A008CE1EA /* iAd.framework */,
+				AE0816169FBD0660E8F2D48C /* Pods_Seas_3.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -781,6 +723,8 @@
 		6D1A526F36280797C748FAFD /* Pods */ = {
 			isa = PBXGroup;
 			children = (
+				35574D331C0CC8B90B007876 /* Pods-Seas_3.debug.xcconfig */,
+				F68C43B73D9B1C49E270992D /* Pods-Seas_3.release.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
@@ -792,10 +736,13 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 0CF13E6A2C2A326A00D714C0 /* Build configuration list for PBXNativeTarget "Seas_3" */;
 			buildPhases = (
+				6ADDC582FA3E7C9F300F804C /* [CP] Check Pods Manifest.lock */,
 				0CF13E3D2C2A326700D714C0 /* Sources */,
 				0CF13E3E2C2A326700D714C0 /* Frameworks */,
 				0CD930AA2C33D4100051E923 /* Resources */,
 				0C0D4FE22CC979C100A9E8FD /* ShellScript */,
+				B3275E2AA03B23C18A6F1527 /* [CP] Embed Pods Frameworks */,
+				B043CEFA8635AB7A4944616E /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -882,10 +829,6 @@
 			mainGroup = 0CF13E382C2A326700D714C0;
 			packageReferences = (
 				0CA73BBD2CB733F9000A66E2 /* XCRemoteSwiftPackageReference "CryptoSwift" */,
-				0CCA63962CC16A8C008D45F7 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */,
-				0C7E22F72CDC0F5D004C46C8 /* XCRemoteSwiftPackageReference "swift-log" */,
-				0CC76A6E2D56E59600154832 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
-				0CC76A732D56E7E000154832 /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 0CF13E422C2A326700D714C0 /* Products */;
@@ -954,6 +897,62 @@
 			runOnlyForDeploymentPostprocessing = 1;
 			shellPath = "/bin/sh\n";
 			shellScript = "${BUILD_DIR%Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/upload-symbols\n";
+		};
+		6ADDC582FA3E7C9F300F804C /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-Seas_3-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+		B043CEFA8635AB7A4944616E /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Seas_3/Pods-Seas_3-resources-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Copy Pods Resources";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Seas_3/Pods-Seas_3-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Seas_3/Pods-Seas_3-resources.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		B3275E2AA03B23C18A6F1527 /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Seas_3/Pods-Seas_3-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Seas_3/Pods-Seas_3-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Seas_3/Pods-Seas_3-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -1225,6 +1224,7 @@
 		};
 		0CF13E6B2C2A326A00D714C0 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 35574D331C0CC8B90B007876 /* Pods-Seas_3.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -1265,6 +1265,7 @@
 		};
 		0CF13E6C2C2A326A00D714C0 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = F68C43B73D9B1C49E270992D /* Pods-Seas_3.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -1412,30 +1413,6 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		0C7E22F72CDC0F5D004C46C8 /* XCRemoteSwiftPackageReference "swift-log" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/apple/swift-log.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.6.1;
-			};
-		};
-		0CA73BAD2CB733D8000A66E2 /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/facebook/facebook-ios-sdk";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 17.3.0;
-			};
-		};
-		0CA73BB82CB733EC000A66E2 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 8.0.0;
-			};
-		};
 		0CA73BBD2CB733F9000A66E2 /* XCRemoteSwiftPackageReference "CryptoSwift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/krzyzanowskim/CryptoSwift.git";
@@ -1444,188 +1421,17 @@
 				minimumVersion = 1.8.3;
 			};
 		};
-		0CA73BC02CB73597000A66E2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 11.5.0;
-			};
-		};
-		0CC76A6E2D56E59600154832 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 8.0.0;
-			};
-		};
-		0CC76A732D56E7E000154832 /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/facebook/facebook-ios-sdk";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 14.1.0;
-			};
-		};
-		0CCA63962CC16A8C008D45F7 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/googleads/swift-package-manager-google-mobile-ads.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 11.10.0;
-			};
-		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		0C02EA7C2D56D73100134160 /* GoogleSignIn */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 0CA73BB82CB733EC000A66E2 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
-			productName = GoogleSignIn;
-		};
-		0C02EA7E2D56D73100134160 /* GoogleSignInSwift */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 0CA73BB82CB733EC000A66E2 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
-			productName = GoogleSignInSwift;
-		};
-		0C276CDE2CC9D2C700A6B6D6 /* FirebaseDatabase */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = FirebaseDatabase;
-		};
 		0C33DC042CC095CF002C4835 /* FirebaseMLModelDownloader */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = FirebaseMLModelDownloader;
-		};
-		0C7E22F82CDC0F5D004C46C8 /* Logging */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 0C7E22F72CDC0F5D004C46C8 /* XCRemoteSwiftPackageReference "swift-log" */;
-			productName = Logging;
-		};
-		0CBA13052CC19BC100A74C2A /* GoogleSignIn */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 0CA73BB82CB733EC000A66E2 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
-			productName = GoogleSignIn;
-		};
-		0CBA13072CC19BC100A74C2A /* GoogleSignInSwift */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 0CA73BB82CB733EC000A66E2 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
-			productName = GoogleSignInSwift;
 		};
 		0CBA13092CC19BC700A74C2A /* CryptoSwift */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 0CA73BBD2CB733F9000A66E2 /* XCRemoteSwiftPackageReference "CryptoSwift" */;
 			productName = CryptoSwift;
-		};
-		0CBA130B2CC19BF100A74C2A /* FacebookAEM */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 0CA73BAD2CB733D8000A66E2 /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */;
-			productName = FacebookAEM;
-		};
-		0CBA130D2CC19BFA00A74C2A /* FacebookBasics */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 0CA73BAD2CB733D8000A66E2 /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */;
-			productName = FacebookBasics;
-		};
-		0CBA130F2CC19C0500A74C2A /* FacebookCore */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 0CA73BAD2CB733D8000A66E2 /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */;
-			productName = FacebookCore;
-		};
-		0CBA13112CC19C0D00A74C2A /* FacebookLogin */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 0CA73BAD2CB733D8000A66E2 /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */;
-			productName = FacebookLogin;
-		};
-		0CBA13132CC19C1400A74C2A /* FacebookShare */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 0CA73BAD2CB733D8000A66E2 /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */;
-			productName = FacebookShare;
-		};
-		0CBA13152CC19C4100A74C2A /* GoogleMobileAds */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 0CCA63962CC16A8C008D45F7 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */;
-			productName = GoogleMobileAds;
-		};
-		0CBA13172CC19C5A00A74C2A /* FirebaseAnalytics */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 0CA73BC02CB73597000A66E2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseAnalytics;
-		};
-		0CBA13192CC19C6500A74C2A /* FirebaseAppCheck */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 0CA73BC02CB73597000A66E2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseAppCheck;
-		};
-		0CBA131B2CC19C7100A74C2A /* FirebaseAuth */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 0CA73BC02CB73597000A66E2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseAuth;
-		};
-		0CBA131D2CC19C7A00A74C2A /* FirebaseCrashlytics */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 0CA73BC02CB73597000A66E2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseCrashlytics;
-		};
-		0CBA131F2CC19C8600A74C2A /* FirebaseDynamicLinks */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 0CA73BC02CB73597000A66E2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseDynamicLinks;
-		};
-		0CBA13212CC19C8E00A74C2A /* FirebaseFirestore */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 0CA73BC02CB73597000A66E2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseFirestore;
-		};
-		0CBA13232CC19CAC00A74C2A /* FirebaseFunctions */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 0CA73BC02CB73597000A66E2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseFunctions;
-		};
-		0CBA13252CC19CB600A74C2A /* FirebaseMessaging */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 0CA73BC02CB73597000A66E2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseMessaging;
-		};
-		0CBA13272CC19CC600A74C2A /* FirebasePerformance */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 0CA73BC02CB73597000A66E2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebasePerformance;
-		};
-		0CC76A6F2D56E59600154832 /* GoogleSignIn */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 0CC76A6E2D56E59600154832 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
-			productName = GoogleSignIn;
-		};
-		0CC76A712D56E59600154832 /* GoogleSignInSwift */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 0CC76A6E2D56E59600154832 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
-			productName = GoogleSignInSwift;
-		};
-		0CC76A742D56E7E100154832 /* FacebookAEM */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 0CC76A732D56E7E000154832 /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */;
-			productName = FacebookAEM;
-		};
-		0CC76A762D56E7E100154832 /* FacebookBasics */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 0CC76A732D56E7E000154832 /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */;
-			productName = FacebookBasics;
-		};
-		0CC76A782D56E7E100154832 /* FacebookCore */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 0CC76A732D56E7E000154832 /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */;
-			productName = FacebookCore;
-		};
-		0CC76A7A2D56E7E100154832 /* FacebookLogin */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 0CC76A732D56E7E000154832 /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */;
-			productName = FacebookLogin;
-		};
-		0CC76A7C2D56E7E100154832 /* FacebookShare */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 0CC76A732D56E7E000154832 /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */;
-			productName = FacebookShare;
 		};
 /* End XCSwiftPackageProductDependency section */
 

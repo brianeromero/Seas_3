@@ -7,7 +7,10 @@ import Foundation
 import CoreData
 import UIKit
 import FirebaseFirestore
-import Firebase
+import FirebaseCore
+import FirebaseAuth
+import FirebaseFirestore
+
 
 extension Notification.Name {
     static let contextSaved = Notification.Name("contextSaved")

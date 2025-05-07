@@ -4,7 +4,8 @@
 //
 
 import Foundation
-import Firebase
+import FirebaseCore
+import FirebaseAuth
 import FirebaseFirestore
 
 public class FirestoreManager {

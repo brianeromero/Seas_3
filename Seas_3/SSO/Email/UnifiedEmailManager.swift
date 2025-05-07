@@ -6,7 +6,9 @@
 //
 
 import Foundation
-import Firebase
+import FirebaseCore
+import FirebaseAuth
+import FirebaseFirestore
 import FirebaseAuth
 import CoreData
 

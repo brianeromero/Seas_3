@@ -8,7 +8,9 @@
 import Foundation
 import SwiftUI
 import CoreData
-import Firebase
+import FirebaseCore
+import FirebaseAuth
+import FirebaseFirestore
 
 enum ProfileError: Error, LocalizedError {
     case passwordsDoNotMatch
