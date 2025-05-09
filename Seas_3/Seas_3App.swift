@@ -3,6 +3,7 @@ import CoreData
 import Combine
 import FBSDKCoreKit
 import GoogleSignInSwift
+import GoogleSignIn
 
 // Custom URLHandler view
 struct URLHandler: View {

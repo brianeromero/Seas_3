@@ -8,22 +8,30 @@
 import Foundation
 import GoogleSignInSwift
 import SwiftUI
+import GoogleSignIn
+import GoogleSignInSwift
 
 
 struct GoogleSignInButtonView: View {
     var body: some View {
-        GoogleSignInButton(action: {
-            print("Google Sign-In tapped")
-        })
-        .frame(height: 50)
-        .padding()
-    }
-}
+        Button(action: {
+            guard let presentingViewController = (UIApplication.shared.connectedScenes.first as? UIWindowScene)?.windows.first?.rootViewController else {
+                return
+            }
 
-struct GoogleSignInButtonView_Previews: PreviewProvider {
-    static var previews: some View {
-        GoogleSignInButtonView()
-            .previewLayout(.sizeThatFits)
-            .padding()
+            Task {
+                do {
+                    let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: presentingViewController)
+                    // Handle sign in result
+                    print("Google Sign-In successful")
+                } catch {
+                    print("Google Sign-In error: \(error.localizedDescription)")
+                }
+            }
+        }) {
+            Text("Sign in with Google")
+                .frame(height: 50)
+                .padding()
+        }
     }
 }

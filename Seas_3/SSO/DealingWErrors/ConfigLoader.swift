@@ -7,6 +7,8 @@
 
 import Foundation
 import GoogleSignInSwift
+import GoogleSignIn
+
 
 
 struct Config: Decodable {
@@ -18,6 +20,7 @@ struct Config: Decodable {
     var GoogleAppID: String?
     var DeviceCheckKeyID: String?
     var DeviceCheckTeamID: String?
+    
 }
 
 class ConfigLoader {

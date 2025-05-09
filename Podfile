@@ -1,4 +1,4 @@
-platform :ios, '17.0'
+platform :ios, '18.0'
 
 target 'Seas_3' do
   use_frameworks!
@@ -10,12 +10,12 @@ target 'Seas_3' do
   pod 'FirebaseFirestore', '10.24.0'
   pod 'FirebaseAppCheck'
   pod 'FirebaseMessaging', '~> 10.0'
+  pod 'FirebaseFunctions', '~> 10.0'
 
 
   # Google Sign-In (SwiftUI)
   pod 'GoogleSignIn'
   pod 'GoogleSignInSwift'
-
 
   # Facebook SDK
   pod 'FacebookCore'
@@ -29,23 +29,17 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     target.build_configurations.each do |config|
-<<<<<<< Updated upstream
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '18.0'
-    end
-  end
-end
-=======
-      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '17.0'
       config.build_settings['GCC_TREAT_WARNINGS_AS_ERRORS'] = 'NO'
       config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
-      config.build_settings['CLANG_CXX_LIBRARY'] = 'libc++' # ✅ C++ standard library set
+      config.build_settings['CLANG_CXX_LIBRARY'] = 'libc++'
       config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= [
         '$(inherited)',
         '_LIBCPP_ENABLE_CXX17_REMOVED_UNARY_BINARY_FUNCTION'
       ]
     end
 
-    # Clean flags for BoringSSL-GRPC
+    # Clean up flags for BoringSSL-GRPC
     if target.name == 'BoringSSL-GRPC'
       target.source_build_phase.files.each do |file|
         if file.settings && file.settings['COMPILER_FLAGS']
@@ -57,7 +51,7 @@ end
     end
   end
 
-  # ✅ Patch incorrect function calls in GDTCORClock.m
+  # Patch incorrect function calls in GDTCORClock.m
   clock_file = 'Pods/GoogleDataTransport/GoogleDataTransport/GDTCORLibrary/GDTCORClock.m'
   if File.exist?(clock_file)
     text = File.read(clock_file)
@@ -66,7 +60,7 @@ end
     File.write(clock_file, text)
   end
 
-  # ✅ Patch incorrect template usage in gRPC-Core's basic_seq.h
+  # Patch incorrect template usage in gRPC-Core's basic_seq.h
   grpc_file = 'Pods/gRPC-Core/src/core/lib/promise/detail/basic_seq.h'
   if File.exist?(grpc_file)
     contents = File.read(grpc_file)
@@ -78,4 +72,3 @@ end
     puts "✅ Fixed CallSeqFactory template misuse in #{grpc_file}"
   end
 end
->>>>>>> Stashed changes

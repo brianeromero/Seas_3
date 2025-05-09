@@ -10,6 +10,7 @@ import SwiftUI
 import CoreData
 import FirebaseFirestore
 
+
 struct AppDayOfWeekFormView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @State private var day: String = ""

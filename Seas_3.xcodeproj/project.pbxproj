@@ -85,7 +85,6 @@
 		0CA142242C3EF19900C366CF /* MainLoginViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA142232C3EF19900C366CF /* MainLoginViewController.swift */; };
 		0CA142262C3EF7F200C366CF /* IslandScheduleAsCalViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA142252C3EF7F200C366CF /* IslandScheduleAsCalViewController.swift */; };
 		0CA73BF22CB739F3000A66E2 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 0CA73BF12CB739F2000A66E2 /* GoogleService-Info.plist */; };
-		0CB8BB572CC9A3E6002F57E8 /* firebase-ios-sdk in Resources */ = {isa = PBXBuildFile; fileRef = 0CB8BB562CC9A3E6002F57E8 /* firebase-ios-sdk */; };
 		0CBA130A2CC19BC700A74C2A /* CryptoSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 0CBA13092CC19BC700A74C2A /* CryptoSwift */; };
 		0CC1120F2C45F7D80066CF80 /* MatTime+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC1120D2C45F7D80066CF80 /* MatTime+CoreDataClass.swift */; };
 		0CC112102C45F7D80066CF80 /* MatTime+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC1120E2C45F7D80066CF80 /* MatTime+CoreDataProperties.swift */; };
@@ -129,7 +128,7 @@
 		0CF13E7C2C2A36B500D714C0 /* PirateIsland+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E762C2A36B500D714C0 /* PirateIsland+CoreDataProperties.swift */; };
 		0CF13E7D2C2A36B500D714C0 /* UserInfo+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E772C2A36B500D714C0 /* UserInfo+CoreDataClass.swift */; };
 		0CF13E7E2C2A36B500D714C0 /* UserInfo+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E782C2A36B500D714C0 /* UserInfo+CoreDataProperties.swift */; };
-		D9087660B273B47D52C05E81 /* Pods_Seas_3.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AE0816169FBD0660E8F2D48C /* Pods_Seas_3.framework */; };
+		5C62D600E9F804CE4D256EAA /* Pods_Seas_3.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = ADD235BC173763E0805CAA50 /* Pods_Seas_3.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -216,6 +215,7 @@
 		0C4A7B502CC0D50F008CE1EA /* DeviceCheck.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = DeviceCheck.framework; path = System/Library/Frameworks/DeviceCheck.framework; sourceTree = SDKROOT; };
 		0C4B34352C61A32700FD6893 /* PirateIslandDataManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PirateIslandDataManager.swift; sourceTree = "<group>"; };
 		0C4F3C402C3C4645008D04B9 /* IslandScheduleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandScheduleView.swift; sourceTree = "<group>"; };
+		0C4F6C0C2DCC26B200FCE285 /* AppAuth.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = AppAuth.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C524E8B2C2F408F008D6623 /* ExampleUsuageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExampleUsuageView.swift; sourceTree = "<group>"; };
 		0C524E8D2C2F4241008D6623 /* DayOfWeekUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayOfWeekUtils.swift; sourceTree = "<group>"; };
 		0C524E922C308DB9008D6623 /* AllEnteredLocationsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AllEnteredLocationsViewModel.swift; sourceTree = "<group>"; };
@@ -239,7 +239,6 @@
 		0CA142232C3EF19900C366CF /* MainLoginViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainLoginViewController.swift; sourceTree = "<group>"; };
 		0CA142252C3EF7F200C366CF /* IslandScheduleAsCalViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandScheduleAsCalViewController.swift; sourceTree = "<group>"; };
 		0CA73BF12CB739F2000A66E2 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
-		0CB8BB562CC9A3E6002F57E8 /* firebase-ios-sdk */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = "firebase-ios-sdk"; sourceTree = "<group>"; };
 		0CBA13292CC19D0C00A74C2A /* MapKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MapKit.framework; path = System/Library/Frameworks/MapKit.framework; sourceTree = SDKROOT; };
 		0CBA132B2CC19D1600A74C2A /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = System/Library/Frameworks/CoreData.framework; sourceTree = SDKROOT; };
 		0CBA132D2CC19D4100A74C2A /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
@@ -285,9 +284,9 @@
 		0CF13E772C2A36B500D714C0 /* UserInfo+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UserInfo+CoreDataClass.swift"; sourceTree = "<group>"; };
 		0CF13E782C2A36B500D714C0 /* UserInfo+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UserInfo+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		0CF247E92CB470D2008B02AA /* Seas_3.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Seas_3.entitlements; sourceTree = "<group>"; };
-		35574D331C0CC8B90B007876 /* Pods-Seas_3.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Seas_3.debug.xcconfig"; path = "Target Support Files/Pods-Seas_3/Pods-Seas_3.debug.xcconfig"; sourceTree = "<group>"; };
-		AE0816169FBD0660E8F2D48C /* Pods_Seas_3.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Seas_3.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		F68C43B73D9B1C49E270992D /* Pods-Seas_3.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Seas_3.release.xcconfig"; path = "Target Support Files/Pods-Seas_3/Pods-Seas_3.release.xcconfig"; sourceTree = "<group>"; };
+		ADD235BC173763E0805CAA50 /* Pods_Seas_3.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Seas_3.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		B22D4C38B526A94F9A53AA6E /* Pods-Seas_3.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Seas_3.debug.xcconfig"; path = "Target Support Files/Pods-Seas_3/Pods-Seas_3.debug.xcconfig"; sourceTree = "<group>"; };
+		EDEA18F925B078E31DA9F604 /* Pods-Seas_3.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Seas_3.release.xcconfig"; path = "Target Support Files/Pods-Seas_3/Pods-Seas_3.release.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -427,7 +426,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0CBA130A2CC19BC700A74C2A /* CryptoSwift in Frameworks */,
-				D9087660B273B47D52C05E81 /* Pods_Seas_3.framework in Frameworks */,
+				5C62D600E9F804CE4D256EAA /* Pods_Seas_3.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -547,6 +546,7 @@
 		0CB5070B2CB7055A007D9173 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				0C4F6C0C2DCC26B200FCE285 /* AppAuth.framework */,
 				0C6CA7AD2CEFCFCE004FF120 /* AdServices.framework */,
 				0CBA132F2CC19D5400A74C2A /* CoreML.framework */,
 				0CBA132D2CC19D4100A74C2A /* SwiftUI.framework */,
@@ -556,7 +556,7 @@
 				0C4A7B4E2CC0D507008CE1EA /* CoreLocation.framework */,
 				0C4A7B4C2CC0D443008CE1EA /* AdSupport.framework */,
 				0C4A7B4A2CC0D43A008CE1EA /* iAd.framework */,
-				AE0816169FBD0660E8F2D48C /* Pods_Seas_3.framework */,
+				ADD235BC173763E0805CAA50 /* Pods_Seas_3.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -599,7 +599,6 @@
 				0C84B04D2CD1977600A5092C /* Info.plist */,
 				0CA73BF12CB739F2000A66E2 /* GoogleService-Info.plist */,
 				0C33DBE02CC081C1002C4835 /* Resources */,
-				0CB8BB562CC9A3E6002F57E8 /* firebase-ios-sdk */,
 				0C33DC122CC0979A002C4835 /* FirebaseSettings.xcconfig */,
 				0C276CA72CC9A8FD00A6B6D6 /* SeasAppCheckProviderFactory.swift */,
 				0CF13E432C2A326700D714C0 /* Seas_3 */,
@@ -723,8 +722,8 @@
 		6D1A526F36280797C748FAFD /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				35574D331C0CC8B90B007876 /* Pods-Seas_3.debug.xcconfig */,
-				F68C43B73D9B1C49E270992D /* Pods-Seas_3.release.xcconfig */,
+				B22D4C38B526A94F9A53AA6E /* Pods-Seas_3.debug.xcconfig */,
+				EDEA18F925B078E31DA9F604 /* Pods-Seas_3.release.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
@@ -736,13 +735,13 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 0CF13E6A2C2A326A00D714C0 /* Build configuration list for PBXNativeTarget "Seas_3" */;
 			buildPhases = (
-				6ADDC582FA3E7C9F300F804C /* [CP] Check Pods Manifest.lock */,
+				5D50314BA92B741BFDEE143E /* [CP] Check Pods Manifest.lock */,
 				0CF13E3D2C2A326700D714C0 /* Sources */,
 				0CF13E3E2C2A326700D714C0 /* Frameworks */,
 				0CD930AA2C33D4100051E923 /* Resources */,
 				0C0D4FE22CC979C100A9E8FD /* ShellScript */,
-				B3275E2AA03B23C18A6F1527 /* [CP] Embed Pods Frameworks */,
-				B043CEFA8635AB7A4944616E /* [CP] Copy Pods Resources */,
+				5F0D2F690F6EB0E21295CC4C /* [CP] Embed Pods Frameworks */,
+				286736310EE2432ECCD3A841 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -857,7 +856,6 @@
 				0CEC326F2C3F07D400F0747F /* MainStoryboard.storyboard in Resources */,
 				0CD930AC2C33D4DD0051E923 /* Preview Assets.xcassets in Resources */,
 				0CA73BF22CB739F3000A66E2 /* GoogleService-Info.plist in Resources */,
-				0CB8BB572CC9A3E6002F57E8 /* firebase-ios-sdk in Resources */,
 				0CD930B32C33D5020051E923 /* YOu are HEre.png in Resources */,
 				0CD930AE2C33D4F30051E923 /* flashing.gif in Resources */,
 			);
@@ -882,8 +880,8 @@
 /* Begin PBXShellScriptBuildPhase section */
 		0C0D4FE22CC979C100A9E8FD /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
 			buildActionMask = 8;
+			dependencyFile = "$(DERIVED_FILES_DIR)/$(INPUT_FILE_PATH).d";
 			files = (
 			);
 			inputFileListPaths = (
@@ -898,7 +896,24 @@
 			shellPath = "/bin/sh\n";
 			shellScript = "${BUILD_DIR%Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/upload-symbols\n";
 		};
-		6ADDC582FA3E7C9F300F804C /* [CP] Check Pods Manifest.lock */ = {
+		286736310EE2432ECCD3A841 /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Seas_3/Pods-Seas_3-resources-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Copy Pods Resources";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Seas_3/Pods-Seas_3-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Seas_3/Pods-Seas_3-resources.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		5D50314BA92B741BFDEE143E /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -920,24 +935,7 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		B043CEFA8635AB7A4944616E /* [CP] Copy Pods Resources */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-Seas_3/Pods-Seas_3-resources-${CONFIGURATION}-input-files.xcfilelist",
-			);
-			name = "[CP] Copy Pods Resources";
-			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-Seas_3/Pods-Seas_3-resources-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Seas_3/Pods-Seas_3-resources.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		B3275E2AA03B23C18A6F1527 /* [CP] Embed Pods Frameworks */ = {
+		5F0D2F690F6EB0E21295CC4C /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -1224,7 +1222,7 @@
 		};
 		0CF13E6B2C2A326A00D714C0 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 35574D331C0CC8B90B007876 /* Pods-Seas_3.debug.xcconfig */;
+			baseConfigurationReference = B22D4C38B526A94F9A53AA6E /* Pods-Seas_3.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -1233,6 +1231,60 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Seas_3/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/AppAuth\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/AppCheckCore\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/BoringSSL-GRPC\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FBSDKCoreKit\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FBSDKLoginKit\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FBSDKPlacesKit\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FBSDKShareKit\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FacebookCore\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FacebookLogin\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FacebookShare\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FirebaseAppCheck\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FirebaseAppCheckInterop\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FirebaseAuth\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FirebaseAuthInterop\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FirebaseCore\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FirebaseCoreExtension\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FirebaseCoreInternal\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FirebaseFirestore\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FirebaseFirestoreInternal\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FirebaseFunctions\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FirebaseInAppMessaging\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FirebaseInstallations\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FirebaseMessaging\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FirebaseMessagingInterop\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FirebaseSharedSwift\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/GTMAppAuth\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/GTMSessionFetcher\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/Google-Mobile-Ads-SDK\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/GoogleDataTransport\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/GoogleSignIn\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/GoogleSignInSwift\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/GoogleUtilities\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/PromisesObjC\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/RecaptchaInterop\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/abseil\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/gRPC-C++\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/gRPC-Core\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/leveldb-library\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/nanopb\"",
+					"\"${PODS_ROOT}/FirebaseAnalytics/Frameworks\"",
+					"\"${PODS_ROOT}/FirebaseInstanceID/Frameworks\"",
+					"\"${PODS_ROOT}/Google-Mobile-Ads-SDK/Frameworks/GoogleMobileAdsFramework\"",
+					"\"${PODS_ROOT}/GoogleAppMeasurement/Frameworks\"",
+					"\"${PODS_ROOT}/GoogleUserMessagingPlatform/Frameworks/Release\"",
+					"\"${PODS_XCFRAMEWORKS_BUILD_DIR}/FirebaseAnalytics/AdIdSupport\"",
+					"\"${PODS_XCFRAMEWORKS_BUILD_DIR}/Google-Mobile-Ads-SDK\"",
+					"\"${PODS_XCFRAMEWORKS_BUILD_DIR}/GoogleAppMeasurement/AdIdSupport\"",
+					"\"${PODS_XCFRAMEWORKS_BUILD_DIR}/GoogleAppMeasurement/WithoutAdIdSupport\"",
+					"$(PROJECT_DIR)/Pods",
+					"\"${PODS_XCFRAMEWORKS_BUILD_DIR}/GoogleUserMessagingPlatform\"",
+				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "This app requires access to your location even when the app is in the background.";
@@ -1244,8 +1296,8 @@
 				INFOPLIST_KEY_UIMainStoryboardFile = MainStoryboard;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
-				"IPHONEOS_DEPLOYMENT_TARGET[sdk=iphoneos*]" = 17.5;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				"IPHONEOS_DEPLOYMENT_TARGET[sdk=iphoneos*]" = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1253,8 +1305,14 @@
 				MARKETING_VERSION = 1.0;
 				NEW_SETTING = "";
 				NEW_SETTING1 = "";
-				OTHER_LDFLAGS = "$(inherited)";
-				"OTHER_LDFLAGS[arch=*]" = "$(inherited)";
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"\"-ObjC -lc++ -lsqlite3 -lstdc++ -lz\"",
+				);
+				"OTHER_LDFLAGS[arch=*]" = (
+					"$(inherited)",
+					"\"-ObjC -lc++ -lsqlite3 -lstdc++ -lz\"",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = "MF-inder.Seas-3";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -1265,7 +1323,7 @@
 		};
 		0CF13E6C2C2A326A00D714C0 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = F68C43B73D9B1C49E270992D /* Pods-Seas_3.release.xcconfig */;
+			baseConfigurationReference = EDEA18F925B078E31DA9F604 /* Pods-Seas_3.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -1274,6 +1332,60 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Seas_3/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/AppAuth\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/AppCheckCore\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/BoringSSL-GRPC\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FBSDKCoreKit\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FBSDKLoginKit\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FBSDKPlacesKit\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FBSDKShareKit\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FacebookCore\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FacebookLogin\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FacebookShare\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FirebaseAppCheck\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FirebaseAppCheckInterop\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FirebaseAuth\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FirebaseAuthInterop\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FirebaseCore\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FirebaseCoreExtension\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FirebaseCoreInternal\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FirebaseFirestore\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FirebaseFirestoreInternal\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FirebaseFunctions\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FirebaseInAppMessaging\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FirebaseInstallations\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FirebaseMessaging\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FirebaseMessagingInterop\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/FirebaseSharedSwift\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/GTMAppAuth\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/GTMSessionFetcher\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/Google-Mobile-Ads-SDK\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/GoogleDataTransport\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/GoogleSignIn\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/GoogleSignInSwift\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/GoogleUtilities\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/PromisesObjC\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/RecaptchaInterop\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/abseil\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/gRPC-C++\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/gRPC-Core\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/leveldb-library\"",
+					"\"${PODS_CONFIGURATION_BUILD_DIR}/nanopb\"",
+					"\"${PODS_ROOT}/FirebaseAnalytics/Frameworks\"",
+					"\"${PODS_ROOT}/FirebaseInstanceID/Frameworks\"",
+					"\"${PODS_ROOT}/Google-Mobile-Ads-SDK/Frameworks/GoogleMobileAdsFramework\"",
+					"\"${PODS_ROOT}/GoogleAppMeasurement/Frameworks\"",
+					"\"${PODS_ROOT}/GoogleUserMessagingPlatform/Frameworks/Release\"",
+					"\"${PODS_XCFRAMEWORKS_BUILD_DIR}/FirebaseAnalytics/AdIdSupport\"",
+					"\"${PODS_XCFRAMEWORKS_BUILD_DIR}/Google-Mobile-Ads-SDK\"",
+					"\"${PODS_XCFRAMEWORKS_BUILD_DIR}/GoogleAppMeasurement/AdIdSupport\"",
+					"\"${PODS_XCFRAMEWORKS_BUILD_DIR}/GoogleAppMeasurement/WithoutAdIdSupport\"",
+					"$(PROJECT_DIR)/Pods",
+					"\"${PODS_XCFRAMEWORKS_BUILD_DIR}/GoogleUserMessagingPlatform\"",
+				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "This app requires access to your location even when the app is in the background.";
@@ -1285,7 +1397,7 @@
 				INFOPLIST_KEY_UIMainStoryboardFile = MainStoryboard;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1293,8 +1405,14 @@
 				MARKETING_VERSION = 1.0;
 				NEW_SETTING = "";
 				NEW_SETTING1 = "";
-				OTHER_LDFLAGS = "$(inherited)";
-				"OTHER_LDFLAGS[arch=*]" = "$(inherited)";
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"\"-ObjC -lc++ -lsqlite3 -lstdc++ -lz\"",
+				);
+				"OTHER_LDFLAGS[arch=*]" = (
+					"$(inherited)",
+					"\"-ObjC -lc++ -lsqlite3 -lstdc++ -lz\"",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = "MF-inder.Seas-3";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -1310,7 +1428,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "MF-inder.Seas-3Tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1328,7 +1446,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "MF-inder.Seas-3Tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1345,6 +1463,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "MF-inder.Seas-3UITests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1361,6 +1480,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "MF-inder.Seas-3UITests";
 				PRODUCT_NAME = "$(TARGET_NAME)";

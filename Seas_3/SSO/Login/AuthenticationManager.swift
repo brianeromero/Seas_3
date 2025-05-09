@@ -10,6 +10,8 @@ import FirebaseCore
 import FirebaseFirestore
 import FirebaseAuth
 import GoogleSignInSwift
+import GoogleSignIn
+
 
 class AuthenticationManager {
     
@@ -47,46 +49,46 @@ class AuthenticationManager {
             if let error = error {
                 self.log(message: "Error authenticating with Firebase: \(error.localizedDescription)", level: .error)
 
-                let errorCode = AuthErrorCode(rawValue: (error as NSError).code)
+                if let errorCode = AuthErrorCode.Code(rawValue: (error as NSError).code) {
+                    // Handle 'account exists with different credential'
+                    if errorCode == .accountExistsWithDifferentCredential,
+                       let email = (error as NSError).userInfo[AuthErrorUserInfoEmailKey] as? String {
 
-                // Handle 'account exists with different credential'
-                if errorCode == .accountExistsWithDifferentCredential,
-                   let email = (error as NSError).userInfo[AuthErrorUserInfoEmailKey] as? String {
+                        self.log(message: "Fetching sign-in methods for \(email)", level: .info)
+                        
+                        // Skipping sign-in methods check due to email enumeration protection
+                        self.log(message: "Email enumeration protection may be enabled — proceeding with password prompt", level: .warning)
 
-                    self.log(message: "Fetching sign-in methods for \(email)", level: .info)
-                    
-                    // Skipping sign-in methods check due to email enumeration protection
-                    self.log(message: "Email enumeration protection may be enabled — proceeding with password prompt", level: .warning)
+                        self.promptForEmailPassword(email: email) { password in
+                            Auth.auth().signIn(withEmail: email, password: password) { result, error in
+                                if let error = error {
+                                    self.log(message: "Error signing in with password: \(error.localizedDescription)", level: .error)
+                                    completion(.failure(error))
+                                    return
+                                }
 
-                    self.promptForEmailPassword(email: email) { password in
-                        Auth.auth().signIn(withEmail: email, password: password) { result, error in
-                            if let error = error {
-                                self.log(message: "Error signing in with password: \(error.localizedDescription)", level: .error)
-                                completion(.failure(error))
-                                return
-                            }
-
-                            guard let signedInUser = result?.user else {
-                                self.log(message: "No Firebase user after password sign-in", level: .error)
-                                completion(.failure(NSError(domain: "AuthenticationError", code: 0, userInfo: nil)))
-                                return
-                            }
-
-                            signedInUser.link(with: credential) { linkResult, linkError in
-                                if let linkError = linkError {
-                                    self.log(message: "Failed to link credential: \(linkError.localizedDescription)", level: .error)
-                                    completion(.failure(linkError))
-                                } else if let linkedUser = linkResult?.user {
-                                    self.log(message: "Successfully linked credentials for \(linkedUser.uid)", level: .info)
-                                    self.createUserFromFirebaseUser(linkedUser, completion: completion)
-                                } else {
-                                    self.log(message: "Link result is nil", level: .error)
+                                guard let signedInUser = result?.user else {
+                                    self.log(message: "No Firebase user after password sign-in", level: .error)
                                     completion(.failure(NSError(domain: "AuthenticationError", code: 0, userInfo: nil)))
+                                    return
+                                }
+
+                                signedInUser.link(with: credential) { linkResult, linkError in
+                                    if let linkError = linkError {
+                                        self.log(message: "Failed to link credential: \(linkError.localizedDescription)", level: .error)
+                                        completion(.failure(linkError))
+                                    } else if let linkedUser = linkResult?.user {
+                                        self.log(message: "Successfully linked credentials for \(linkedUser.uid)", level: .info)
+                                        self.createUserFromFirebaseUser(linkedUser, completion: completion)
+                                    } else {
+                                        self.log(message: "Link result is nil", level: .error)
+                                        completion(.failure(NSError(domain: "AuthenticationError", code: 0, userInfo: nil)))
+                                    }
                                 }
                             }
                         }
+                        return
                     }
-                    return
                 }
 
                 // Handle other errors
@@ -161,20 +163,18 @@ class AuthenticationManager {
 
     /// Handles Firebase authentication errors
     private func handleFirebaseError(_ error: Error, user: FirebaseAuth.User?, credential: AuthCredential, completion: @escaping (Result<FirebaseAuth.User, Error>) -> Void) {
-        let errorCode = AuthErrorCode(rawValue: (error as NSError).code)
-        
-        switch errorCode {
-        case .accountExistsWithDifferentCredential:
-            guard let currentUser = Auth.auth().currentUser else {
-                self.log(message: "3No Firebase user found.", level: .error)
-                completion(.failure(NSError(domain: "AuthenticationError", code: 0, userInfo: nil)))
-                return
+        if let errorCode = AuthErrorCode.Code(rawValue: (error as NSError).code) {
+            switch errorCode {
+            case .accountExistsWithDifferentCredential:
+                // Handle account exists with different credential
+                self.log(message: "Account exists with different credential", level: .error)
+                // Add your code here to handle this case
+            default:
+                self.log(message: "Firebase Auth Error: \(error.localizedDescription)", level: .error)
+                completion(.failure(error))
             }
-            
-            self.handleAccountExistsWithDifferentCredential(user: currentUser, existingCredential: credential, completion: completion)
-            
-        default:
-            self.log(message: "Firebase Auth Error: \(error.localizedDescription)", level: .error)
+        } else {
+            self.log(message: "Unknown Firebase Auth Error: \(error.localizedDescription)", level: .error)
             completion(.failure(error))
         }
     }

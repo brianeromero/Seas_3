@@ -13,6 +13,7 @@ import FirebaseFirestore
 import FirebaseAuth
 import GoogleSignInSwift
 import FBSDKLoginKit
+import GoogleSignIn
 
 
 // MARK: - Validator
