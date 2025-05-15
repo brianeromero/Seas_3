@@ -64,19 +64,16 @@ class LoginViewModel: ObservableObject {
                 return
             }
 
-            // Step 4: Sign in using Firebase Authentication
-            Auth.auth().signIn(withEmail: email, password: password) { result, error in
-                if let error = error {
-                    self.errorMessage = error.localizedDescription
-                } else {
-                    self.isLoggedIn = true
-                    self.showMainContent = true
-                }
-            }
+            // ✅ Step 4: Use async version of signIn
+            let _ = try await Auth.auth().signIn(withEmail: email, password: password)
+            self.isLoggedIn = true
+            self.showMainContent = true
+
         } catch {
             self.errorMessage = error.localizedDescription
         }
     }
+
     
     private let userFetcher = UserFetcher()
 

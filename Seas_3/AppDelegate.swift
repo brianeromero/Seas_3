@@ -37,6 +37,7 @@ extension NSNotification.Name {
 }
 
 class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUserNotificationCenterDelegate {
+    
 
     var window: UIWindow?
     let appConfig = AppConfig.shared
@@ -56,62 +57,100 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         case invalidToken
     }
 
-    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+    
+    
+    func application(_ application: UIApplication,
+                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
 
         // Configure app appearance early in the app lifecycle
         configureApplicationAppearance()
-        
+
+        // Load configuration values from plist
+        guard let config = ConfigLoader.loadConfigValues() else {
+            print("❌ Could not load configuration values.")
+            return false
+        }
+
+        // Assign values to appConfig or directly to variables
+        sendgridApiKey = config.SENDGRID_API_KEY
+        googleClientID = config.GoogleClientID
+        googleApiKey = config.GoogleApiKey
+        googleAppID = config.GoogleAppID
+        deviceCheckKeyID = config.DeviceCheckKeyID
+        deviceCheckTeamID = config.DeviceCheckTeamID
+
+        appConfig.googleClientID = googleClientID ?? ""
+        appConfig.googleApiKey = googleApiKey ?? ""
+        appConfig.googleAppID = googleAppID ?? ""
+        appConfig.sendgridApiKey = sendgridApiKey ?? "DEFAULT_SENDGRID_API_KEY"
+        appConfig.deviceCheckKeyID = deviceCheckKeyID ?? ""
+        appConfig.deviceCheckTeamID = deviceCheckTeamID ?? ""
+
+        print("✅ Configuration Loaded:")
+        print("   - SendGrid API Key: \(sendgridApiKey ?? "MISSING")")
+        print("   - Google Client ID: \(googleClientID ?? "MISSING")")
+        print("   - Google API Key: \(googleApiKey ?? "MISSING")")
+        print("   - Google App ID: \(googleAppID ?? "MISSING")")
+        print("   - DeviceCheck Key ID: \(deviceCheckKeyID ?? "MISSING")")
+        print("   - DeviceCheck Team ID: \(deviceCheckTeamID ?? "MISSING")")
+
         // Firebase configuration
         configureFirebase()
-        
-        // Check if Firebase has been configured successfully
-        if FirebaseApp.app() != nil {
-            // Firebase is successfully configured
-        } else {
-            print("Firebase configuration failed.")
+
+        // Set delegates before fetching token
+        UNUserNotificationCenter.current().delegate = self
+        Messaging.messaging().delegate = self
+
+        // Request push notification permissions
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
+            if let error = error {
+                print("❌ Notification permission error: \(error.localizedDescription)")
+            }
+            if granted {
+                DispatchQueue.main.async {
+                    application.registerForRemoteNotifications()
+                }
+            } else {
+                print("⚠️ Notification permission not granted.")
+            }
         }
-        
-        // Third-party SDK initializations (e.g., Facebook, Ads)
+
+        // SDK setups
         ApplicationDelegate.shared.application(application, didFinishLaunchingWithOptions: launchOptions)
         configureGoogleAds()
-
-        // Google Sign-In configuration
         configureGoogleSignIn()
-
-        // App Check setup (Firebase App Check, if applicable)
-        setupAppCheck()
         
-        // Firestore collection creation and downloading records to Core Data
+        #if DEBUG
+        URLProtocol.registerClass(DebugURLProtocol.self)
+        #endif
+
+        setupAppCheck()
+
+        // Download Firestore records to Core Data
         Task {
-            let pirateIslandRecords: [String] = [] // populate with actual records
-            let reviewRecords: [String] = [] // populate with actual records
-            let matTimeRecords: [String] = [] // populate with actual records
-            let appDayOfWeekRecords: [String] = [] // populate with actual records
-            
+            let pirateIslandRecords: [String] = []
+            let reviewRecords: [String] = []
+            let matTimeRecords: [String] = []
+            let appDayOfWeekRecords: [String] = []
+
             do {
                 try await createFirestoreCollection()
-                
-                // Download Firestore records to Core Data
                 await downloadFirestoreRecordsToLocal(collectionName: "pirateIslands", records: pirateIslandRecords)
                 await downloadFirestoreRecordsToLocal(collectionName: "reviews", records: reviewRecords)
                 await downloadFirestoreRecordsToLocal(collectionName: "matTimes", records: matTimeRecords)
                 await downloadFirestoreRecordsToLocal(collectionName: "AppDayOfWeek", records: appDayOfWeekRecords)
             } catch {
-                print("Error creating Firestore collection or downloading records: \(error.localizedDescription)")
+                print("❌ Firestore sync error: \(error.localizedDescription)")
             }
         }
 
-        // Request IDFA permission
         IDFAHelper.requestIDFAPermission()
-        
-        // Load configuration values (can be done after other setups)
-        loadConfigValues()
-        
-        // Register for push notifications
-        registerForPushNotifications {}
-        
+
         return true
     }
+
+
+
 
     
     private func configureApplicationAppearance() {
@@ -213,7 +252,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
 
         print("✅ Google Sign-In configuration set successfully.")
     }
-
 
 
     func application(_ application: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
@@ -798,39 +836,44 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         NotificationCenter.default.post(name: .fcmTokenReceived, object: nil, userInfo: ["token": token])
     }
 
+    
+    // MARK: - Push Notification Delegates
+
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
-        // Convert deviceToken to string
-        let token = deviceToken.reduce("") { $0 + String(format: "%02.2hhx", $1) }
-        
-        // Validate token length (should be 64 characters)
-        guard token.count == 64 else {
-            print("Invalid APNS token length")
+        // Convert deviceToken to string (optional)
+        let tokenString = deviceToken.reduce("") { $0 + String(format: "%02.2hhx", $1) }
+
+        guard tokenString.count == 64 else {
+            print("⚠️ Invalid APNS token length: \(tokenString.count)")
             return
         }
-        
-        // Set APNS token for Firebase Messaging
+
+        // Set the APNS token for Firebase Messaging
         Messaging.messaging().apnsToken = deviceToken
-        
-        // Log or handle valid token
-        print("Valid APNS token received: \(token)")
+
+        print("✅ Valid APNS token received: \(tokenString)")
     }
-    
+
     func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
-        print("Failed to register for remote notifications: \(error.localizedDescription)")
-        printError(error)
+        print("❌ Failed to register for remote notifications: \(error.localizedDescription)")
     }
+
 
     private func printError(_ error: Error) {
         print("Error: \(error.localizedDescription)")
     }
 
 
-
     // MARK: - MessagingDelegate
 
     func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
-        handleFCMToken(fcmToken ?? "")
+        let token = fcmToken ?? ""
+        print("✅ FCM registration token: \(token)")
+        
+        // Handle storing/syncing this token
+        handleFCMToken(token)
     }
+
 
     func messaging(_ messaging: Messaging, didReceive message: [String: Any]) {
         print("Message received: \(message)")

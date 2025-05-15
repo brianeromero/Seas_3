@@ -6,8 +6,8 @@
 	<string>production</string>
 	<key>keychain-access-groups</key>
 	<array>
-		<string>$(AppIdentifierPrefix)MF-inder.Seas-3</string>
 		<string>$(AppIdentifierPrefix)com.google.iid</string>
+		<string>$(AppIdentifierPrefix)com.googleusercontent.apps.1086614683073-50uvddc1oor49m4ri7s8mesi6thl1gcl</string>
 	</array>
 </dict>
 </plist>

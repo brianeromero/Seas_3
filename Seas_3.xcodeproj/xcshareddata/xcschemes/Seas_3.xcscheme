@@ -119,6 +119,10 @@
             argument = "-com.apple.CoreData.Logging.stderr 1 "
             isEnabled = "YES">
          </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-NSURLSessionDebugLog"
+            isEnabled = "YES">
+         </CommandLineArgument>
       </CommandLineArguments>
       <EnvironmentVariables>
          <EnvironmentVariable

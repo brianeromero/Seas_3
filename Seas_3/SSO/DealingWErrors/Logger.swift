@@ -19,4 +19,9 @@ class Logger {
         loggingCounter += 1
         print("(\(loggingCounter)) Setting createdByUserId in \(fileName).\(functionName): \(createdByUserId)")
     }
+    
+    static func logError(_ error: Error, view: String = "Unknown") {
+        loggingCounter += 1
+        print("ERROR (\(loggingCounter)) [\(view)] \(error.localizedDescription)")
+    }
 }

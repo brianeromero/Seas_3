@@ -128,7 +128,7 @@
 		0CF13E7C2C2A36B500D714C0 /* PirateIsland+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E762C2A36B500D714C0 /* PirateIsland+CoreDataProperties.swift */; };
 		0CF13E7D2C2A36B500D714C0 /* UserInfo+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E772C2A36B500D714C0 /* UserInfo+CoreDataClass.swift */; };
 		0CF13E7E2C2A36B500D714C0 /* UserInfo+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E782C2A36B500D714C0 /* UserInfo+CoreDataProperties.swift */; };
-		5C62D600E9F804CE4D256EAA /* Pods_Seas_3.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = ADD235BC173763E0805CAA50 /* Pods_Seas_3.framework */; };
+		2B67264F1BA2752A10E0727E /* Pods_Seas_3.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E44E8129715BC9B031CE96E1 /* Pods_Seas_3.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -284,9 +284,9 @@
 		0CF13E772C2A36B500D714C0 /* UserInfo+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UserInfo+CoreDataClass.swift"; sourceTree = "<group>"; };
 		0CF13E782C2A36B500D714C0 /* UserInfo+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UserInfo+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		0CF247E92CB470D2008B02AA /* Seas_3.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Seas_3.entitlements; sourceTree = "<group>"; };
-		ADD235BC173763E0805CAA50 /* Pods_Seas_3.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Seas_3.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		B22D4C38B526A94F9A53AA6E /* Pods-Seas_3.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Seas_3.debug.xcconfig"; path = "Target Support Files/Pods-Seas_3/Pods-Seas_3.debug.xcconfig"; sourceTree = "<group>"; };
-		EDEA18F925B078E31DA9F604 /* Pods-Seas_3.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Seas_3.release.xcconfig"; path = "Target Support Files/Pods-Seas_3/Pods-Seas_3.release.xcconfig"; sourceTree = "<group>"; };
+		4C9BA17CB2820E393FD84B17 /* Pods-Seas_3.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Seas_3.release.xcconfig"; path = "Target Support Files/Pods-Seas_3/Pods-Seas_3.release.xcconfig"; sourceTree = "<group>"; };
+		62DE54DC10D53DF39B6F7383 /* Pods-Seas_3.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Seas_3.debug.xcconfig"; path = "Target Support Files/Pods-Seas_3/Pods-Seas_3.debug.xcconfig"; sourceTree = "<group>"; };
+		E44E8129715BC9B031CE96E1 /* Pods_Seas_3.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Seas_3.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -321,6 +321,7 @@
 				DealingWErrors/IDFAHelper.swift,
 				DealingWErrors/Logger.swift,
 				DealingWErrors/NetworkMonitor.swift,
+				DealingWErrors/URLProtocol.swift,
 				Email/AccountCreation/AccountAuthView.swift,
 				Email/AccountCreation/AuthenticationHelper.swift,
 				Email/AccountCreation/CreateAccountView.swift,
@@ -345,7 +346,6 @@
 				Login/AuthenticationState.swift,
 				Login/ButtonStyle.swift,
 				Login/FacebookSignInButtonWrapper.swift,
-				Login/GoogleSignInButton.swift,
 				Login/GoogleSignInButtonWrapper.swift,
 				Login/LogInView.swift,
 				Login/LoginViewModel.swift,
@@ -426,7 +426,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0CBA130A2CC19BC700A74C2A /* CryptoSwift in Frameworks */,
-				5C62D600E9F804CE4D256EAA /* Pods_Seas_3.framework in Frameworks */,
+				2B67264F1BA2752A10E0727E /* Pods_Seas_3.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -556,7 +556,7 @@
 				0C4A7B4E2CC0D507008CE1EA /* CoreLocation.framework */,
 				0C4A7B4C2CC0D443008CE1EA /* AdSupport.framework */,
 				0C4A7B4A2CC0D43A008CE1EA /* iAd.framework */,
-				ADD235BC173763E0805CAA50 /* Pods_Seas_3.framework */,
+				E44E8129715BC9B031CE96E1 /* Pods_Seas_3.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -722,8 +722,8 @@
 		6D1A526F36280797C748FAFD /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				B22D4C38B526A94F9A53AA6E /* Pods-Seas_3.debug.xcconfig */,
-				EDEA18F925B078E31DA9F604 /* Pods-Seas_3.release.xcconfig */,
+				62DE54DC10D53DF39B6F7383 /* Pods-Seas_3.debug.xcconfig */,
+				4C9BA17CB2820E393FD84B17 /* Pods-Seas_3.release.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
@@ -735,13 +735,13 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 0CF13E6A2C2A326A00D714C0 /* Build configuration list for PBXNativeTarget "Seas_3" */;
 			buildPhases = (
-				5D50314BA92B741BFDEE143E /* [CP] Check Pods Manifest.lock */,
+				73752BA140584140C4420B4A /* [CP] Check Pods Manifest.lock */,
 				0CF13E3D2C2A326700D714C0 /* Sources */,
 				0CF13E3E2C2A326700D714C0 /* Frameworks */,
 				0CD930AA2C33D4100051E923 /* Resources */,
 				0C0D4FE22CC979C100A9E8FD /* ShellScript */,
-				5F0D2F690F6EB0E21295CC4C /* [CP] Embed Pods Frameworks */,
-				286736310EE2432ECCD3A841 /* [CP] Copy Pods Resources */,
+				4771E7318880498ABD422190 /* [CP] Embed Pods Frameworks */,
+				5F108D0C6D9471290EC3F27D /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -896,7 +896,24 @@
 			shellPath = "/bin/sh\n";
 			shellScript = "${BUILD_DIR%Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/upload-symbols\n";
 		};
-		286736310EE2432ECCD3A841 /* [CP] Copy Pods Resources */ = {
+		4771E7318880498ABD422190 /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Seas_3/Pods-Seas_3-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Seas_3/Pods-Seas_3-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Seas_3/Pods-Seas_3-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		5F108D0C6D9471290EC3F27D /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -913,7 +930,7 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Seas_3/Pods-Seas_3-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		5D50314BA92B741BFDEE143E /* [CP] Check Pods Manifest.lock */ = {
+		73752BA140584140C4420B4A /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -933,23 +950,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
-			showEnvVarsInLog = 0;
-		};
-		5F0D2F690F6EB0E21295CC4C /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-Seas_3/Pods-Seas_3-frameworks-${CONFIGURATION}-input-files.xcfilelist",
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-Seas_3/Pods-Seas_3-frameworks-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Seas_3/Pods-Seas_3-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
@@ -1222,7 +1222,7 @@
 		};
 		0CF13E6B2C2A326A00D714C0 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = B22D4C38B526A94F9A53AA6E /* Pods-Seas_3.debug.xcconfig */;
+			baseConfigurationReference = 62DE54DC10D53DF39B6F7383 /* Pods-Seas_3.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -1289,7 +1289,7 @@
 				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "This app requires access to your location even when the app is in the background.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We need your location to provide personalized services.";
-				INFOPLIST_KEY_NSUserTrackingUsageDescription = "This app uses IDFA for advertising and analytics purposes.";
+				INFOPLIST_KEY_NSUserTrackingUsageDescription = "This identifier will be used to deliver personalized ads to you.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
@@ -1323,7 +1323,7 @@
 		};
 		0CF13E6C2C2A326A00D714C0 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = EDEA18F925B078E31DA9F604 /* Pods-Seas_3.release.xcconfig */;
+			baseConfigurationReference = 4C9BA17CB2820E393FD84B17 /* Pods-Seas_3.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -1390,7 +1390,7 @@
 				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "This app requires access to your location even when the app is in the background.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We need your location to provide personalized services.";
-				INFOPLIST_KEY_NSUserTrackingUsageDescription = "This app uses IDFA for advertising and analytics purposes.";
+				INFOPLIST_KEY_NSUserTrackingUsageDescription = "This identifier will be used to deliver personalized ads to you.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;

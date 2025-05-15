@@ -1,3 +1,28 @@
+  # This is a backup of podfile that is working and loading Xcode after moving to JUST PODS. 
+  # Should be updated to allow for issue with basic_seq.h but for now, the below code fixes this issue - to update Pods POST load
+
+
+  # private:
+  #   Poll<Wrapped> PollNonEmpty() {
+  #     Poll<Wrapped> r = state_();
+  #     if (r.pending()) return r;
+  #     return Traits::template CheckResultAndRunNext<Wrapped>(
+  #         std::move(r.value()), [this](Wrapped arg) -> Poll<Wrapped> {
+  #           auto next = cur_;
+  #           ++next;
+  #           if (next == end_) {
+  #             return std::move(arg);
+  #           }
+  #           cur_ = next;
+  #           state_.~State();
+  #           Construct(&state_,
+  #                     Traits::CallSeqFactory(f_, *cur_, std::move(arg)));
+  #           return PollNonEmpty();
+  #         });
+  #   }
+
+
+
 platform :ios, '18.0'
 
 target 'Seas_3' do
@@ -11,7 +36,6 @@ target 'Seas_3' do
   pod 'FirebaseAppCheck'
   pod 'FirebaseMessaging', '~> 10.0'
   pod 'FirebaseFunctions', '~> 10.0'
-
 
 
   # Google Sign-In (SwiftUI)

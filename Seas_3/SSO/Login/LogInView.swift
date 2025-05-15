@@ -118,16 +118,15 @@ struct LoginForm: View {
                 VStack {
                     HStack {
                         GoogleSignInButtonWrapper(
-                            authenticationState: _authenticationState,
                             handleError: { message in
                                 self.errorMessage = message
-                            },
-                            googleClientID: AppConfig.shared.googleClientID,
-                            managedObjectContext: viewContext  // Pass the existing viewContext
+                            }
                         )
+                        .environmentObject(authenticationState)
+
                         .frame(height: 50)
                         .clipped()
-
+/*
                         FacebookSignInButtonWrapper(
                             authenticationState: _authenticationState,
                             handleError: { message in
@@ -136,7 +135,10 @@ struct LoginForm: View {
                         )
                         .frame(height: 50)
                         .clipped()
+ 
+ */
                     }
+
                 }
                 .frame(maxHeight: .infinity, alignment: .center)
 
