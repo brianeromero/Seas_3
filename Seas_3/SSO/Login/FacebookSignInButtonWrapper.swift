@@ -47,7 +47,7 @@ struct FacebookSignInButtonWrapper: UIViewRepresentable {
         return Coordinator(self)
     }
 
-    class Coordinator: NSObject, LoginButtonDelegate {
+    class Coordinator: NSObject, @preconcurrency LoginButtonDelegate {
         var parent: FacebookSignInButtonWrapper?   
         
         init(_ parent: FacebookSignInButtonWrapper) {
@@ -73,11 +73,13 @@ struct FacebookSignInButtonWrapper: UIViewRepresentable {
             print("✅ Facebook login successful. Access Token: \(token.tokenString)")
 
             // Use the FacebookHelper to handle the login flow
-            let authManager = AuthenticationManager()
-            FacebookHelper.handleFacebookLogin(authManager: authManager)  // This handles token validation and Firebase authentication
+            if let authState = parent?.authenticationState {
+                FacebookHelper.handleFacebookLogin(authState: authState)
+            }
         }
 
 
+        @MainActor
         func loginButtonDidLogOut(_ loginButton: FBLoginButton) {
             print("🔹 User logged out from Facebook.")
             parent?.authenticationState.logout()

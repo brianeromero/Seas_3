@@ -5,23 +5,6 @@ import FBSDKCoreKit
 import GoogleSignInSwift
 import GoogleSignIn
 
-// Custom URLHandler view
-struct URLHandler: View {
-    var body: some View {
-        EmptyView()
-            .onOpenURL { url in
-                print("🔗 Received URL: \(url.absoluteString) at \(Date())")
-
-                if url.absoluteString.contains("fb") {
-                    print("✅ Facebook URL handled: \(url)")
-                } else if GIDSignIn.sharedInstance.handle(url) {
-                    print("✅ Google URL handled successfully: \(url)")
-                } else {
-                    print("❌ URL not handled: \(url)")
-                }
-            }
-    }
-}
 
 @main
 struct Seas_3App: App {
@@ -36,6 +19,7 @@ struct Seas_3App: App {
     @StateObject var authViewModel = AuthViewModel.shared
 
     @State private var selectedTabIndex: LoginViewSelection = .login
+
 
     var body: some Scene {
         WindowGroup {
@@ -107,7 +91,6 @@ struct Seas_3App: App {
                     }
                 }
             }
-            .background(URLHandler())  // Add URL handler globally here
         }
     }
 

@@ -12,44 +12,46 @@ struct PromptForEmailPasswordView: View {
     @State private var email: String = ""
     @State private var password: String = ""
     @State private var showingAlert: Bool = false
-    
-    let authenticationManager = AuthenticationManager()
-    
+
+    let authenticationState = AuthenticationState(hashPassword: HashPassword())
+
     var body: some View {
-        VStack {
+        VStack(spacing: 16) {
             TextField("Email", text: $email)
+                .keyboardType(.emailAddress)
+                .autocapitalization(.none)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
-            
+
             SecureField("Password", text: $password)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
-            
+
             Button("Submit") {
-                print("Submit button tapped")
-                self.authenticationManager.log(message: "Submit button tapped", level: .info)
-                
-                DispatchQueue.main.async {
-                    print("DispatchQueue main async called")
-                    self.authenticationManager.promptForEmailPassword(email: self.email) { password in
-                        print("promptForEmailPassword completion handler called")
-                        // Handle password entry
-                        print("Password entered: \(password)")
-                        
-                        // Call handleAuthentication here
-                        let credential = EmailAuthProvider.credential(withEmail: self.email, password: password)
-                        self.authenticationManager.handleAuthentication(with: credential) { result in
-                            switch result {
-                            case .success(let user):
-                                print("User authenticated successfully: \(user)")
-                            case .failure(let error):
-                                print("Authentication error: \(error.localizedDescription)")
-                            }
-                        }
+                let credential = EmailAuthProvider.credential(withEmail: self.email, password: self.password)
+
+                Task {
+                    do {
+                        try await authenticationState.signInToFirebase(with: credential)
+                        print("User authenticated successfully")
+                    } catch {
+                        print("Authentication error: \(error.localizedDescription)")
+                        showingAlert = true
                     }
                 }
             }
+            .buttonStyle(.borderedProminent)
+        }
+        .padding()
+        .alert(isPresented: $showingAlert) {
+            Alert(
+                title: Text("Authentication Failed"),
+                message: Text("Please check your email and password."),
+                dismissButton: .default(Text("OK"))
+            )
         }
     }
 }
+
+
 
 #Preview {
     PromptForEmailPasswordView()

@@ -11,9 +11,27 @@ import Combine
 import FirebaseCore
 import FirebaseFirestore
 import FirebaseAuth
+import GoogleSignIn
 import GoogleSignInSwift
 import FBSDKLoginKit
 import GoogleSignIn
+
+
+
+enum Log {
+    static func success(_ message: String) {
+        print("✅ \(message)")
+    }
+
+    static func failure(_ message: String) {
+        print("❌ \(message)")
+    }
+
+    static func info(_ message: String) {
+        print("ℹ️ \(message)")
+    }
+}
+
 
 // MARK: - Validator Protocol
 public protocol Validator {
@@ -54,256 +72,207 @@ public class EmailValidator: Validator {
 }
 
 // MARK: - AuthenticationState
+@MainActor
 public class AuthenticationState: ObservableObject {
     // MARK: - Published Properties
     @Published var isAuthenticated: Bool = false
+    @Published var isLoggedIn: Bool = false
+
     @Published var isAdmin: Bool = false
-    @Published public private(set) var socialUser: SocialUser?
-    @Published public private(set) var userInfo: UserInfo?
-    @Published public private(set) var currentUser: User?
+    @Published var socialUser: SocialUser?
+    @Published var userInfo: UserInfo?
+    @Published var currentUser: User?
     @Published var errorMessage: String = ""
     @Published var hasError: Bool = false
-    @Published var isLoggedIn: Bool = false
     @Published var navigateToAdminMenu: Bool = false
-
+    
     // MARK: - Private Properties
     private let validator: Validator
     private let hashPassword: PasswordHasher
-
+    
     // MARK: - Initializer
     public init(hashPassword: PasswordHasher, validator: Validator = EmailValidator()) {
         self.hashPassword = hashPassword
         self.validator = validator
+        print("🔧 AuthenticationState initialized with \(type(of: validator)) validator.")
     }
-
+    
     // MARK: - CoreData Login
     public func login(_ user: UserInfo, password: String) throws {
-        print("🔐 Attempting CoreData login for \(user.email)")
-
+        print("🔐 Attempting CoreData login for user: \(user.email)")
+        
         guard validator.isValidEmail(user.email) else {
+            print("❌ Invalid email format: \(user.email)")
             throw AuthenticationError.invalidEmail
         }
-
+        
         guard !user.passwordHash.isEmpty else {
+            print("❌ Password hash is empty for user: \(user.email)")
             throw AuthenticationError.invalidCredentials
         }
-
+        
         do {
             let hashedPassword = try convertToHashedPassword(user.passwordHash)
             if try !hashPassword.verifyPasswordScrypt(password, againstHash: hashedPassword) {
+                print("❌ Password verification failed for user: \(user.email)")
                 throw AuthenticationError.invalidPassword
             }
         } catch {
+            print("❌ Error during password verification: \(error.localizedDescription)")
             throw AuthenticationError.serverError
         }
-
+        
         guard user.isVerified else {
+            print("⚠️ User email is not verified: \(user.email)")
             throw AuthenticationError.unverifiedEmail
         }
-
+        
         self.userInfo = user
         self.currentUser = nil
         updateAuthenticationStatus()
-        isLoggedIn = true
-        print("✅ CoreData login successful for \(user.email)")
-
+        Log.success("CoreData login successful: \(user.email)")
     }
-
+    
     // MARK: - Firestore Login
     public func login(user: User) {
         self.currentUser = user
         self.userInfo = nil
         updateAuthenticationStatus()
-        isLoggedIn = true
         print("✅ Logged in as Firestore user: \(user.userName)")
     }
 
     // MARK: - Logout
     public func logout(completion: @escaping () -> Void = {}) {
+        print("🔒 Logging out...")
+        resetState()
+        completion()
+        print("🔒 Logout complete.")
+    }
+
+    private func resetState() {
         self.userInfo = nil
         self.currentUser = nil
         self.socialUser = nil
         self.isAuthenticated = false
         self.isLoggedIn = false
         self.isAdmin = false
-        completion()
-        print("🔒 User logged out.")
+        self.hasError = false
+        self.errorMessage = ""
     }
+    
+    // MARK: - Google Sign-In
+    public func completeGoogleSignIn(with result: GIDSignInResult) async {
+        print("➡️ Starting completeGoogleSignIn...")
 
-    // MARK: - Social Sign-In
-    public func signInWith(provider: SocialUser.Provider) async {
-        switch provider {
-        case .google: await signInWithGoogle()
-        case .facebook: await signInWithFacebook()
-        }
-    }
-
-    // MARK: - Google Sign-In (Modern async/await approach)
-    @MainActor
-    func signInWithGoogle() async {
-        print("📲 Starting Google Sign-In flow...")
-
-        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let window = scene.windows.first(where: { $0.isKeyWindow }),
-              let rootVC = window.rootViewController else {
-            print("❗ No root view controller found. Aborting Google Sign-In.")
-            return
-        }
+        let user = result.user
 
         do {
-            print("🔄 Presenting Google Sign-In UI...")
-            let gidResult = try await GIDSignIn.sharedInstance.signIn(withPresenting: rootVC)
-            let user = gidResult.user
+            let authentication = try await user.refreshTokensIfNeeded()
+            let accessToken = authentication.accessToken.tokenString
+            let idToken = authentication.idToken?.tokenString
 
-            // Log basic user info
-            print("✅ Google Sign-In successful:")
-            print("   - Name: \(user.profile?.name ?? "nil")")
-            print("   - Email: \(user.profile?.email ?? "nil")")
-            print("   - UserID: \(user.userID ?? "nil")")
+            // Log token strings
+            print("🔑 Access Token: \(accessToken)")
+            print("🔑 ID Token: \(idToken ?? "nil")")
 
-            guard let idToken = user.idToken?.tokenString,
-                  let accessToken = user.accessToken.tokenString as String? else {
-                print("❌ Missing tokens from Google user.")
-                handleSignInError(NSError(domain: "GoogleSignIn", code: -1, userInfo: [
-                    NSLocalizedDescriptionKey: "Missing authentication tokens."
-                ]))
-                return
-
+            // Decode ID token payload for debugging
+            if let tokenString = idToken,
+               let decoded = decodeJWTPart(tokenString) {
+                print("🧾 Decoded ID Token Payload: \(decoded)")
             }
 
-            // Delegate sign-in to Firebase
-            await signInToFirebase(idToken: idToken, accessToken: accessToken)
+            // User profile info
+            let email = user.profile?.email ?? "N/A"
+            let name = user.profile?.name ?? "N/A"
+            let userID = user.userID
+            print("""
+            🔍 Google Sign-In Result:
+            - User ID: \(userID ?? "Missing User ID")
+            - Name: \(name)
+            - Email: \(email)
+            """)
 
-            // Update local app state
+            // Require ID token to continue
+            guard let idTokenString = idToken else {
+                print("❌ Missing ID token from Google user.")
+                handleSignInError(nil, message: "Google Sign-In failed: No ID token.")
+                return
+            }
+
+            print("🔐 Tokens ready – ID Token prefix: \(idTokenString.prefix(20)), Access Token prefix: \(accessToken.prefix(20))")
+
+            await signInToFirebase(idToken: idTokenString, accessToken: accessToken)
+
             updateSocialUser(
                 user.userID,
-                user.profile?.name ?? "Unknown",
-                user.profile?.email ?? "Unknown",
+                name,
+                email,
                 profilePictureUrl: user.profile?.imageURL(withDimension: 200),
                 provider: .google
             )
-            print("🧠 Updated app state with Google user info.")
 
+            print("✅ completeGoogleSignIn finished. Current user: \(self.socialUser?.email ?? "nil")")
         } catch {
-            print("❌ Google Sign-In or Firebase auth failed.")
-            print("📛 \(error.localizedDescription)")
-            handleSignInError(error)
-        }
-    }
-
-
-    
-    @MainActor
-    func completeGoogleSignIn(with result: GIDSignInResult) async {
-        // Optionally log the ID token or use it for Firebase Auth
-        guard let idToken = result.user.idToken?.tokenString else {
-            self.errorMessage = "Missing ID token."
-            self.hasError = true
+            print("❌ Error refreshing tokens: \(error)")
+            handleSignInError(error, message: "Google Sign-In failed: No authentication object.")
             return
         }
-
-        print("🔐 Received ID token: \(idToken.prefix(10))...") // Don't log full token in production
-
-        // If using Firebase:
-        let accessToken = result.user.accessToken.tokenString
-        let credential = GoogleAuthProvider.credential(withIDToken: idToken, accessToken: accessToken)
-
-        do {
-            let authResult = try await Auth.auth().signIn(with: credential)
-            print("✅ Firebase sign-in successful: \(authResult.user.email ?? "unknown")")
-            self.hasError = false
-        } catch {
-            print("❌ Firebase sign-in failed: \(error.localizedDescription)")
-            self.hasError = true
-            self.errorMessage = error.localizedDescription
-        }
     }
-
-
+    
     // MARK: - Facebook Sign-In
-    func signInWithFacebook() async {
+    public func signInWithFacebook() async {
         do {
             guard let accessToken = AccessToken.current else {
-                throw NSError(domain: "MF_inder", code: 1, userInfo: [
-                    NSLocalizedDescriptionKey: "Facebook login failed. Please try again."
+                throw NSError(domain: "AuthenticationState", code: 1, userInfo: [
+                    NSLocalizedDescriptionKey: "Facebook login failed. Try again."
                 ])
             }
 
             let credential = FacebookAuthProvider.credential(withAccessToken: accessToken.tokenString)
             try await signInToFirebase(with: credential)
         } catch {
-            print("❌ Facebook Sign-In failed with error: \(error.localizedDescription)")
             handleSignInError(error)
         }
     }
-
-    // MARK: - Helper Functions
-    private func handleSignInError(_ error: Error?) {
-        DispatchQueue.main.async {
-            self.hasError = true
-            self.errorMessage = error?.localizedDescription ?? "An unknown error occurred."
-        }
-
-        guard let error = error else {
-            print("❗ handleSignInError called with nil error.")
-            return
-        }
-
-        print("🚨 Error occurred during Google Sign-In:")
-        print("🧵 Error Type: \(type(of: error))")
-        print("📝 Description: \(error.localizedDescription)")
-        print("📛 Full Error Object: \(error)")
-
-        if let nsError = error as NSError? {
-            print("📦 NSError Details:")
-            print("   - Domain: \(nsError.domain)")
-            print("   - Code: \(nsError.code)")
-            print("   - UserInfo: \(nsError.userInfo)")
-        }
-    }
-
-
+    
+    // MARK: - Firebase Sign-In
     internal func signInToFirebase(with credential: AuthCredential) async throws {
         let result = try await Auth.auth().signIn(with: credential)
         await handleSuccessfulLogin(provider: detectProvider(from: credential), user: result.user)
     }
 
-    
-    @MainActor
-    func signInToFirebase(idToken: String, accessToken: String) async {
-        #if DEBUG
-        print("🔐 ID Token (prefix): \(idToken.prefix(10))...")
-        print("🔐 Access Token (prefix): \(accessToken.prefix(10))...")
-        #endif
-
+    public func signInToFirebase(idToken: String, accessToken: String) async {
         let credential = GoogleAuthProvider.credential(withIDToken: idToken, accessToken: accessToken)
-
+        
         do {
-            print("🔥 Signing in to Firebase...")
+            print("📤 Signing in to Firebase with Google credentials...")
             let authResult = try await Auth.auth().signIn(with: credential)
-            print("✅ Firebase sign-in success. UID: \(authResult.user.uid)")
-
-            handleSuccessfulLogin(provider: .google, user: authResult.user)
-
+            print("✅ Firebase sign-in success – UID: \(authResult.user.uid)")
+            await handleSuccessfulLogin(provider: .google, user: authResult.user)
+            
         } catch {
-            print("❌ Firebase sign-in failed: \(error.localizedDescription)")
+            let nsError = error as NSError
+            print("❌ Firebase sign-in failed!")
+            print("🧵 NSError domain: \(nsError.domain), code: \(nsError.code)")
+            print("📄 Full error: \(error.localizedDescription)")
             handleSignInError(error)
         }
     }
-
 
     
     private func detectProvider(from credential: AuthCredential) -> SocialUser.Provider {
         switch credential.provider {
         case "google.com": return .google
         case "facebook.com": return .facebook
-        default: return .google // fallback
+        default:
+            print("⚠️ Unknown provider: \(credential.provider). Defaulting to Google.")
+            return .google
         }
     }
-
-
-    @MainActor
-    func updateSocialUser(
+    
+    
+    // MARK: - Social User Helper
+    public func updateSocialUser(
         _ userID: String?,
         _ name: String,
         _ email: String,
@@ -311,9 +280,7 @@ public class AuthenticationState: ObservableObject {
         provider: SocialUser.Provider
     ) {
         guard let userID = userID, !name.isEmpty, !email.isEmpty else {
-            self.errorMessage = "Missing user information from social login. Please try again."
-            self.hasError = true
-            print("⚠️ Social sign-in failed: userID = \(String(describing: userID)), name = '\(name)', email = '\(email)'")
+            handleSignInError(nil, message: "Missing social login user info.")
             return
         }
 
@@ -324,60 +291,121 @@ public class AuthenticationState: ObservableObject {
             email: email,
             profilePictureUrl: profilePictureUrl
         )
-        
+
         self.socialUser = socialUser
         self.isAuthenticated = true
         self.isLoggedIn = true
+        print("✅ Social user updated: \(name) (\(email)) via \(provider)")
     }
 
-
-    @MainActor
-    private func handleSuccessfulLogin(provider: SocialUser.Provider, user: FirebaseAuth.User?, googleUser: GIDGoogleUser? = nil) {
+    func handleSuccessfulLogin(provider: SocialUser.Provider, user: FirebaseAuth.User?) async {
         guard let user = user else {
-            print("❌ Firebase user is nil after sign-in.")
-            self.errorMessage = "Failed to retrieve user information."
-            self.hasError = true
+            handleSignInError(nil, message: "Firebase user is nil after sign-in.")
             return
         }
 
-        print("✅ Firebase user retrieved: \(user.email ?? "Unknown email") (\(provider))")
-        if let googleUser = googleUser {
-            updateSocialUser(
-                googleUser.userID,
-                googleUser.profile?.name ?? "Unknown",
-                googleUser.profile?.email ?? "No Email",
-                profilePictureUrl: googleUser.profile?.imageURL(withDimension: 200),
-                provider: .google
-            )
-        } else {
-            updateSocialUser(
-                user.uid,
-                user.displayName ?? "Unknown",
-                user.email ?? "No Email",
-                profilePictureUrl: user.photoURL,
-                provider: provider
-            )
+        updateSocialUser(
+            user.uid,
+            user.displayName ?? "Unknown",
+            user.email ?? "No Email",
+            profilePictureUrl: user.photoURL,
+            provider: provider
+        )
+    }
+    
+    func handleSignInError(_ error: Error?, message: String? = nil) {
+        self.hasError = true
+        self.errorMessage = message ?? error?.localizedDescription ?? "Unknown error."
+
+        print("🚨 Sign-In Error: \(self.errorMessage)")
+
+        if let nsError = error as NSError? {
+            print("📦 NSError - Domain: \(nsError.domain), Code: \(nsError.code)")
+            print("🔍 UserInfo: \(nsError.userInfo)")
         }
     }
 
+    
+    // MARK: - Authentication Status
     private func updateAuthenticationStatus() {
-        if let user = userInfo {
-            isAuthenticated = user.isVerified
-        } else if currentUser != nil || socialUser != nil {
-            isAuthenticated = true
-        } else {
-            isAuthenticated = false
-        }
+        self.isAuthenticated = (userInfo != nil || currentUser != nil || socialUser != nil)
+        self.isLoggedIn = isAuthenticated
+        print("ℹ️ Auth Status -> isAuthenticated: \(isAuthenticated), isLoggedIn: \(isLoggedIn), isAdmin: \(isAdmin)")
     }
-
+    
+    // MARK: - Password Handling
     private func convertToHashedPassword(_ passwordHash: Data) throws -> HashedPassword {
         let separatorData = Data(hashPassword.base64SaltSeparator.utf8)
+
         guard let separatorIndex = passwordHash.range(of: separatorData)?.lowerBound else {
+            print("❌ Failed to find salt separator in password hash.")
+            print("🔎 Separator expected: \(hashPassword.base64SaltSeparator)")
+            print("🧵 PasswordHash (base64): \(passwordHash.base64EncodedString())")
             throw HashError.invalidInput
         }
 
         let salt = passwordHash[..<separatorIndex]
         let hash = passwordHash[separatorIndex...].dropFirst(separatorData.count)
+
+        if salt.isEmpty || hash.isEmpty {
+            print("⚠️ Warning: Extracted salt or hash is empty.")
+            throw HashError.invalidInput
+        }
+
         return HashedPassword(hash: hash, salt: salt, iterations: 8)
+    }
+
+    
+    // MARK: - Errors
+    public enum AuthenticationError: LocalizedError {
+        case invalidEmail
+        case invalidCredentials
+        case invalidPassword
+        case unverifiedEmail
+        case serverError
+
+        public var errorDescription: String? {
+            switch self {
+            case .invalidEmail: return "Invalid email address."
+            case .invalidCredentials: return "Invalid login credentials."
+            case .invalidPassword: return "Incorrect password."
+            case .unverifiedEmail: return "Email is not verified."
+            case .serverError: return "An internal error occurred."
+            }
+        }
+    }
+    
+    func decodeJWTPart(_ value: String) -> String? {
+        let segments = value.split(separator: ".")
+        guard segments.count > 1 else { return nil }
+
+        var base64String = String(segments[1])
+        base64String = base64String
+            .replacingOccurrences(of: "-", with: "+")
+            .replacingOccurrences(of: "_", with: "/")
+
+        while base64String.count % 4 != 0 {
+            base64String.append("=")
+        }
+
+        guard let data = Data(base64Encoded: base64String),
+              let decoded = String(data: data, encoding: .utf8) else {
+            return nil
+        }
+
+        return decoded
+    }
+   
+    
+}
+
+extension SocialUser.Provider: CustomStringConvertible {
+    public var description: String {
+        switch self {
+        case .google: return "Google"
+        case .facebook: return "Facebook"
+        // Future-proofing: handles any new providers added without breaking
+        @unknown default: return "Unknown Provider"
+        }
     }
 }

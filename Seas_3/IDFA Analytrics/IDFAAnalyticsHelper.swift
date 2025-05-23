@@ -23,15 +23,15 @@ class IDFAAnalyticsHelper {
     /// Delivers personalized ads using IDFA
     static func configureTargetedAdvertising() async throws {
         guard let idfa = IDFAHelper.getIdfa() else { return }
-        
-        // Pass IDFA to ad networks (e.g., AdMob)
+
+        // Pass IDFA to AdMob as a test device
         GADMobileAds.sharedInstance().requestConfiguration.testDeviceIdentifiers = [idfa]
-        
+
         // Save to Firestore
         try await Firestore.firestore().collection("advertising").document("targeted_ads").setData([
             "idfa": idfa
         ])
-        
+
         // Cache in Core Data Stack
         let context = PersistenceController.shared.container.viewContext
         if let userInfo = try? await PersistenceController.shared.fetchSingle(entityName: "UserInfo") as? UserInfo {

@@ -3,11 +3,11 @@
 <plist version="1.0">
 <dict>
     <key>CLIENT_ID</key>
-    <string>1086614683073-50uvddc1oor49m4ri7s8mesi6thl1gcl.apps.googleusercontent.com</string>
+    <string>1086614683073-m41ig0e8akp55q680tinnau88khlk364.apps.googleusercontent.com</string>
     <key>GoogleClientID</key>
-    <string>1086614683073-50uvddc1oor49m4ri7s8mesi6thl1gcl.apps.googleusercontent.com</string>
+    <string>1086614683073-m41ig0e8akp55q680tinnau88khlk364.apps.googleusercontent.com</string>
     <key>REVERSED_CLIENT_ID</key>
-    <string>com.googleusercontent.apps.1086614683073-50uvddc1oor49m4ri7s8mesi6thl1gcl</string>
+    <string>com.googleusercontent.apps.1086614683073-m41ig0e8akp55q680tinnau88khlk364</string>
     <key>API_KEY</key>
     <string>AIzaSyDeTJJAiTX-roB_FKKwBDB9iKGZsljbZEw</string>
     <key>PROJECT_ID</key>
@@ -32,14 +32,16 @@
     <true/>
     <key>GOOGLE_APP_ID</key>
     <string>1:1086614683073:ios:448b27608c6b396fe6c340</string>
-    <key>FirebaseAppCheckDebugEnabled</key>
-    <true/>
-    <key>FIRAAppCheckDebugToken</key>
-    <string>63D5068B-D8CD-434B-9916-CFC5CD2130CD</string>
     <key>DATABASE_URL</key>
     <string>https://smart-abacus-425519-r7-default-rtdb.firebaseio.com</string>
     <key>ADMOB_APP_ID</key>
     <string>ca-app-pub-7376161442418831~2252904765</string>
+
+    <!-- Custom fields retained -->
+    <key>FirebaseAppCheckDebugEnabled</key>
+    <true/>
+    <key>FIRAAppCheckDebugToken</key>
+    <string>63D5068B-D8CD-434B-9916-CFC5CD2130CD</string>
     <key>GIDLogLevel</key>
     <string>VERBOSE</string>
 </dict>

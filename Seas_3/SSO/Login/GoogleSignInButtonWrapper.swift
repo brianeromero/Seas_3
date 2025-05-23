@@ -1,4 +1,3 @@
-
 //
 //  GoogleSignInButtonWrapper.swift
 //  Seas_3
@@ -8,92 +7,78 @@
 
 import Foundation
 import SwiftUI
+import GoogleSignIn
 import GoogleSignInSwift
 import CoreData
 import FirebaseCore
 import FirebaseFirestore
 import FirebaseAuth
-import GoogleSignIn
-import GoogleSignInSwift
-
-import SwiftUI
-import GoogleSignIn
 
 
+import os
 
-struct GoogleSignInButtonWrapper: UIViewRepresentable {
+struct GoogleSignInButtonWrapper: View {
     @EnvironmentObject var authenticationState: AuthenticationState
     var handleError: (String) -> Void
 
-    func makeUIView(context: Context) -> GIDSignInButton {
-        let button = GIDSignInButton()
-        button.addTarget(context.coordinator, action: #selector(Coordinator.signIn), for: .touchUpInside)
-        print("[GoogleSignInButtonWrapper] GIDSignInButton created and target added.")
-        return button
-    }
+    @State private var showError = false
+    @State private var errorMessage = ""
 
-    func updateUIView(_ uiView: GIDSignInButton, context: Context) {
-        // Add logs here if/when UI updates are required
-    }
+    private let logger = os.Logger(subsystem: "com.seas3.app", category: "GoogleSignIn")
 
-    func makeCoordinator() -> Coordinator {
-        print("[GoogleSignInButtonWrapper] Coordinator created.")
-        return Coordinator(authenticationState: authenticationState, handleError: handleError)
-    }
-
-    @MainActor
-    class Coordinator: NSObject {
-        var authenticationState: AuthenticationState
-        var handleError: (String) -> Void
-
-        init(authenticationState: AuthenticationState, handleError: @escaping (String) -> Void) {
-            self.authenticationState = authenticationState
-            self.handleError = handleError
-            print("[Coordinator] Initialized with AuthenticationState.")
+    var body: some View {
+        Button(action: handleSignIn) {
+            HStack {
+                Image(systemName: "g.circle")
+                Text("Sign in with Google")
+            }
         }
+        .frame(maxWidth: .infinity)
+        .frame(height: 48)
+        .background(Color.gray.opacity(0.2))
+        .cornerRadius(8)
+        .alert(isPresented: $showError) {
+            Alert(
+                title: Text("Error"),
+                message: Text(errorMessage),
+                dismissButton: .default(Text("OK"))
+            )
+        }
+    }
 
-        @objc func signIn() {
-            print("🔵 Initiating Google Sign-In process...")
+    func handleSignIn() {
+        logger.debug("Google sign-in started.")
 
-            guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                  let window = scene.windows.first(where: { $0.isKeyWindow }),
-                  let rootVC = window.rootViewController else {
-                print("❌ Could not get rootViewController for sign-in presentation.")
-                handleError("Unable to initiate Google Sign-In.")
+        guard let rootVC = UIApplication.shared.connectedScenes
+            .compactMap({ ($0 as? UIWindowScene)?.keyWindow })
+            .first?.rootViewController else {
+                let errMsg = "Unable to find root view controller."
+                logger.error("\(errMsg)")
+                handleError(errMsg)
                 return
-            }
-
-            Task {
-                do {
-                    print("[Coordinator] Presenting Google Sign-In...")
-                    let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: rootVC)
-                    print("✅ Google Sign-In successful for: \(result.user.profile?.email ?? "unknown email")")
-
-                    // Pass the user to your AuthenticationState or use tokens
-                    await authenticationState.completeGoogleSignIn(with: result)
-
-                } catch {
-                    print("❌ Google Sign-In failed: \(error.localizedDescription)")
-                    handleError("Google Sign-In failed: \(error.localizedDescription)")
-                }
-            }
         }
 
-    }
-}
+        Task {
+            do {
+                let scopes = ["openid", "email", "profile"]
+                logger.debug("Calling GIDSignIn.sharedInstance.signIn...")
 
+                let result = try await GIDSignIn.sharedInstance.signIn(
+                    withPresenting: rootVC,
+                    hint: nil,
+                    additionalScopes: scopes
+                )
 
-struct GoogleSignInButtonWrapper_Previews: PreviewProvider {
-    static var previews: some View {
-        let authenticationState = AuthenticationState(hashPassword: HashPassword())
-        return GoogleSignInButtonWrapper(
-            handleError: { message in
-                print("Error: \(message)")
+                logger.debug("Google sign-in success. Passing result to AuthenticationState.")
+                await authenticationState.completeGoogleSignIn(with: result)
+
+            } catch {
+                logger.error("Google Sign-In failed: \(error, privacy: .public)")
+                logger.error("Error details: \(String(describing: error))")
+                errorMessage = error.localizedDescription
+                showError = true
+                handleError(errorMessage)
             }
-        )
-        .environmentObject(authenticationState)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .previewLayout(.sizeThatFits)
-        .padding()
+        }
     }
 }

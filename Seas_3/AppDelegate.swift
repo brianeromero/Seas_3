@@ -21,6 +21,7 @@ import GoogleMobileAds
 import GoogleSignInSwift
 import GoogleSignIn
 
+import Security
 
 
 // Facebook
@@ -37,11 +38,11 @@ extension NSNotification.Name {
 }
 
 class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUserNotificationCenterDelegate {
-    
 
     var window: UIWindow?
     let appConfig = AppConfig.shared
 
+    // Config values
     var facebookSecret: String?
     var sendgridApiKey: String?
     var googleClientID: String?
@@ -53,213 +54,83 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
     var isFirebaseConfigured = false
 
     enum AppCheckTokenError: Error {
-        case noTokenReceived
-        case invalidToken
+        case noTokenReceived, invalidToken
     }
 
-    
-    
-    func application(_ application: UIApplication,
-                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-
-        // Configure app appearance early in the app lifecycle
-        configureApplicationAppearance()
-
-        // Load configuration values from plist
-        guard let config = ConfigLoader.loadConfigValues() else {
-            print("❌ Could not load configuration values.")
-            return false
-        }
-
-        // Assign values to appConfig or directly to variables
-        sendgridApiKey = config.SENDGRID_API_KEY
-        googleClientID = config.GoogleClientID
-        googleApiKey = config.GoogleApiKey
-        googleAppID = config.GoogleAppID
-        deviceCheckKeyID = config.DeviceCheckKeyID
-        deviceCheckTeamID = config.DeviceCheckTeamID
-
-        appConfig.googleClientID = googleClientID ?? ""
-        appConfig.googleApiKey = googleApiKey ?? ""
-        appConfig.googleAppID = googleAppID ?? ""
-        appConfig.sendgridApiKey = sendgridApiKey ?? "DEFAULT_SENDGRID_API_KEY"
-        appConfig.deviceCheckKeyID = deviceCheckKeyID ?? ""
-        appConfig.deviceCheckTeamID = deviceCheckTeamID ?? ""
-
-        print("✅ Configuration Loaded:")
-        print("   - SendGrid API Key: \(sendgridApiKey ?? "MISSING")")
-        print("   - Google Client ID: \(googleClientID ?? "MISSING")")
-        print("   - Google API Key: \(googleApiKey ?? "MISSING")")
-        print("   - Google App ID: \(googleAppID ?? "MISSING")")
-        print("   - DeviceCheck Key ID: \(deviceCheckKeyID ?? "MISSING")")
-        print("   - DeviceCheck Team ID: \(deviceCheckTeamID ?? "MISSING")")
-
-        // Firebase configuration
-        configureFirebase()
-
-        // Set delegates before fetching token
-        UNUserNotificationCenter.current().delegate = self
-        Messaging.messaging().delegate = self
-
-        // Request push notification permissions
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
-            if let error = error {
-                print("❌ Notification permission error: \(error.localizedDescription)")
-            }
-            if granted {
-                DispatchQueue.main.async {
-                    application.registerForRemoteNotifications()
-                }
-            } else {
-                print("⚠️ Notification permission not granted.")
-            }
-        }
-
-        // SDK setups
-        ApplicationDelegate.shared.application(application, didFinishLaunchingWithOptions: launchOptions)
-        configureGoogleAds()
-        configureGoogleSignIn()
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
+    ) -> Bool {
         
+        // ✅ 1. Configure Firebase + App Check FIRST
+        configureFirebaseIfNeeded()
+
+        // ✅ 2. Facebook SDK (must come after Firebase)
+        ApplicationDelegate.shared.application(application, didFinishLaunchingWithOptions: launchOptions)
+
+        // ✅ 3. App-wide flags (optional)
+        UserDefaults.standard.set(true, forKey: "AppAuthDebug")
+
+        // ✅ 4. Remaining setup in safe order
+        configureAppConfigValues()
+        configureApplicationAppearance()
+        configureGoogleSignIn()
+        configureNotifications(for: application)
+        configureGoogleAds()
+
+
+
+        // ✅ 5. Safe to sync Firestore after Firebase is fully initialized
+        syncInitialFirestoreData()
+
+        // ✅ 6. IDFA (ad tracking) — unrelated to Firebase
+        IDFAHelper.requestIDFAPermission()
+
+        // ✅ 7. Optional keychain check
+        testKeychainAccessGroup()
+
+        // ✅ 8. DO NOT REGISTER DebugURLProtocol unless absolutely necessary
+        
+        /*
         #if DEBUG
         URLProtocol.registerClass(DebugURLProtocol.self)
         #endif
-
-        setupAppCheck()
-
-        // Download Firestore records to Core Data
-        Task {
-            let pirateIslandRecords: [String] = []
-            let reviewRecords: [String] = []
-            let matTimeRecords: [String] = []
-            let appDayOfWeekRecords: [String] = []
-
-            do {
-                try await createFirestoreCollection()
-                await downloadFirestoreRecordsToLocal(collectionName: "pirateIslands", records: pirateIslandRecords)
-                await downloadFirestoreRecordsToLocal(collectionName: "reviews", records: reviewRecords)
-                await downloadFirestoreRecordsToLocal(collectionName: "matTimes", records: matTimeRecords)
-                await downloadFirestoreRecordsToLocal(collectionName: "AppDayOfWeek", records: appDayOfWeekRecords)
-            } catch {
-                print("❌ Firestore sync error: \(error.localizedDescription)")
-            }
-        }
-
-        IDFAHelper.requestIDFAPermission()
+        */
 
         return true
     }
 
 
+    func testKeychainAccessGroup() {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: "testAccount",
+            kSecAttrService as String: "testService",
+            kSecAttrAccessGroup as String: "com.google.iid", // Change to the keychain group you want to test
+            kSecReturnAttributes as String: true
+        ]
 
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
 
-    
-    private func configureApplicationAppearance() {
-        UINavigationBar.appearance().tintColor = .systemOrange
-        UITabBar.appearance().tintColor = .systemOrange
-    }
-    
-    func configureFirebase() {
-        guard !isFirebaseConfigured else { return }
-
-        #if DEBUG
-        let providerFactory = AppCheckDebugProviderFactory()
-        AppCheck.setAppCheckProviderFactory(providerFactory)
-        #endif
-
-        FirebaseApp.configure()
-        FirebaseConfiguration.shared.setLoggerLevel(.debug)
-        Analytics.setAnalyticsCollectionEnabled(true)
-        isFirebaseConfigured = true
-
-        // Disable Firestore persistence (local cache)
-        let settings = Firestore.firestore().settings
-        settings.isPersistenceEnabled = false  // Disable local cache if needed
-        Firestore.firestore().settings = settings
-
-        // Enable Firestore debug logs
-        UserDefaults.standard.setValue(true, forKey: "FIRFirestoreDebugEnabled")
-        UserDefaults.standard.setValue(true, forKey: "FIRFirestoreVerboseLoggingEnabled")
-
-        configureFirebaseLogger()
-        configureMessaging()
-        configureFirestore()
-    }
-
-
-    private func configureFirebaseLogger() {
-        FirebaseConfiguration.shared.setLoggerLevel(.debug)
-    }
-
-    private func configureMessaging() {
-        Messaging.messaging().delegate = self
-        Messaging.messaging().isAutoInitEnabled = true
-    }
-
-    private func configureFirestore() {
-        Firestore.firestore().settings = FirestoreSettings()
-    }
-
-    
-    private func loadConfigValues() {
-        print("🔹 Loading configuration values...")
-
-        guard let config = ConfigLoader.loadConfigValues() else {
-            print("❌ Could not load configuration values.")
-            return
+        if status == errSecSuccess {
+            print("✅ Access group is accessible: \(result!)")
+        } else if status == errSecItemNotFound {
+            print("🔍 Access group is available, item not found — that’s okay.")
+        } else {
+            print("❌ Keychain access failed: \(status)")
         }
-
-        // Assign values
-        sendgridApiKey = config.SENDGRID_API_KEY
-        googleClientID = config.GoogleClientID
-        googleApiKey = config.GoogleApiKey
-        googleAppID = config.GoogleAppID
-        deviceCheckKeyID = config.DeviceCheckKeyID
-        deviceCheckTeamID = config.DeviceCheckTeamID
-
-        // Log loaded values for debugging
-        print("✅ Configuration Loaded:")
-        print("   - SendGrid API Key: \(sendgridApiKey ?? "MISSING")")
-        print("   - Google Client ID: \(googleClientID ?? "MISSING")")
-        print("   - Google API Key: \(googleApiKey ?? "MISSING")")
-        print("   - Google App ID: \(googleAppID ?? "MISSING")")
-        print("   - DeviceCheck Key ID: \(deviceCheckKeyID ?? "MISSING")")
-        print("   - DeviceCheck Team ID: \(deviceCheckTeamID ?? "MISSING")")
-
-        // Assign values with default fallbacks
-        appConfig.googleClientID = googleClientID ?? ""
-        appConfig.googleApiKey = googleApiKey ?? ""
-        appConfig.googleAppID = googleAppID ?? ""
-        appConfig.sendgridApiKey = sendgridApiKey ?? "DEFAULT_SENDGRID_API_KEY"
-        appConfig.deviceCheckKeyID = deviceCheckKeyID ?? ""
-        appConfig.deviceCheckTeamID = deviceCheckTeamID ?? ""
-
-        print("✅ Configuration values set successfully.")
-    }
-
-    
-    func configureGoogleSignIn() {
-        print("🔹 Configuring Google Sign-In...")
-
-        guard let clientID = googleClientID, !clientID.isEmpty else {
-            print("❌ Google Client ID is missing or empty.")
-            return
-        }
-
-        print("✅ Using Google Client ID: \(clientID)")
-
-        let configuration = GIDConfiguration(clientID: clientID)
-        GIDSignIn.sharedInstance.configuration = configuration
-
-        print("✅ Google Sign-In configuration set successfully.")
     }
 
 
-    func application(_ application: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
-        let handledByFacebook = ApplicationDelegate.shared.application(application, open: url, options: options)
-        let handledByGoogle = GIDSignIn.sharedInstance.handle(url)
-        return handledByFacebook || handledByGoogle
-    }
+    func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
+        print("📬 openURL: \(url)")
 
+        let facebookHandled = ApplicationDelegate.shared.application(app, open: url, options: options)
+        let googleHandled = GIDSignIn.sharedInstance.handle(url)
+
+        return facebookHandled || googleHandled
+    }
 
     
     private func createFirestoreCollection() async throws {
@@ -768,16 +639,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         }
     }
 
-    private func setupAppCheck() {
-        #if DEBUG
-        print("Running in DEBUG mode")
-        #else
-        let seasAppCheckProviderFactory = SeasAppCheckProviderFactory()
-        AppCheck.setAppCheckProviderFactory(seasAppCheckProviderFactory)
-        #endif
-        
-        fetchAppCheckToken()
-    }
+
 
     private func fetchAppCheckToken() {
         let appCheck = AppCheck.appCheck()
@@ -807,8 +669,19 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
     }
 
     private func configureGoogleAds() {
-        GADMobileAds.sharedInstance().requestConfiguration.setPublisherFirstPartyIDEnabled(false)
+        let adsInstance = GADMobileAds.sharedInstance()
+
+        // Optional: disable publisher first party ID if needed
+        adsInstance.requestConfiguration.setPublisherFirstPartyIDEnabled(false)
+
+        // Required: Initialize Google Mobile Ads SDK
+        adsInstance.start { status in
+            print("✅ Google Mobile Ads SDK initialized with status: \(status.adapterStatusesByClassName)")
+        }
     }
+
+
+
 
     private func registerForPushNotifications(completion: @escaping () -> Void) {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
@@ -874,11 +747,19 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         handleFCMToken(token)
     }
 
+    
+    func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+                     fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+        print("Received remote notification: \(userInfo)")
 
-    func messaging(_ messaging: Messaging, didReceive message: [String: Any]) {
-        print("Message received: \(message)")
+        // Handle your data message here
+        // For example, update your UI, fetch data, etc.
+
+        completionHandler(.newData)
     }
 
+
+ 
     // MARK: - UNUserNotificationCenterDelegate
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
@@ -893,4 +774,107 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
     func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
         return [.portrait, .landscapeLeft, .landscapeRight]
     }
+}
+
+
+private extension AppDelegate {
+
+    func configureFirebaseIfNeeded() {
+        guard !isFirebaseConfigured else {
+            print("ℹ️ Firebase already configured.")
+            return
+        }
+
+        #if DEBUG
+        AppCheck.setAppCheckProviderFactory(AppCheckDebugProviderFactory())
+        #else
+        AppCheck.setAppCheckProviderFactory(AppCheckDeviceCheckProviderFactory())
+        #endif
+
+        FirebaseApp.configure()
+        isFirebaseConfigured = true
+
+        FirebaseConfiguration.shared.setLoggerLevel(.debug)
+        Firestore.firestore().settings.isPersistenceEnabled = false
+
+        configureMessaging()
+    }
+
+    func configureMessaging() {
+        Messaging.messaging().delegate = self
+        Messaging.messaging().isAutoInitEnabled = true
+    }
+
+    func configureApplicationAppearance() {
+        UINavigationBar.appearance().tintColor = .systemOrange
+        UITabBar.appearance().tintColor = .systemOrange
+    }
+
+    func configureAppConfigValues() {
+        guard let config = ConfigLoader.loadConfigValues() else {
+            print("❌ Could not load configuration values.")
+            return
+        }
+
+        sendgridApiKey = config.SENDGRID_API_KEY
+        googleApiKey = config.GoogleApiKey
+        googleAppID = config.GoogleAppID
+        deviceCheckKeyID = config.DeviceCheckKeyID
+        deviceCheckTeamID = config.DeviceCheckTeamID
+        googleClientID = FirebaseApp.app()?.options.clientID
+
+        appConfig.googleClientID = googleClientID ?? ""
+        appConfig.googleApiKey = googleApiKey ?? ""
+        appConfig.googleAppID = googleAppID ?? ""
+        appConfig.sendgridApiKey = sendgridApiKey ?? "DEFAULT_SENDGRID_API_KEY"
+        appConfig.deviceCheckKeyID = deviceCheckKeyID ?? ""
+        appConfig.deviceCheckTeamID = deviceCheckTeamID ?? ""
+    }
+
+    func configureGoogleSignIn() {
+        guard let clientID = FirebaseApp.app()?.options.clientID else {
+            print("❌ Could not get clientID from Firebase options.")
+            return
+        }
+
+        let config = GIDConfiguration(clientID: clientID)
+        GIDSignIn.sharedInstance.configuration = config
+
+        print("✅ Google Sign-In configured with client ID: \(clientID)")
+    }
+
+
+    func configureNotifications(for application: UIApplication) {
+        UNUserNotificationCenter.current().delegate = self
+
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
+            if let error = error {
+                print("❌ Notification error: \(error.localizedDescription)")
+            } else if granted {
+                DispatchQueue.main.async {
+                    application.registerForRemoteNotifications()
+                }
+            }
+        }
+    }
+
+    func syncInitialFirestoreData() {
+        guard Auth.auth().currentUser != nil else {
+            print("❌ No user is signed in. Firestore access is restricted.")
+            return
+        }
+
+        Task {
+            do {
+                try await createFirestoreCollection()
+                await downloadFirestoreRecordsToLocal(collectionName: "pirateIslands", records: [])
+                await downloadFirestoreRecordsToLocal(collectionName: "reviews", records: [])
+                await downloadFirestoreRecordsToLocal(collectionName: "matTimes", records: [])
+                await downloadFirestoreRecordsToLocal(collectionName: "AppDayOfWeek", records: [])
+            } catch {
+                print("❌ Firestore sync error: \(error.localizedDescription)")
+            }
+        }
+    }
+
 }

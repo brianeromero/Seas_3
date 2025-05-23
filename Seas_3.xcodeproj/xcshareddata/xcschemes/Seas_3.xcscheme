@@ -141,13 +141,13 @@
             isEnabled = "YES">
          </EnvironmentVariable>
          <EnvironmentVariable
-            key = "FIRAAppCheckDebugToken"
-            value = "BB0724A0-E70B-42CA-AFBA-05BE1B79130F"
+            key = "CFNETWORK_DIAGNOSTICS"
+            value = "3"
             isEnabled = "YES">
          </EnvironmentVariable>
          <EnvironmentVariable
-            key = "Debug asof112024"
-            value = "BB0724A0-E70B-42CA-AFBA-05BE1B79130F"
+            key = "FIRAAppCheckDebugToken"
+            value = "C3B91202-6B37-40D7-A91D-F2EE093999AA"
             isEnabled = "YES">
          </EnvironmentVariable>
       </EnvironmentVariables>

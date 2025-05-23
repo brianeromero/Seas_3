@@ -1,3 +1,4 @@
+/*
 //
 //  AuthenticationManager.swift
 //  Seas_3
@@ -10,7 +11,6 @@ import FirebaseCore
 import FirebaseFirestore
 import FirebaseAuth
 import GoogleSignInSwift
-import GoogleSignIn
 
 
 class AuthenticationManager {
@@ -272,3 +272,4 @@ class AuthenticationManager {
 
     }
 }
+*/

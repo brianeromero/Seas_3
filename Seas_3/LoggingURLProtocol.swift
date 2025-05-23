@@ -39,12 +39,17 @@ class LoggingURLProtocol: URLProtocol {
 
         sessionTask = session.dataTask(with: mutableRequest as URLRequest) { data, response, error in
             if let data = data {
-                os_log("Received response: %@", log: GeocodingLogger.geocoding, type: .info, String(data: data, encoding: .utf8) ?? "Invalid response data")
+                os_log("Received response data: %@", log: GeocodingLogger.geocoding, type: .info, String(data: data, encoding: .utf8) ?? "Invalid response data")
                 self.client?.urlProtocol(self, didLoad: data)
             }
 
             if let response = response {
-                os_log("Response headers: %@", log: GeocodingLogger.geocoding, type: .info, (response as? HTTPURLResponse)?.allHeaderFields ?? [:])
+                if let httpResponse = response as? HTTPURLResponse {
+                    os_log("Response status code: %d", log: GeocodingLogger.geocoding, type: .info, httpResponse.statusCode)
+                    os_log("Response headers: %@", log: GeocodingLogger.geocoding, type: .info, httpResponse.allHeaderFields)
+                } else {
+                    os_log("Response: %@", log: GeocodingLogger.geocoding, type: .info, response)
+                }
                 self.client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
             }
 

@@ -128,7 +128,7 @@
 		0CF13E7C2C2A36B500D714C0 /* PirateIsland+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E762C2A36B500D714C0 /* PirateIsland+CoreDataProperties.swift */; };
 		0CF13E7D2C2A36B500D714C0 /* UserInfo+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E772C2A36B500D714C0 /* UserInfo+CoreDataClass.swift */; };
 		0CF13E7E2C2A36B500D714C0 /* UserInfo+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E782C2A36B500D714C0 /* UserInfo+CoreDataProperties.swift */; };
-		2B67264F1BA2752A10E0727E /* Pods_Seas_3.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E44E8129715BC9B031CE96E1 /* Pods_Seas_3.framework */; };
+		AEAE0E9615D71CE4670E50C3 /* Pods_Seas_3.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 25086FDC1D4D3D355A3B55B5 /* Pods_Seas_3.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -284,9 +284,9 @@
 		0CF13E772C2A36B500D714C0 /* UserInfo+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UserInfo+CoreDataClass.swift"; sourceTree = "<group>"; };
 		0CF13E782C2A36B500D714C0 /* UserInfo+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UserInfo+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		0CF247E92CB470D2008B02AA /* Seas_3.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Seas_3.entitlements; sourceTree = "<group>"; };
-		4C9BA17CB2820E393FD84B17 /* Pods-Seas_3.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Seas_3.release.xcconfig"; path = "Target Support Files/Pods-Seas_3/Pods-Seas_3.release.xcconfig"; sourceTree = "<group>"; };
-		62DE54DC10D53DF39B6F7383 /* Pods-Seas_3.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Seas_3.debug.xcconfig"; path = "Target Support Files/Pods-Seas_3/Pods-Seas_3.debug.xcconfig"; sourceTree = "<group>"; };
-		E44E8129715BC9B031CE96E1 /* Pods_Seas_3.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Seas_3.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		25086FDC1D4D3D355A3B55B5 /* Pods_Seas_3.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Seas_3.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		EEAE56A3091E66A29DAF87DF /* Pods-Seas_3.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Seas_3.debug.xcconfig"; path = "Target Support Files/Pods-Seas_3/Pods-Seas_3.debug.xcconfig"; sourceTree = "<group>"; };
+		F4FC15B999D5C53DF8C84223 /* Pods-Seas_3.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Seas_3.release.xcconfig"; path = "Target Support Files/Pods-Seas_3/Pods-Seas_3.release.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -316,7 +316,9 @@
 				AdMob/GoogleAdsHelper.swift,
 				DealingWErrors/AlertModifier.swift,
 				DealingWErrors/ConfigLoader.swift,
+				DealingWErrors/CustomAuthorizationService.swift,
 				DealingWErrors/EmailVerificationHandler.swift,
+				DealingWErrors/ErrorReporting.swift,
 				DealingWErrors/FacebookHelper.swift,
 				DealingWErrors/IDFAHelper.swift,
 				DealingWErrors/Logger.swift,
@@ -426,7 +428,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0CBA130A2CC19BC700A74C2A /* CryptoSwift in Frameworks */,
-				2B67264F1BA2752A10E0727E /* Pods_Seas_3.framework in Frameworks */,
+				AEAE0E9615D71CE4670E50C3 /* Pods_Seas_3.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -556,7 +558,7 @@
 				0C4A7B4E2CC0D507008CE1EA /* CoreLocation.framework */,
 				0C4A7B4C2CC0D443008CE1EA /* AdSupport.framework */,
 				0C4A7B4A2CC0D43A008CE1EA /* iAd.framework */,
-				E44E8129715BC9B031CE96E1 /* Pods_Seas_3.framework */,
+				25086FDC1D4D3D355A3B55B5 /* Pods_Seas_3.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -722,8 +724,8 @@
 		6D1A526F36280797C748FAFD /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				62DE54DC10D53DF39B6F7383 /* Pods-Seas_3.debug.xcconfig */,
-				4C9BA17CB2820E393FD84B17 /* Pods-Seas_3.release.xcconfig */,
+				EEAE56A3091E66A29DAF87DF /* Pods-Seas_3.debug.xcconfig */,
+				F4FC15B999D5C53DF8C84223 /* Pods-Seas_3.release.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
@@ -735,13 +737,13 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 0CF13E6A2C2A326A00D714C0 /* Build configuration list for PBXNativeTarget "Seas_3" */;
 			buildPhases = (
-				73752BA140584140C4420B4A /* [CP] Check Pods Manifest.lock */,
+				E57C0327EA9E905BE0E82A3E /* [CP] Check Pods Manifest.lock */,
 				0CF13E3D2C2A326700D714C0 /* Sources */,
 				0CF13E3E2C2A326700D714C0 /* Frameworks */,
 				0CD930AA2C33D4100051E923 /* Resources */,
 				0C0D4FE22CC979C100A9E8FD /* ShellScript */,
-				4771E7318880498ABD422190 /* [CP] Embed Pods Frameworks */,
-				5F108D0C6D9471290EC3F27D /* [CP] Copy Pods Resources */,
+				0D5BE3CB34AEFF037E0F40EF /* [CP] Embed Pods Frameworks */,
+				B0A49003BADB6C014F163301 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -896,7 +898,7 @@
 			shellPath = "/bin/sh\n";
 			shellScript = "${BUILD_DIR%Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/upload-symbols\n";
 		};
-		4771E7318880498ABD422190 /* [CP] Embed Pods Frameworks */ = {
+		0D5BE3CB34AEFF037E0F40EF /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -913,7 +915,7 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Seas_3/Pods-Seas_3-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		5F108D0C6D9471290EC3F27D /* [CP] Copy Pods Resources */ = {
+		B0A49003BADB6C014F163301 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -930,7 +932,7 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Seas_3/Pods-Seas_3-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		73752BA140584140C4420B4A /* [CP] Check Pods Manifest.lock */ = {
+		E57C0327EA9E905BE0E82A3E /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -1222,7 +1224,7 @@
 		};
 		0CF13E6B2C2A326A00D714C0 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 62DE54DC10D53DF39B6F7383 /* Pods-Seas_3.debug.xcconfig */;
+			baseConfigurationReference = EEAE56A3091E66A29DAF87DF /* Pods-Seas_3.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -1323,7 +1325,7 @@
 		};
 		0CF13E6C2C2A326A00D714C0 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 4C9BA17CB2820E393FD84B17 /* Pods-Seas_3.release.xcconfig */;
+			baseConfigurationReference = F4FC15B999D5C53DF8C84223 /* Pods-Seas_3.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;

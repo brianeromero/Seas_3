@@ -3,7 +3,7 @@ platform :ios, '18.0'
 target 'Seas_3' do
   use_frameworks!
 
-  # Modular Firebase
+  # ✅ Modular Firebase
   pod 'FirebaseAnalytics', '~> 10.0'
   pod 'FirebaseAuth', '~> 10.0'
   pod 'FirebaseInAppMessaging', '10.0.0-beta'
@@ -11,20 +11,23 @@ target 'Seas_3' do
   pod 'FirebaseAppCheck'
   pod 'FirebaseMessaging', '~> 10.0'
   pod 'FirebaseFunctions', '~> 10.0'
+pod 'FirebaseCrashlytics', '~> 10.0'
 
 
+  # ✅ Google Sign-In (Core + SwiftUI Button)
+  pod 'GoogleSignIn'         # Required for authentication logic
+  pod 'GoogleSignInSwift'    # Optional: SwiftUI button
 
-  # Google Sign-In (SwiftUI)
-  pod 'GoogleSignIn'
-  pod 'GoogleSignInSwift'
-
-  # Facebook SDK
+  # ✅ Facebook SDK
   pod 'FacebookCore'
   pod 'FacebookLogin'
   pod 'FacebookShare'
 
-  # Google Mobile Ads (AdMob)
+  # ✅ Google Mobile Ads (AdMob)
   pod 'Google-Mobile-Ads-SDK', '~> 11.10'
+
+  # ✅ AppAuth for OAuth / OpenID Connect
+  pod 'AppAuth', '~> 1.6'
 end
 
 post_install do |installer|
@@ -40,7 +43,7 @@ post_install do |installer|
       ]
     end
 
-    # Clean up flags for BoringSSL-GRPC
+    # 🧹 Clean up flags for BoringSSL-GRPC
     if target.name == 'BoringSSL-GRPC'
       target.source_build_phase.files.each do |file|
         if file.settings && file.settings['COMPILER_FLAGS']
@@ -52,7 +55,7 @@ post_install do |installer|
     end
   end
 
-  # Patch incorrect function calls in GDTCORClock.m
+  # 🩹 Patch incorrect function calls in GDTCORClock.m
   clock_file = 'Pods/GoogleDataTransport/GoogleDataTransport/GDTCORLibrary/GDTCORClock.m'
   if File.exist?(clock_file)
     text = File.read(clock_file)
@@ -61,7 +64,7 @@ post_install do |installer|
     File.write(clock_file, text)
   end
 
-  # Patch incorrect template usage in gRPC-Core's basic_seq.h
+  # 🩹 Patch incorrect template usage in gRPC-Core's basic_seq.h
   grpc_file = 'Pods/gRPC-Core/src/core/lib/promise/detail/basic_seq.h'
   if File.exist?(grpc_file)
     contents = File.read(grpc_file)
