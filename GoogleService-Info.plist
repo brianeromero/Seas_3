@@ -40,8 +40,6 @@
     <!-- Custom fields retained -->
     <key>FirebaseAppCheckDebugEnabled</key>
     <true/>
-    <key>FIRAAppCheckDebugToken</key>
-    <string>63D5068B-D8CD-434B-9916-CFC5CD2130CD</string>
     <key>GIDLogLevel</key>
     <string>VERBOSE</string>
 </dict>

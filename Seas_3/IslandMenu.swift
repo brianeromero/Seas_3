@@ -33,6 +33,9 @@ struct IslandMenu: View {
     @Binding var isLoggedIn: Bool
     @StateObject var appDayOfWeekViewModel: AppDayOfWeekViewModel
     let profileViewModel: ProfileViewModel
+    @State private var showToastMessage: String = ""
+    @State private var isToastShown: Bool = false
+
 
     let menuLeadingPadding: CGFloat = 50 + 0.5 * 10
     
@@ -104,6 +107,11 @@ struct IslandMenu: View {
                     loginPromptView
                 }
             }
+            .setupListeners(
+                showToastMessage: $showToastMessage,
+                isToastShown: $isToastShown,
+                isLoggedIn: isLoggedIn // Use the Binding<Bool> you already have
+            )
         }
         .edgesIgnoringSafeArea(.all)
         .alert(isPresented: $showAlert) {

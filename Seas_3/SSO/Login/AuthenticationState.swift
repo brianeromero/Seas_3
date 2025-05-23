@@ -131,6 +131,8 @@ public class AuthenticationState: ObservableObject {
         self.currentUser = nil
         updateAuthenticationStatus()
         Log.success("CoreData login successful: \(user.email)")
+        
+        loginCompletedSuccessfully() // Add this here
     }
     
     // MARK: - Firestore Login
@@ -311,7 +313,10 @@ public class AuthenticationState: ObservableObject {
             profilePictureUrl: user.photoURL,
             provider: provider
         )
+
+        loginCompletedSuccessfully() // Add this here
     }
+
     
     func handleSignInError(_ error: Error?, message: String? = nil) {
         self.hasError = true
@@ -407,5 +412,11 @@ extension SocialUser.Provider: CustomStringConvertible {
         // Future-proofing: handles any new providers added without breaking
         @unknown default: return "Unknown Provider"
         }
+    }
+}
+
+extension AuthenticationState {
+    func loginCompletedSuccessfully() {
+        FirestoreSyncManager.shared.syncInitialFirestoreData()
     }
 }

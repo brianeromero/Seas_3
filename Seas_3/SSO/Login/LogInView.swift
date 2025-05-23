@@ -304,7 +304,7 @@ public struct LoginView: View {
             navigationContent
             toastContent
         }
-        .setupListeners(showToastMessage: $showToastMessage, isToastShown: $isToastShown)
+        .setupListeners(showToastMessage: $showToastMessage, isToastShown: $isToastShown, isLoggedIn: authenticationState.isAuthenticated)
         .onAppear {
             print("Login screen loaded (LoginView)")
         }
@@ -436,6 +436,23 @@ extension View {
         }
     }
 }
+
+extension View {
+    func setupListeners(showToastMessage: Binding<String>, isToastShown: Binding<Bool>, isLoggedIn: Bool = false) -> some View {
+        self.onReceive(NotificationCenter.default.publisher(for: Notification.Name.showToast)) { notification in
+            guard isLoggedIn else { return }
+            if let message = notification.userInfo?["message"] as? String {
+                showToastMessage.wrappedValue = message
+                isToastShown.wrappedValue = true
+
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                    isToastShown.wrappedValue = false
+                }
+            }
+        }
+    }
+}
+
 
 // Preview with mock data
 struct LoginView_Previews: PreviewProvider {
