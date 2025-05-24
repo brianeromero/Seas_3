@@ -12,7 +12,7 @@ import Foundation
 enum ValidationError: String, Error, Equatable {
     case none = ""
     case invalidEmail = "Invalid email format."
-    case invalidUsername = "Username should be at least 7 characters long."
+    case invalidUsername = "Username must be at least 7 characters long and can include letters, numbers, spaces, and underscores."
     case invalidPassword = "Password should be at least 8 characters long."
     case tooShort = "Password is too short."
     case missingUppercase = "Password must contain at least one uppercase letter."
@@ -46,7 +46,7 @@ class ValidationUtility {
     private static let emailRegex = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
     private static let passwordRegex = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).{8,}$"
     private static let urlRegex = "^(https?:\\/\\/)?([\\da-z\\.-]+)\\.([a-z\\.]{2,6})([\\/\\w \\.-]*)*\\/?$"
-    private static let userNameRegex = "^[a-zA-Z0-9_]{7,}$"
+    private static let userNameRegex = #"^[a-zA-Z0-9_](?:[a-zA-Z0-9_ ]{5,}[a-zA-Z0-9_])$"#
     private static let zipRegex = "^[0-9]{5}(?:-[0-9]{4})?$"
     private static let postalCode = "^[0-9]{5}(?:-[0-9]{4})?$"
     internal static let postalCodeRegexPatterns: [String: String] = [

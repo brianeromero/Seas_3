@@ -173,37 +173,57 @@ public class AuthenticationState: ObservableObject {
             let accessToken = authentication.accessToken.tokenString
             let idToken = authentication.idToken?.tokenString
 
-            // Log token strings
-            print("🔑 Access Token: \(accessToken)")
-            print("🔑 ID Token: \(idToken ?? "nil")")
+            print("🔑 Access Token: \(accessToken.prefix(20))...")
+            print("🔑 ID Token: \(idToken?.prefix(20) ?? "nil")...")
 
-            // Decode ID token payload for debugging
             if let tokenString = idToken,
                let decoded = decodeJWTPart(tokenString) {
                 print("🧾 Decoded ID Token Payload: \(decoded)")
             }
 
-            // User profile info
             let email = user.profile?.email ?? "N/A"
             let name = user.profile?.name ?? "N/A"
-            let userID = user.userID
             print("""
             🔍 Google Sign-In Result:
-            - User ID: \(userID ?? "Missing User ID")
+            - User ID: \(user.userID ?? "Missing User ID")
             - Name: \(name)
             - Email: \(email)
             """)
 
-            // Require ID token to continue
             guard let idTokenString = idToken else {
                 print("❌ Missing ID token from Google user.")
                 handleSignInError(nil, message: "Google Sign-In failed: No ID token.")
                 return
             }
 
-            print("🔐 Tokens ready – ID Token prefix: \(idTokenString.prefix(20)), Access Token prefix: \(accessToken.prefix(20))")
+            do {
+                try await signInToFirebase(idToken: idTokenString, accessToken: accessToken)
+                print("✅ Signed in to Firebase with Google credentials.")
+            } catch {
+                print("❌ Failed to sign in to Firebase: \(error.localizedDescription)")
+                handleSignInError(error, message: "Firebase sign-in with Google credentials failed.")
+                return
+            }
 
-            await signInToFirebase(idToken: idTokenString, accessToken: accessToken)
+            guard let firebaseUser = Auth.auth().currentUser else {
+                print("❌ Firebase user is nil after sign-in")
+                handleSignInError(nil, message: "Firebase user not available after sign-in.")
+                return
+            }
+            print("✅ Firebase user successfully set – UID: \(firebaseUser.uid)")
+
+            do {
+                try await createOrUpdateGoogleUserInFirestore(
+                    userID: firebaseUser.uid,
+                    email: email,
+                    userName: name,
+                    name: name,
+                    belt: nil
+                )
+                print("✅ Firestore user document created/updated for Google user")
+            } catch {
+                print("❌ Failed to create/update Firestore user document: \(error)")
+            }
 
             updateSocialUser(
                 user.userID,
@@ -217,9 +237,41 @@ public class AuthenticationState: ObservableObject {
         } catch {
             print("❌ Error refreshing tokens: \(error)")
             handleSignInError(error, message: "Google Sign-In failed: No authentication object.")
-            return
         }
     }
+
+
+    private func createOrUpdateGoogleUserInFirestore(
+        userID: String,
+        email: String,
+        userName: String,
+        name: String,
+        belt: String? = ""
+    ) async throws {
+        guard !userID.isEmpty else {
+            throw NSError(domain: "UserIDMissing", code: 0, userInfo: [NSLocalizedDescriptionKey: "UserID is empty"])
+        }
+        
+        let userRef = Firestore.firestore().collection("users").document(userID)
+        let docSnapshot = try await userRef.getDocument()
+        
+        var userData: [String: Any] = [
+            "email": email,
+            "userName": userName,
+            "name": name,
+            "userID": userID,
+            "belt": belt ?? "",
+            "isVerified": true,
+            "lastLogin": Timestamp()
+        ]
+        
+        if !docSnapshot.exists {
+            userData["createdAt"] = Timestamp()
+        }
+
+        try await userRef.setData(userData, merge: true)
+    }
+
     
     // MARK: - Facebook Sign-In
     public func signInWithFacebook() async {
@@ -240,28 +292,37 @@ public class AuthenticationState: ObservableObject {
     // MARK: - Firebase Sign-In
     internal func signInToFirebase(with credential: AuthCredential) async throws {
         let result = try await Auth.auth().signIn(with: credential)
+        print("🔍 Current Firebase user: \(Auth.auth().currentUser?.uid ?? "nil")")
         await handleSuccessfulLogin(provider: detectProvider(from: credential), user: result.user)
     }
 
-    public func signInToFirebase(idToken: String, accessToken: String) async {
+    func signInToFirebase(idToken: String, accessToken: String) async throws {
         let credential = GoogleAuthProvider.credential(withIDToken: idToken, accessToken: accessToken)
-        
-        do {
-            print("📤 Signing in to Firebase with Google credentials...")
+
+        if let currentUser = Auth.auth().currentUser {
+            // Try to link Google account to existing user
+            do {
+                let authResult = try await currentUser.link(with: credential)
+                print("✅ Linked Google account to existing user: \(authResult.user.uid)")
+                await handleSuccessfulLogin(provider: .google, user: authResult.user)
+            } catch let error as NSError where error.code == AuthErrorCode.credentialAlreadyInUse.rawValue {
+                print("⚠️ Credential already in use. Attempting direct sign-in.")
+                let authResult = try await Auth.auth().signIn(with: credential)
+                print("✅ Signed in with Google credential: \(authResult.user.uid)")
+                await handleSuccessfulLogin(provider: .google, user: authResult.user)
+            } catch {
+                print("❌ Linking failed with unexpected error: \(error)")
+                throw error
+            }
+        } else {
+            // No user signed in, so sign in with Google credential normally
             let authResult = try await Auth.auth().signIn(with: credential)
-            print("✅ Firebase sign-in success – UID: \(authResult.user.uid)")
+            print("✅ Signed in with Google credential: \(authResult.user.uid)")
             await handleSuccessfulLogin(provider: .google, user: authResult.user)
-            
-        } catch {
-            let nsError = error as NSError
-            print("❌ Firebase sign-in failed!")
-            print("🧵 NSError domain: \(nsError.domain), code: \(nsError.code)")
-            print("📄 Full error: \(error.localizedDescription)")
-            handleSignInError(error)
         }
     }
 
-    
+
     private func detectProvider(from credential: AuthCredential) -> SocialUser.Provider {
         switch credential.provider {
         case "google.com": return .google
@@ -271,7 +332,7 @@ public class AuthenticationState: ObservableObject {
             return .google
         }
     }
-    
+
     
     // MARK: - Social User Helper
     public func updateSocialUser(

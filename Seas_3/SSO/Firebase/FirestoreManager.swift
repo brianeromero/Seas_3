@@ -20,29 +20,6 @@ public class FirestoreManager {
     }
     
     // MARK: - User Management
-    func createUser(userName: String, name: String) async throws {
-        if disabled { return }
-        print("Creating user with username: \(userName) and name: \(name)")
-        try await setDocument(in: .userInfos, id: userName, data: [
-            "userName": userName,
-            "name": name
-        ])
-        print("User created successfully")
-    }
-
-    
-    func createFirestoreUser(userName: String, name: String) async throws {
-        if disabled { return }
-        print("Creating Firestore user with username: \(userName) and name: \(name)")
-        let userRef = db.collection("users").document("user-\(userName)")
-        try await userRef.setData([
-            "name": name,
-            "userName": userName,
-            "createdAt": FieldValue.serverTimestamp()
-        ])
-        print("Firestore user created successfully")
-    }
-    
 
     // Also add the disabled check in other methods that interact with Firestore
     func saveIslandToFirestore(

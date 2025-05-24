@@ -223,20 +223,24 @@ struct LoginForm: View {
         }
     }
 
-
     private func signInWithEmail(email: String, password: String) async throws {
-        print("Attempting to sign in with email: \(email)") // Logging email sign-in attempt
+        print("Attempting to sign in with email: \(email)")
+
         do {
-            _ = try await Auth.auth().signIn(withEmail: email, password: password)
-            print("Successfully signed in with email: \(email)") // Logging success
+            let result = try await Auth.auth().signIn(withEmail: email, password: password)
+            print("Successfully signed in with email: \(email)")
+            print("✅ Firebase UID after sign-in: \(result.user.uid)") // <-- ✅ Best spot
+            print("🔍 Auth.auth().currentUser UID: \(Auth.auth().currentUser?.uid ?? "nil")")
+            print("Current Firebase user: \(Auth.auth().currentUser?.uid ?? "nil")")
+
 
             DispatchQueue.main.async {
                 self.authenticationState.isAuthenticated = true
                 self.isLoggedIn = true
-                showMainContent = true
+                self.showMainContent = true
             }
         } catch let error {
-            print("Error signing in with email: \(email) - \(error.localizedDescription)") // Logging error during email sign-in
+            print("Error signing in with email: \(email) - \(error.localizedDescription)")
             showAlert(with: error.localizedDescription)
             throw error
         }

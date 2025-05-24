@@ -35,16 +35,13 @@ struct ProfileView: View {
     @FocusState private var focusedField: Field?
 
     enum Field: Hashable {
-        case email
-        case username
-        case name
+        case email, username, name
     }
 
     enum ValidationType {
         case email, userName, name, password
     }
 
-    
     var body: some View {
         NavigationStack {
             VStack {
@@ -55,100 +52,91 @@ struct ProfileView: View {
                             .frame(height: 150)
                             .overlay(Text("Profile"))
                         
-                        
                         Form {
-                                Section(header: Text("Account Information")) {
-                                    VStack(alignment: .leading) {
-                                        // Email
-                                        HStack(alignment: .top) {
-                                            Text("Email:")
-                                            TextField("Email", text: $profileViewModel.email)
-                                                .disabled(!isEditing)
-                                                .foregroundColor(isEditing ? .primary : .gray)
-                                                .focused($focusedField, equals: .email)
-                                                .onChange(of: profileViewModel.email) { _ in
-                                                    validateField(.email)
-                                                    print("Email changed to: \(profileViewModel.email)")
-                                                }
-
-                                            if let errorMessage = errorMessages[.email] {
-                                                Text(errorMessage)
-                                                    .foregroundColor(.red)
-                                                    .font(.footnote)
+                            Section(header: Text("Account Information")) {
+                                // Email
+                                VStack(alignment: .leading, spacing: 4) {
+                                    HStack {
+                                        Text("Email:")
+                                        TextField("Email", text: $profileViewModel.email)
+                                            .disabled(!isEditing)
+                                            .foregroundColor(isEditing ? .primary : .gray)
+                                            .focused($focusedField, equals: .email)
+                                            .onChange(of: profileViewModel.email) { _ in
+                                                validateField(.email)
                                             }
-                                        }
-
-                                        // Username
-                                        HStack(alignment: .top) {
-                                            Text("Username:")
-                                            TextField("Username", text: $profileViewModel.userName)
-                                                .disabled(!isEditing)
-                                                .foregroundColor(isEditing ? .primary : .gray)
-                                                .focused($focusedField, equals: .username)
-                                                .onChange(of: profileViewModel.userName) { _ in
-                                                    validateField(.userName)
-                                                    print("Username changed to: \(profileViewModel.userName)")
-                                                }
-
-                                            if let errorMessage = errorMessages[.userName] {
-                                                Text(errorMessage)
-                                                    .foregroundColor(.red)
-                                                    .font(.footnote)
-                                            }
-                                        }
-
-                                        // Name
-                                        HStack(alignment: .top) {
-                                            Text("Name:")
-                                            TextField("Name", text: $profileViewModel.name)
-                                                .disabled(!isEditing)
-                                                .foregroundColor(isEditing ? .primary : .gray)
-                                                .focused($focusedField, equals: .name)
-                                                .onChange(of: profileViewModel.name) { _ in
-                                                    validateField(.name)
-                                                    print("Name changed to: \(profileViewModel.name)")
-                                                }
-
-                                            if let errorMessage = errorMessages[.name] {
-                                                Text(errorMessage)
-                                                    .foregroundColor(.red)
-                                                    .font(.footnote)
-                                            }
-                                        }
+                                    }
+                                    if let errorMessage = errorMessages[.email] {
+                                        Text(errorMessage)
+                                            .foregroundColor(.red)
+                                            .font(.footnote)
                                     }
                                 }
 
-                                // Belt Selection
-                                Section(header: HStack {
-                                    Text("Belt")
-                                    Text("(Optional)")
-                                        .foregroundColor(.gray)
-                                        .opacity(0.7)
-                                }) {
-                                    Menu {
-                                        ForEach(beltOptions, id: \.self) { belt in
-                                            Button(action: {
-                                                profileViewModel.belt = belt
-                                                print("Belt selected: \(belt)")
-                                            }) {
-                                                Text(belt)
+                                // Username
+                                VStack(alignment: .leading, spacing: 4) {
+                                    HStack {
+                                        Text("Username:")
+                                        TextField("Username", text: $profileViewModel.userName)
+                                            .disabled(!isEditing)
+                                            .foregroundColor(isEditing ? .primary : .gray)
+                                            .focused($focusedField, equals: .username)
+                                            .onChange(of: profileViewModel.userName) { _ in
+                                                validateField(.userName)
                                             }
-                                        }
-                                    } label: {
-                                        HStack {
-                                            Text(profileViewModel.belt.isEmpty ? "Not selected" : profileViewModel.belt)
-                                                .foregroundColor(isEditing ? .primary : .gray)
-                                            Spacer()
-                                            Image(systemName: "chevron.down")
-                                                .foregroundColor(.gray)
-                                        }
                                     }
-                                    .disabled(!isEditing)
+                                    if let errorMessage = errorMessages[.userName] {
+                                        Text(errorMessage)
+                                            .foregroundColor(.red)
+                                            .font(.footnote)
+                                    }
                                 }
 
+                                // Name
+                                VStack(alignment: .leading, spacing: 4) {
+                                    HStack {
+                                        Text("Name:")
+                                        TextField("Name", text: $profileViewModel.name)
+                                            .disabled(!isEditing)
+                                            .foregroundColor(isEditing ? .primary : .gray)
+                                            .focused($focusedField, equals: .name)
+                                            .onChange(of: profileViewModel.name) { _ in
+                                                validateField(.name)
+                                            }
+                                    }
+                                    if let errorMessage = errorMessages[.name] {
+                                        Text(errorMessage)
+                                            .foregroundColor(.red)
+                                            .font(.footnote)
+                                    }
+                                }
                             }
 
-
+                            // Belt Selection
+                            Section(header: HStack {
+                                Text("Belt")
+                                Text("(Optional)").foregroundColor(.gray).opacity(0.7)
+                            }) {
+                                Menu {
+                                    ForEach(beltOptions, id: \.self) { belt in
+                                        Button(action: {
+                                            profileViewModel.belt = belt
+                                        }) {
+                                            Text(belt)
+                                        }
+                                    }
+                                } label: {
+                                    HStack {
+                                        Text(profileViewModel.belt.isEmpty ? "Not selected" : profileViewModel.belt)
+                                            .foregroundColor(isEditing ? .primary : .gray)
+                                        Spacer()
+                                        Image(systemName: "chevron.down")
+                                            .foregroundColor(.gray)
+                                    }
+                                }
+                                .disabled(!isEditing)
+                            }
+                        }
 
                         // Sign Out
                         Button(action: {
@@ -164,7 +152,9 @@ struct ProfileView: View {
                                 .foregroundColor(.white)
                                 .cornerRadius(40)
                         }
-                        .padding(.top, 20)                    // Navigation Link to Login
+                        .disabled(isEditing)
+                        .padding(.top, 20)
+
                         NavigationLink(
                             destination: LoginView(
                                 islandViewModel: pirateIslandViewModel,
@@ -200,7 +190,6 @@ struct ProfileView: View {
                         }
                     }
                 }
-
                 ToolbarItem(placement: .navigationBarLeading) {
                     if isEditing {
                         Button("Cancel") {
@@ -212,34 +201,17 @@ struct ProfileView: View {
             .onAppear {
                 Task {
                     try? await Task.sleep(nanoseconds: 300_000_000)
-
-                    if let userInfo = await authViewModel.getCurrentUser() {
-                        profileViewModel.email = userInfo.email
-                        profileViewModel.userName = userInfo.userName
-                        profileViewModel.name = userInfo.name
-                        profileViewModel.belt = userInfo.belt ?? ""
-                        profileViewModel.isVerified = userInfo.isVerified
-                        profileViewModel.isProfileLoaded = true
-                    } else {
-                        print("User not signed in yet — cannot load profile")
-                    }
+                    await profileViewModel.loadProfile()
                 }
             }
             .alert(isPresented: $showSaveAlert) {
-                Alert(title: Text("Save Status"),
-                      message: Text(saveAlertMessage),
-                      dismissButton: .default(Text("OK")))
+                Alert(title: Text("Save Status"), message: Text(saveAlertMessage), dismissButton: .default(Text("OK")))
             }
             .alert(isPresented: $showValidationAlert) {
-                Alert(
-                    title: Text("Validation Error"),
-                    message: Text(validationAlertMessage),
-                    dismissButton: .default(Text("OK"))
-                )
+                Alert(title: Text("Validation Error"), message: Text(validationAlertMessage), dismissButton: .default(Text("OK")))
             }
         }
     }
-
 
     // MARK: - Helper Functions
 
@@ -272,42 +244,29 @@ struct ProfileView: View {
     }
 
     private func saveChanges() {
-        print("Save changes button tapped")
         guard let user = authViewModel.currentUser else {
-            print("User not authenticated - cannot save changes")
             saveAlertMessage = "User not authenticated. Please log in first."
             showSaveAlert = true
             return
         }
-        
-        print("Authenticated user: \(user.userID ?? "Unknown User")")
-        print("Validating profile...")
+
         let isValid = profileViewModel.validateProfile()
-        print("Validation result: \(isValid)")
-        print("Validation passed: \(isValid)")
 
         if !isValid {
-            print("Validation failed - showing alert")
             validationAlertMessage = "Please fix the validation errors before saving."
             showValidationAlert = true
             return
         }
 
-        print("Validation succeeded - proceeding with profile update")
         Task {
             do {
-                print("Calling updateProfile()")
                 try await profileViewModel.updateProfile()
-                print("Profile update completed successfully")
                 saveAlertMessage = "Profile saved successfully!"
                 showSaveAlert = true
                 isEditing = false
-                print("Profile saved and editing mode disabled")
             } catch {
-                print("Error during profile update: \(error.localizedDescription)")
                 saveAlertMessage = "Failed to save profile: \(error.localizedDescription)"
                 showSaveAlert = true
-                print("Error alert will be shown to user")
             }
         }
     }
@@ -323,35 +282,5 @@ struct ProfileView: View {
         case .password:
             errorMessages[.password] = profileViewModel.validatePassword(profileViewModel.password)
         }
-        print("Error for \(fieldType): \(errorMessages[fieldType] ?? "No error")")
-    }
-}
-
-
-// MARK: - Preview
-
-struct ProfileView_Previews: PreviewProvider {
-    static var previews: some View {
-        let viewContext = PersistenceController.preview.viewContext
-        let profileViewModel = ProfileViewModel(viewContext: viewContext)
-        let authViewModel = AuthViewModel()
-
-        profileViewModel.email = "example@email.com"
-        profileViewModel.userName = "john_doe"
-        profileViewModel.name = "John Doe"
-        profileViewModel.belt = "Black"
-        profileViewModel.showPasswordChange = false
-
-        @State var selectedTabIndex: LoginViewSelection = .login
-
-        return NavigationView {
-            ProfileView(
-                profileViewModel: profileViewModel,
-                authViewModel: authViewModel,
-                selectedTabIndex: $selectedTabIndex,
-                setupGlobalErrorHandler: {}
-            )
-        }
-        .previewDisplayName("Profile View Preview")
     }
 }

@@ -27,7 +27,7 @@ class EmailSignOn {
                      salt: hashedPassword.salt,  // Use the salt Data directly here
                      iterations: Int64(hashedPassword.iterations),  // Store the iterations
                      isVerified: false,
-                     belt: nil,
+                     belt: "", // default to "Not selected"
                      verificationToken: nil,
                      userID: UUID().uuidString) // Convert UUID to String here
             

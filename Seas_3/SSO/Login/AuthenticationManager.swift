@@ -152,7 +152,7 @@ class AuthenticationManager {
             salt: Data(),
             iterations: 0,
             isVerified: firebaseUser.isEmailVerified,
-            belt: nil,
+            belt: "", // default to "Not selected
             verificationToken: nil,
             userID: firebaseUser.uid
         )
