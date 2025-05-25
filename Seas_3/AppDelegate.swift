@@ -57,38 +57,39 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         case noTokenReceived, invalidToken
     }
 
+
     func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
         
-        // ✅ 1. Configure Firebase + App Check FIRST
+        // ✅ 1. Configure Firebase & App Check first
         configureFirebaseIfNeeded()
-
-        // ✅ 2. Facebook SDK (must come after Firebase)
+        
+        // ✅ 2. Facebook SDK (after Firebase)
         ApplicationDelegate.shared.application(application, didFinishLaunchingWithOptions: launchOptions)
-
-        // ✅ 3. App-wide flags (optional)
+        
+        // ✅ 3. Optional Debug flag
         UserDefaults.standard.set(true, forKey: "AppAuthDebug")
-
-        // ✅ 4. Remaining setup in safe order
+        
+        // ✅ 4. App-specific config/setup
         configureAppConfigValues()
         configureApplicationAppearance()
         configureGoogleSignIn()
         configureNotifications(for: application)
         configureGoogleAds()
 
-
-
         // ✅ 5. Safe to sync Firestore after Firebase is fully initialized
-        FirestoreSyncManager.shared.syncInitialFirestoreData()
+       // FirestoreSyncManager.shared.syncInitialFirestoreData()
 
-        // ✅ 6. IDFA (ad tracking) — unrelated to Firebase
+        // ✅ 6. Defer Keychain test to avoid premature access
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            self.testKeychainAccessGroup()
+        }
+    
+        // ✅ 7.IDFA request — independent of Firebase
         IDFAHelper.requestIDFAPermission()
-
-        // ✅ 7. Optional keychain check
-        testKeychainAccessGroup()
-
+    
         // ✅ 8. DO NOT REGISTER DebugURLProtocol unless absolutely necessary
         
         /*
