@@ -107,19 +107,28 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: "testAccount",
             kSecAttrService as String: "testService",
-            kSecAttrAccessGroup as String: "com.google.iid", // Change to the keychain group you want to test
+            kSecAttrAccessGroup as String: "com.google.iid",
             kSecReturnAttributes as String: true
         ]
 
         var result: AnyObject?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
 
-        if status == errSecSuccess {
-            print("✅ Access group is accessible: \(result!)")
-        } else if status == errSecItemNotFound {
+        switch status {
+        case errSecSuccess:
+            print("✅ Access group is accessible: \(String(describing: result))")
+        case errSecItemNotFound:
             print("🔍 Access group is available, item not found — that’s okay.")
-        } else {
-            print("❌ Keychain access failed: \(status)")
+        case errSecDuplicateItem:
+            print("⚠️ Duplicate item found in Keychain.")
+        case errSecAuthFailed:
+            print("🔒 Authentication failed for Keychain access.")
+        case errSecInteractionNotAllowed:
+            print("🚫 Interaction with Keychain is not allowed (e.g., device locked).")
+        case -34018:
+            print("🔑 Unknown error, possibly related to entitlements or access rights.")
+        default:
+            print("❌ Keychain access failed with status: \(status). Check Apple’s documentation for more details.")
         }
     }
 

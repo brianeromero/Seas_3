@@ -25,8 +25,8 @@ class FirestoreSyncManager {
                 try await createFirestoreCollection()
                 await downloadFirestoreRecordsToLocal(collectionName: "pirateIslands", records: [])
                 await downloadFirestoreRecordsToLocal(collectionName: "reviews", records: [])
-                await downloadFirestoreRecordsToLocal(collectionName: "matTimes", records: [])
                 await downloadFirestoreRecordsToLocal(collectionName: "AppDayOfWeek", records: [])
+                await downloadFirestoreRecordsToLocal(collectionName: "matTimes", records: [])
             } catch {
                 print("❌ Firestore sync error: \(error.localizedDescription)")
             }
@@ -37,9 +37,10 @@ class FirestoreSyncManager {
         let collectionsToCheck = [
             "pirateIslands",
             "reviews",
-            "MatTime",
-            "AppDayOfWeek"
+            "AppDayOfWeek", // ⬅️ AppDayOfWeek must come before MatTime
+            "MatTime"
         ]
+
 
         for collectionName in collectionsToCheck {
             do {
@@ -325,7 +326,6 @@ class FirestoreSyncManager {
                         }
 
 
-                        
                     case "MatTime":
                         // Check if the MatTime already exists in Core Data
                         var matTime = fetchMatTimeByID(record)
@@ -345,15 +345,23 @@ class FirestoreSyncManager {
                             matTime.goodForBeginners = docSnapshot.get("goodForBeginners") as? Bool ?? false
                             matTime.kids = docSnapshot.get("kids") as? Bool ?? false
                             matTime.createdTimestamp = (docSnapshot.get("createdTimestamp") as? Timestamp)?.dateValue()
-                            
-                            // Link to AppDayOfWeek
+
+                            // ✅ Debug print to see raw Firestore appDayOfWeek field
+                            print("📦 Firestore MatTime doc raw appDayOfWeek:", docSnapshot.get("appDayOfWeek") ?? "nil")
+
+                            // ✅ Link to AppDayOfWeek
                             if let appDayOfWeekRef = docSnapshot.get("appDayOfWeek") as? DocumentReference {
                                 let appDayOfWeekID = appDayOfWeekRef.documentID
                                 if let appDayOfWeek = fetchAppDayOfWeekByID(appDayOfWeekID) {
                                     matTime.appDayOfWeek = appDayOfWeek
+                                } else {
+                                    print("❗️AppDayOfWeek with ID \(appDayOfWeekID) not found in Core Data")
                                 }
+                            } else {
+                                print("⚠️ appDayOfWeek field is not a DocumentReference")
                             }
                         }
+
 
                     case "AppDayOfWeek":
                         var appDayOfWeek = fetchAppDayOfWeekByID(record)
@@ -463,83 +471,35 @@ class FirestoreSyncManager {
     private func fetchAppDayOfWeekByID(_ id: String) -> AppDayOfWeek? {
         let context = PersistenceController.shared.container.viewContext
         let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
+        
         fetchRequest.predicate = NSPredicate(format: "appDayOfWeekID == %@", id)
+        fetchRequest.fetchLimit = 1 // Ensures we only fetch one result
 
         do {
-            let results = try context.fetch(fetchRequest)
-            return results.first // Return the first match, or nil if none found
+            return try context.fetch(fetchRequest).first
         } catch {
-            print("Error fetching AppDayOfWeek by ID: \(error.localizedDescription)")
+            print("❌ Error fetching AppDayOfWeek with ID \(id): \(error.localizedDescription)")
             return nil
         }
     }
 
 
+
     private func syncAppDayOfWeekRecords() async {
-        // Fetch Firestore records for "AppDayOfWeek"
         let db = Firestore.firestore()
         let collectionRef = db.collection("AppDayOfWeek")
         do {
             let querySnapshot = try await collectionRef.getDocuments()
             let firestoreRecords = querySnapshot.documents.compactMap { $0.documentID }
 
-            // Fetch local Core Data records for "AppDayOfWeek"
             let localRecords = try? await PersistenceController.shared.fetchLocalRecords(forCollection: "AppDayOfWeek")
-
-            // Identify records that exist in Firestore but not in Core Data
             let localRecordsSet = Set(localRecords ?? [])
             let recordsToDownload = firestoreRecords.filter { !localRecordsSet.contains($0) }
 
-            // Download Firestore records to Core Data
-            await downloadAppDayOfWeekRecords(records: recordsToDownload)
+            await downloadFirestoreRecordsToLocal(collectionName: "AppDayOfWeek", records: recordsToDownload)
         } catch {
             print("Error syncing appDayOfWeek records: \(error.localizedDescription)")
         }
     }
 
-    private func downloadAppDayOfWeekRecords(records: [String]) async {
-        // Get a reference to the Core Data context
-        let context = PersistenceController.shared.container.viewContext
-        let db = Firestore.firestore()
-        let collectionRef = db.collection("AppDayOfWeek")
-
-        // Loop through each record to download
-        for record in records {
-            // Get a reference to the Firestore document
-            let docRef = collectionRef.document(record)
-
-            // Fetch the Firestore document
-            do {
-                let docSnapshot = try await docRef.getDocument()
-
-                // Check if the document exists
-                if docSnapshot.exists {
-                    // Create a new Core Data object
-                    let newRecord = AppDayOfWeek(context: context)
-                    newRecord.appDayOfWeekID = record
-                    newRecord.day = docSnapshot.get("day") as? String ?? ""
-                    newRecord.name = docSnapshot.get("name") as? String
-                    newRecord.createdTimestamp = (docSnapshot.get("createdTimestamp") as? Timestamp)?.dateValue()
-
-                    // Save the new record to Core Data
-                    await context.perform {
-                        do {
-                            try context.save()
-                            print("Downloaded appDayOfWeek record \(record) to Core Data")
-                        } catch let error {
-                            print("Error downloading appDayOfWeek record \(record) to Core Data: \(error.localizedDescription)")
-                        }
-                    }
-                } else {
-                    print("Firestore document does not exist for record: \(record)")
-                }
-            } catch {
-                print("Error fetching Firestore document for record: \(record): \(error.localizedDescription)")
-            }
-        }
-    }
-
-
-    
-    
 }
