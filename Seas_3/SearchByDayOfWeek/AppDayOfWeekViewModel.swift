@@ -468,6 +468,38 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
             throw FetchError.failedToFetchMatTimes(error)
         }
     }
+    
+    
+    @MainActor
+    func updateMatTime(_ matTime: MatTime) async throws {
+        guard let appDayOfWeek = matTime.appDayOfWeek else {
+            print("MatTime has no associated AppDayOfWeek")
+            return
+        }
+
+        let result = try await updateOrCreateMatTime(
+            matTime,
+            time: matTime.time ?? "",
+            type: matTime.type ?? "",
+            gi: matTime.gi,
+            noGi: matTime.noGi,
+            openMat: matTime.openMat,
+            restrictions: matTime.restrictions,
+            restrictionDescription: matTime.restrictionDescription ?? "",
+            goodForBeginners: matTime.goodForBeginners,
+            kids: matTime.kids,
+            for: appDayOfWeek
+        )
+
+        print("✅ Mat time updated successfully: \(result.id?.uuidString ?? "")")
+        
+        // If you want to trigger an alert, you can either:
+        // - Use a `@Published var alertMessage: String?` in the ViewModel
+        // - Or handle it from the calling View
+    }
+
+
+    
     // MARK: - Update Day
     func updateDay(for island: PirateIsland, dayOfWeek: DayOfWeek) async {
         print("Updating day settings for gym: \(island) and dayOfWeek: \(dayOfWeek)")
@@ -918,25 +950,28 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
     }
     
     // MARK: - Remove MatTime
-    func removeMatTime(_ matTime: MatTime) async {
-        print("Removing MatTime: \(matTime)")
-        
-        // Ensure that 'id' is unwrapped before using it in Firestore
-        if let matTimeID = matTime.id?.uuidString {
-            do {
-                // Remove from Firestore
-                try await firestore.collection("matTimes").document(matTimeID).delete()
-                
-                // Remove from Core Data
-                viewContext.delete(matTime)
-                await saveData()
-            } catch {
-                print("Failed to remove MatTime from Firestore: \(error.localizedDescription)")
-            }
-        } else {
+    func removeMatTime(_ matTime: MatTime) async throws {
+        guard let matTimeID = matTime.id?.uuidString else {
             print("MatTime does not have a valid ID.")
+            throw NSError(domain: "AppDayOfWeekViewModel", code: 1, userInfo: [NSLocalizedDescriptionKey: "Invalid MatTime ID"])
+        }
+
+        do {
+            // Delete from Firestore
+            try await firestore.collection("matTimes").document(matTimeID).delete()
+
+            // Delete from Core Data on main thread
+            await MainActor.run {
+                viewContext.delete(matTime)
+            }
+
+            await saveData()
+        } catch {
+            print("Failed to remove MatTime: \(error.localizedDescription)")
+            throw error
         }
     }
+
     
     // MARK: - Clear Selections
     func clearSelections() {

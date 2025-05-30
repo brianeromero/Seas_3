@@ -18,16 +18,29 @@ struct ScheduledMatTimesSection: View {
     @State private var matTimes: [MatTime] = []
     @State private var error: String?
     
-    private let fetchQueue = DispatchQueue(label: "fetch-queue")
+    @State private var successMessage: String?
+    @State private var showSuccessAlert: Bool = false
+    @State private var showErrorAlert: Bool = false
+
     
+    
+    @State private var editingMatTime: MatTime?
+    @State private var showEditModal = false
+    
+    private let fetchQueue = DispatchQueue(label: "fetch-queue")
+
     var body: some View {
         Section(header: Text("Scheduled Mat Times")) {
             if let error = error {
-                // Show error message inside the section
-                Text("⚠️ \(error)")
-                    .foregroundColor(.red)
+                Text("⚠️ \(error)").foregroundColor(.red)
             } else if !matTimes.isEmpty {
-                MatTimesList(day: day, matTimes: matTimes)
+                MatTimesList(day: day, matTimes: matTimes,
+                             onEdit: { matTime in
+                                 showEditSheet(for: matTime)
+                             },
+                             onDelete: { matTime in
+                                 deleteMatTime(matTime)
+                             })
             } else {
                 Text("No mat times have been entered for \(day.rawValue.capitalized) at \(island.islandName ?? "this gym").")
                     .foregroundColor(.gray)
@@ -38,9 +51,29 @@ struct ScheduledMatTimesSection: View {
         }
         .onChange(of: selectedDay) { _, _ in fetchMatTimes(day: self.selectedDay ?? self.day) }
         .onChange(of: island) { _, _ in fetchMatTimes(day: self.selectedDay ?? self.day) }
-        .alert(isPresented: .init(get: { error != nil }, set: { _ in error = nil })) {
-            Alert(title: Text("Error"), message: Text(error ?? ""))
+        .alert(isPresented: $showSuccessAlert) {
+            Alert(title: Text("Success"),
+                  message: Text(successMessage ?? "Update completed successfully."),
+                  dismissButton: .default(Text("OK")) { successMessage = nil })
         }
+        .alert(isPresented: $showErrorAlert) {
+            Alert(title: Text("Error"),
+                  message: Text(error ?? "Something went wrong."),
+                  dismissButton: .default(Text("OK")) { error = nil })
+        }
+        .sheet(isPresented: $showEditModal) {
+            if let editingMatTime = editingMatTime {
+                EditMatTimeView(matTime: editingMatTime) { updatedMatTime in
+                    updateMatTime(updatedMatTime)
+                    showEditModal = false
+                }
+            }
+        }
+    }
+
+    func showEditSheet(for matTime: MatTime) {
+        editingMatTime = matTime
+        showEditModal = true
     }
     
     func fetchMatTimes(day: DayOfWeek) {
@@ -72,16 +105,56 @@ struct ScheduledMatTimesSection: View {
                    appDayOfWeek.day.caseInsensitiveCompare(day.rawValue) == .orderedSame
         }
     }
+    
+    
 
     func sortMatTimes(_ matTimes: [MatTime]) -> [MatTime] {
         return matTimes.sorted { $0.time ?? "" < $1.time ?? "" }
     }
+    
+    func deleteMatTime(_ matTime: MatTime) {
+        Task {
+            do {
+                try await viewModel.removeMatTime(matTime)
+                fetchMatTimes(day: self.selectedDay ?? self.day)
+            } catch {
+                await MainActor.run {
+                    self.error = "Failed to delete mat time: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
+    
+    func updateMatTime(_ updatedMatTime: MatTime) {
+        Task {
+            do {
+                try await viewModel.updateMatTime(updatedMatTime)
+                await MainActor.run {
+                    self.successMessage = "Mat time updated successfully!"
+                    self.showSuccessAlert = true
+                }
+                fetchMatTimes(day: self.selectedDay ?? self.day)
+            } catch {
+                await MainActor.run {
+                    self.error = "Failed to update mat time: \(error.localizedDescription)"
+                    self.showErrorAlert = true
+                }
+            }
+        }
+    }
+
+    
 }
 
 
 struct MatTimesList: View {
     let day: DayOfWeek
     let matTimes: [MatTime]
+
+    // Callbacks for edit and delete actions
+    var onEdit: ((MatTime) -> Void)?
+    var onDelete: ((MatTime) -> Void)?
 
     var body: some View {
         List {
@@ -117,13 +190,13 @@ struct MatTimesList: View {
                             }
                         }
                     }
-                    
+
                     if matTime.restrictions {
                         Text("Restrictions: \(matTime.restrictionDescription ?? "Yes")")
                             .font(.caption)
                             .foregroundColor(.red)
                     }
-                    
+
                     HStack {
                         if matTime.goodForBeginners {
                             HStack {
@@ -140,6 +213,26 @@ struct MatTimesList: View {
                             }
                         }
                     }
+
+                    // Edit & Delete buttons
+                    HStack {
+                        Spacer()
+                        Button(action: {
+                            onEdit?(matTime)
+                        }) {
+                            Image(systemName: "pencil")
+                                .foregroundColor(.blue)
+                        }
+                        .buttonStyle(BorderlessButtonStyle())
+
+                        Button(action: {
+                            onDelete?(matTime)
+                        }) {
+                            Image(systemName: "trash")
+                                .foregroundColor(.red)
+                        }
+                        .buttonStyle(BorderlessButtonStyle())
+                    }
                 }
                 .padding()
             }
@@ -147,6 +240,7 @@ struct MatTimesList: View {
         .navigationBarTitle(Text("Scheduled Mat Times for \(day.rawValue.capitalized)"))
     }
 }
+
 
 func debugPrintMatTimes(_ matTimes: [MatTime]) {
     for matTime in matTimes {

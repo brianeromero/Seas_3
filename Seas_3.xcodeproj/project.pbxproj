@@ -89,6 +89,7 @@
 		0CC1120F2C45F7D80066CF80 /* MatTime+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC1120D2C45F7D80066CF80 /* MatTime+CoreDataClass.swift */; };
 		0CC112102C45F7D80066CF80 /* MatTime+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC1120E2C45F7D80066CF80 /* MatTime+CoreDataProperties.swift */; };
 		0CC29C802CEC49AA00FC48F9 /* IslandDetails.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC29C7F2CEC49AA00FC48F9 /* IslandDetails.swift */; };
+		0CC8AA312DEA5476001D9E9F /* EditMatTimeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC8AA302DEA5451001D9E9F /* EditMatTimeView.swift */; };
 		0CD376E02CED4C7200491DD8 /* AdSettings+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CD376DE2CED4C7200491DD8 /* AdSettings+CoreDataClass.swift */; };
 		0CD376E12CED4C7200491DD8 /* AdSettings+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CD376DF2CED4C7200491DD8 /* AdSettings+CoreDataProperties.swift */; };
 		0CD4E2BF2C7CDA0C005082AC /* ScheduledMatTimesSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CD4E2BE2C7CDA0C005082AC /* ScheduledMatTimesSection.swift */; };
@@ -246,6 +247,7 @@
 		0CC1120D2C45F7D80066CF80 /* MatTime+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MatTime+CoreDataClass.swift"; sourceTree = SOURCE_ROOT; };
 		0CC1120E2C45F7D80066CF80 /* MatTime+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MatTime+CoreDataProperties.swift"; sourceTree = SOURCE_ROOT; };
 		0CC29C7F2CEC49AA00FC48F9 /* IslandDetails.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandDetails.swift; sourceTree = "<group>"; };
+		0CC8AA302DEA5451001D9E9F /* EditMatTimeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditMatTimeView.swift; sourceTree = "<group>"; };
 		0CCA11C52C79105F003CAB7C /* Review+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Review+CoreDataClass.swift"; sourceTree = "<group>"; };
 		0CCA11C62C79105F003CAB7C /* Review+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Review+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		0CD376DE2CED4C7200491DD8 /* AdSettings+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AdSettings+CoreDataClass.swift"; sourceTree = "<group>"; };
@@ -581,6 +583,7 @@
 				0CD4E2BE2C7CDA0C005082AC /* ScheduledMatTimesSection.swift */,
 				0C1893D42C7F9621007BFADB /* ViewScheduleforIsland.swift */,
 				0CDBEA2F2D024CA500559B6A /* MatTimesViewModel.swift */,
+				0CC8AA302DEA5451001D9E9F /* EditMatTimeView.swift */,
 			);
 			path = SchedulesView;
 			sourceTree = "<group>";
@@ -796,7 +799,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1540;
-				LastUpgradeCheck = 1630;
+				LastUpgradeCheck = 1640;
 				TargetAttributes = {
 					0CF13E402C2A326700D714C0 = {
 						CreatedOnToolsVersion = 15.4;
@@ -1058,6 +1061,7 @@
 				0C33DC152CC09E7C002C4835 /* PrivacyPolicy.swift in Sources */,
 				0C07B0B92C2D017500D0BFB2 /* WhoWeAre.swift in Sources */,
 				0C6F7BDC2C7931E600072237 /* GymMatReviewSelect.swift in Sources */,
+				0CC8AA312DEA5476001D9E9F /* EditMatTimeView.swift in Sources */,
 				0CDBEA302D024CA500559B6A /* MatTimesViewModel.swift in Sources */,
 				0C07B0A42C2D002000D0BFB2 /* EnterZipCodeView.swift in Sources */,
 				0C524E8F2C2F8592008D6623 /* LocationManager.swift in Sources */,

@@ -97,9 +97,23 @@ struct AddOpenMatFormView: View {
     func removeMatTimes(at indices: IndexSet, for day: DayOfWeek) {
         indices.forEach { index in
             guard let matTime = viewModel.matTimesForDay[day]?[index] else { return }
-            DispatchQueue.main.async {
-                Task {
-                    await viewModel.removeMatTime(matTime)
+
+            Task {
+                do {
+                    try await viewModel.removeMatTime(matTime)
+                    
+                    // 🔄 Re-fetch updated list
+                    let updatedMatTimes = try viewModel.fetchMatTimes(for: day)
+                    
+                    // 👇 Ensure UI update on main thread
+                    await MainActor.run {
+                        viewModel.matTimesForDay[day] = updatedMatTimes
+                    }
+                } catch {
+                    await MainActor.run {
+                        self.alertMessage = "Failed to remove mat time: \(error.localizedDescription)"
+                        self.showAlert = true
+                    }
                 }
             }
         }

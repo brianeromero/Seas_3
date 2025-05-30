@@ -17,7 +17,7 @@ private func formatDateToString(_ date: Date) -> String {
     return formatter.string(from: date)
 }
 
-private func stringToDate(_ string: String) -> Date? {
+func stringToDate(_ string: String) -> Date? {
     let formatter = DateFormatter()
     formatter.dateFormat = "h:mm a"
     return formatter.date(from: string)
