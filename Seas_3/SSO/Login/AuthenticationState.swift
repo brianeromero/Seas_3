@@ -196,13 +196,31 @@ public class AuthenticationState: ObservableObject {
                 return
             }
 
-            do {
-                try await signInToFirebase(idToken: idTokenString, accessToken: accessToken)
-                print("✅ Signed in to Firebase with Google credentials.")
-            } catch {
-                print("❌ Failed to sign in to Firebase: \(error.localizedDescription)")
-                handleSignInError(error, message: "Firebase sign-in with Google credentials failed.")
+            guard let currentUser = Auth.auth().currentUser else {
+                // User is not signed in, attempt to sign in
+                do {
+                    try await signInToFirebase(idToken: idTokenString, accessToken: accessToken)
+                    print("✅ Signed in to Firebase with Google credentials.")
+                } catch {
+                    print("❌ Failed to sign in to Firebase: \(error.localizedDescription)")
+                    handleSignInError(error, message: "Firebase sign-in with Google credentials failed.")
+                    return
+                }
                 return
+            }
+
+            if currentUser.providerData.contains(where: { $0.providerID == "google.com" }) {
+                print("User is already signed in with Google")
+            } else {
+                // Attempt to sign in
+                do {
+                    try await signInToFirebase(idToken: idTokenString, accessToken: accessToken)
+                    print("✅ Signed in to Firebase with Google credentials.")
+                } catch {
+                    print("❌ Failed to sign in to Firebase: \(error.localizedDescription)")
+                    handleSignInError(error, message: "Firebase sign-in with Google credentials failed.")
+                    return
+                }
             }
 
             guard let firebaseUser = Auth.auth().currentUser else {
@@ -239,7 +257,6 @@ public class AuthenticationState: ObservableObject {
             handleSignInError(error, message: "Google Sign-In failed: No authentication object.")
         }
     }
-
 
     private func createOrUpdateGoogleUserInFirestore(
         userID: String,

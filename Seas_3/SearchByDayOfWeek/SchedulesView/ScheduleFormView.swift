@@ -201,7 +201,7 @@ struct ScheduleFormView: View {
                         viewModel.selectedAppDayOfWeek = nil
                         isAppDayOfWeekLoaded = false
                         alertTitle = "No Schedule Available"
-                        alertMessage = "No mat times available or have been entered for \(newDay.displayName) at \(selectedIsland.islandName ?? "this gym")."
+                        alertMessage = "No mat times have been entered for \(newDay.displayName) at \(selectedIsland.islandName ?? "this gym")."
                         showingAlert = true
                     }
                     isLoading = false

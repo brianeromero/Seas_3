@@ -342,7 +342,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
 
         // 🚨 Show alert message if no data exists
         alertTitle = "No Mat Times Available"
-        alertMessage = "No mat times available or have been entered for \(day.displayName) at \(island.islandName ?? "this gym")."
+        alertMessage = "No mat times have been entered for \(day.displayName) at \(island.islandName ?? "this gym")."
         showAlert = true
 
         print("❌ No AppDayOfWeek found")

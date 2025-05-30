@@ -145,8 +145,8 @@ struct AddNewMatTimeSection: View {
                     viewModel.selectedAppDayOfWeek = appDayOfWeek
                 } else {
                     alertTitle = "No Mat Times Found"
-                    alertMessage = "No mat times are available or have been entered for \(selectedDay.displayName)."
-                    print("Failed to fetch or create AppDayOfWeek-No mat times available or have been entered for \(selectedDay.displayName).")
+                    alertMessage = "No mat times have been entered for \(selectedDay.displayName)."
+                    print("Failed to fetch or create AppDayOfWeek-No mat times have been entered for \(selectedDay.displayName).")
                     showAlert = true
                 }
                 isLoading = false
