@@ -473,11 +473,11 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
     @MainActor
     func updateMatTime(_ matTime: MatTime) async throws {
         guard let appDayOfWeek = matTime.appDayOfWeek else {
-            print("MatTime has no associated AppDayOfWeek")
+            print("❌ MatTime has no associated AppDayOfWeek")
             return
         }
 
-        let result = try await updateOrCreateMatTime(
+        let updatedMatTime = try await updateOrCreateMatTime(
             matTime,
             time: matTime.time ?? "",
             type: matTime.type ?? "",
@@ -491,13 +491,27 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
             for: appDayOfWeek
         )
 
-        print("✅ Mat time updated successfully: \(result.id?.uuidString ?? "")")
-        
-        // If you want to trigger an alert, you can either:
-        // - Use a `@Published var alertMessage: String?` in the ViewModel
-        // - Or handle it from the calling View
-    }
+        print("✅ Mat time updated locally: \(updatedMatTime.id?.uuidString ?? "nil")")
 
+        // ✅ Update Firestore
+        guard let matTimeID = updatedMatTime.id?.uuidString else {
+            print("❌ Missing matTime ID")
+            return
+        }
+
+        var matTimeData = updatedMatTime.toFirestoreData()
+        matTimeData["appDayOfWeek"] = Firestore.firestore()
+            .collection("AppDayOfWeek")
+            .document(appDayOfWeek.appDayOfWeekID ?? "")
+
+        let matTimeRef = Firestore.firestore()
+            .collection("MatTime")
+            .document(matTimeID)
+
+        print("📤 Updating MatTime in Firestore: \(matTimeID)")
+        try await matTimeRef.setData(matTimeData, merge: true)
+        print("✅ Firestore update successful.")
+    }
 
     
     // MARK: - Update Day

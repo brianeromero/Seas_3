@@ -10,6 +10,8 @@ import SwiftUI
 import CoreData
 
 struct ScheduledMatTimesSection: View {
+    @Environment(\.managedObjectContext) private var context
+
     let island: PirateIsland
     let day: DayOfWeek
     @ObservedObject var viewModel: AppDayOfWeekViewModel
@@ -49,27 +51,51 @@ struct ScheduledMatTimesSection: View {
         .onAppear {
             fetchMatTimes(day: self.day)
         }
-        .onChange(of: selectedDay) { _, _ in fetchMatTimes(day: self.selectedDay ?? self.day) }
-        .onChange(of: island) { _, _ in fetchMatTimes(day: self.selectedDay ?? self.day) }
+        .onChange(of: selectedDay) { _, _ in
+            fetchMatTimes(day: self.selectedDay ?? self.day)
+        }
+        .onChange(of: island) { _, _ in
+            fetchMatTimes(day: self.selectedDay ?? self.day)
+        }
         .alert(isPresented: $showSuccessAlert) {
             Alert(title: Text("Success"),
                   message: Text(successMessage ?? "Update completed successfully."),
-                  dismissButton: .default(Text("OK")) { successMessage = nil })
+                  dismissButton: .default(Text("OK")) {
+                      successMessage = nil
+                  })
         }
         .alert(isPresented: $showErrorAlert) {
             Alert(title: Text("Error"),
                   message: Text(error ?? "Something went wrong."),
-                  dismissButton: .default(Text("OK")) { error = nil })
+                  dismissButton: .default(Text("OK")) {
+                      error = nil
+                  })
         }
         .sheet(isPresented: $showEditModal) {
             if let editingMatTime = editingMatTime {
                 EditMatTimeView(matTime: editingMatTime) { updatedMatTime in
-                    updateMatTime(updatedMatTime)
-                    showEditModal = false
+                    Task {
+                        do {
+                            try context.save()
+                            try! await viewModel.updateMatTime(updatedMatTime)
+                            await MainActor.run {
+                                showEditModal = false
+                                successMessage = "Mat time updated!"
+                                showSuccessAlert = true
+                                fetchMatTimes(day: selectedDay ?? day)
+                            }
+                        } catch let caughtError {
+                            await MainActor.run {
+                                error = "Failed to save changes: \(caughtError.localizedDescription)"
+                                showErrorAlert = true
+                            }
+                        }
+                    }
                 }
             }
         }
     }
+
 
     func showEditSheet(for matTime: MatTime) {
         editingMatTime = matTime

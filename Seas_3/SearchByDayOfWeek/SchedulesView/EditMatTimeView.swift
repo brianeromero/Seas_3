@@ -9,9 +9,7 @@ import Foundation
 import SwiftUI
 import CoreData
 
-
 struct EditMatTimeView: View {
-    @State private var time: String
     @State private var gi: Bool
     @State private var noGi: Bool
     @State private var openMat: Bool
@@ -20,6 +18,8 @@ struct EditMatTimeView: View {
     @State private var goodForBeginners: Bool
     @State private var kids: Bool
     
+    @State private var selectedTime: Date
+
     let matTime: MatTime
     let onSave: (MatTime) -> Void
     @Environment(\.presentationMode) var presentationMode
@@ -27,8 +27,7 @@ struct EditMatTimeView: View {
     init(matTime: MatTime, onSave: @escaping (MatTime) -> Void) {
         self.matTime = matTime
         self.onSave = onSave
-        // Initialize state with current values from matTime
-        _time = State(initialValue: matTime.time ?? "")
+        
         _gi = State(initialValue: matTime.gi)
         _noGi = State(initialValue: matTime.noGi)
         _openMat = State(initialValue: matTime.openMat)
@@ -36,14 +35,18 @@ struct EditMatTimeView: View {
         _restrictionDescription = State(initialValue: matTime.restrictionDescription ?? "")
         _goodForBeginners = State(initialValue: matTime.goodForBeginners)
         _kids = State(initialValue: matTime.kids)
+        
+        // Parse the matTime.time string into Date using your DateFormat.time formatter
+        let parsedDate = DateFormat.time.date(from: matTime.time ?? "") ?? Date()
+        _selectedTime = State(initialValue: parsedDate)
     }
 
     var body: some View {
         NavigationView {
             Form {
                 Section(header: Text("Time")) {
-                    TextField("Time (e.g., 18:30)", text: $time)
-                        .keyboardType(.numbersAndPunctuation)
+                    DatePicker("Select Time", selection: $selectedTime, displayedComponents: .hourAndMinute)
+                        .datePickerStyle(WheelDatePickerStyle()) // Change style if you want
                 }
                 
                 Section(header: Text("Class Types")) {
@@ -65,17 +68,21 @@ struct EditMatTimeView: View {
                 }
             }
             .navigationTitle("Edit Mat Time")
-            .navigationBarItems(leading: Button("Cancel") {
-                presentationMode.wrappedValue.dismiss()
-            }, trailing: Button("Save") {
-                saveChanges()
-            })
+            .navigationBarItems(
+                leading: Button("Cancel") {
+                    presentationMode.wrappedValue.dismiss()
+                },
+                trailing: Button("Save") {
+                    saveChanges()
+                }
+            )
         }
     }
 
     private func saveChanges() {
-        // Update the matTime instance with new values
-        matTime.time = time
+        // Format selectedTime Date to string (e.g., "18:30") using your DateFormat.time
+        matTime.time = DateFormat.time.string(from: selectedTime)
+        
         matTime.gi = gi
         matTime.noGi = noGi
         matTime.openMat = openMat
