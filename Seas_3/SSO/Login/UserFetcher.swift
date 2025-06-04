@@ -11,7 +11,7 @@ import FirebaseAuth
 import CoreData
 
 class UserFetcher {
-    private let db = Firestore.firestore()
+    private lazy var db = Firestore.firestore()
 
     // Unified fetch function
     func fetchUser(usernameOrEmail: String, context: NSManagedObjectContext?) async throws -> UserInfo {

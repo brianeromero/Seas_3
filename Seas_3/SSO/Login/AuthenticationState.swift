@@ -144,23 +144,37 @@ public class AuthenticationState: ObservableObject {
     }
 
     // MARK: - Logout
+    @MainActor
     public func logout(completion: @escaping () -> Void = {}) {
-        print("🔒 Logging out...")
-        resetState()
-        completion()
-        print("🔒 Logout complete.")
+        Task {
+            do {
+                try await AuthViewModel.shared.logoutUser() // Firebase sign out
+                resetState() // Reset your local auth flags here
+                
+                completion()
+                print("🔒 Logout complete.")
+            } catch {
+                // Handle error if needed
+                print("❌ Logout failed: \(error)")
+                errorMessage = error.localizedDescription
+                hasError = true
+                completion()
+            }
+        }
     }
 
     private func resetState() {
-        self.userInfo = nil
-        self.currentUser = nil
-        self.socialUser = nil
-        self.isAuthenticated = false
-        self.isLoggedIn = false
-        self.isAdmin = false
-        self.hasError = false
-        self.errorMessage = ""
+        isAuthenticated = false
+        isLoggedIn = false
+        isAdmin = false
+        socialUser = nil
+        userInfo = nil
+        currentUser = nil
+        navigateToAdminMenu = false
+        errorMessage = ""
+        hasError = false
     }
+
     
     // MARK: - Google Sign-In
     public func completeGoogleSignIn(with result: GIDSignInResult) async {

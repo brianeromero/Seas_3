@@ -12,20 +12,18 @@ public class FirestoreManager {
     public static let shared = FirestoreManager()
 
     var disabled: Bool = false
-    
-    private let db: Firestore
-    
-    private init() {
-        self.db = Firestore.firestore()
-    }
-    
-    // MARK: - User Management
+    private lazy var db = Firestore.firestore()
 
-    // Also add the disabled check in other methods that interact with Firestore
+    private init() {
+        // You can do any setup here if needed.
+        print("FirestoreManager initialized with Firestore instance.")
+    }
+
+    // MARK: - Example method
     func saveIslandToFirestore(
         island: PirateIsland,
         selectedCountry: Country,
-        createdByUser: User // <- new parameter
+        createdByUser: User
     ) async throws {
         if disabled { return }
         print("Saving island to Firestore: \(island.safeIslandName)")
@@ -36,20 +34,19 @@ public class FirestoreManager {
             return
         }
 
-        // Convert UUID to String explicitly for Firestore (assuming Firestore expects a String)
-        let islandIDString = (island.islandID)?.uuidString ?? UUID().uuidString
+        let islandIDString = island.islandID?.uuidString ?? UUID().uuidString
         let createdByUserIDString = createdByUser.id
 
         let islandRef = db.collection("pirateIslands").document(islandIDString)
 
         let islandData: [String: Any] = [
-            "id": islandIDString, // Use the String version of islandID
+            "id": islandIDString,
             "name": island.safeIslandName,
             "location": island.safeIslandLocation,
             "country": selectedCountry.name.common,
             "createdByUserId": island.createdByUserId ?? "Unknown User",
             "createdBy": [
-                "id": createdByUserIDString, // Use the String version of createdByUser.id
+                "id": createdByUserIDString,
                 "name": createdByUser.userName,
                 "email": createdByUser.email
             ],
@@ -64,7 +61,6 @@ public class FirestoreManager {
         try await islandRef.setData(islandData, merge: true)
         print("Island saved successfully to Firestore")
     }
-
 
     // MARK: - Collection Management
     enum Collection: String {

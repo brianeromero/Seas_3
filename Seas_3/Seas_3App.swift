@@ -5,92 +5,19 @@ import FBSDKCoreKit
 import GoogleSignInSwift
 import GoogleSignIn
 
-
 @main
 struct Seas_3App: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    @StateObject var appState = AppState()
-    @StateObject var authenticationState = AuthenticationState(hashPassword: HashPassword())
-    @StateObject private var persistenceController = PersistenceController.shared
-    @StateObject var profileViewModel = ProfileViewModel(
-        viewContext: PersistenceController.shared.container.viewContext,
-        authViewModel: AuthViewModel.shared
-    )
-    @StateObject var authViewModel = AuthViewModel.shared
 
     @State private var selectedTabIndex: LoginViewSelection = .login
 
-
     var body: some Scene {
         WindowGroup {
-            ZStack {
-                if appState.showWelcomeScreen {
-                    PirateIslandView(appState: appState)
-                        .transition(.opacity)
-                        .onAppear {
-                            print("👀 PirateIslandView appeared at \(Date())")
-                            print("📊 Current State: showWelcomeScreen = \(appState.showWelcomeScreen)")
-
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-                                print("⏰ Dismissing PirateIslandView at \(Date())")
-                                withAnimation(.easeInOut(duration: 1)) {
-                                    print("🏁 Setting appState.showWelcomeScreen = false")
-                                    appState.showWelcomeScreen = false
-                                }
-                            }
-                            setupGlobalErrorHandler()
-                        }
-                        .onDisappear {
-                            print("👋 PirateIslandView disappeared at \(Date())")
-                        }
-
-                } else if authenticationState.isAuthenticated && authenticationState.navigateToAdminMenu {
-                    AdminMenu()
-                        .environment(\.managedObjectContext, persistenceController.container.viewContext)
-                        .environmentObject(authenticationState)
-                        .environmentObject(appState)
-                        .environmentObject(profileViewModel)
-                        .onAppear {
-                            print("✅ AdminMenu appeared at \(Date())")
-                            print("📊 Auth State: isAuthenticated = \(authenticationState.isAuthenticated), navigateToAdminMenu = \(authenticationState.navigateToAdminMenu)")
-                            setupGlobalErrorHandler()
-                        }
-
-                } else if authenticationState.isAuthenticated && authenticationState.isLoggedIn {
-                    IslandMenu(
-                        isLoggedIn: $authenticationState.isLoggedIn,
-                        authViewModel: authViewModel,
-                        profileViewModel: profileViewModel
-                    )
-                    .environment(\.managedObjectContext, persistenceController.container.viewContext)
-                    .environmentObject(authenticationState)
-                    .environmentObject(appState)
-                    .onAppear {
-                        print("✅ IslandMenu appeared at \(Date())")
-                        print("📊 Auth State: isAuthenticated = \(authenticationState.isAuthenticated), isLoggedIn = \(authenticationState.isLoggedIn)")
-
-                        let sceneLoader = SceneLoader()
-                        sceneLoader.loadScene()
-                        setupGlobalErrorHandler()
-                    }
-
-                } else {
-                    LoginView(
-                        islandViewModel: PirateIslandViewModel(persistenceController: persistenceController),
-                        profileViewModel: profileViewModel,
-                        isSelected: $selectedTabIndex,
-                        navigateToAdminMenu: $authenticationState.navigateToAdminMenu,
-                        isLoggedIn: $authenticationState.isLoggedIn
-                    )
-                    .environment(\.managedObjectContext, persistenceController.container.viewContext)
-                    .environmentObject(authenticationState)
-                    .onAppear {
-                        print("✅ LoginView appeared at \(Date())")
-                        print("📊 Auth State: isAuthenticated = \(authenticationState.isAuthenticated), isLoggedIn = \(authenticationState.isLoggedIn)")
-                        setupGlobalErrorHandler()
-                    }
-                }
-            }
+            AppRootView(
+                appDelegate: appDelegate,
+                selectedTabIndex: $selectedTabIndex,
+                appState: appDelegate.appState   // Pass shared instance directly
+            )
         }
     }
 
@@ -104,7 +31,85 @@ struct Seas_3App: App {
     }
 }
 
-// Add this extension for PersistenceController in Environment
+struct AppRootView: View {
+    let appDelegate: AppDelegate
+    @Binding var selectedTabIndex: LoginViewSelection
+    @ObservedObject var appState: AppState
+
+    var body: some View {
+        if appDelegate.isFirebaseConfigured {
+            if appState.showWelcomeScreen {
+                PirateIslandView(appState: appState)
+                    .transition(.opacity)
+                    // Removed .animation modifier here
+                    .onAppear {
+                        print("✅ Firebase is configured. Showing app content.")
+                        print("👀 PirateIslandView appeared at \(Date())")
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                            print("⏰ Dismissing PirateIslandView at \(Date())")
+                            withAnimation(.easeInOut(duration: 1)) {
+                                appState.showWelcomeScreen = false
+                            }
+                        }
+                        NSSetUncaughtExceptionHandler { exception in
+                            NSLog("🔥 Uncaught Exception: %@", exception)
+                            if let reason = exception.reason {
+                                NSLog("🛑 Reason: %@", reason)
+                            }
+                        }
+                    }
+                    .onDisappear {
+                        print("👋 PirateIslandView disappeared at \(Date())")
+                    }
+            } else {
+                if appDelegate.authenticationState.isAuthenticated &&
+                    appDelegate.authenticationState.navigateToAdminMenu {
+                    AdminMenu()
+                        .environment(\.managedObjectContext, appDelegate.persistenceController.container.viewContext)
+                        .environmentObject(appDelegate.authenticationState)
+                        .environmentObject(appState)
+                        .environmentObject(appDelegate.profileViewModel!)
+                } else if appDelegate.authenticationState.isAuthenticated &&
+                            appDelegate.authenticationState.isLoggedIn {
+                    IslandMenu(
+                        isLoggedIn: Binding(
+                            get: { appDelegate.authenticationState.isLoggedIn },
+                            set: { appDelegate.authenticationState.isLoggedIn = $0 }
+                        ),
+                        authViewModel: appDelegate.authViewModel,
+                        profileViewModel: appDelegate.profileViewModel!
+                    )
+                    .environment(\.managedObjectContext, appDelegate.persistenceController.container.viewContext)
+                    .environmentObject(appDelegate.authenticationState)
+                    .environmentObject(appState)
+                } else {
+                    LoginView(
+                        islandViewModel: PirateIslandViewModel(persistenceController: appDelegate.persistenceController),
+                        profileViewModel: appDelegate.profileViewModel!,
+                        isSelected: $selectedTabIndex,
+                        navigateToAdminMenu: Binding(
+                            get: { appDelegate.authenticationState.navigateToAdminMenu },
+                            set: { appDelegate.authenticationState.navigateToAdminMenu = $0 }
+                        ),
+                        isLoggedIn: Binding(
+                            get: { appDelegate.authenticationState.isLoggedIn },
+                            set: { appDelegate.authenticationState.isLoggedIn = $0 }
+                        )
+                    )
+                    .environment(\.managedObjectContext, appDelegate.persistenceController.container.viewContext)
+                    .environmentObject(appDelegate.authenticationState)
+                }
+            }
+        } else {
+            ProgressView("Configuring Firebase...")
+                .onAppear {
+                    print("⏳ Waiting for Firebase to configure...")
+                }
+        }
+    }
+}
+
+// Optional: Extension for injecting PersistenceController via Environment
 struct PersistenceControllerKey: EnvironmentKey {
     static var defaultValue: PersistenceController { PersistenceController.shared }
 }

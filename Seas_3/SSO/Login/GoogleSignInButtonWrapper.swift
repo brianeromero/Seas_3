@@ -60,21 +60,16 @@ struct GoogleSignInButtonWrapper: View {
 
         Task {
             do {
-                let scopes = ["openid", "email", "profile"]
-                logger.debug("Calling GIDSignIn.sharedInstance.signIn...")
+                logger.debug("Calling GIDSignIn.sharedInstance.signIn")
 
-                let result = try await GIDSignIn.sharedInstance.signIn(
-                    withPresenting: rootVC,
-                    hint: nil,
-                    additionalScopes: scopes
-                )
+                let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: rootVC)
 
-                logger.debug("Google sign-in success. Passing result to AuthenticationState.")
+                logger.debug("Google sign-in succeeded. User: \(result.user.profile?.email ?? "unknown email", privacy: .public)")
+
                 await authenticationState.completeGoogleSignIn(with: result)
 
             } catch {
-                logger.error("Google Sign-In failed: \(error, privacy: .public)")
-                logger.error("Error details: \(String(describing: error))")
+                logger.error("Google sign-in error: \(error.localizedDescription, privacy: .public)")
                 errorMessage = error.localizedDescription
                 showError = true
                 handleError(errorMessage)

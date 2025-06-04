@@ -56,6 +56,8 @@ class PersistenceController: ObservableObject {
         }
     }
     
+    
+    
     private init() {
         self.firestoreManager = FirestoreManager.shared
         container = NSPersistentContainer(name: "Seas_3") // Use your Core Data model name

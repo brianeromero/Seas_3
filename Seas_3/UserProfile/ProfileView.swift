@@ -140,7 +140,8 @@ struct ProfileView: View {
 
                         // Sign Out
                         Button(action: {
-                            authViewModel.signOut {
+                            Task {
+                                await authViewModel.signOut()
                                 navigateToLoginPage()
                             }
                         }) {
@@ -244,7 +245,7 @@ struct ProfileView: View {
     }
 
     private func saveChanges() {
-        guard let user = authViewModel.currentUser else {
+        guard authViewModel.currentUser != nil else {
             saveAlertMessage = "User not authenticated. Please log in first."
             showSaveAlert = true
             return

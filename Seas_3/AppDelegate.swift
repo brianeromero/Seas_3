@@ -38,8 +38,17 @@ extension NSNotification.Name {
 }
 
 class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUserNotificationCenterDelegate {
-
     var window: UIWindow?
+    
+    // App-wide shared instances
+    let appState = AppState()
+    lazy var persistenceController = PersistenceController.shared
+    lazy var firestoreManager = FirestoreManager.shared
+
+    let authenticationState = AuthenticationState(hashPassword: HashPassword())
+    var authViewModel: AuthViewModel!
+    var profileViewModel: ProfileViewModel?
+
     let appConfig = AppConfig.shared
 
     // Config values
@@ -56,13 +65,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
     enum AppCheckTokenError: Error {
         case noTokenReceived, invalidToken
     }
+    
+    static var shared: AppDelegate {
+        UIApplication.shared.delegate as! AppDelegate
+    }
 
 
-    func application(
-        _ application: UIApplication,
-        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
-    ) -> Bool {
-        
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // ✅ 1. Configure Firebase & App Check first
         configureFirebaseIfNeeded()
         
@@ -279,29 +288,35 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
     }
 }
 
-
 private extension AppDelegate {
     
     func configureFirebaseIfNeeded() {
+        print("🔧 Configuring Firebase...")
         guard !isFirebaseConfigured else {
             print("ℹ️ Firebase already configured.")
             return
         }
         
-#if DEBUG
+    #if DEBUG
         AppCheck.setAppCheckProviderFactory(AppCheckDebugProviderFactory())
-#else
+    #else
         AppCheck.setAppCheckProviderFactory(AppCheckDeviceCheckProviderFactory())
-#endif
+    #endif
         
         FirebaseApp.configure()
+        print("✅ Firebase configured.")
+
         isFirebaseConfigured = true
-        
-        FirebaseConfiguration.shared.setLoggerLevel(.debug)
-        Firestore.firestore().settings.isPersistenceEnabled = false
-        
+        NotificationCenter.default.post(name: .firebaseConfigured, object: nil)
+
+        self.authViewModel = AuthViewModel()
+        self.profileViewModel = ProfileViewModel(
+            viewContext: persistenceController.container.viewContext,
+            authViewModel: authViewModel
+        )
         configureMessaging()
     }
+    
     
     func configureMessaging() {
         Messaging.messaging().delegate = self
@@ -362,3 +377,6 @@ private extension AppDelegate {
     }
 }
 
+extension Notification.Name {
+    static let firebaseConfigured = Notification.Name("firebaseConfigured")
+}

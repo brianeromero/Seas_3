@@ -13,7 +13,9 @@ struct AdminMenu: View {
     @Environment(\.persistenceController) private var persistenceController
     @EnvironmentObject var authenticationState: AuthenticationState
     private var appDayOfWeekRepository: AppDayOfWeekRepository
-    let firestoreManager = FirestoreManager.shared
+    private var firestoreManager: FirestoreManager {
+        FirestoreManager.shared
+    }
 
     @StateObject private var enterZipCodeViewModel: EnterZipCodeViewModel
     @StateObject private var appDayOfWeekViewModel: AppDayOfWeekViewModel
@@ -109,10 +111,10 @@ struct AdminMenu: View {
 
     private func signOut() {
         authenticationState.logout {
-            // Perform additional cleanup if necessary
             print("User signed out successfully")
         }
     }
+
 }
 
 // Mock classes for previews

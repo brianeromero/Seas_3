@@ -13,6 +13,8 @@ import CoreData
 import Combine
 import os
 import os.log
+import GoogleSignIn
+
 
 // Define AuthError enum
 enum AuthError: Error, LocalizedError {
@@ -85,8 +87,15 @@ enum CoreDataError: Error, LocalizedError {
 }
 
 class AuthViewModel: ObservableObject {
-    // Create a shared instance of AuthViewModel
-    static let shared = AuthViewModel()
+    static var shared: AuthViewModel {
+        get {
+            if _shared == nil {
+                _shared = AuthViewModel()
+            }
+            return _shared!
+        }
+    }
+    private static var _shared: AuthViewModel?
     @Published var usernameOrEmail: String = ""
     @Published var password: String = ""
     @Published var isSignInEnabled: Bool = false
@@ -97,7 +106,7 @@ class AuthViewModel: ObservableObject {
     @Published var isUserProfileActive: Bool = false
     @Published var formState: FormState = FormState()
 
-    private let auth = Auth.auth()
+    private lazy var auth = Auth.auth()
     public let context: NSManagedObjectContext
     private let emailManager: UnifiedEmailManager
 
@@ -701,20 +710,30 @@ class AuthViewModel: ObservableObject {
 
     
     // Sign out user from Firebase with a completion handler
-    func signOut(navigateToLogin: @escaping () -> Void) {
+    func signOut() async {
         do {
-            try auth.signOut() // Firebase sign-out
-            self.userSession = nil
-            self.currentUser = nil
+            try auth.signOut()
+            print("Firebase sign-out successful.")
             
-            // Call the navigation closure after sign-out
-            navigateToLogin()
+            GIDSignIn.sharedInstance.signOut()
+            print("Google sign-out successful.")
             
-            print("User signed out successfully.")
+            // Reset states
+            await MainActor.run {
+                self.userSession = nil
+                self.currentUser = nil
+                self.usernameOrEmail = ""
+                self.password = ""
+                self.isSignInEnabled = false
+                self.formState = FormState()
+            }
+            print("Authentication state cleared.")
         } catch {
             print("Error signing out: \(error.localizedDescription)")
         }
     }
+
+
     
     func getUserId() async throws -> String {
         guard let user = auth.currentUser else {
