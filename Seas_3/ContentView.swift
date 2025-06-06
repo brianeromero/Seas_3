@@ -123,12 +123,3 @@ struct ContentView: View {
         }
     }
 }
-
-#if DEBUG
-struct ContentView_Previews: PreviewProvider {
-    static var previews: some View {
-        ContentView(persistenceController: PersistenceController.preview)
-            .environmentObject(PersistenceController.preview)
-    }
-}
-#endif

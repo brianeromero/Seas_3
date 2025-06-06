@@ -21,12 +21,12 @@ struct DayOfWeekSearchView: View {
         repository: AppDayOfWeekRepository.shared,
         enterZipCodeViewModel: EnterZipCodeViewModel(
             repository: AppDayOfWeekRepository.shared,
-            persistenceController: PersistenceController.preview
+            persistenceController: PersistenceController.shared
         )
     )
     @StateObject private var enterZipCodeViewModel = EnterZipCodeViewModel(
         repository: AppDayOfWeekRepository.shared,
-        persistenceController: PersistenceController.preview
+        persistenceController: PersistenceController.shared
     )
 
     init(

@@ -74,7 +74,7 @@ struct AppRootView: View {
                     IslandMenu(
                         isLoggedIn: Binding(
                             get: { appDelegate.authenticationState.isLoggedIn },
-                            set: { appDelegate.authenticationState.isLoggedIn = $0 }
+                            set: { appDelegate.authenticationState.setIsLoggedIn($0) }
                         ),
                         authViewModel: appDelegate.authViewModel,
                         profileViewModel: appDelegate.profileViewModel!
@@ -93,7 +93,7 @@ struct AppRootView: View {
                         ),
                         isLoggedIn: Binding(
                             get: { appDelegate.authenticationState.isLoggedIn },
-                            set: { appDelegate.authenticationState.isLoggedIn = $0 }
+                            set: { appDelegate.authenticationState.setIsLoggedIn($0) }
                         )
                     )
                     .environment(\.managedObjectContext, appDelegate.persistenceController.container.viewContext)

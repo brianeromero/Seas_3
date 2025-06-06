@@ -49,9 +49,3 @@ struct ExampleUsageView: View {
     }
 }
 
-// Preview provider for ExampleUsageView
-struct ExampleUsageView_Previews: PreviewProvider {
-    static var previews: some View {
-        ExampleUsageView().environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
-    }
-}

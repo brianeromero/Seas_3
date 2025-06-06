@@ -86,12 +86,3 @@ extension String {
         return ValidationUtility.validateEmail(self) == nil
     }
 }
-
-
-struct ForgotYourPasswordView_Previews: PreviewProvider {
-    static var previews: some View {
-        let context = PersistenceController.preview.container.viewContext
-        ForgotYourPasswordView().environment(\.managedObjectContext, context)
-    }
-}
-

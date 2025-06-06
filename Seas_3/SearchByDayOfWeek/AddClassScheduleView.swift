@@ -82,34 +82,3 @@ struct AddClassScheduleView: View {
         }
     }
 }
-
-struct AddClassScheduleView_Previews: PreviewProvider {
-    static var previews: some View {
-        let persistenceController = PersistenceController.preview
-
-        // Initialize AppDayOfWeekRepository with the preview PersistenceController
-        let mockRepository = AppDayOfWeekRepository(persistenceController: persistenceController)
-
-        // Initialize EnterZipCodeViewModel with mock data
-        let mockEnterZipCodeViewModel = EnterZipCodeViewModel(
-            repository: mockRepository,
-            persistenceController: persistenceController
-        )
-
-        // Initialize AppDayOfWeekViewModel with mock data
-        let viewModel = AppDayOfWeekViewModel(
-            selectedIsland: nil,
-            repository: mockRepository,
-            enterZipCodeViewModel: mockEnterZipCodeViewModel
-        )
-
-        // Provide a constant binding for `isPresented`
-        let isPresented = Binding<Bool>(
-            get: { true },
-            set: { _ in }
-        )
-
-        return AddClassScheduleView(viewModel: viewModel, isPresented: isPresented)
-            .previewDisplayName("Add Class Schedule Preview")
-    }
-}

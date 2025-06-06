@@ -98,9 +98,9 @@ struct AccountAuthView: View {
                     }
                 } else if isSelected == .createAccount {
                     CreateAccountView(
-                        islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.preview),
+                        islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.shared),
                         isUserProfileActive: $isUserProfileActive,
-                        persistenceController: PersistenceController.preview,
+                        persistenceController: PersistenceController.shared,
                         selectedTabIndex: $selectedTabIndex,
                         emailManager: UnifiedEmailManager.shared
                     )
@@ -115,43 +115,5 @@ struct AccountAuthView: View {
                 )
             }
         }
-    }
-}
-
-// Enhanced Preview Provider
-struct AccountAuthView_Previews: PreviewProvider {
-    static var previews: some View {
-        AccountAuthView(
-            islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.preview),
-            isUserProfileActive: .constant(false),
-            navigateToAdminMenu: .constant(false), // Add this line
-            emailManager: UnifiedEmailManager.shared
-        )
-        .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
-        .previewLayout(.sizeThatFits)
-        .previewDisplayName("Account Creation Form - Default")
-
-        // Additional Previews with different states
-        AccountAuthView(
-            islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.preview),
-            isUserProfileActive: .constant(true),
-            navigateToAdminMenu: .constant(false), // Add this line
-            emailManager: UnifiedEmailManager.shared
-        )
-        .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
-        .environmentObject(AuthenticationState(hashPassword: HashPassword()))
-        .previewLayout(.sizeThatFits)
-        .previewDisplayName("Account Creation Form - UserProfile Active")
-
-        // Preview with error message (Set error message within the view)
-        AccountAuthView(
-            islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.preview),
-            isUserProfileActive: .constant(false),
-            navigateToAdminMenu: .constant(false), // Add this line
-            emailManager: UnifiedEmailManager.shared
-        )
-        .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
-        .previewLayout(.sizeThatFits)
-        .previewDisplayName("Account Creation Form - Error")
     }
 }

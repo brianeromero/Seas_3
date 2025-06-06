@@ -44,29 +44,3 @@ struct IslandSection: View {
         .id(selectedIsland?.islandID ?? UUID()) // Use UUID to force view reload on islandID change
     }
 }
-
-
-
-struct IslandSection_Previews: PreviewProvider {
-    static var previews: some View {
-        Preview()
-    }
-}
-
-struct Preview: View {
-    @State var islands: [PirateIsland] = []
-
-    var body: some View {
-        IslandSection(islands: islands, selectedIsland: .constant(nil), showReview: .constant(false))
-            .previewLayout(.sizeThatFits)
-            .padding()
-            .previewDisplayName("Gym Section Preview")
-            .task {
-                do {
-                    islands = try await PersistenceController.preview.fetchAllPirateIslands()
-                } catch {
-                    print("Error fetching pirate islands: \(error.localizedDescription)")
-                }
-            }
-    }
-}

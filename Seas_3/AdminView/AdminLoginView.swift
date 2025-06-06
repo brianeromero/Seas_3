@@ -58,8 +58,7 @@ struct AdminLoginView: View {
         if isValid {
             print("Access granted. Navigating to AdminMenu.")
             alertMessage = "Access Granted"
-            authenticationState.isAuthenticated = true
-            authenticationState.navigateToAdminMenu = true
+            authenticationState.adminLoginSucceeded()
             isPresented = false
         } else {
             print("Invalid credentials.")

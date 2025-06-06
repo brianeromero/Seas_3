@@ -157,7 +157,7 @@ class ViewReviewSearchViewModel: ObservableObject {
     }
 }
     
-
+/*
 // Preview
 struct ViewReviewSearch_Previews: PreviewProvider {
     static var previews: some View {
@@ -219,3 +219,4 @@ struct ViewReviewSearch_Previews: PreviewProvider {
         }
     }
 }
+*/

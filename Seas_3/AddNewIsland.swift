@@ -314,38 +314,3 @@ struct AddNewIsland: View {
     }
 
 }
-
-// MARK: - Preview
-struct AddNewIsland_Previews: PreviewProvider {
-    static var previews: some View {
-        let persistenceController = PersistenceController.preview
-        let profileViewModel = ProfileViewModel(viewContext: persistenceController.viewContext, authViewModel: AuthViewModel.shared)
-        profileViewModel.name = "Brian Romero"
-
-        let islandViewModel = PirateIslandViewModel(persistenceController: persistenceController)
-        
-        // Create a mock IslandDetails for the preview
-        var mockIslandDetails = IslandDetails()
-        mockIslandDetails.islandName = "Test Island"
-        mockIslandDetails.street = "123 Paradise Ave"
-        mockIslandDetails.city = "Wonderland"
-        mockIslandDetails.state = "Fantasy"
-        mockIslandDetails.postalCode = "12345"
-        
-        // Use the Country model from your existing CountryService
-        let mockCountry = Country(name: Country.Name(common: "USA"), cca2: "US", flag: "🇺🇸")
-        mockIslandDetails.selectedCountry = mockCountry
-
-        // Create a mock AuthViewModel for the preview
-        let mockAuthViewModel = AuthViewModel.shared
-        
-        // Create a Binding for islandDetails
-        let islandDetailsBinding = Binding(
-            get: { mockIslandDetails },
-            set: { mockIslandDetails = $0 }
-        )
-        
-        return AddNewIsland(islandViewModel: islandViewModel, profileViewModel: profileViewModel, authViewModel: mockAuthViewModel, islandDetails: islandDetailsBinding)
-            .environment(\.managedObjectContext, persistenceController.viewContext)
-    }
-}

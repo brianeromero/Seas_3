@@ -111,28 +111,3 @@ struct pIslandScheduleView: View {
         }
     }
 }
-
-struct pIslandScheduleView_Previews: PreviewProvider {
-    static var previews: some View {
-        let persistenceController = PersistenceController.preview
-
-        // Initialize AppDayOfWeekRepository with the preview PersistenceController
-        let mockRepository = AppDayOfWeekRepository(persistenceController: persistenceController)
-
-        // Initialize a mock EnterZipCodeViewModel
-        let mockEnterZipCodeViewModel = EnterZipCodeViewModel(
-            repository: mockRepository,
-            persistenceController: persistenceController
-        )
-
-        // Initialize AppDayOfWeekViewModel with mock data
-        let viewModel = AppDayOfWeekViewModel(
-            selectedIsland: nil,
-            repository: mockRepository,
-            enterZipCodeViewModel: mockEnterZipCodeViewModel
-        )
-
-        return pIslandScheduleView(viewModel: viewModel)
-            .previewDisplayName("Gym Schedule Preview")
-    }
-}

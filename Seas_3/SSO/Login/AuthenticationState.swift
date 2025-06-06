@@ -72,19 +72,24 @@ public class EmailValidator: Validator {
 }
 
 // MARK: - AuthenticationState
+
 @MainActor
 public class AuthenticationState: ObservableObject {
     // MARK: - Published Properties
-    @Published var isAuthenticated: Bool = false
-    @Published var isLoggedIn: Bool = false
+    @Published public private(set) var isAuthenticated: Bool = false
+    @Published public private(set) var isLoggedIn = false
+    @Published public private(set) var isAdmin = false
+    
+    @Published public private(set) var socialUser: SocialUser?
+    @Published public private(set) var userInfo: UserInfo?
+    @Published public private(set) var currentUser: User?
+    
+    @Published public private(set) var errorMessage = ""
+    @Published public private(set) var hasError = false
+    
+    @Published public var navigateToAdminMenu = false
+    
 
-    @Published var isAdmin: Bool = false
-    @Published var socialUser: SocialUser?
-    @Published var userInfo: UserInfo?
-    @Published var currentUser: User?
-    @Published var errorMessage: String = ""
-    @Published var hasError: Bool = false
-    @Published var navigateToAdminMenu: Bool = false
     
     // MARK: - Private Properties
     private let validator: Validator
@@ -98,6 +103,7 @@ public class AuthenticationState: ObservableObject {
     }
     
     // MARK: - CoreData Login
+    /// Attempts login with a local CoreData user and plaintext password
     public func login(_ user: UserInfo, password: String) throws {
         print("🔐 Attempting CoreData login for user: \(user.email)")
         
@@ -113,7 +119,7 @@ public class AuthenticationState: ObservableObject {
         
         do {
             let hashedPassword = try convertToHashedPassword(user.passwordHash)
-            if try !hashPassword.verifyPasswordScrypt(password, againstHash: hashedPassword) {
+            guard try hashPassword.verifyPasswordScrypt(password, againstHash: hashedPassword) else {
                 print("❌ Password verification failed for user: \(user.email)")
                 throw AuthenticationError.invalidPassword
             }
@@ -132,10 +138,11 @@ public class AuthenticationState: ObservableObject {
         updateAuthenticationStatus()
         Log.success("CoreData login successful: \(user.email)")
         
-        loginCompletedSuccessfully() // Add this here
+        loginCompletedSuccessfully()
     }
     
     // MARK: - Firestore Login
+    /// Logs in with a Firestore `User` object
     public func login(user: User) {
         self.currentUser = user
         self.userInfo = nil
@@ -144,18 +151,16 @@ public class AuthenticationState: ObservableObject {
     }
 
     // MARK: - Logout
-    @MainActor
+    /// Logs out the current user, resetting local state and signing out from Firebase
     public func logout(completion: @escaping () -> Void = {}) {
         Task {
             do {
-                try await AuthViewModel.shared.logoutUser() // Firebase sign out
-                resetState() // Reset your local auth flags here
-                
-                completion()
+                try await AuthViewModel.shared.logoutUser()
+                reset()
                 print("🔒 Logout complete.")
+                completion()
             } catch {
-                // Handle error if needed
-                print("❌ Logout failed: \(error)")
+                print("❌ Logout failed: \(error.localizedDescription)")
                 errorMessage = error.localizedDescription
                 hasError = true
                 completion()
@@ -163,38 +168,30 @@ public class AuthenticationState: ObservableObject {
         }
     }
 
-    private func resetState() {
-        isAuthenticated = false
-        isLoggedIn = false
-        isAdmin = false
-        socialUser = nil
-        userInfo = nil
-        currentUser = nil
-        navigateToAdminMenu = false
-        errorMessage = ""
-        hasError = false
-    }
 
     
-    // MARK: - Google Sign-In
+    // MARK: - Google Sign-In Completion
+    /// Completes Google Sign-In flow and updates state accordingly
     public func completeGoogleSignIn(with result: GIDSignInResult) async {
         print("➡️ Starting completeGoogleSignIn...")
-
+        
         let user = result.user
-
+        
         do {
             let authentication = try await user.refreshTokensIfNeeded()
             let accessToken = authentication.accessToken.tokenString
-            let idToken = authentication.idToken?.tokenString
-
+            guard let idToken = authentication.idToken?.tokenString else {
+                handleSignInError(nil, message: "Google Sign-In failed: No ID token.")
+                return
+            }
+            
             print("🔑 Access Token: \(accessToken.prefix(20))...")
-            print("🔑 ID Token: \(idToken?.prefix(20) ?? "nil")...")
-
-            if let tokenString = idToken,
-               let decoded = decodeJWTPart(tokenString) {
+            print("🔑 ID Token: \(idToken.prefix(20))...")
+            
+            if let decoded = decodeJWTPart(idToken) {
                 print("🧾 Decoded ID Token Payload: \(decoded)")
             }
-
+            
             let email = user.profile?.email ?? "N/A"
             let name = user.profile?.name ?? "N/A"
             print("""
@@ -203,60 +200,28 @@ public class AuthenticationState: ObservableObject {
             - Name: \(name)
             - Email: \(email)
             """)
-
-            guard let idTokenString = idToken else {
-                print("❌ Missing ID token from Google user.")
-                handleSignInError(nil, message: "Google Sign-In failed: No ID token.")
-                return
-            }
-
-            guard let currentUser = Auth.auth().currentUser else {
-                // User is not signed in, attempt to sign in
-                do {
-                    try await signInToFirebase(idToken: idTokenString, accessToken: accessToken)
-                    print("✅ Signed in to Firebase with Google credentials.")
-                } catch {
-                    print("❌ Failed to sign in to Firebase: \(error.localizedDescription)")
-                    handleSignInError(error, message: "Firebase sign-in with Google credentials failed.")
-                    return
-                }
-                return
-            }
-
-            if currentUser.providerData.contains(where: { $0.providerID == "google.com" }) {
-                print("User is already signed in with Google")
+            
+            if Auth.auth().currentUser == nil {
+                try await signInToFirebase(idToken: idToken, accessToken: accessToken)
+                print("✅ Signed in to Firebase with Google credentials.")
             } else {
-                // Attempt to sign in
-                do {
-                    try await signInToFirebase(idToken: idTokenString, accessToken: accessToken)
-                    print("✅ Signed in to Firebase with Google credentials.")
-                } catch {
-                    print("❌ Failed to sign in to Firebase: \(error.localizedDescription)")
-                    handleSignInError(error, message: "Firebase sign-in with Google credentials failed.")
-                    return
-                }
+                try await linkOrSignInWithGoogleCredential(idToken: idToken, accessToken: accessToken)
             }
-
+            
             guard let firebaseUser = Auth.auth().currentUser else {
-                print("❌ Firebase user is nil after sign-in")
                 handleSignInError(nil, message: "Firebase user not available after sign-in.")
                 return
             }
-            print("✅ Firebase user successfully set – UID: \(firebaseUser.uid)")
-
-            do {
-                try await createOrUpdateGoogleUserInFirestore(
-                    userID: firebaseUser.uid,
-                    email: email,
-                    userName: name,
-                    name: name,
-                    belt: nil
-                )
-                print("✅ Firestore user document created/updated for Google user")
-            } catch {
-                print("❌ Failed to create/update Firestore user document: \(error)")
-            }
-
+            
+            try await createOrUpdateGoogleUserInFirestore(
+                userID: firebaseUser.uid,
+                email: email,
+                userName: name,
+                name: name,
+                belt: nil
+            )
+            print("✅ Firestore user document created/updated for Google user")
+            
             updateSocialUser(
                 user.userID,
                 name,
@@ -264,14 +229,36 @@ public class AuthenticationState: ObservableObject {
                 profilePictureUrl: user.profile?.imageURL(withDimension: 200),
                 provider: .google
             )
-
-            print("✅ completeGoogleSignIn finished. Current user: \(self.socialUser?.email ?? "nil")")
+            
+            loginCompletedSuccessfully()
+            
         } catch {
-            print("❌ Error refreshing tokens: \(error)")
-            handleSignInError(error, message: "Google Sign-In failed: No authentication object.")
+            handleSignInError(error, message: "Google Sign-In failed: \(error.localizedDescription)")
         }
     }
-
+    
+    private func linkOrSignInWithGoogleCredential(idToken: String, accessToken: String) async throws {
+        let credential = GoogleAuthProvider.credential(withIDToken: idToken, accessToken: accessToken)
+        
+        guard let currentUser = Auth.auth().currentUser else {
+            let authResult = try await Auth.auth().signIn(with: credential)
+            print("✅ Signed in with Google credential: \(authResult.user.uid)")
+            await handleSuccessfulLogin(provider: .google, user: authResult.user)
+            return
+        }
+        
+        do {
+            let authResult = try await currentUser.link(with: credential)
+            print("✅ Linked Google account to existing user: \(authResult.user.uid)")
+            await handleSuccessfulLogin(provider: .google, user: authResult.user)
+        } catch let error as NSError where error.code == AuthErrorCode.credentialAlreadyInUse.rawValue {
+            print("⚠️ Credential already in use. Attempting direct sign-in.")
+            let authResult = try await Auth.auth().signIn(with: credential)
+            print("✅ Signed in with Google credential: \(authResult.user.uid)")
+            await handleSuccessfulLogin(provider: .google, user: authResult.user)
+        }
+    }
+    
     private func createOrUpdateGoogleUserInFirestore(
         userID: String,
         email: String,
@@ -299,12 +286,12 @@ public class AuthenticationState: ObservableObject {
         if !docSnapshot.exists {
             userData["createdAt"] = Timestamp()
         }
-
+        
         try await userRef.setData(userData, merge: true)
     }
-
     
     // MARK: - Facebook Sign-In
+    /// Signs in with Facebook credentials via Firebase Auth
     public func signInWithFacebook() async {
         do {
             guard let accessToken = AccessToken.current else {
@@ -312,7 +299,7 @@ public class AuthenticationState: ObservableObject {
                     NSLocalizedDescriptionKey: "Facebook login failed. Try again."
                 ])
             }
-
+            
             let credential = FacebookAuthProvider.credential(withAccessToken: accessToken.tokenString)
             try await signInToFirebase(with: credential)
         } catch {
@@ -320,18 +307,17 @@ public class AuthenticationState: ObservableObject {
         }
     }
     
-    // MARK: - Firebase Sign-In
+    // MARK: - Firebase Sign-In Helpers
     internal func signInToFirebase(with credential: AuthCredential) async throws {
         let result = try await Auth.auth().signIn(with: credential)
         print("🔍 Current Firebase user: \(Auth.auth().currentUser?.uid ?? "nil")")
         await handleSuccessfulLogin(provider: detectProvider(from: credential), user: result.user)
     }
-
+    
     func signInToFirebase(idToken: String, accessToken: String) async throws {
         let credential = GoogleAuthProvider.credential(withIDToken: idToken, accessToken: accessToken)
-
+        
         if let currentUser = Auth.auth().currentUser {
-            // Try to link Google account to existing user
             do {
                 let authResult = try await currentUser.link(with: credential)
                 print("✅ Linked Google account to existing user: \(authResult.user.uid)")
@@ -341,19 +327,14 @@ public class AuthenticationState: ObservableObject {
                 let authResult = try await Auth.auth().signIn(with: credential)
                 print("✅ Signed in with Google credential: \(authResult.user.uid)")
                 await handleSuccessfulLogin(provider: .google, user: authResult.user)
-            } catch {
-                print("❌ Linking failed with unexpected error: \(error)")
-                throw error
             }
         } else {
-            // No user signed in, so sign in with Google credential normally
             let authResult = try await Auth.auth().signIn(with: credential)
             print("✅ Signed in with Google credential: \(authResult.user.uid)")
             await handleSuccessfulLogin(provider: .google, user: authResult.user)
         }
     }
-
-
+    
     private func detectProvider(from credential: AuthCredential) -> SocialUser.Provider {
         switch credential.provider {
         case "google.com": return .google
@@ -363,7 +344,6 @@ public class AuthenticationState: ObservableObject {
             return .google
         }
     }
-
     
     // MARK: - Social User Helper
     public func updateSocialUser(
@@ -377,7 +357,7 @@ public class AuthenticationState: ObservableObject {
             handleSignInError(nil, message: "Missing social login user info.")
             return
         }
-
+        
         let socialUser = SocialUser(
             provider: provider,
             id: userID,
@@ -385,19 +365,20 @@ public class AuthenticationState: ObservableObject {
             email: email,
             profilePictureUrl: profilePictureUrl
         )
-
+        
         self.socialUser = socialUser
         self.isAuthenticated = true
         self.isLoggedIn = true
+        
         print("✅ Social user updated: \(name) (\(email)) via \(provider)")
     }
-
+    
     func handleSuccessfulLogin(provider: SocialUser.Provider, user: FirebaseAuth.User?) async {
         guard let user = user else {
             handleSignInError(nil, message: "Firebase user is nil after sign-in.")
             return
         }
-
+        
         updateSocialUser(
             user.uid,
             user.displayName ?? "Unknown",
@@ -405,51 +386,137 @@ public class AuthenticationState: ObservableObject {
             profilePictureUrl: user.photoURL,
             provider: provider
         )
-
-        loginCompletedSuccessfully() // Add this here
+        
+        loginCompletedSuccessfully()
     }
-
     
+    // MARK: - Post-login actions
+    @MainActor
+    func loginCompletedSuccessfully() {
+        self.isAuthenticated = true
+        self.isLoggedIn = true
+        self.navigateToAdminMenu = false
+        
+        print("🔑 AuthenticationState updated via loginCompletedSuccessfully:")
+        print("    isAuthenticated = \(self.isAuthenticated)")
+        print("    isLoggedIn = \(self.isLoggedIn)")
+        print("    navigateToAdminMenu = \(self.navigateToAdminMenu)")
+        
+        Task {
+            FirestoreSyncManager.shared.syncInitialFirestoreData()
+        }
+    }
+    
+    // MARK: - Error Handling
     func handleSignInError(_ error: Error?, message: String? = nil) {
-        self.hasError = true
-        self.errorMessage = message ?? error?.localizedDescription ?? "Unknown error."
-
-        print("🚨 Sign-In Error: \(self.errorMessage)")
-
+        hasError = true
+        errorMessage = message ?? error?.localizedDescription ?? "Unknown error."
+        
+        print("🚨 Sign-In Error: \(errorMessage)")
+        
         if let nsError = error as NSError? {
             print("📦 NSError - Domain: \(nsError.domain), Code: \(nsError.code)")
             print("🔍 UserInfo: \(nsError.userInfo)")
         }
     }
-
     
-    // MARK: - Authentication Status
+    // MARK: - Authentication Status Update
     private func updateAuthenticationStatus() {
-        self.isAuthenticated = (userInfo != nil || currentUser != nil || socialUser != nil)
-        self.isLoggedIn = isAuthenticated
+        isAuthenticated = (userInfo != nil || currentUser != nil || socialUser != nil)
+        isLoggedIn = isAuthenticated
+        
         print("ℹ️ Auth Status -> isAuthenticated: \(isAuthenticated), isLoggedIn: \(isLoggedIn), isAdmin: \(isAdmin)")
     }
     
     // MARK: - Password Handling
     private func convertToHashedPassword(_ passwordHash: Data) throws -> HashedPassword {
         let separatorData = Data(hashPassword.base64SaltSeparator.utf8)
-
+        
         guard let separatorIndex = passwordHash.range(of: separatorData)?.lowerBound else {
             print("❌ Failed to find salt separator in password hash.")
             print("🔎 Separator expected: \(hashPassword.base64SaltSeparator)")
             print("🧵 PasswordHash (base64): \(passwordHash.base64EncodedString())")
             throw HashError.invalidInput
         }
-
+        
         let salt = passwordHash[..<separatorIndex]
         let hash = passwordHash[separatorIndex...].dropFirst(separatorData.count)
-
-        if salt.isEmpty || hash.isEmpty {
+        
+        guard !salt.isEmpty && !hash.isEmpty else {
             print("⚠️ Warning: Extracted salt or hash is empty.")
             throw HashError.invalidInput
         }
-
+        
         return HashedPassword(hash: hash, salt: salt, iterations: 8)
+    }
+    
+    // MARK: - JWT Decoding Helper
+    func decodeJWTPart(_ value: String) -> String? {
+        let segments = value.split(separator: ".")
+        guard segments.count > 1 else { return nil }
+        
+        var base64String = String(segments[1])
+        base64String = base64String
+            .replacingOccurrences(of: "-", with: "+")
+            .replacingOccurrences(of: "_", with: "/")
+        
+        while base64String.count % 4 != 0 {
+            base64String.append("=")
+        }
+        
+        guard let data = Data(base64Encoded: base64String),
+              let decoded = String(data: data, encoding: .utf8) else {
+            return nil
+        }
+        
+        return decoded
+    }
+    
+    // MARK: - Admin Access
+    public func adminLoginSucceeded() {
+        isAuthenticated = true
+        isLoggedIn = false
+        isAdmin = true
+        navigateToAdminMenu = true
+        
+        print("🛡️ Admin login succeeded. isAdmin: \(isAdmin), navigateToAdminMenu: \(navigateToAdminMenu)")
+    }
+
+    
+    // MARK: - Public Setters (MainActor safe)
+
+    @MainActor
+    public func setIsAuthenticated(_ value: Bool) {
+        isAuthenticated = value
+    }
+
+    @MainActor
+    public func setIsLoggedIn(_ value: Bool) {
+        isLoggedIn = value
+    }
+
+    @MainActor
+    public func setIsAdmin(_ value: Bool) {
+        isAdmin = value
+    }
+
+    @MainActor
+    public func setErrorMessage(_ message: String) {
+        errorMessage = message
+        hasError = !message.isEmpty
+    }
+
+    @MainActor
+    public func reset() {
+        setIsAuthenticated(false)
+        setIsLoggedIn(false)
+        setIsAdmin(false)
+        navigateToAdminMenu = false
+        socialUser = nil
+        userInfo = nil
+        currentUser = nil
+        errorMessage = ""
+        hasError = false
     }
 
     
@@ -460,7 +527,7 @@ public class AuthenticationState: ObservableObject {
         case invalidPassword
         case unverifiedEmail
         case serverError
-
+        
         public var errorDescription: String? {
             switch self {
             case .invalidEmail: return "Invalid email address."
@@ -471,44 +538,16 @@ public class AuthenticationState: ObservableObject {
             }
         }
     }
-    
-    func decodeJWTPart(_ value: String) -> String? {
-        let segments = value.split(separator: ".")
-        guard segments.count > 1 else { return nil }
-
-        var base64String = String(segments[1])
-        base64String = base64String
-            .replacingOccurrences(of: "-", with: "+")
-            .replacingOccurrences(of: "_", with: "/")
-
-        while base64String.count % 4 != 0 {
-            base64String.append("=")
-        }
-
-        guard let data = Data(base64Encoded: base64String),
-              let decoded = String(data: data, encoding: .utf8) else {
-            return nil
-        }
-
-        return decoded
-    }
-   
-    
 }
+
+// MARK: - SocialUser.Provider Description
 
 extension SocialUser.Provider: CustomStringConvertible {
     public var description: String {
         switch self {
         case .google: return "Google"
         case .facebook: return "Facebook"
-        // Future-proofing: handles any new providers added without breaking
         @unknown default: return "Unknown Provider"
         }
-    }
-}
-
-extension AuthenticationState {
-    func loginCompletedSuccessfully() {
-        FirestoreSyncManager.shared.syncInitialFirestoreData()
     }
 }

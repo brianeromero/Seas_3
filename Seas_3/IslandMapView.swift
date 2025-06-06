@@ -184,7 +184,7 @@ struct IslandMapViewMap: View {
     }
 }
 
-
+/*
 struct IslandMapView_Previews: PreviewProvider {
     static var previews: some View {
         let persistenceController = PersistenceController.preview
@@ -194,7 +194,7 @@ struct IslandMapView_Previews: PreviewProvider {
         island1.islandLocation = "123 Main St"
         island1.latitude = 37.7749
         island1.longitude = -122.4194
-        island1.createdTimestamp = Date()
+        island1.createdTipmestamp = Date()
         island1.gymWebsite = URL(string: "https://gym1.com")
         
         let island2 = PirateIsland(context: persistenceController.container.viewContext)
@@ -251,3 +251,4 @@ struct IslandMapView_Previews: PreviewProvider {
         }
     }
 }
+*/

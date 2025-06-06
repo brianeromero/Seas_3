@@ -118,24 +118,7 @@ struct DayOfWeekSettings: View {
     }
 }
 
-struct DayOfWeekView_Previews: PreviewProvider {
-    static var previews: some View {
-        let mockIsland = PirateIsland(context: PersistenceController.preview.container.viewContext)
-        mockIsland.islandName = "Mock Gym"
 
-        let mockRepository = AppDayOfWeekRepository(persistenceController: PersistenceController.preview)
-        let viewModel = AppDayOfWeekViewModel(
-            selectedIsland: mockIsland,
-            repository: mockRepository,
-            enterZipCodeViewModel: EnterZipCodeViewModel(
-                repository: mockRepository,
-                persistenceController: PersistenceController.preview
-            )
-        )
-
-        return DayOfWeekView(viewModel: viewModel, selectedAppDayOfWeek: .constant(nil))
-    }
-}
 
 // DaysOfWeekView.swift
 

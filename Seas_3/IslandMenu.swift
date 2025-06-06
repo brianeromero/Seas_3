@@ -306,27 +306,3 @@ struct LogView: View {
         }
     }
 }
-    
-
-
-
-// MARK: - Preview
-struct IslandMenu_Previews: PreviewProvider {
-    static var previews: some View {
-        let previewContext = PersistenceController.preview.container.viewContext
-        let authViewModel = AuthViewModel.shared  // Use shared instance or create a new one
-        let profileViewModel = ProfileViewModel(
-            viewContext: previewContext,
-            authViewModel: authViewModel
-        )
-
-        return NavigationView {
-            IslandMenu(
-                isLoggedIn: .constant(true),
-                authViewModel: authViewModel,
-                profileViewModel: profileViewModel
-            )
-                .environment(\.managedObjectContext, previewContext)
-        }
-    }
-}

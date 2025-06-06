@@ -107,6 +107,7 @@ struct CreateAccountView: View {
     @State private var countries: [Country] = []
     
     @State private var isButtonDisabled = false
+    @State private var localIsLoggedIn = false
 
     
     let emailManager: UnifiedEmailManager
@@ -347,20 +348,24 @@ struct CreateAccountView: View {
                         dismissButton: .default(Text("OK")) {
                             self.shouldNavigateToLogin = successMessage != nil
                             isUserProfileActive = false
-                            authenticationState.isLoggedIn = false
-                            authenticationState.isAuthenticated = false
                             successMessage = nil
                             errorMessage = nil
+
+                            // Set authentication flags using Task to safely call async MainActor methods
+                            Task {
+                                authenticationState.reset()
+                            }
                         }
                     )
                 }
+
                 .navigationDestination(isPresented: $shouldNavigateToLogin) {
                     LoginView(
                         islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.shared),
                         profileViewModel: profileViewModel,
                         isSelected: .constant(LoginViewSelection(rawValue: selectedTabIndex) ?? .login),
                         navigateToAdminMenu: $authenticationState.navigateToAdminMenu,
-                        isLoggedIn: $authenticationState.isLoggedIn
+                        isLoggedIn: $localIsLoggedIn
                     )
                 }
             }
@@ -775,11 +780,10 @@ struct CreateAccountView: View {
     }
     
     private func resetAuthenticationState() {
-        authenticationState.isAuthenticated = false
-        authenticationState.isLoggedIn = false
-        authenticationState.navigateToAdminMenu = false
+        authenticationState.reset()
         isUserProfileActive = false
     }
+
 }
 
 // Preview

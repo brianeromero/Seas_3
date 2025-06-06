@@ -21,7 +21,7 @@ struct IslandScheduleView: View {
         self.pIsland = pIsland
         _enterZipCodeViewModel = StateObject(wrappedValue: EnterZipCodeViewModel(
             repository: AppDayOfWeekRepository.shared,
-            persistenceController: PersistenceController.preview
+            persistenceController: PersistenceController.shared
         ))
     }
     

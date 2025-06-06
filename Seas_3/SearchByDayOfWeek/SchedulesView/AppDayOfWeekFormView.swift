@@ -52,7 +52,7 @@ struct AppDayOfWeekFormView: View {
     }
 }
 
-
+/*
 struct AppDayOfWeekFormView_Previews: PreviewProvider {
     static var previews: some View {
         let repository = AppDayOfWeekRepository(persistenceController: PersistenceController.preview)
@@ -61,3 +61,4 @@ struct AppDayOfWeekFormView_Previews: PreviewProvider {
             .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
     }
 }
+*/

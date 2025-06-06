@@ -235,7 +235,7 @@ struct LoginForm: View {
 
 
             DispatchQueue.main.async {
-                self.authenticationState.isAuthenticated = true
+                self.authenticationState.setIsAuthenticated(true)
                 self.isLoggedIn = true
                 self.showMainContent = true
             }
@@ -363,7 +363,10 @@ public struct LoginView: View {
                 )
             } else if authenticationState.isAuthenticated && showMainContent {
                 IslandMenu(
-                    isLoggedIn: $authenticationState.isLoggedIn,
+                    isLoggedIn: Binding(
+                        get: { authenticationState.isLoggedIn },
+                        set: { authenticationState.setIsLoggedIn($0) }
+                    ),
                     authViewModel: authViewModel,
                     profileViewModel: profileViewModel
                 )

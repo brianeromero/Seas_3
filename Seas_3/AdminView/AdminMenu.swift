@@ -127,15 +127,3 @@ class MockAppDayOfWeekViewModel: AppDayOfWeekViewModel {
     }
 }
 
-// PreviewProvider for Canvas preview
-struct AdminMenu_Previews: PreviewProvider {
-    static var previews: some View {
-        let persistenceController = PersistenceController.preview
-        
-        return NavigationView {
-            AdminMenu()
-                .environment(\.persistenceController, persistenceController)
-                .environmentObject(AuthenticationState(hashPassword: HashPassword()))
-        }
-    }
-}
