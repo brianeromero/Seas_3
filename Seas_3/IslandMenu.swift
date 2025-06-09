@@ -13,16 +13,17 @@ enum Padding {
     static let menuItem = 20
     static let menuHeader = 15
 }
-
 // MARK: - View Definition
 struct IslandMenu: View {
-    
+
     // MARK: - Environment Variables
     @Environment(\.managedObjectContext) private var viewContext
-    @Environment(\.presentationMode) private var presentationMode
+    @Environment(\.dismiss) private var dismiss // Updated for iOS 15+
     @ObservedObject var authViewModel: AuthViewModel
+    @EnvironmentObject var allEnteredLocationsViewModel: AllEnteredLocationsViewModel // <-- ADD THIS LINE
+
     @State private var islandDetails = IslandDetails()
-    
+
     // MARK: - State Variables
     @State private var showAlert = false
     @State private var alertMessage = ""
@@ -36,29 +37,56 @@ struct IslandMenu: View {
     @State private var showToastMessage: String = ""
     @State private var isToastShown: Bool = false
 
+    // MARK: - Centralized ViewModel/Repository Instantiations
+    private let appDayOfWeekRepository: AppDayOfWeekRepository
+    private let enterZipCodeViewModelForAppDayOfWeek: EnterZipCodeViewModel
+    private let enterZipCodeViewModelForReviews: EnterZipCodeViewModel
+    private let pirateIslandViewModel: PirateIslandViewModel
+    // private let pirateIslandDataManager: PirateIslandDataManager // <-- REMOVE THIS LINE (No longer needed here)
 
     let menuLeadingPadding: CGFloat = 50 + 0.5 * 10
-    
+
     // MARK: - Initialization
-    // Log authentication event
     init(isLoggedIn: Binding<Bool>, authViewModel: AuthViewModel, profileViewModel: ProfileViewModel) {
         os_log("User logged in", log: IslandMenulogger)
         os_log("Initializing IslandMenu", log: IslandMenulogger)
 
-        self.authViewModel = authViewModel  // Initialize authViewModel
+        // If authViewModel is now an @EnvironmentObject, you should remove this 'self.authViewModel' line.
+        // If it's *only* passed to IslandMenu and not an environment object *everywhere*, keep it.
+        // Based on your AppRootView, authViewModel is an @EnvironmentObject from AppDelegate.
+        // So, this line should be removed if it's truly an @EnvironmentObject.
+        self.authViewModel = authViewModel // <-- UNCOMMENT THIS LINE if authViewModel is *not* an @EnvironmentObject, or remove @ObservedObject and use @EnvironmentObject if it is.
+
         self._isLoggedIn = isLoggedIn
-        self.profileViewModel = profileViewModel // Initialize profileViewModel
+        self.profileViewModel = profileViewModel
+
+        let sharedPersistenceController = PersistenceController.shared
+        self.appDayOfWeekRepository = AppDayOfWeekRepository(persistenceController: sharedPersistenceController)
+
+        self.enterZipCodeViewModelForAppDayOfWeek = EnterZipCodeViewModel(
+            repository: appDayOfWeekRepository,
+            persistenceController: sharedPersistenceController
+        )
+        self.enterZipCodeViewModelForReviews = EnterZipCodeViewModel(
+            repository: appDayOfWeekRepository,
+            persistenceController: sharedPersistenceController
+        )
+
+        self.pirateIslandViewModel = PirateIslandViewModel(persistenceController: sharedPersistenceController)
+        // self.pirateIslandDataManager = PirateIslandDataManager(viewContext: sharedPersistenceController.container.viewContext) // <-- REMOVE THIS LINE
+
+        let localAppDayOfWeekRepository = self.appDayOfWeekRepository
+        let localEnterZipCodeViewModel = self.enterZipCodeViewModelForAppDayOfWeek
 
         _appDayOfWeekViewModel = StateObject(wrappedValue: AppDayOfWeekViewModel(
             selectedIsland: nil,
-            repository: AppDayOfWeekRepository(persistenceController: PersistenceController.shared),
-            enterZipCodeViewModel: EnterZipCodeViewModel(
-                repository: AppDayOfWeekRepository(persistenceController: PersistenceController.shared),
-                persistenceController: PersistenceController.shared
-            )
+            repository: localAppDayOfWeekRepository,
+            enterZipCodeViewModel: localEnterZipCodeViewModel
         ))
+
+        // No need to initialize _allEnteredLocationsViewModel here for Option 2, it's injected.
     }
-    
+
     enum IslandMenuOption: String, CaseIterable {
         case allLocations = "All Locations"
         case currentLocation = "Current Location"
@@ -71,7 +99,7 @@ struct IslandMenu: View {
         case submitReview = "Submit a Review"
         case faqDisclaimer = "FAQ & Disclaimer"
     }
-    
+
     let menuItems: [MenuItem] = [
         .init(title: "Search Gym Entries By", subMenuItems: [
             IslandMenuOption.allLocations.rawValue,
@@ -92,7 +120,7 @@ struct IslandMenu: View {
             IslandMenuOption.faqDisclaimer.rawValue
         ], padding: 20)
     ]
-    
+
     // MARK: - Body
     var body: some View {
         NavigationStack {
@@ -110,7 +138,7 @@ struct IslandMenu: View {
             .setupListeners(
                 showToastMessage: $showToastMessage,
                 isToastShown: $isToastShown,
-                isLoggedIn: isLoggedIn // Use the Binding<Bool> you already have
+                isLoggedIn: isLoggedIn
             )
         }
         .edgesIgnoringSafeArea(.all)
@@ -125,7 +153,8 @@ struct IslandMenu: View {
             os_log("IslandMenu appeared", log: IslandMenulogger)
         }
     }
-    
+
+
     // MARK: - View Builders
     private var menuHeaderView: some View {
         Text("Main Menu")
@@ -133,16 +162,21 @@ struct IslandMenu: View {
             .bold()
             .padding(.top, 1)
     }
-    
+
+
+
     private var menuItemView: some View {
         ForEach(menuItems, id: \.title) { menuItem in
             VStack(alignment: .leading, spacing: 0) {
                 Text(menuItem.title)
                     .font(.headline)
-                
+
                 ForEach(menuItem.subMenuItems, id: \.self) { subMenuItem in
                     if let option = IslandMenuOption(rawValue: subMenuItem) {
-                        NavigationLink(destination: destinationView(for: option)) {
+                        // This NavigationLink closure is lazily evaluated.
+                        NavigationLink {
+                            destinationView(for: option)
+                        } label: {
                             Text(subMenuItem)
                                 .foregroundColor(.blue)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -151,6 +185,7 @@ struct IslandMenu: View {
                         .simultaneousGesture(
                             TapGesture()
                                 .onEnded {
+                                    // This log fires ONLY when the user taps
                                     os_log("User tapped menu item: %@", log: IslandMenulogger, subMenuItem)
                                 }
                         )
@@ -170,14 +205,24 @@ struct IslandMenu: View {
             authViewModel: authViewModel,
             selectedTabIndex: .constant(LoginViewSelection.login),
             setupGlobalErrorHandler: {}
-        )) {
+        )
+        .onAppear { // Log when ProfileView appears
+            let userID = authViewModel.currentUserID ?? "Unknown"
+            let timestamp = "\(Date())"
+            os_log("ProfileView Appeared. User: %@. Time: %@",
+                    log: IslandMenulogger,
+                    type: .info,
+                    userID,
+                    timestamp
+            )
+        }) {
             Label("Profile", systemImage: "person.crop.circle.fill")
                 .font(.headline)
                 .padding(.bottom, 1)
         }
         .padding(.top, 40)
     }
-    
+
     private var menuView: some View {
         VStack(alignment: .leading, spacing: 0) {
             menuHeaderView
@@ -187,13 +232,14 @@ struct IslandMenu: View {
         .navigationBarTitle("Welcome to Mat_Finder", displayMode: .inline)
         .padding(.leading, menuLeadingPadding)
     }
-    
+
+
     private var loginPromptView: some View {
         Text("Please log in to access the menu.")
             .font(.headline)
             .padding()
     }
-    
+
     private func handleInvalidZipCode() -> Alert {
         Alert(
             title: Text("Invalid Zip Code"),
@@ -201,108 +247,207 @@ struct IslandMenu: View {
             dismissButton: .default(Text("OK"))
         )
     }
-    
-    
-    
-    
-    
+
     // MARK: - Destination View
-    @ViewBuilder
     private func destinationView(for option: IslandMenuOption) -> some View {
 
-        LogView(message: "Destination view for \(option.rawValue)")
+        // IMPORTANT: REMOVE os_log from here! It's executed eagerly for all links.
+        // If you need to log when the view *appears*, add .onAppear to the destination view itself.
 
         switch option {
         case .addNewGym:
-            AddNewIsland(
-                islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.shared),
-                profileViewModel: profileViewModel,
-                authViewModel: authViewModel,
-                islandDetails: $islandDetails  
+            return AnyView(
+                AddNewIsland(
+                    islandViewModel: pirateIslandViewModel,
+                    profileViewModel: profileViewModel,
+                    authViewModel: authViewModel,
+                    islandDetails: $islandDetails
+                )
+                .onAppear { // Log when this specific view appears
+                    let userID = authViewModel.currentUserID ?? "Unknown"
+                    let timestamp = "\(Date())"
+                    os_log("AddNewIsland Appeared. User: %@. Time: %@",
+                            log: IslandMenulogger,
+                            type: .info,
+                            userID,
+                            timestamp
+                    )
+                }
             )
-
 
         case .updateExistingGyms:
-            EditExistingIslandList()
-            
+            return AnyView(
+                EditExistingIslandList()
+                .onAppear {
+                    let userID = authViewModel.currentUserID ?? "Unknown"
+                    let timestamp = "\(Date())"
+                    os_log("EditExistingIslandList Appeared. User: %@. Time: %@",
+                            log: IslandMenulogger,
+                            type: .info,
+                            userID,
+                            timestamp
+                    )
+                }
+            )
+
         case .allLocations:
-            AllEnteredLocations()
-            
+            return AnyView(
+                AllEnteredLocations()
+                .onAppear {
+                    let userID = authViewModel.currentUserID ?? "Unknown"
+                    let timestamp = "\(Date())"
+                    os_log("AllEnteredLocations Appeared. User: %@. Time: %@",
+                            log: IslandMenulogger,
+                            type: .info,
+                            userID,
+                            timestamp
+                    )
+                }
+            )
+
         case .currentLocation:
-            ConsolidatedIslandMapView(
-                viewModel: appDayOfWeekViewModel,
-                enterZipCodeViewModel: EnterZipCodeViewModel(
-                    repository: AppDayOfWeekRepository(persistenceController: PersistenceController.shared),
-                    persistenceController: PersistenceController.shared
+            return AnyView(
+                ConsolidatedIslandMapView(
+                    viewModel: appDayOfWeekViewModel,
+                    enterZipCodeViewModel: enterZipCodeViewModelForAppDayOfWeek
                 )
+                .onAppear {
+                    let userID = authViewModel.currentUserID ?? "Unknown"
+                    let timestamp = "\(Date())"
+                    os_log("ConsolidatedIslandMapView Appeared. User: %@. Time: %@",
+                            log: IslandMenulogger,
+                            type: .info,
+                            userID,
+                            timestamp
+                    )
+                }
             )
-            
+
         case .postalCode:
-            EnterZipCodeView(
-                appDayOfWeekViewModel: appDayOfWeekViewModel,
-                allEnteredLocationsViewModel: AllEnteredLocationsViewModel(
-                    dataManager: PirateIslandDataManager(viewContext: PersistenceController.shared.container.viewContext)
-                ),
-                enterZipCodeViewModel: EnterZipCodeViewModel(
-                    repository: AppDayOfWeekRepository(persistenceController: PersistenceController.shared),
-                    persistenceController: PersistenceController.shared
+            return AnyView(
+                EnterZipCodeView(
+                    appDayOfWeekViewModel: appDayOfWeekViewModel,
+                    allEnteredLocationsViewModel: allEnteredLocationsViewModel, // <-- USE THE ENVIRONMENT OBJECT HERE
+                    enterZipCodeViewModel: enterZipCodeViewModelForAppDayOfWeek
                 )
+                .onAppear {
+                    let userID = authViewModel.currentUserID ?? "Unknown"
+                    let timestamp = "\(Date())"
+                    os_log("EnterZipCodeView Appeared. User: %@. Time: %@",
+                            log: IslandMenulogger,
+                            type: .info,
+                            userID,
+                            timestamp
+                    )
+                }
             )
-            .alert(isPresented: $showAlert) {
-                handleInvalidZipCode()
-            }
-            
+
         case .addOrEditScheduleOpenMat:
-            DaysOfWeekFormView(
-                viewModel: appDayOfWeekViewModel,
-                selectedIsland: $selectedIsland,
-                selectedMatTime: .constant(nil),
-                showReview: .constant(false)
+            return AnyView(
+                DaysOfWeekFormView(
+                    viewModel: appDayOfWeekViewModel,
+                    selectedIsland: $selectedIsland,
+                    selectedMatTime: .constant(nil),
+                    showReview: .constant(false)
+                )
+                .onAppear {
+                    let userID = authViewModel.currentUserID ?? "Unknown"
+                    let timestamp = "\(Date())"
+                    os_log("DaysOfWeekFormView Appeared. User: %@. Time: %@",
+                            log: IslandMenulogger,
+                            type: .info,
+                            userID,
+                            timestamp
+                    )
+                }
             )
-            
+
         case .dayOfWeek:
-            DayOfWeekSearchView(
-                selectedIsland: $selectedIsland,
-                selectedAppDayOfWeek: .constant(nil),  // Add this
-                region: $region,                      // Add this
-                searchResults: $searchResults        // Add this
+            return AnyView(
+                DayOfWeekSearchView(
+                    selectedIsland: $selectedIsland,
+                    selectedAppDayOfWeek: .constant(nil),
+                    region: $region,
+                    searchResults: $searchResults
+                )
+                .onAppear {
+                    let userID = authViewModel.currentUserID ?? "Unknown"
+                    let timestamp = "\(Date())"
+                    os_log("DayOfWeekSearchView Appeared. User: %@. Time: %@",
+                            log: IslandMenulogger,
+                            type: .info,
+                            userID,
+                            timestamp
+                    )
+                }
             )
 
-            
         case .searchReviews:
-            ViewReviewSearch(
-                selectedIsland: $selectedIsland,
-                titleString: "Read Gym Reviews",
-                enterZipCodeViewModel: appDayOfWeekViewModel.enterZipCodeViewModel,
-                authViewModel: authViewModel // Add this parameter
+            return AnyView(
+                ViewReviewSearch(
+                    selectedIsland: $selectedIsland,
+                    titleString: "Read Gym Reviews",
+                    enterZipCodeViewModel: enterZipCodeViewModelForReviews,
+                    authViewModel: authViewModel
+                )
+                .onAppear {
+                    let userID = authViewModel.currentUserID ?? "Unknown"
+                    let timestamp = "\(Date())"
+                    os_log("ViewReviewSearch Appeared. User: %@. Time: %@",
+                            log: IslandMenulogger,
+                            type: .info,
+                            userID,
+                            timestamp
+                    )
+                }
             )
 
-
-            
         case .submitReview:
-            GymMatReviewSelect(
-                selectedIsland: $selectedIsland,
-                enterZipCodeViewModel: EnterZipCodeViewModel(
-                    repository: AppDayOfWeekRepository(persistenceController: PersistenceController.shared),
-                    persistenceController: PersistenceController.shared
-                ),
-                authViewModel: authViewModel
+            return AnyView(
+                GymMatReviewSelect(
+                    selectedIsland: $selectedIsland,
+                    enterZipCodeViewModel: enterZipCodeViewModelForReviews,
+                    authViewModel: authViewModel
+                )
+                .onAppear {
+                    let userID = authViewModel.currentUserID ?? "Unknown"
+                    let timestamp = "\(Date())"
+                    os_log("GymMatReviewSelect Appeared. User: %@. Time: %@",
+                            log: IslandMenulogger,
+                            type: .info,
+                            userID,
+                            timestamp
+                    )
+                }
             )
 
-            
         case .faqDisclaimer:
-            FAQnDisclaimerMenuView()
+            return AnyView(
+                FAQnDisclaimerMenuView()
+                .onAppear { // Log when FAQnDisclaimerMenuView actually appears
+                    let userID = authViewModel.currentUserID ?? "Unknown"
+                    let timestamp = "\(Date())"
+                    os_log("FAQnDisclaimerMenuView Appeared. User: %@. Time: %@",
+                            log: IslandMenulogger,
+                            type: .info,
+                            userID,
+                            timestamp
+                    )
+                }
+            )
         }
     }
 }
 
+
 struct LogView: View {
     let message: String
-    
+    let authViewModel: AuthViewModel // Keep if LogView has other UI purposes that need authViewModel
+
     var body: some View {
         EmptyView()
-        .onAppear {
-            os_log("%@", log: IslandMenulogger, message)
-        }
+            .onAppear {
+                os_log("%@", log: IslandMenulogger, message)
+            }
     }
 }

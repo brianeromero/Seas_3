@@ -215,8 +215,11 @@ struct ReviewDestinationView: View {
         return VStack {
             if let selectedIsland = selectedIsland {
                 ViewReviewforIsland(
-                    showReview: $showReview, selectedIsland: .constant(selectedIsland),
-                    enterZipCodeViewModel: viewModel.enterZipCodeViewModel, authViewModel: AuthViewModel()
+                    showReview: $showReview,
+                    selectedIsland: .constant(selectedIsland),
+                    enterZipCodeViewModel: viewModel.enterZipCodeViewModel,
+                    // CHANGE THIS LINE:
+                    authViewModel: AuthViewModel.shared
                 )
             } else {
                 EmptyView()

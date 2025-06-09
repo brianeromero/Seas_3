@@ -49,7 +49,7 @@ struct AccountAuthView: View {
     @EnvironmentObject var authenticationState: AuthenticationState
     @Binding var isUserProfileActive: Bool
     @State private var formState: FormState = FormState()
-    @StateObject var authViewModel = AuthViewModel()
+    @ObservedObject private var authViewModel = AuthViewModel.shared // Add this line
     @State private var showVerificationAlert = false
     @State private var errorMessage = ""
     @Environment(\.managedObjectContext) private var viewContext

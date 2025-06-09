@@ -16,15 +16,27 @@ import FirebaseAuth
 
 
 import os
+import SwiftUI
+import GoogleSignIn // Keep this import for GIDSignIn and its types
+import os.log
 
 struct GoogleSignInButtonWrapper: View {
-    @EnvironmentObject var authenticationState: AuthenticationState
-    var handleError: (String) -> Void
+    // 1. Remove @EnvironmentObject var authenticationState
+    //    We will now interact with AuthViewModel.shared directly.
+    // @EnvironmentObject var authenticationState: AuthenticationState // REMOVE THIS LINE
+    
+    var handleError: (String) -> Void // Still useful for UI error handling
 
     @State private var showError = false
     @State private var errorMessage = ""
 
     private let logger = os.Logger(subsystem: "com.seas3.app", category: "GoogleSignIn")
+
+    // 2. Add @ObservedObject for AuthViewModel.shared
+    //    We need @ObservedObject because AuthViewModel is an ObservableObject
+    //    and we want this view to react to changes in its @Published properties
+    //    (like errorMessage, though we'll propagate it manually here for the alert).
+    @ObservedObject private var authViewModel = AuthViewModel.shared // ADD THIS LINE
 
     var body: some View {
         Button(action: handleSignIn) {
@@ -47,32 +59,33 @@ struct GoogleSignInButtonWrapper: View {
     }
 
     func handleSignIn() {
-        logger.debug("Google sign-in started.")
+        logger.debug("Google sign-in started from button wrapper.")
 
         guard let rootVC = UIApplication.shared.connectedScenes
             .compactMap({ ($0 as? UIWindowScene)?.keyWindow })
             .first?.rootViewController else {
-                let errMsg = "Unable to find root view controller."
-                logger.error("\(errMsg)")
+                let errMsg = "Unable to find root view controller for Google Sign-In."
+                logger.error("\(errMsg, privacy: .public)") // Ensure proper logging format
                 handleError(errMsg)
                 return
         }
 
         Task {
-            do {
-                logger.debug("Calling GIDSignIn.sharedInstance.signIn")
-
-                let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: rootVC)
-
-                logger.debug("Google sign-in succeeded. User: \(result.user.profile?.email ?? "unknown email", privacy: .public)")
-
-                await authenticationState.completeGoogleSignIn(with: result)
-
-            } catch {
-                logger.error("Google sign-in error: \(error.localizedDescription, privacy: .public)")
-                errorMessage = error.localizedDescription
+            // 3. Call the signInWithGoogle method on the shared AuthViewModel instance
+            await authViewModel.signInWithGoogle(presenting: rootVC)
+            
+            // 4. Check for error message from AuthViewModel and propagate it
+            //    AuthViewModel.errorMessage is now the source of truth for errors.
+            if let vmError = authViewModel.errorMessage, !vmError.isEmpty {
+                errorMessage = vmError
                 showError = true
-                handleError(errorMessage)
+                handleError(vmError) // Propagate to LoginForm if needed
+                
+                // Clear AuthViewModel's error message after displaying it
+                // to prevent it from persisting for future interactions
+                DispatchQueue.main.async {
+                    self.authViewModel.errorMessage = ""
+                }
             }
         }
     }

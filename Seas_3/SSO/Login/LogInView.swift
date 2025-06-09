@@ -35,7 +35,6 @@ enum UserFetchError: Error {
 // Login Form View
 struct LoginForm: View {
     @Binding var usernameOrEmail: String
-    @StateObject private var authViewModel = AuthViewModel()
     @Binding var password: String
     @Binding var isSignInEnabled: Bool
     @Binding var errorMessage: String
@@ -117,28 +116,17 @@ struct LoginForm: View {
 
                 VStack {
                     HStack {
+                        // GoogleSignInButtonWrapper no longer needs @EnvironmentObject(authenticationState) here
+                        // because it directly uses AuthViewModel.shared
                         GoogleSignInButtonWrapper(
                             handleError: { message in
                                 self.errorMessage = message
                             }
                         )
-                        .environmentObject(authenticationState)
-
+                        // .environmentObject(authenticationState) // <-- REMOVE THIS LINE
                         .frame(height: 50)
                         .clipped()
-/*
-                        FacebookSignInButtonWrapper(
-                            authenticationState: _authenticationState,
-                            handleError: { message in
-                                self.errorMessage = message
-                            }
-                        )
-                        .frame(height: 50)
-                        .clipped()
- 
- */
                     }
-
                 }
                 .frame(maxHeight: .infinity, alignment: .center)
 
@@ -186,42 +174,34 @@ struct LoginForm: View {
         let normalizedUsernameOrEmail = usernameOrEmail.lowercased() // Normalize the email to lowercase
 
         do {
-            print("Starting sign-in process for \(normalizedUsernameOrEmail)") // Logging the start of the process
+            print("Starting sign-in process for \(normalizedUsernameOrEmail)")
             
-            if ValidationUtility.validateEmail(normalizedUsernameOrEmail) != nil {
-                print("Email validation passed. Attempting direct email login.") // Logging email login attempt
-                // ✅ Direct email login via Firebase
-                try await signInWithEmail(email: normalizedUsernameOrEmail, password: password)
-            } else {
-                print("Email validation failed. Checking Core Data for username.") // Logging when checking Core Data for username
-                
-                // 🔍 First, try looking up username in Core Data
-                do {
-                    let user = try await fetchUser(normalizedUsernameOrEmail)
-                    print("User found in Core Data: \(user.email)") // Logging user found in Core Data
-                    try await signInWithEmail(email: user.email, password: password)
-                } catch {
-                    print("Username not found in Core Data, checking Firestore...") // Logging when checking Firestore
+            // Here, instead of calling Auth.auth().signIn directly, you should use
+            // AuthViewModel.shared.signInUser() as AuthViewModel is now responsible
+            // for all login flows.
+            try await AuthViewModel.shared.signInUser(with: normalizedUsernameOrEmail, password: password)
 
-                    // 🔍 Try Firestore as a last resort
-                    do {
-                        let user = try await fetchUser(normalizedUsernameOrEmail)
-                        print("User found in Firestore: \(user.email)") // Logging user found in Firestore
-                        try await signInWithEmail(email: user.email, password: password)
-                    } catch {
-                        print("Username or email not found in both Core Data and Firestore.") // Logging failed sign-in attempt
-                        showAlert(with: "Error logging in. Check Email and Password.")
-                    }
-                }
+            DispatchQueue.main.async {
+                self.authenticationState.setIsAuthenticated(true)
+                self.isLoggedIn = true
+                self.showMainContent = true // This will likely become redundant once isAuthenticated is fully managed
             }
-        } catch let error {
-            print("Error during sign-in: \(error.localizedDescription)") // Logging error during sign-in
+        } catch {
+            print("Error during sign-in: \(error.localizedDescription)")
             DispatchQueue.main.async {
                 NotificationCenter.default.post(name: .showToast, object: nil, userInfo: ["message": error.localizedDescription])
                 self.errorMessage = error.localizedDescription
             }
         }
     }
+    
+    // The signInWithEmail and fetchUser methods should ideally be internal to AuthViewModel
+    // If you need them here, make them private. However, the goal is to use AuthViewModel.shared
+    // for all sign-in operations.
+
+    // private func signInWithEmail(email: String, password: String) async throws { ... } // REMOVE or make private to AuthViewModel
+    // private func fetchUser(_ usernameOrEmail: String) async throws -> UserInfo { ... } // REMOVE or make private to AuthViewModel
+
 
     private func signInWithEmail(email: String, password: String) async throws {
         print("Attempting to sign in with email: \(email)")
@@ -255,17 +235,16 @@ struct LoginForm: View {
     }
 
     private func showAlert(with message: String) {
-        print("Showing alert with message: \(message)") // Logging when showing an alert
+        print("Showing alert with message: \(message)")
         errorMessage = message
     }
 }
 
 
-
 public struct LoginView: View {
     @EnvironmentObject var authenticationState: AuthenticationState
     @Environment(\.managedObjectContext) private var viewContext
-    @State private var showMainContent: Bool = false
+    @State private var showMainContent: Bool = false // Keep for now, might be simplified later
     @State private var errorMessage: String = ""
     @State private var usernameOrEmail: String = ""
     @State private var password: String = ""
@@ -280,14 +259,12 @@ public struct LoginView: View {
     @Binding private var navigateToAdminMenu: Bool
     @State private var createAccountLinkActive = false
     @State private var isSignInEnabled: Bool = false
-    @StateObject private var authViewModel = AuthViewModel.shared
-    @Binding private var isLoggedIn: Bool
+    // REMOVE THIS LINE: @StateObject private var authViewModel = AuthViewModel.shared
+    @Binding private var isLoggedIn: Bool // Keep for now, might be simplified later
     @State private var showToastMessage: String = ""
     @State private var isToastShown: Bool = false
     @State private var navigateToCreateAccount = false
     @StateObject private var profileViewModel: ProfileViewModel
-
-
 
     public init(
         islandViewModel: PirateIslandViewModel,
@@ -361,13 +338,15 @@ public struct LoginView: View {
                     selectedTabIndex: $selectedTabIndex,
                     emailManager: UnifiedEmailManager.shared
                 )
-            } else if authenticationState.isAuthenticated && showMainContent {
+            // Simplified condition: relies purely on authenticationState
+            } else if authenticationState.isAuthenticated { // REMOVED && showMainContent
                 IslandMenu(
                     isLoggedIn: Binding(
                         get: { authenticationState.isLoggedIn },
                         set: { authenticationState.setIsLoggedIn($0) }
                     ),
-                    authViewModel: authViewModel,
+                    // Pass AuthViewModel.shared directly
+                    authViewModel: AuthViewModel.shared, // <--- Correctly uses the shared instance
                     profileViewModel: profileViewModel
                 )
             } else if isSelected == .login {
@@ -386,7 +365,6 @@ public struct LoginView: View {
                     )
                     .frame(maxWidth: .infinity)
                     .padding()
-
                     Spacer()
                 }
             } else {
@@ -400,7 +378,9 @@ public struct LoginView: View {
             Text("Log In OR")
             Button(action: {
                 print("GO TO Create Account link tapped")
-                os_log("Create Account link tapped", log: OSLog.default, type: .info)
+                // Use os.Logger here for consistency, if OSLog.default is defined globally.
+                // Otherwise, consider if you need a logger instance here.
+                // os_log("Create Account link tapped", log: OSLog.default, type: .info)
                 navigateToCreateAccount = true
             }) {
                 Text("Create an Account")
@@ -428,7 +408,9 @@ extension Notification.Name {
     static let showToast = Notification.Name("ShowToast")
 }
 
-// Modifier for Notification Listeners
+// Modifier for Notification Listeners (You have two, likely keep the one with isLoggedIn and DispatchQueue)
+// I'm keeping the one with `isLoggedIn` and `DispatchQueue.main.asyncAfter` as it seems more complete.
+/*
 extension View {
     func setupListeners(showToastMessage: Binding<String>, isToastShown: Binding<Bool>) -> some View {
         self.onReceive(NotificationCenter.default.publisher(for: .showToast)) { notification in
@@ -443,11 +425,11 @@ extension View {
         }
     }
 }
-
+*/
 extension View {
     func setupListeners(showToastMessage: Binding<String>, isToastShown: Binding<Bool>, isLoggedIn: Bool = false) -> some View {
         self.onReceive(NotificationCenter.default.publisher(for: Notification.Name.showToast)) { notification in
-            guard isLoggedIn else { return }
+            guard isLoggedIn else { return } // Only show toast if user is logged in (optional logic)
             if let message = notification.userInfo?["message"] as? String {
                 showToastMessage.wrappedValue = message
                 isToastShown.wrappedValue = true

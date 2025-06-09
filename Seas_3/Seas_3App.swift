@@ -4,20 +4,39 @@ import Combine
 import FBSDKCoreKit
 import GoogleSignInSwift
 import GoogleSignIn
+import os.log // Assuming you're still using os_log
+
 
 @main
 struct Seas_3App: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     @State private var selectedTabIndex: LoginViewSelection = .login
+    
+    
+    // MARK: - Instantiate AllEnteredLocationsViewModel here
+    @StateObject var allEnteredLocationsViewModel: AllEnteredLocationsViewModel
+
+    // Use an initializer to set up your @StateObject
+    init() {
+        // You can put other initial setup here if needed
+        // For @StateObject, you initialize it with _propertyName = StateObject(wrappedValue: ...)
+        _allEnteredLocationsViewModel = StateObject(wrappedValue: AllEnteredLocationsViewModel(
+            dataManager: PirateIslandDataManager(viewContext: PersistenceController.shared.container.viewContext)
+        ))
+        setupGlobalErrorHandler() // Call your error handler setup here
+    }
 
     var body: some Scene {
         WindowGroup {
             AppRootView(
                 appDelegate: appDelegate,
                 selectedTabIndex: $selectedTabIndex,
-                appState: appDelegate.appState   // Pass shared instance directly
+                appState: appDelegate.appState
             )
+            // MARK: - Inject AllEnteredLocationsViewModel into the environment
+            .environmentObject(allEnteredLocationsViewModel) // <-- Add this line
+            .environment(\.managedObjectContext, appDelegate.persistenceController.container.viewContext) // Ensure context is also in environment
         }
     }
 

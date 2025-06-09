@@ -32,8 +32,7 @@ struct IslandModalView: View {
     @Binding var selectedIsland: PirateIsland?
     @ObservedObject var viewModel: AppDayOfWeekViewModel
     @Binding var selectedAppDayOfWeek: AppDayOfWeek?
-    @StateObject private var authViewModel = AuthViewModel()
-
+    @ObservedObject private var authViewModel = AuthViewModel.shared
 
     init(
         customMapMarker: CustomMapMarker?,

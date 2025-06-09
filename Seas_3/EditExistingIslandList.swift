@@ -12,8 +12,7 @@ import CoreData
 struct EditExistingIslandList: View {
     @StateObject private var persistenceController = PersistenceController.shared
     @State private var selectedIsland: PirateIsland? = nil
-    @StateObject private var authViewModel = AuthViewModel()
-
+    @ObservedObject private var authViewModel = AuthViewModel.shared
     var body: some View {
         EditExistingIslandListContent(
             viewContext: persistenceController.viewContext,

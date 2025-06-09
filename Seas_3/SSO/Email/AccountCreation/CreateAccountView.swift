@@ -34,8 +34,8 @@ enum CreateAccountError: Int {
 struct CreateAccountView: View {
     // Environment and Context
     @EnvironmentObject var authenticationState: AuthenticationState
-    @Environment(\.managedObjectContext) private var managedObjectContext
-    
+    @Environment(\.managedObjectContext) private var managedObjectContext // Correctly named
+
     // Navigation and Routing
     @Binding var isUserProfileActive: Bool
     @Binding var selectedTabIndex: Int
@@ -50,9 +50,6 @@ struct CreateAccountView: View {
     @State private var isIslandNameValid: Bool = true
     @State private var islandNameErrorMessage: String = ""
     @State private var isFormValid: Bool = false
-    
-    // View Models
-    @StateObject var authViewModel = AuthViewModel()
     @ObservedObject var islandViewModel: PirateIslandViewModel
     @StateObject var profileViewModel: ProfileViewModel
     @ObservedObject var countryService: CountryService
@@ -119,6 +116,7 @@ struct CreateAccountView: View {
         selectedTabIndex: Binding<Int>,
         countryService: CountryService = .shared,
         emailManager: UnifiedEmailManager = .shared
+        // NO authenticationState PARAMETER HERE
     ) {
         self._islandViewModel = ObservedObject(wrappedValue: islandViewModel)
         self._isUserProfileActive = isUserProfileActive
@@ -127,6 +125,7 @@ struct CreateAccountView: View {
         self.emailManager = emailManager
         _profileViewModel = StateObject(wrappedValue: ProfileViewModel(viewContext: persistenceController.container.viewContext))
     }
+
  
     // Validation logic
     var isIslandNameRequired: Bool {
@@ -428,7 +427,8 @@ struct CreateAccountView: View {
         Task {
             do {
                 // Check if user already exists
-                if await authViewModel.userAlreadyExists() {
+                // CHANGE THIS LINE: from authViewModel.userAlreadyExists()
+                if await AuthViewModel.shared.userAlreadyExists() {
                     os_log("User already exists. Aborting account creation.", type: .error)
                     self.errorMessage = "An account with this email already exists."
                     self.showValidationMessage = true
@@ -437,7 +437,8 @@ struct CreateAccountView: View {
                 }
 
                 // Attempt to create the user account
-                try await authViewModel.createUser(
+                // CHANGE THIS LINE: from authViewModel.createUser(...)
+                try await AuthViewModel.shared.createUser(
                     withEmail: formState.email,
                     password: formState.password,
                     userName: formState.userName,
@@ -636,7 +637,8 @@ struct CreateAccountView: View {
         }
 
         // ✅ Await the current user
-        guard let currentUser = await authViewModel.getCurrentUser() else {
+        // CHANGE THIS LINE: from authViewModel.getCurrentUser()
+        guard let currentUser = await AuthViewModel.shared.getCurrentUser() else {
             toastMessage = "Error: No user logged in"
             showToast = true
             return
