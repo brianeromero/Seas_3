@@ -6,6 +6,7 @@ import FBSDKCoreKit
 import GoogleSignInSwift
 import GoogleSignIn
 import os.log // Assuming you're still using os_log
+import FirebaseCore
 
 
 @main
@@ -53,86 +54,83 @@ struct Seas_3App: App {
     }
 }
 
-
 struct AppRootView: View {
     let appDelegate: AppDelegate // We pass appDelegate to access its properties/dependencies
     @Binding var selectedTabIndex: LoginViewSelection
     @ObservedObject var appState: AppState // appState is passed directly, so keep it as @ObservedObject
 
+    // Use a @State for NavigationPath if you want programmatic control over the stack
+    @State private var navigationPath = NavigationPath()
+
     var body: some View {
-        if appDelegate.isFirebaseConfigured {
-            if appState.showWelcomeScreen {
-                PirateIslandView(appState: appState)
-                    .transition(.opacity)
-                    .onAppear {
-                        print("✅ Firebase is configured. Showing app content.")
-                        print("👀 PirateIslandView appeared at \(Date())")
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-                            print("⏰ Dismissing PirateIslandView at \(Date())")
-                            withAnimation(.easeInOut(duration: 1)) {
-                                appState.showWelcomeScreen = false
+        // --- Add the NavigationStack here ---
+        NavigationStack(path: $navigationPath) { // <--- This is the key change!
+            if appDelegate.isFirebaseConfigured {
+                if appState.showWelcomeScreen {
+                    PirateIslandView(appState: appState)
+                        .transition(.opacity)
+                        .onAppear {
+                            print("✅ Firebase is configured. Showing app content.")
+                            print("👀 PirateIslandView appeared at \(Date())")
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                                print("⏰ Dismissing PirateIslandView at \(Date())")
+                                withAnimation(.easeInOut(duration: 1)) {
+                                    appState.showWelcomeScreen = false
+                                }
                             }
                         }
-                        NSSetUncaughtExceptionHandler { exception in
-                            NSLog("🔥 Uncaught Exception: %@", exception)
-                            if let reason = exception.reason {
-                                NSLog("🛑 Reason: %@", reason)
-                            }
+                        .onDisappear {
+                            print("👋 PirateIslandView disappeared at \(Date())")
                         }
-                    }
-                    .onDisappear {
-                        print("👋 PirateIslandView disappeared at \(Date())")
-                    }
-            } else {
-                if appDelegate.authenticationState.isAuthenticated &&
-                    appDelegate.authenticationState.navigateToAdminMenu {
-                    AdminMenu()
-                        // These environment objects are now provided by Seas_3App.
-                        // You only need to explicitly set them here if AdminMenu
-                        // needs a *different* instance than the global one,
-                        // or if it's the root of a new environment subtree.
-                        // Based on the goal, these are likely redundant now.
-                        .environment(\.managedObjectContext, appDelegate.persistenceController.container.viewContext)
-                        // .environmentObject(appDelegate.authenticationState) // REMOVED (already global)
-                        // .environmentObject(appState) // REMOVED (appState is passed as @ObservedObject to AppRootView)
-                        // .environmentObject(appDelegate.profileViewModel!) // REMOVED (already global)
-                } else if appDelegate.authenticationState.isAuthenticated &&
-                            appDelegate.authenticationState.isLoggedIn {
-                    IslandMenu(
-                        isLoggedIn: Binding(
-                            get: { appDelegate.authenticationState.isLoggedIn },
-                            set: { appDelegate.authenticationState.setIsLoggedIn($0) }
-                        ),
-                        // Keep passing these directly as @ObservedObject if IslandMenu's init expects them this way
-                        authViewModel: appDelegate.authViewModel,
-                        profileViewModel: appDelegate.profileViewModel!
-                    )
-                    .environment(\.managedObjectContext, appDelegate.persistenceController.container.viewContext)
-                    // .environmentObject(appDelegate.authenticationState) // REMOVED (already global)
-                    // .environmentObject(appState) // REMOVED (appState is passed as @ObservedObject)
                 } else {
-                    LoginView(
-                        islandViewModel: PirateIslandViewModel(persistenceController: appDelegate.persistenceController),
-                        profileViewModel: appDelegate.profileViewModel!, // Passed directly
-                        isSelected: $selectedTabIndex,
-                        navigateToAdminMenu: Binding(
-                            get: { appDelegate.authenticationState.navigateToAdminMenu },
-                            set: { appDelegate.authenticationState.navigateToAdminMenu = $0 }
-                        ),
-                        isLoggedIn: Binding(
-                            get: { appDelegate.authenticationState.isLoggedIn },
-                            set: { appDelegate.authenticationState.setIsLoggedIn($0) }
+                    // This is the content shown AFTER the welcome screen,
+                    // which is either authenticated or unauthenticated.
+                    if appDelegate.authenticationState.isAuthenticated {
+                        // If authenticated, decide between AdminMenu and IslandMenu
+                        if appDelegate.authenticationState.navigateToAdminMenu {
+                            AdminMenu()
+                                // Environment objects are already passed from Seas_3App
+                        } else {
+                            IslandMenu(
+                                isLoggedIn: Binding(
+                                    get: { appDelegate.authenticationState.isLoggedIn },
+                                    set: { appDelegate.authenticationState.setIsLoggedIn($0) }
+                                ),
+                                authViewModel: appDelegate.authViewModel,
+                                profileViewModel: appDelegate.profileViewModel!
+                            )
+                        }
+                    } else {
+                        // If not authenticated, show the LoginView
+                        LoginView(
+                            islandViewModel: appDelegate.pirateIslandViewModel, // Use the shared instance from appDelegate
+                            profileViewModel: appDelegate.profileViewModel!,
+                            isSelected: $selectedTabIndex,
+                            navigateToAdminMenu: Binding(
+                                get: { appDelegate.authenticationState.navigateToAdminMenu },
+                                set: { appDelegate.authenticationState.navigateToAdminMenu = $0 }
+                            ),
+                            isLoggedIn: Binding(
+                                get: { appDelegate.authenticationState.isLoggedIn },
+                                set: { appDelegate.authenticationState.setIsLoggedIn($0) }
+                            )
                         )
-                    )
-                    .environment(\.managedObjectContext, appDelegate.persistenceController.container.viewContext)
-                    // .environmentObject(appDelegate.authenticationState) // REMOVED (already global)
+                    }
                 }
+            } else {
+                ProgressView("Configuring Firebase...")
+                    .onAppear {
+                        print("⏳ Waiting for Firebase to configure...")
+                    }
             }
-        } else {
-            ProgressView("Configuring Firebase...")
-                .onAppear {
-                    print("⏳ Waiting for Firebase to configure...")
-                }
+        } // <--- End of NavigationStack
+        // --- End of NavigationStack here ---
+        .onChange(of: appDelegate.authenticationState.isAuthenticated) { isAuthenticated in
+            if !isAuthenticated {
+                // When logging out, clear the navigation path
+                navigationPath = NavigationPath()
+                print("DEBUG: AppRootView - Authentication state changed to unauthenticated. Navigation path cleared.")
+            }
         }
     }
 }

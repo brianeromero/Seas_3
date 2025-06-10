@@ -23,6 +23,7 @@ enum ProfileError: Error, LocalizedError {
     }
 }
 
+@MainActor // Add this attribute to your ProfileViewModel class
 public class ProfileViewModel: ObservableObject {
     @Published var email: String = ""
     @Published var userName: String = ""
@@ -56,9 +57,7 @@ public class ProfileViewModel: ObservableObject {
 
         guard let userId = authViewModel.currentUser?.userID else {
             print("❌ No user ID found")
-            await MainActor.run {
-                isProfileLoaded = true
-            }
+            isProfileLoaded = true // No need for await MainActor.run, class is already MainActor isolated
             return
         }
 
@@ -70,24 +69,18 @@ public class ProfileViewModel: ObservableObject {
             if document.exists {
                 let data = document.data()
                 print("✅ Profile document found. Updating fields...")
-                await MainActor.run {
-                    email = data?["email"] as? String ?? ""
-                    userName = data?["userName"] as? String ?? ""
-                    name = data?["name"] as? String ?? ""
-                    belt = data?["belt"] as? String ?? ""
-                    isProfileLoaded = true
-                }
+                email = data?["email"] as? String ?? ""
+                userName = data?["userName"] as? String ?? ""
+                name = data?["name"] as? String ?? ""
+                belt = data?["belt"] as? String ?? ""
+                isProfileLoaded = true
             } else {
                 print("⚠️ No profile document found")
-                await MainActor.run {
-                    isProfileLoaded = true
-                }
+                isProfileLoaded = true
             }
         } catch {
             print("❌ Error loading profile: \(error.localizedDescription)")
-            await MainActor.run {
-                isProfileLoaded = true
-            }
+            isProfileLoaded = true
         }
     }
 

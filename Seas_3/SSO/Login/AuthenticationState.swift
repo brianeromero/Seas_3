@@ -15,6 +15,7 @@ import GoogleSignIn
 import GoogleSignInSwift
 import FBSDKLoginKit
 import GoogleSignIn
+import OSLog
 
 
 
@@ -76,10 +77,26 @@ public class EmailValidator: Validator {
 @MainActor
 public class AuthenticationState: ObservableObject {
     // MARK: - Published Properties
-    @Published public var isAuthenticated: Bool = false
-    @Published public var isLoggedIn = false
-    @Published public var isAdmin = false               
-
+    @Published public var isAuthenticated: Bool = false {
+        didSet {
+            // Add your print here to see every change
+            print("➡️ AuthenticationState.isAuthenticated changed to: \(isAuthenticated)")
+        }
+    }
+    @Published public var isLoggedIn = false { // Keep this separate if it has distinct meaning
+        didSet {
+            // Add your print here to see every change
+            print("➡️ AuthenticationState.isLoggedIn changed to: \(isLoggedIn)")
+            if isLoggedIn { // This is where you might log "User logged in" once
+                 os_log("User logged in", log: OSLog(subsystem: "com.yourapp.auth", category: "login"))
+            }
+        }
+    }
+    @Published public var isAdmin = false {
+        didSet {
+            print("➡️ AuthenticationState.isAdmin changed to: \(isAdmin)")
+        }
+    }
     @Published public private(set) var socialUser: SocialUser?
     @Published public private(set) var userInfo: UserInfo?
     @Published public private(set) var currentUser: User?
@@ -100,23 +117,22 @@ public class AuthenticationState: ObservableObject {
         self.validator = validator
         print("🔧 AuthenticationState initialized with \(type(of: validator)) validator.")
     }
-
     
     // MARK: - CoreData Login
     /// Attempts login with a local CoreData user and plaintext password
     public func login(_ user: UserInfo, password: String) throws {
         print("🔐 Attempting CoreData login for user: \(user.email)")
-        
+
         guard validator.isValidEmail(user.email) else {
             print("❌ Invalid email format: \(user.email)")
             throw AuthenticationError.invalidEmail
         }
-        
+
         guard !user.passwordHash.isEmpty else {
             print("❌ Password hash is empty for user: \(user.email)")
             throw AuthenticationError.invalidCredentials
         }
-        
+
         do {
             let hashedPassword = try convertToHashedPassword(user.passwordHash)
             guard try hashPassword.verifyPasswordScrypt(password, againstHash: hashedPassword) else {
@@ -127,17 +143,18 @@ public class AuthenticationState: ObservableObject {
             print("❌ Error during password verification: \(error.localizedDescription)")
             throw AuthenticationError.serverError
         }
-        
+
         guard user.isVerified else {
             print("⚠️ User email is not verified: \(user.email)")
             throw AuthenticationError.unverifiedEmail
         }
-        
+
         self.userInfo = user
-        self.currentUser = nil
-        updateAuthenticationStatus()
+        self.currentUser = nil // Keep this, as it differentiates CoreData from Firestore user
+        // updateAuthenticationStatus() // <<-- REMOVE THIS CALL HERE
         Log.success("CoreData login successful: \(user.email)")
-        
+
+        // THIS IS NOW THE SOLE POINT of setting isLoggedIn/isAuthenticated to true
         loginCompletedSuccessfully()
     }
     
@@ -145,9 +162,11 @@ public class AuthenticationState: ObservableObject {
     /// Logs in with a Firestore `User` object
     public func login(user: User) {
         self.currentUser = user
-        self.userInfo = nil
-        updateAuthenticationStatus()
+        self.userInfo = nil // Keep this
+        // updateAuthenticationStatus() // <<-- REMOVE THIS CALL HERE
         print("✅ Logged in as Firestore user: \(user.userName)")
+        // Ensure this also calls the unified completion
+        loginCompletedSuccessfully() // <<-- ADD THIS CALL HERE
     }
 
     // MARK: - Logout
@@ -155,8 +174,8 @@ public class AuthenticationState: ObservableObject {
     public func logout(completion: @escaping () -> Void = {}) {
         Task {
             do {
-                try await AuthViewModel.shared.logoutUser()
-                reset()
+                try await AuthViewModel.shared.logoutUser() // <--- Crucial call here
+                reset() // <--- Resets state after successful logoutUser
                 print("🔒 Logout complete.")
                 completion()
             } catch {
@@ -169,14 +188,12 @@ public class AuthenticationState: ObservableObject {
     }
 
 
-    
     // MARK: - Google Sign-In Completion
-    /// Completes Google Sign-In flow and updates state accordingly
     public func completeGoogleSignIn(with result: GIDSignInResult) async {
         print("➡️ Starting completeGoogleSignIn...")
-        
+
         let user = result.user
-        
+
         do {
             let authentication = try await user.refreshTokensIfNeeded()
             let accessToken = authentication.accessToken.tokenString
@@ -184,54 +201,42 @@ public class AuthenticationState: ObservableObject {
                 handleSignInError(nil, message: "Google Sign-In failed: No ID token.")
                 return
             }
-            
-            print("🔑 Access Token: \(accessToken.prefix(20))...")
-            print("🔑 ID Token: \(idToken.prefix(20))...")
-            
-            if let decoded = decodeJWTPart(idToken) {
-                print("🧾 Decoded ID Token Payload: \(decoded)")
-            }
-            
-            let email = user.profile?.email ?? "N/A"
-            let name = user.profile?.name ?? "N/A"
-            print("""
-            🔍 Google Sign-In Result:
-            - User ID: \(user.userID ?? "Missing User ID")
-            - Name: \(name)
-            - Email: \(email)
-            """)
-            
+
+            // ... (Your existing logging for tokens)
+
             if Auth.auth().currentUser == nil {
                 try await signInToFirebase(idToken: idToken, accessToken: accessToken)
                 print("✅ Signed in to Firebase with Google credentials.")
             } else {
                 try await linkOrSignInWithGoogleCredential(idToken: idToken, accessToken: accessToken)
             }
-            
+
             guard let firebaseUser = Auth.auth().currentUser else {
                 handleSignInError(nil, message: "Firebase user not available after sign-in.")
                 return
             }
-            
+
             try await createOrUpdateGoogleUserInFirestore(
                 userID: firebaseUser.uid,
-                email: email,
-                userName: name,
-                name: name,
+                email: firebaseUser.email ?? user.profile?.email ?? "N/A", // Use firebaseUser's email
+                userName: firebaseUser.displayName ?? user.profile?.name ?? "N/A", // Use firebaseUser's name
+                name: firebaseUser.displayName ?? user.profile?.name ?? "N/A",
                 belt: nil
             )
             print("✅ Firestore user document created/updated for Google user")
-            
+
+            // updateSocialUser should now set socialUser, but NOT isAuthenticated/isLoggedIn
             updateSocialUser(
-                user.userID,
-                name,
-                email,
+                user.userID, // This is the Google user ID, not Firebase UID
+                user.profile?.name ?? "N/A",
+                user.profile?.email ?? "N/A",
                 profilePictureUrl: user.profile?.imageURL(withDimension: 200),
                 provider: .google
             )
-            
+
+            // THIS IS NOW THE SOLE POINT of setting isLoggedIn/isAuthenticated to true
             loginCompletedSuccessfully()
-            
+
         } catch {
             handleSignInError(error, message: "Google Sign-In failed: \(error.localizedDescription)")
         }
@@ -345,7 +350,7 @@ public class AuthenticationState: ObservableObject {
         }
     }
     
-    // MARK: - Social User Helper
+    // MARK: - Social User Helper (Modified)
     public func updateSocialUser(
         _ userID: String?,
         _ name: String,
@@ -357,7 +362,7 @@ public class AuthenticationState: ObservableObject {
             handleSignInError(nil, message: "Missing social login user info.")
             return
         }
-        
+
         let socialUser = SocialUser(
             provider: provider,
             id: userID,
@@ -365,47 +370,86 @@ public class AuthenticationState: ObservableObject {
             email: email,
             profilePictureUrl: profilePictureUrl
         )
-        
+
         self.socialUser = socialUser
-        self.isAuthenticated = true
-        self.isLoggedIn = true
-        
+        // self.isAuthenticated = true // <<-- REMOVE THIS LINE
+        // self.isLoggedIn = true      // <<-- REMOVE THIS LINE
+
         print("✅ Social user updated: \(name) (\(email)) via \(provider)")
     }
     
-    func handleSuccessfulLogin(provider: SocialUser.Provider, user: FirebaseAuth.User?) async {
-        guard let user = user else {
+    // MARK: - Handle Successful Login (Modified)
+    func handleSuccessfulLogin(provider: SocialUser.Provider, user firebaseUser: FirebaseAuth.User?) async {
+        guard let firebaseUser = firebaseUser else {
             handleSignInError(nil, message: "Firebase user is nil after sign-in.")
             return
         }
-        
+
+        // Attempt to load the full user profile from Firestore if it exists.
+        // This is the most robust way to ensure your custom `User` model is fully populated.
+        let userDocRef = Firestore.firestore().collection("users").document(firebaseUser.uid)
+        do {
+            let docSnapshot = try await userDocRef.getDocument()
+            if docSnapshot.exists, let userFromFirestore = User(fromFirestoreDocument: docSnapshot) {
+                self.currentUser = userFromFirestore
+                print("✅ Successfully loaded custom User from Firestore for UID: \(firebaseUser.uid)")
+            } else {
+                // If document doesn't exist or decoding failed, create a basic User from FirebaseAuth.User
+                self.currentUser = User(firebaseUser: firebaseUser)
+                print("⚠️ Firestore user document not found or could not be decoded. Created basic User from FirebaseAuth.User for UID: \(firebaseUser.uid)")
+            }
+        } catch {
+            print("❌ Error fetching/decoding Firestore user document for UID: \(firebaseUser.uid). Fallback to basic User. Error: \(error.localizedDescription)")
+            self.currentUser = User(firebaseUser: firebaseUser) // Fallback in case of error
+        }
+
+        self.userInfo = nil // Ensure other user types are nil
+
         updateSocialUser(
-            user.uid,
-            user.displayName ?? "Unknown",
-            user.email ?? "No Email",
-            profilePictureUrl: user.photoURL,
+            firebaseUser.uid, // Use Firebase UID for socialUser ID
+            firebaseUser.displayName ?? "Unknown",
+            firebaseUser.email ?? "No Email",
+            profilePictureUrl: firebaseUser.photoURL,
             provider: provider
         )
-        
+
         loginCompletedSuccessfully()
     }
     
     // MARK: - Post-login actions
     @MainActor
     func loginCompletedSuccessfully() {
-        self.isAuthenticated = true
-        self.isLoggedIn = true
-        self.navigateToAdminMenu = false
-        
+        isAuthenticated = (userInfo != nil || currentUser != nil || socialUser != nil)
+        isLoggedIn = isAuthenticated
+        isAdmin = determineIfAdmin()
+        navigateToAdminMenu = isAdmin
+
         print("🔑 AuthenticationState updated via loginCompletedSuccessfully:")
         print("    isAuthenticated = \(self.isAuthenticated)")
         print("    isLoggedIn = \(self.isLoggedIn)")
+        print("    isAdmin = \(self.isAdmin)")
         print("    navigateToAdminMenu = \(self.navigateToAdminMenu)")
-        
-        Task {
-            FirestoreSyncManager.shared.syncInitialFirestoreData()
-        }
+
+        // Start listening for the user's document in Firestore after successful login
+        FirestoreManager.shared.startListeningForUserDocument()
+        // If you have other initial data you want to sync with listeners on login, call them here too:
+        // FirestoreManager.shared.startListeningForCollection(collection: .appDayOfWeeks) { documents in /* handle */ }
+
     }
+    
+    // Implement this function to determine if the user is an admin
+    private func determineIfAdmin() -> Bool {
+        // Example: Check if currentUser has a specific role
+        // if let firebaseUser = currentUser, firebaseUser.customClaims?["admin"] as? Bool == true {
+        //     return true
+        // }
+        // Example: Check if userInfo (CoreData) has an admin flag
+        // if let coreDataUser = userInfo, coreDataUser.isAdminAccount {
+        //     return true
+        // }
+        return false // Default until implemented
+    }
+    
     
     // MARK: - Error Handling
     func handleSignInError(_ error: Error?, message: String? = nil) {
@@ -420,12 +464,15 @@ public class AuthenticationState: ObservableObject {
         }
     }
     
-    // MARK: - Authentication Status Update
+    // MARK: - Authentication Status Update (Modified)
     private func updateAuthenticationStatus() {
+        // This function is no longer setting the core login state.
+        // Its purpose is to derive the state from `userInfo`, `currentUser`, `socialUser`.
+        // It's still useful for sanity checks, but don't call it if you're
+        // about to call loginCompletedSuccessfully().
         isAuthenticated = (userInfo != nil || currentUser != nil || socialUser != nil)
-        isLoggedIn = isAuthenticated
-        
-        print("ℹ️ Auth Status -> isAuthenticated: \(isAuthenticated), isLoggedIn: \(isLoggedIn), isAdmin: \(isAdmin)")
+        isLoggedIn = isAuthenticated // Let isLoggedIn derive from isAuthenticated
+        print("ℹ️ Auth Status (internal): isAuthenticated: \(isAuthenticated), isLoggedIn: \(isLoggedIn), isAdmin: \(isAdmin)")
     }
     
     // MARK: - Password Handling
@@ -472,16 +519,18 @@ public class AuthenticationState: ObservableObject {
         return decoded
     }
     
-    // MARK: - Admin Access
+    // MARK: - Admin Access (Review this method)
     public func adminLoginSucceeded() {
+        // This method bypasses the normal login flow. Ensure it correctly sets
+        // all necessary state.
         isAuthenticated = true
-        isLoggedIn = false
+        isLoggedIn = false // Admin is not "logged in" as a regular user, or is it? Clarify this logic.
         isAdmin = true
         navigateToAdminMenu = true
-        
+
+        // Ensure this triggers a UI update correctly
         print("🛡️ Admin login succeeded. isAdmin: \(isAdmin), navigateToAdminMenu: \(navigateToAdminMenu)")
     }
-
     
     // MARK: - Public Setters (MainActor safe)
 
@@ -517,8 +566,17 @@ public class AuthenticationState: ObservableObject {
         currentUser = nil
         errorMessage = ""
         hasError = false
-    }
 
+        // IMPORTANT: Call cleanup methods on any managers that hold state or listeners
+        // CORRECTED LINE:
+        FirestoreManager.shared.stopAllListeners() // <--- Change this line
+
+        // If you have a LocationManager singleton:
+        // LocationManager.shared.stopUpdatingLocation() // Implement this in your LocationManager
+        // LocationManager.shared.resetState() // If LocationManager holds internal state
+
+        print("🔄 AuthenticationState has been fully reset.")
+    }
     
     // MARK: - Errors
     public enum AuthenticationError: LocalizedError {

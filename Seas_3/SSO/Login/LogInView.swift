@@ -32,7 +32,9 @@ enum UserFetchError: Error {
     case emailNotFound
 }
 
-// Login Form View
+// Login Form View (No changes needed here for NavigationStack removal,
+// but review the signIn logic if it's still directly calling Firebase
+// instead of AuthViewModel.shared)
 struct LoginForm: View {
     @Binding var usernameOrEmail: String
     @Binding var password: String
@@ -116,20 +118,17 @@ struct LoginForm: View {
 
                 VStack {
                     HStack {
-                        // GoogleSignInButtonWrapper no longer needs @EnvironmentObject(authenticationState) here
-                        // because it directly uses AuthViewModel.shared
                         GoogleSignInButtonWrapper(
                             handleError: { message in
                                 self.errorMessage = message
                             }
                         )
-                        // .environmentObject(authenticationState) // <-- REMOVE THIS LINE
+                        // .environmentObject(authenticationState) // <-- This line should be REMOVED (already removed)
                         .frame(height: 50)
                         .clipped()
                     }
                 }
                 .frame(maxHeight: .infinity, alignment: .center)
-
 
                 if !errorMessage.isEmpty {
                     Text(errorMessage)
@@ -137,6 +136,7 @@ struct LoginForm: View {
                 }
 
                 VStack {
+                    // These NavigationLinks will now push onto the AppRootView's NavigationStack
                     NavigationLink(destination: ApplicationOfServiceView()) {
                         Text("By continuing, you agree to the updated Terms of Service/Disclaimer")
                             .font(.footnote)
@@ -171,20 +171,19 @@ struct LoginForm: View {
             return
         }
 
-        let normalizedUsernameOrEmail = usernameOrEmail.lowercased() // Normalize the email to lowercase
+        let normalizedUsernameOrEmail = usernameOrEmail.lowercased()
 
         do {
             print("Starting sign-in process for \(normalizedUsernameOrEmail)")
-            
-            // Here, instead of calling Auth.auth().signIn directly, you should use
-            // AuthViewModel.shared.signInUser() as AuthViewModel is now responsible
-            // for all login flows.
+
+            // Crucially, ensure AuthViewModel.shared.signInUser() is indeed handling Firebase Auth
+            // and updating authenticationState
             try await AuthViewModel.shared.signInUser(with: normalizedUsernameOrEmail, password: password)
 
             DispatchQueue.main.async {
                 self.authenticationState.setIsAuthenticated(true)
                 self.isLoggedIn = true
-                self.showMainContent = true // This will likely become redundant once isAuthenticated is fully managed
+                self.showMainContent = true // This will be handled by AppRootView's logic
             }
         } catch {
             print("Error during sign-in: \(error.localizedDescription)")
@@ -194,43 +193,15 @@ struct LoginForm: View {
             }
         }
     }
-    
-    // The signInWithEmail and fetchUser methods should ideally be internal to AuthViewModel
-    // If you need them here, make them private. However, the goal is to use AuthViewModel.shared
-    // for all sign-in operations.
 
-    // private func signInWithEmail(email: String, password: String) async throws { ... } // REMOVE or make private to AuthViewModel
-    // private func fetchUser(_ usernameOrEmail: String) async throws -> UserInfo { ... } // REMOVE or make private to AuthViewModel
-
-
-    private func signInWithEmail(email: String, password: String) async throws {
-        print("Attempting to sign in with email: \(email)")
-
-        do {
-            let result = try await Auth.auth().signIn(withEmail: email, password: password)
-            print("Successfully signed in with email: \(email)")
-            print("✅ Firebase UID after sign-in: \(result.user.uid)") // <-- ✅ Best spot
-            print("🔍 Auth.auth().currentUser UID: \(Auth.auth().currentUser?.uid ?? "nil")")
-            print("Current Firebase user: \(Auth.auth().currentUser?.uid ?? "nil")")
-
-
-            DispatchQueue.main.async {
-                self.authenticationState.setIsAuthenticated(true)
-                self.isLoggedIn = true
-                self.showMainContent = true
-            }
-        } catch let error {
-            print("Error signing in with email: \(email) - \(error.localizedDescription)")
-            showAlert(with: error.localizedDescription)
-            throw error
-        }
-    }
+    // Remove or internalize these if they are solely for AuthViewModel's use
+    // private func signInWithEmail(email: String, password: String) async throws { ... }
+    // private func fetchUser(_ usernameOrEmail: String) async throws -> UserInfo { ... }
 
     private let userFetcher = UserFetcher()
-    
+
     private func fetchUser(_ usernameOrEmail: String) async throws -> UserInfo {
-        print("Fetching user with identifier: \(usernameOrEmail)") // Logging the fetch attempt
-        // Pass the viewContext (Core Data context) to UserFetcher
+        print("Fetching user with identifier: \(usernameOrEmail)")
         return try await userFetcher.fetchUser(usernameOrEmail: usernameOrEmail, context: viewContext)
     }
 
@@ -244,7 +215,7 @@ struct LoginForm: View {
 public struct LoginView: View {
     @EnvironmentObject var authenticationState: AuthenticationState
     @Environment(\.managedObjectContext) private var viewContext
-    @State private var showMainContent: Bool = false // Keep for now, might be simplified later
+    @State private var showMainContent: Bool = false
     @State private var errorMessage: String = ""
     @State private var usernameOrEmail: String = ""
     @State private var password: String = ""
@@ -259,8 +230,7 @@ public struct LoginView: View {
     @Binding private var navigateToAdminMenu: Bool
     @State private var createAccountLinkActive = false
     @State private var isSignInEnabled: Bool = false
-    // REMOVE THIS LINE: @StateObject private var authViewModel = AuthViewModel.shared
-    @Binding private var isLoggedIn: Bool // Keep for now, might be simplified later
+    @Binding private var isLoggedIn: Bool
     @State private var showToastMessage: String = ""
     @State private var isToastShown: Bool = false
     @State private var navigateToCreateAccount = false
@@ -282,8 +252,42 @@ public struct LoginView: View {
 
     public var body: some View {
         ZStack {
-            navigationContent
-            toastContent
+            // Directly embed the content, removing the 'navigationContent' private var
+            // and its encapsulating NavigationStack
+            VStack(spacing: 20) {
+                // Since `MapsToAdminMenu` is a Binding<Bool>, it acts as a destination
+                // for NavigationLink. This can be used for programmatic navigation.
+                // However, a simple NavigationLink to EmptyView here might be unnecessary
+                // if the NavigationStack path in AppRootView is used for routing.
+                // I'm going to remove this specific NavigationLink for now,
+                // assuming any actual navigation happens via buttons/actions.
+                // If you *need* programmatic navigation from LoginView *to* AdminMenu
+                // as a specific path value, you'd define a `NavigationLink(value: someEnumValue)`
+                // and push that value onto the parent's `navigationPath`.
+                // For simplicity, let's assume `AdminLoginView` is the direct destination
+                // from a NavigationLink.
+
+                // The original 'navigationLinks' now might be better handled directly
+                // or if it was for programmatic navigation, that should be tied
+                // to AppRootView's navigationPath.
+                // I'm commenting out the `navigationLinks` private var and integrating
+                // its logical flow directly or via other means.
+                // If `MapsToAdminMenu` was meant to be used for a NavigationLink value,
+                // it needs to be an identifiable type that `NavigationStack` can push.
+                // Since you have a direct NavigationLink to `AdminLoginView` in LoginForm,
+                // this `navigationLinks` in LoginView is likely redundant.
+
+                mainContent // This is the actual content that was inside the removed NavigationStack
+            }
+            .alert(isPresented: $showAlert) {
+                Alert(title: Text("Error"), message: Text(errorMessage), dismissButton: .default(Text("OK")))
+            }
+            .padding()
+            .onChange(of: showMainContent) { newValue in
+                isLoggedIn = newValue
+            }
+
+            toastContent // This remains as is
         }
         .setupListeners(showToastMessage: $showToastMessage, isToastShown: $isToastShown, isLoggedIn: authenticationState.isAuthenticated)
         .onAppear {
@@ -296,21 +300,7 @@ public struct LoginView: View {
         }
     }
 
-    private var navigationContent: some View {
-        NavigationStack {
-            VStack(spacing: 20) {
-                navigationLinks
-                mainContent
-            }
-            .alert(isPresented: $showAlert) {
-                Alert(title: Text("Error"), message: Text(errorMessage), dismissButton: .default(Text("OK")))
-            }
-            .padding()
-            .onChange(of: showMainContent) { newValue in
-                isLoggedIn = newValue
-            }
-        }
-    }
+    // Removed: private var navigationContent: some View { ... }
 
     private var toastContent: some View {
         Group {
@@ -322,11 +312,8 @@ public struct LoginView: View {
         }
     }
 
-    private var navigationLinks: some View {
-        NavigationLink(value: navigateToAdminMenu) {
-            EmptyView()
-        }
-    }
+    // Removed: private var navigationLinks: some View { ... }
+    // If you need programmatic push to AdminMenu, consider using AppRootView's NavigationPath.
 
     private var mainContent: some View {
         VStack {
@@ -338,15 +325,13 @@ public struct LoginView: View {
                     selectedTabIndex: $selectedTabIndex,
                     emailManager: UnifiedEmailManager.shared
                 )
-            // Simplified condition: relies purely on authenticationState
-            } else if authenticationState.isAuthenticated { // REMOVED && showMainContent
+            } else if authenticationState.isAuthenticated {
                 IslandMenu(
                     isLoggedIn: Binding(
                         get: { authenticationState.isLoggedIn },
                         set: { authenticationState.setIsLoggedIn($0) }
                     ),
-                    // Pass AuthViewModel.shared directly
-                    authViewModel: AuthViewModel.shared, // <--- Correctly uses the shared instance
+                    authViewModel: AuthViewModel.shared,
                     profileViewModel: profileViewModel
                 )
             } else if isSelected == .login {
@@ -378,9 +363,6 @@ public struct LoginView: View {
             Text("Log In OR")
             Button(action: {
                 print("GO TO Create Account link tapped")
-                // Use os.Logger here for consistency, if OSLog.default is defined globally.
-                // Otherwise, consider if you need a logger instance here.
-                // os_log("Create Account link tapped", log: OSLog.default, type: .info)
                 navigateToCreateAccount = true
             }) {
                 Text("Create an Account")
@@ -390,6 +372,7 @@ public struct LoginView: View {
             }
         }
         .background(
+            // This NavigationLink will now push onto the AppRootView's NavigationStack
             NavigationLink(destination: CreateAccountView(
                 islandViewModel: islandViewModel,
                 isUserProfileActive: $isUserProfileActive,

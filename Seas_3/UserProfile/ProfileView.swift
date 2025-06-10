@@ -12,7 +12,7 @@ import FirebaseFirestore
 
 struct ProfileView: View {
     @Environment(\.managedObjectContext) private var viewContext
-    @ObservedObject var profileViewModel: ProfileViewModel
+    @StateObject var profileViewModel: ProfileViewModel
     @ObservedObject var authViewModel: AuthViewModel
     @Binding var selectedTabIndex: LoginViewSelection
     let setupGlobalErrorHandler: () -> Void

@@ -99,11 +99,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
 
-        // 1. Configure Firebase & App Check FIRST
+        // ✅ 1. Configure Firebase & App Check FIRST
         configureFirebaseIfNeeded() // This should set `isFirebaseConfigured = true` once done
 
-        // 2. Initialize ViewModels that depend on Firebase *after* Firebase is configured.
-        // Ensure AuthViewModel.shared is correctly pointing to your authenticationState
+        // ✅ 2. Initialize ViewModels that depend on Firebase *after* Firebase is configured
         AuthViewModel._shared = AuthViewModel(authenticationState: self.authenticationState)
         self.authViewModel = AuthViewModel.shared
 
@@ -114,24 +113,31 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
             authViewModel: self.authViewModel
         )
 
-        // 3. Continue with other configurations
+        // ✅ 3. Facebook SDK (after Firebase)
         ApplicationDelegate.shared.application(application, didFinishLaunchingWithOptions: launchOptions)
+
+        // ✅ 4. Optional Debug flag
         UserDefaults.standard.set(true, forKey: "AppAuthDebug")
+
+        // ✅ 5. App-specific config/setup
         configureAppConfigValues()
         configureApplicationAppearance()
         configureGoogleSignIn()
         configureNotifications(for: application)
         configureGoogleAds()
 
-        // FirestoreSyncManager.shared.syncInitialFirestoreData() // Only if it doesn't create Auth instances prematurely
+        // ✅ 6. Safe to sync Firestore after Firebase is fully initialized
+        FirestoreSyncManager.shared.syncInitialFirestoreData()
 
+        // ✅ 7. Defer Keychain test to avoid premature access
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             self.testKeychainAccessGroup()
         }
 
+        // ✅ 8. IDFA request — independent of Firebase
         IDFAHelper.requestIDFAPermission()
 
-        // Configure Firebase Auth State Listener after everything is set up
+        // ✅ 9. Firebase Auth State Listener (final setup)
         authStateDidChangeListenerHandle = Auth.auth().addStateDidChangeListener { [weak self] auth, user in
             guard let self = self else { return }
 
@@ -151,6 +157,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
 
         return true
     }
+
 
 
     func applicationWillTerminate(_ application: UIApplication) {

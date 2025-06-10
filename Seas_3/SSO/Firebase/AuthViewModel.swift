@@ -86,6 +86,7 @@ enum CoreDataError: Error, LocalizedError {
     }
 }
 
+
 class AuthViewModel: ObservableObject {
     static var _shared: AuthViewModel?
 
@@ -97,6 +98,7 @@ class AuthViewModel: ObservableObject {
             return _shared!
         }
     }
+
 
     @Published var usernameOrEmail: String = ""
     @Published var password: String = ""
@@ -117,7 +119,8 @@ class AuthViewModel: ObservableObject {
     private lazy var auth = Auth.auth()
     public let context: NSManagedObjectContext
     private let emailManager: UnifiedEmailManager
-    private let logger = os.Logger(subsystem: "com.seas3.app", category: "AuthViewModel") // Add logger
+    private let logger = os.Logger(subsystem: "com.seas3.app", category: "AuthViewModel")
+
 
     private var authenticationState: AuthenticationState
 
@@ -133,21 +136,17 @@ class AuthViewModel: ObservableObject {
         self.emailManager = emailManager
         self.authenticationState = authenticationState
 
-        // Observe userSession changes to update userIsLoggedIn
-        // This is crucial for keeping userIsLoggedIn in sync
-        $userSession // Start with the publisher of userSession
-            .map { $0 != nil } // Map it to a Bool: true if userSession is not nil, false otherwise
-            .sink { [weak self] isLoggedIn in // Use sink to receive the value and perform assignment
+        $userSession
+            .map { $0 != nil }
+            .sink { [weak self] isLoggedIn in
                 self?.userIsLoggedIn = isLoggedIn
             }
-            .store(in: &cancellables) // Store the resulting Cancellable in the cancellables set
-
+            .store(in: &cancellables)
 
         authStateHandle = auth.addStateDidChangeListener { [weak self] auth, user in
-            Task {
+            // Ensure UI updates (including @Published properties) are on the main actor
+            Task { @MainActor in // <--- Add @MainActor here
                 await self?.updateCurrentUser(user: user)
-                // When Firebase auth state changes, update userSession
-                // This will then trigger the @Published userSession to update userIsLoggedIn
                 self?.userSession = user
             }
         }

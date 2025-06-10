@@ -14,11 +14,126 @@ public class FirestoreManager {
     var disabled: Bool = false
     private lazy var db = Firestore.firestore()
 
+    // MARK: - Listener Registrations
+    // Declare properties to hold your listener registrations.
+    // If you have multiple real-time listeners for different data,
+    // you'll need a separate ListenerRegistration for each.
+    private var userDocumentListener: ListenerRegistration?
+    private var appDayOfWeeksListener: ListenerRegistration? // Example: If you listen to this collection
+    private var pirateIslandsListener: ListenerRegistration? // Example: If you listen to this collection
+
     private init() {
         // You can do any setup here if needed.
         print("FirestoreManager initialized with Firestore instance.")
     }
 
+    
+    // MARK: - Real-Time Updates (Modified)
+    // You already have a generic `listenForChanges` but it doesn't store the registration.
+    // Let's create a more specific one that stores and manages the listener.
+
+    /// Sets up a real-time listener for the user's Firestore document.
+    /// Call this when the user logs in and you want to sync their profile data.
+    func startListeningForUserDocument() {
+        guard let userID = Auth.auth().currentUser?.uid else {
+            print("FirestoreManager: Cannot start listening for user document, no current Firebase user.")
+            return
+        }
+
+        // First, remove any existing listener to prevent duplicates.
+        // This is crucial to prevent "QUARANTINED DUE TO HIGH LOGGING VOLUME" and stalling.
+        userDocumentListener?.remove()
+        userDocumentListener = nil // Clear the reference
+
+        print("FirestoreManager: Starting real-time listener for user document: \(userID)")
+
+        userDocumentListener = db.collection("users").document(userID)
+            .addSnapshotListener { [weak self] documentSnapshot, error in
+                guard let self = self else { return }
+
+                if let error = error {
+                    print("Error listening for user document changes: \(error.localizedDescription)")
+                    // Handle error, maybe retry or inform the user
+                    return
+                }
+
+                guard let document = documentSnapshot else {
+                    print("FirestoreManager: User document snapshot is nil.")
+                    return
+                }
+
+                if document.exists {
+                    // Handle user data updates
+                    print("FirestoreManager: User document updated for UID: \(userID)")
+                    // This is where you would typically update your AuthenticationState.currentUser
+                    // or other relevant data models that depend on real-time user profile updates.
+                    // Example:
+                    // if let updatedUser = User(fromFirestoreDocument: document) {
+                    //     AuthenticationState.shared.currentUser = updatedUser
+                    // }
+                } else {
+                    print("FirestoreManager: User document does not exist for UID: \(userID)")
+                    // This could mean the user's profile was deleted from Firestore.
+                    // You might want to trigger a logout or adjust app state accordingly.
+                }
+            }
+    }
+
+    
+    // MARK: - Cleanup Method
+    /// Stops all active Firestore real-time listeners.
+    /// This should be called when the user logs out to prevent memory leaks and unnecessary data fetching.
+    public func stopAllListeners() {
+        print("FirestoreManager: Stopping all active Firestore listeners.")
+        userDocumentListener?.remove()
+        userDocumentListener = nil
+
+        appDayOfWeeksListener?.remove()
+        appDayOfWeeksListener = nil
+
+        pirateIslandsListener?.remove()
+        pirateIslandsListener = nil
+        // Add .remove() and nil out all other ListenerRegistration properties you have
+        // Example: someOtherCollectionListener?.remove(); someOtherCollectionListener = nil
+    }
+
+    
+    /// Sets up a real-time listener for general collection changes.
+    /// This is an example of how you could adapt your existing `listenForChanges`
+    /// to store and manage its listener registration.
+    func startListeningForCollection(collection: Collection, completion: @escaping ([QueryDocumentSnapshot]?) -> Void) {
+        if disabled { return }
+
+        // Decide if you need separate listener properties for each collection,
+        // or a dictionary if you'll listen to many dynamically.
+        // For simplicity, let's assume we manage specific ones for now.
+        // If this is for `appDayOfWeeks`, you'd do:
+        // appDayOfWeeksListener?.remove()
+        // appDayOfWeeksListener = nil
+
+        print("FirestoreManager: Starting listening for changes in collection: \(collection.rawValue)")
+
+        // For `appDayOfWeeks` listener:
+        if collection == .appDayOfWeeks {
+            appDayOfWeeksListener?.remove() // Remove previous listener if it exists
+            appDayOfWeeksListener = db.collection(collection.rawValue).addSnapshotListener { snapshot, error in
+                if let error = error {
+                    print("Error listening for changes in \(collection.rawValue): \(error.localizedDescription)")
+                    completion(nil)
+                } else {
+                    print("Changes detected in collection: \(collection.rawValue)")
+                    completion(snapshot?.documents)
+                }
+            }
+        }
+        // Add more `if` blocks for other specific collections you want to listen to.
+        // Or, for a more general approach, you could use a `[Collection: ListenerRegistration]` dictionary.
+    }
+
+
+    
+    
+    
     // MARK: - Example method
     func saveIslandToFirestore(
         island: PirateIsland,
@@ -64,7 +179,7 @@ public class FirestoreManager {
 
     // MARK: - Collection Management
     enum Collection: String {
-        case appDayOfWeeks, matTimes, pirateIslands, reviews, userInfos
+        case appDayOfWeeks, matTimes, pirateIslands, reviews, userInfos, users // Added 'users' collection
     }
     
     func updatePirateIsland(id: String, data: [String: Any]) async throws {
@@ -117,8 +232,14 @@ public class FirestoreManager {
         return snapshot.documents
     }
 
-
-    // MARK: - Specific Functions for Collections
+    
+    // MARK: - Specific Functions for Collections (existing, just adding 'users' to the enum and comments)
+    // Note: If you're listening for user profiles, your User object should handle decoding a document.
+    // The `getPirateIsland(for id:)` and `getReviews(for pirateIslandID:)` methods are for one-time fetches,
+    // not real-time listeners.
+    
+    
+    
     func getAppDayOfWeeks() async throws -> [QueryDocumentSnapshot] {
         print("Getting app day of weeks")
         return try await getDocuments(in: .appDayOfWeeks)
