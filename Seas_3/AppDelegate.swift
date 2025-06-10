@@ -42,23 +42,28 @@ extension NSNotification.Name {
 }
 
 
-
 class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUserNotificationCenterDelegate {
-    var window: UIWindow?
-    
-    // App-wide shared instances
+
+    // MARK: - Properties
+    var authStateDidChangeListenerHandle: AuthStateDidChangeListenerHandle?
+
+    // App-wide shared instances - These will be passed to Seas_3App for environment injection
     let appState = AppState()
     lazy var persistenceController = PersistenceController.shared
     lazy var firestoreManager = FirestoreManager.shared
-
-    let authenticationState = AuthenticationState(hashPassword: HashPassword())
-    // Your property declarations are already fine as they are:
-    var authViewModel: AuthViewModel!
-    var profileViewModel: ProfileViewModel?
-
+    
+    // authenticationState can be initialized here as it doesn't directly depend on Firebase
+    let authenticationState: AuthenticationState
     let appConfig = AppConfig.shared
 
-    // Config values
+    // ViewModels - Make these implicitly unwrapped optionals (`!`) or optionals (`?`)
+    // and initialize them *after* Firebase is configured in didFinishLaunchingWithOptions.
+    var authViewModel: AuthViewModel!
+    var pirateIslandViewModel: PirateIslandViewModel!
+    var profileViewModel: ProfileViewModel! // Will be initialized after Firebase config
+
+
+    // Config values - Keep as they are, for internal AppDelegate use
     var facebookSecret: String?
     var sendgridApiKey: String?
     var googleClientID: String?
@@ -67,57 +72,94 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
     var deviceCheckKeyID: String?
     var deviceCheckTeamID: String?
 
-    var isFirebaseConfigured = false
+    var isFirebaseConfigured = false // Controls AppRootView's conditional content
 
     enum AppCheckTokenError: Error {
         case noTokenReceived, invalidToken
     }
-    
+
+    // Static shared instance for convenience, though for environment objects, passing directly is preferred.
     static var shared: AppDelegate {
+        // You might want to guard this more safely if the app delegate isn't always available
+        // in certain contexts, but for most app-level access it's fine.
         UIApplication.shared.delegate as! AppDelegate
     }
 
+    // MARK: - Initializer for AppDelegate
+    // Only initialize properties that *do not* directly depend on Firebase here.
+    override init() {
+        self.authenticationState = AuthenticationState(hashPassword: HashPassword(), validator: EmailValidator()) // Assuming EmailValidator is your default
+        super.init()
+    }
 
-    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // ✅ 1. Configure Firebase & App Check first
-        configureFirebaseIfNeeded()
-            
-        // ✅ 2. Facebook SDK (after Firebase)
+
+    // MARK: - Application Lifecycle
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
+    ) -> Bool {
+
+        // 1. Configure Firebase & App Check FIRST
+        configureFirebaseIfNeeded() // This should set `isFirebaseConfigured = true` once done
+
+        // 2. Initialize ViewModels that depend on Firebase *after* Firebase is configured.
+        // Ensure AuthViewModel.shared is correctly pointing to your authenticationState
+        AuthViewModel._shared = AuthViewModel(authenticationState: self.authenticationState)
+        self.authViewModel = AuthViewModel.shared
+
+        self.pirateIslandViewModel = PirateIslandViewModel(persistenceController: PersistenceController.shared)
+
+        self.profileViewModel = ProfileViewModel(
+            viewContext: PersistenceController.shared.container.viewContext,
+            authViewModel: self.authViewModel
+        )
+
+        // 3. Continue with other configurations
         ApplicationDelegate.shared.application(application, didFinishLaunchingWithOptions: launchOptions)
-            
-        // ✅ 3. Optional Debug flag
         UserDefaults.standard.set(true, forKey: "AppAuthDebug")
-            
-        // ✅ 4. App-specific config/setup
         configureAppConfigValues()
         configureApplicationAppearance()
         configureGoogleSignIn()
         configureNotifications(for: application)
         configureGoogleAds()
 
-        // ✅ 5. Safe to sync Firestore after Firebase is fully initialized
-        // FirestoreSyncManager.shared.syncInitialFirestoreData()
+        // FirestoreSyncManager.shared.syncInitialFirestoreData() // Only if it doesn't create Auth instances prematurely
 
-        // ✅ 6. Defer Keychain test to avoid premature access
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             self.testKeychainAccessGroup()
         }
-        
-        // ✅ 7.IDFA request — independent of Firebase
+
         IDFAHelper.requestIDFAPermission()
-        
-        // ✅ 8. DO NOT REGISTER DebugURLProtocol unless absolutely necessary
-            
-        /*
-        #if DEBUG
-        URLProtocol.registerClass(DebugURLProtocol.self)
-        #endif
-        */
+
+        // Configure Firebase Auth State Listener after everything is set up
+        authStateDidChangeListenerHandle = Auth.auth().addStateDidChangeListener { [weak self] auth, user in
+            guard let self = self else { return }
+
+            if let user = user {
+                print("✅ Firebase User is signed in: \(user.email ?? "N/A") (UID: \(user.uid))")
+                self.authViewModel.userSession = user
+                self.authenticationState.isAuthenticated = true
+                self.authenticationState.isLoggedIn = true
+            } else {
+                print("❌ Firebase No user is signed in.")
+                self.authViewModel.userSession = nil
+                self.authenticationState.isAuthenticated = false
+                self.authenticationState.isLoggedIn = false
+                self.authenticationState.navigateToAdminMenu = false
+            }
+        }
 
         return true
     }
 
 
+    func applicationWillTerminate(_ application: UIApplication) {
+        if let handle = authStateDidChangeListenerHandle {
+            Auth.auth().removeStateDidChangeListener(handle)
+        }
+    }
+
+    
     func testKeychainAccessGroup() {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -158,12 +200,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         return facebookHandled || googleHandled
     }
 
+
     
     private func fetchAppCheckToken() {
         let appCheck = AppCheck.appCheck()
         appCheck.token(forcingRefresh: true) { [weak self] (appCheckToken: AppCheckToken?, error: Error?) in
             guard let self = self else { return }
-              
+
             if let error = error {
                 print("[App Check] Error fetching token: \(error.localizedDescription)")
                 self.handleAppCheckTokenError(error)
@@ -176,6 +219,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
             }
         }
     }
+
 
     private func storeAppCheckToken(_ token: String) {
         // Implement secure token storage
@@ -227,7 +271,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
 
     
     // MARK: - Push Notification Delegates
-
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
         // Convert deviceToken to string (optional)
         let tokenString = deviceToken.reduce("") { $0 + String(format: "%02.2hhx", $1) }
@@ -292,66 +335,55 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
     }
 }
 
+
 private extension AppDelegate {
-    
-    func configureFirebaseIfNeeded() {
+
+    private func configureFirebaseIfNeeded() {
         print("🔧 Configuring Firebase...")
+
         guard !isFirebaseConfigured else {
             print("ℹ️ Firebase already configured.")
             return
         }
-          
-    #if DEBUG
+
+        #if DEBUG
         AppCheck.setAppCheckProviderFactory(AppCheckDebugProviderFactory())
-    #else
+        #else
         AppCheck.setAppCheckProviderFactory(AppCheckDeviceCheckProviderFactory())
-    #endif
-          
+        #endif
+
         FirebaseApp.configure()
         print("✅ Firebase configured.")
 
         isFirebaseConfigured = true
         NotificationCenter.default.post(name: .firebaseConfigured, object: nil)
 
-        // MARK: - THE ONLY CHANGE YOU NEED TO MAKE
-        // This ensures AuthViewModel.shared is initialized with the correct AuthenticationState
-        // and that AppDelegate's authViewModel property points to that shared instance.
-        if AuthViewModel._shared == nil {
-            AuthViewModel._shared = AuthViewModel(authenticationState: self.authenticationState)
-        }
-        self.authViewModel = AuthViewModel.shared
-
-        self.profileViewModel = ProfileViewModel(
-            viewContext: persistenceController.container.viewContext,
-            authViewModel: self.authViewModel
-        )
-        configureMessaging()
+        configureMessaging() // Keep this here as it's part of Firebase setup
     }
-      
-      
+
     func configureMessaging() {
         Messaging.messaging().delegate = self
         Messaging.messaging().isAutoInitEnabled = true
     }
-      
+    
     func configureApplicationAppearance() {
         UINavigationBar.appearance().tintColor = .systemOrange
         UITabBar.appearance().tintColor = .systemOrange
     }
-      
+    
     func configureAppConfigValues() {
         guard let config = ConfigLoader.loadConfigValues() else {
             print("❌ Could not load configuration values.")
             return
         }
-          
+        
         sendgridApiKey = config.SENDGRID_API_KEY
         googleApiKey = config.GoogleApiKey
         googleAppID = config.GoogleAppID
         deviceCheckKeyID = config.DeviceCheckKeyID
         deviceCheckTeamID = config.DeviceCheckTeamID
         googleClientID = FirebaseApp.app()?.options.clientID
-          
+        
         appConfig.googleClientID = googleClientID ?? ""
         appConfig.googleApiKey = googleApiKey ?? ""
         appConfig.googleAppID = googleAppID ?? ""
@@ -359,23 +391,22 @@ private extension AppDelegate {
         appConfig.deviceCheckKeyID = deviceCheckKeyID ?? ""
         appConfig.deviceCheckTeamID = deviceCheckTeamID ?? ""
     }
-      
+    
     func configureGoogleSignIn() {
         guard let clientID = FirebaseApp.app()?.options.clientID else {
             print("❌ Could not get clientID from Firebase options.")
             return
         }
-          
+        
         let config = GIDConfiguration(clientID: clientID)
         GIDSignIn.sharedInstance.configuration = config
-          
+        
         print("✅ Google Sign-In configured with client ID: \(clientID)")
     }
-      
-      
+    
     func configureNotifications(for application: UIApplication) {
         UNUserNotificationCenter.current().delegate = self
-          
+        
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
             if let error = error {
                 print("❌ Notification error: \(error.localizedDescription)")

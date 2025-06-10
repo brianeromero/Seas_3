@@ -1,4 +1,5 @@
 import SwiftUI
+import Foundation // Make sure Foundation is imported for Date() and NSLog
 import CoreData
 import Combine
 import FBSDKCoreKit
@@ -12,19 +13,16 @@ struct Seas_3App: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     @State private var selectedTabIndex: LoginViewSelection = .login
-    
-    
+
     // MARK: - Instantiate AllEnteredLocationsViewModel here
     @StateObject var allEnteredLocationsViewModel: AllEnteredLocationsViewModel
 
     // Use an initializer to set up your @StateObject
     init() {
-        // You can put other initial setup here if needed
-        // For @StateObject, you initialize it with _propertyName = StateObject(wrappedValue: ...)
         _allEnteredLocationsViewModel = StateObject(wrappedValue: AllEnteredLocationsViewModel(
             dataManager: PirateIslandDataManager(viewContext: PersistenceController.shared.container.viewContext)
         ))
-        setupGlobalErrorHandler() // Call your error handler setup here
+        setupGlobalErrorHandler()
     }
 
     var body: some Scene {
@@ -34,8 +32,13 @@ struct Seas_3App: App {
                 selectedTabIndex: $selectedTabIndex,
                 appState: appDelegate.appState
             )
-            // MARK: - Inject AllEnteredLocationsViewModel into the environment
-            .environmentObject(allEnteredLocationsViewModel) // <-- Add this line
+            // MARK: - Inject ALL top-level EnvironmentObjects here
+            // These objects will now be available to AppRootView and all its descendants.
+            .environmentObject(appDelegate.authenticationState)
+            .environmentObject(AuthViewModel.shared) // Ensure AuthViewModel.shared is always initialized before this
+            .environmentObject(appDelegate.pirateIslandViewModel) // Assuming AppDelegate holds this
+            .environmentObject(appDelegate.profileViewModel!) // Assuming AppDelegate holds this and it's non-nil
+            .environmentObject(allEnteredLocationsViewModel) // Existing line
             .environment(\.managedObjectContext, appDelegate.persistenceController.container.viewContext) // Ensure context is also in environment
         }
     }
@@ -50,17 +53,17 @@ struct Seas_3App: App {
     }
 }
 
+
 struct AppRootView: View {
-    let appDelegate: AppDelegate
+    let appDelegate: AppDelegate // We pass appDelegate to access its properties/dependencies
     @Binding var selectedTabIndex: LoginViewSelection
-    @ObservedObject var appState: AppState
+    @ObservedObject var appState: AppState // appState is passed directly, so keep it as @ObservedObject
 
     var body: some View {
         if appDelegate.isFirebaseConfigured {
             if appState.showWelcomeScreen {
                 PirateIslandView(appState: appState)
                     .transition(.opacity)
-                    // Removed .animation modifier here
                     .onAppear {
                         print("✅ Firebase is configured. Showing app content.")
                         print("👀 PirateIslandView appeared at \(Date())")
@@ -84,10 +87,15 @@ struct AppRootView: View {
                 if appDelegate.authenticationState.isAuthenticated &&
                     appDelegate.authenticationState.navigateToAdminMenu {
                     AdminMenu()
+                        // These environment objects are now provided by Seas_3App.
+                        // You only need to explicitly set them here if AdminMenu
+                        // needs a *different* instance than the global one,
+                        // or if it's the root of a new environment subtree.
+                        // Based on the goal, these are likely redundant now.
                         .environment(\.managedObjectContext, appDelegate.persistenceController.container.viewContext)
-                        .environmentObject(appDelegate.authenticationState)
-                        .environmentObject(appState)
-                        .environmentObject(appDelegate.profileViewModel!)
+                        // .environmentObject(appDelegate.authenticationState) // REMOVED (already global)
+                        // .environmentObject(appState) // REMOVED (appState is passed as @ObservedObject to AppRootView)
+                        // .environmentObject(appDelegate.profileViewModel!) // REMOVED (already global)
                 } else if appDelegate.authenticationState.isAuthenticated &&
                             appDelegate.authenticationState.isLoggedIn {
                     IslandMenu(
@@ -95,16 +103,17 @@ struct AppRootView: View {
                             get: { appDelegate.authenticationState.isLoggedIn },
                             set: { appDelegate.authenticationState.setIsLoggedIn($0) }
                         ),
+                        // Keep passing these directly as @ObservedObject if IslandMenu's init expects them this way
                         authViewModel: appDelegate.authViewModel,
                         profileViewModel: appDelegate.profileViewModel!
                     )
                     .environment(\.managedObjectContext, appDelegate.persistenceController.container.viewContext)
-                    .environmentObject(appDelegate.authenticationState)
-                    .environmentObject(appState)
+                    // .environmentObject(appDelegate.authenticationState) // REMOVED (already global)
+                    // .environmentObject(appState) // REMOVED (appState is passed as @ObservedObject)
                 } else {
                     LoginView(
                         islandViewModel: PirateIslandViewModel(persistenceController: appDelegate.persistenceController),
-                        profileViewModel: appDelegate.profileViewModel!,
+                        profileViewModel: appDelegate.profileViewModel!, // Passed directly
                         isSelected: $selectedTabIndex,
                         navigateToAdminMenu: Binding(
                             get: { appDelegate.authenticationState.navigateToAdminMenu },
@@ -116,7 +125,7 @@ struct AppRootView: View {
                         )
                     )
                     .environment(\.managedObjectContext, appDelegate.persistenceController.container.viewContext)
-                    .environmentObject(appDelegate.authenticationState)
+                    // .environmentObject(appDelegate.authenticationState) // REMOVED (already global)
                 }
             }
         } else {

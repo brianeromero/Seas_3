@@ -88,7 +88,7 @@ enum CoreDataError: Error, LocalizedError {
 
 class AuthViewModel: ObservableObject {
     static var _shared: AuthViewModel?
-    
+
     static var shared: AuthViewModel {
         get {
             if _shared == nil {
@@ -97,7 +97,7 @@ class AuthViewModel: ObservableObject {
             return _shared!
         }
     }
-    
+
     @Published var usernameOrEmail: String = ""
     @Published var password: String = ""
     @Published var isSignInEnabled: Bool = false
@@ -108,23 +108,23 @@ class AuthViewModel: ObservableObject {
     @Published var isUserProfileActive: Bool = false
     @Published var formState: FormState = FormState()
 
-    // Add this new computed property here
+    @Published var userIsLoggedIn: Bool = false // Initialize to false
+
     var currentUserID: String? {
-        // Prefer the uid from userSession (FirebaseAuth.User) if available
-        // as it's the most direct identifier from Firebase.
-        // Otherwise, fall back to currentUser's userID.
         userSession?.uid ?? currentUser?.userID
     }
-    
-    
+
     private lazy var auth = Auth.auth()
     public let context: NSManagedObjectContext
     private let emailManager: UnifiedEmailManager
     private let logger = os.Logger(subsystem: "com.seas3.app", category: "AuthViewModel") // Add logger
 
     private var authenticationState: AuthenticationState
-    
+
     var authStateHandle: AuthStateDidChangeListenerHandle?
+
+    // Add a cancellables set to store Combine subscriptions
+    private var cancellables = Set<AnyCancellable>() // Ensure this is present and initialized
 
     public init(managedObjectContext: NSManagedObjectContext = PersistenceController.shared.container.viewContext,
                 emailManager: UnifiedEmailManager = .shared,
@@ -132,12 +132,27 @@ class AuthViewModel: ObservableObject {
         self.context = managedObjectContext
         self.emailManager = emailManager
         self.authenticationState = authenticationState
+
+        // Observe userSession changes to update userIsLoggedIn
+        // This is crucial for keeping userIsLoggedIn in sync
+        $userSession // Start with the publisher of userSession
+            .map { $0 != nil } // Map it to a Bool: true if userSession is not nil, false otherwise
+            .sink { [weak self] isLoggedIn in // Use sink to receive the value and perform assignment
+                self?.userIsLoggedIn = isLoggedIn
+            }
+            .store(in: &cancellables) // Store the resulting Cancellable in the cancellables set
+
+
         authStateHandle = auth.addStateDidChangeListener { [weak self] auth, user in
             Task {
                 await self?.updateCurrentUser(user: user)
+                // When Firebase auth state changes, update userSession
+                // This will then trigger the @Published userSession to update userIsLoggedIn
+                self?.userSession = user
             }
         }
     }
+
 
     // MARK: Create Firebase user with email/password
     @MainActor

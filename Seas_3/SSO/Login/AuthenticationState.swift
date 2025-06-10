@@ -76,31 +76,31 @@ public class EmailValidator: Validator {
 @MainActor
 public class AuthenticationState: ObservableObject {
     // MARK: - Published Properties
-    @Published public private(set) var isAuthenticated: Bool = false
-    @Published public private(set) var isLoggedIn = false
-    @Published public private(set) var isAdmin = false
-    
+    @Published public var isAuthenticated: Bool = false
+    @Published public var isLoggedIn = false
+    @Published public var isAdmin = false               
+
     @Published public private(set) var socialUser: SocialUser?
     @Published public private(set) var userInfo: UserInfo?
     @Published public private(set) var currentUser: User?
-    
+
     @Published public private(set) var errorMessage = ""
     @Published public private(set) var hasError = false
-    
-    @Published public var navigateToAdminMenu = false
-    
 
-    
+    @Published public var navigateToAdminMenu = false
+
+
     // MARK: - Private Properties
     private let validator: Validator
     private let hashPassword: PasswordHasher
-    
+
     // MARK: - Initializer
     public init(hashPassword: PasswordHasher, validator: Validator = EmailValidator()) {
         self.hashPassword = hashPassword
         self.validator = validator
         print("🔧 AuthenticationState initialized with \(type(of: validator)) validator.")
     }
+
     
     // MARK: - CoreData Login
     /// Attempts login with a local CoreData user and plaintext password
