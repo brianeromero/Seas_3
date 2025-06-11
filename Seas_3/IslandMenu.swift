@@ -19,8 +19,8 @@ struct IslandMenu: View {
     // MARK: - Environment Variables
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) private var dismiss // Updated for iOS 15+
-    @ObservedObject var authViewModel: AuthViewModel
-    @EnvironmentObject var allEnteredLocationsViewModel: AllEnteredLocationsViewModel // <-- ADD THIS LINE
+    @EnvironmentObject var authViewModel: AuthViewModel // Changed from @ObservedObject to @EnvironmentObject
+    @EnvironmentObject var allEnteredLocationsViewModel: AllEnteredLocationsViewModel
 
     @State private var islandDetails = IslandDetails()
 
@@ -31,7 +31,7 @@ struct IslandMenu: View {
     @StateObject private var locationManager = UserLocationMapViewModel()
     @State private var region: MKCoordinateRegion = MKCoordinateRegion()
     @State private var searchResults: [PirateIsland] = []
-    @Binding var isLoggedIn: Bool
+    // @Binding var isLoggedIn: Bool // REMOVED - Derived from authViewModel
     @StateObject var appDayOfWeekViewModel: AppDayOfWeekViewModel
     let profileViewModel: ProfileViewModel
     @State private var showToastMessage: String = ""
@@ -42,22 +42,18 @@ struct IslandMenu: View {
     private let enterZipCodeViewModelForAppDayOfWeek: EnterZipCodeViewModel
     private let enterZipCodeViewModelForReviews: EnterZipCodeViewModel
     private let pirateIslandViewModel: PirateIslandViewModel
-    // private let pirateIslandDataManager: PirateIslandDataManager // <-- REMOVE THIS LINE (No longer needed here)
 
     let menuLeadingPadding: CGFloat = 50 + 0.5 * 10
 
     // MARK: - Initialization
-    init(isLoggedIn: Binding<Bool>, authViewModel: AuthViewModel, profileViewModel: ProfileViewModel) {
+    // Removed isLoggedIn and authViewModel from init parameters
+    init(profileViewModel: ProfileViewModel) {
         os_log("User logged in", log: IslandMenulogger)
         os_log("Initializing IslandMenu", log: IslandMenulogger)
 
-        // If authViewModel is now an @EnvironmentObject, you should remove this 'self.authViewModel' line.
-        // If it's *only* passed to IslandMenu and not an environment object *everywhere*, keep it.
-        // Based on your AppRootView, authViewModel is an @EnvironmentObject from AppDelegate.
-        // So, this line should be removed if it's truly an @EnvironmentObject.
-        self.authViewModel = authViewModel // <-- UNCOMMENT THIS LINE if authViewModel is *not* an @EnvironmentObject, or remove @ObservedObject and use @EnvironmentObject if it is.
+        // self.authViewModel = authViewModel // REMOVED - now an @EnvironmentObject
 
-        self._isLoggedIn = isLoggedIn
+        // self._isLoggedIn = isLoggedIn // REMOVED - not needed as a binding anymore
         self.profileViewModel = profileViewModel
 
         let sharedPersistenceController = PersistenceController.shared
@@ -73,7 +69,6 @@ struct IslandMenu: View {
         )
 
         self.pirateIslandViewModel = PirateIslandViewModel(persistenceController: sharedPersistenceController)
-        // self.pirateIslandDataManager = PirateIslandDataManager(viewContext: sharedPersistenceController.container.viewContext) // <-- REMOVE THIS LINE
 
         let localAppDayOfWeekRepository = self.appDayOfWeekRepository
         let localEnterZipCodeViewModel = self.enterZipCodeViewModelForAppDayOfWeek
@@ -83,8 +78,6 @@ struct IslandMenu: View {
             repository: localAppDayOfWeekRepository,
             enterZipCodeViewModel: localEnterZipCodeViewModel
         ))
-
-        // No need to initialize _allEnteredLocationsViewModel here for Option 2, it's injected.
     }
 
     enum IslandMenuOption: String, CaseIterable {
@@ -123,25 +116,20 @@ struct IslandMenu: View {
 
     // MARK: - Body
     var body: some View {
-        NavigationStack {
-            ZStack {
-                GIFView(name: "flashing2")
-                    .frame(width: 500, height: 450)
-                    .offset(x: 100, y: -150)
+        ZStack {
+            GIFView(name: "flashing2")
+                .frame(width: 500, height: 450)
+                .offset(x: 100, y: -150)
 
-                if isLoggedIn {
-                    menuView
-                } else {
-                    loginPromptView
-                }
-            }
-            .setupListeners(
-                showToastMessage: $showToastMessage,
-                isToastShown: $isToastShown,
-                isLoggedIn: isLoggedIn
-            )
+            menuView
         }
-        .edgesIgnoringSafeArea(.all)
+        // Moved .navigationBarTitle here
+        .navigationBarTitle("Welcome to Mat_Finder", displayMode: .inline)
+        .setupListeners(
+            showToastMessage: $showToastMessage,
+            isToastShown: $isToastShown,
+            isLoggedIn: authViewModel.authenticationState.isAuthenticated // Derived from EnvironmentObject
+        )
         .alert(isPresented: $showAlert) {
             Alert(
                 title: Text("Location Error"),
@@ -151,6 +139,11 @@ struct IslandMenu: View {
         }
         .onAppear {
             os_log("IslandMenu appeared", log: IslandMenulogger)
+        }
+        .onChange(of: authViewModel.authenticationState.isAuthenticated) { oldValue, newValue in
+            if !newValue {
+                os_log("IslandMenu: Authentication state changed to false, dismissing any modals.", log: IslandMenulogger)
+            }
         }
     }
 
@@ -163,8 +156,6 @@ struct IslandMenu: View {
             .padding(.top, 1)
     }
 
-
-
     private var menuItemView: some View {
         ForEach(menuItems, id: \.title) { menuItem in
             VStack(alignment: .leading, spacing: 0) {
@@ -173,7 +164,6 @@ struct IslandMenu: View {
 
                 ForEach(menuItem.subMenuItems, id: \.self) { subMenuItem in
                     if let option = IslandMenuOption(rawValue: subMenuItem) {
-                        // This NavigationLink closure is lazily evaluated.
                         NavigationLink {
                             destinationView(for: option)
                         } label: {
@@ -185,7 +175,6 @@ struct IslandMenu: View {
                         .simultaneousGesture(
                             TapGesture()
                                 .onEnded {
-                                    // This log fires ONLY when the user taps
                                     os_log("User tapped menu item: %@", log: IslandMenulogger, subMenuItem)
                                 }
                         )
@@ -202,7 +191,7 @@ struct IslandMenu: View {
     private var profileLinkView: some View {
         NavigationLink(destination: ProfileView(
             profileViewModel: profileViewModel,
-            authViewModel: authViewModel,
+            authViewModel: authViewModel, // authViewModel is now @EnvironmentObject, so this is correct
             selectedTabIndex: .constant(LoginViewSelection.login),
             setupGlobalErrorHandler: {}
         )
@@ -223,16 +212,15 @@ struct IslandMenu: View {
         .padding(.top, 40)
     }
 
+    // Removed .navigationBarTitle from here
     private var menuView: some View {
         VStack(alignment: .leading, spacing: 0) {
             menuHeaderView
             menuItemView
             profileLinkView
         }
-        .navigationBarTitle("Welcome to Mat_Finder", displayMode: .inline)
         .padding(.leading, menuLeadingPadding)
     }
-
 
     private var loginPromptView: some View {
         Text("Please log in to access the menu.")
@@ -250,10 +238,6 @@ struct IslandMenu: View {
 
     // MARK: - Destination View
     private func destinationView(for option: IslandMenuOption) -> some View {
-
-        // IMPORTANT: REMOVE os_log from here! It's executed eagerly for all links.
-        // If you need to log when the view *appears*, add .onAppear to the destination view itself.
-
         switch option {
         case .addNewGym:
             return AnyView(
@@ -263,7 +247,7 @@ struct IslandMenu: View {
                     authViewModel: authViewModel,
                     islandDetails: $islandDetails
                 )
-                .onAppear { // Log when this specific view appears
+                .onAppear {
                     let userID = authViewModel.currentUserID ?? "Unknown"
                     let timestamp = "\(Date())"
                     os_log("AddNewIsland Appeared. User: %@. Time: %@",
@@ -274,6 +258,7 @@ struct IslandMenu: View {
                     )
                 }
             )
+
 
         case .updateExistingGyms:
             return AnyView(
@@ -322,12 +307,12 @@ struct IslandMenu: View {
                     )
                 }
             )
-
+            
         case .postalCode:
             return AnyView(
                 EnterZipCodeView(
                     appDayOfWeekViewModel: appDayOfWeekViewModel,
-                    allEnteredLocationsViewModel: allEnteredLocationsViewModel, // <-- USE THE ENVIRONMENT OBJECT HERE
+                    allEnteredLocationsViewModel: allEnteredLocationsViewModel,
                     enterZipCodeViewModel: enterZipCodeViewModelForAppDayOfWeek
                 )
                 .onAppear {
@@ -442,7 +427,12 @@ struct IslandMenu: View {
 
 struct LogView: View {
     let message: String
-    let authViewModel: AuthViewModel // Keep if LogView has other UI purposes that need authViewModel
+    // No longer needs authViewModel if its only purpose was for logging in .onAppear,
+    // as it's now an @EnvironmentObject in IslandMenu and can be passed explicitly if LogView has other uses.
+    // If LogView genuinely needs authViewModel for its own purposes (not just logging), keep it.
+    // For now, assuming it's only for the message.
+    // If you need authViewModel for internal logic of LogView, declare it as @EnvironmentObject here too.
+    // @EnvironmentObject var authViewModel: AuthViewModel
 
     var body: some View {
         EmptyView()

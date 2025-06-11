@@ -144,14 +144,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
             if let user = user {
                 print("✅ Firebase User is signed in: \(user.email ?? "N/A") (UID: \(user.uid))")
                 self.authViewModel.userSession = user
-                self.authenticationState.isAuthenticated = true
+                self.authenticationState.isAuthenticated = true // <-- AppDelegate updates isAuthenticated
                 self.authenticationState.isLoggedIn = true
             } else {
                 print("❌ Firebase No user is signed in.")
                 self.authViewModel.userSession = nil
-                self.authenticationState.isAuthenticated = false
-                self.authenticationState.isLoggedIn = false
+                self.authenticationState.isAuthenticated = false // <-- AppDelegate updates isAuthenticated
+                self.authenticationState.isLoggedIn = false     // <-- AppDelegate updates isLoggedIn
                 self.authenticationState.navigateToAdminMenu = false
+                print("DEBUG: authenticationState.isAuthenticated set to \(self.authenticationState.isAuthenticated)") // ADD THIS
             }
         }
 

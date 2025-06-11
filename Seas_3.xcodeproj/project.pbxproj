@@ -405,6 +405,11 @@
 			path = AdminView;
 			sourceTree = "<group>";
 		};
+		0CA111932DFA13D8006944A3 /* HELPER */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = HELPER;
+			sourceTree = "<group>";
+		};
 		0CEF69CF2CAF995600C2614C /* SSO */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -619,6 +624,7 @@
 		0CF13E432C2A326700D714C0 /* Seas_3 */ = {
 			isa = PBXGroup;
 			children = (
+				0CA111932DFA13D8006944A3 /* HELPER */,
 				0C882BFA2CE666B600E03B02 /* IDFA Analytrics */,
 				0C882BF52CE6598600E03B02 /* International Changer */,
 				0C343B6E2CD937EC00468E89 /* UserProfile */,
@@ -749,6 +755,7 @@
 				0C882BF52CE6598600E03B02 /* International Changer */,
 				0C882BFA2CE666B600E03B02 /* IDFA Analytrics */,
 				0C8E21722CCDAD0B0093CEB3 /* AdminView */,
+				0CA111932DFA13D8006944A3 /* HELPER */,
 			);
 			name = Seas_3;
 			productName = Seas_3;

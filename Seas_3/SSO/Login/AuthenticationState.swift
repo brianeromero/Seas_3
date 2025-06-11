@@ -174,8 +174,9 @@ public class AuthenticationState: ObservableObject {
     public func logout(completion: @escaping () -> Void = {}) {
         Task {
             do {
-                try await AuthViewModel.shared.logoutUser() // <--- Crucial call here
-                reset() // <--- Resets state after successful logoutUser
+                // IMPORTANT CHANGE: Call the comprehensive signOut method
+                try await AuthViewModel.shared.signOut() // Make signOut throwing
+                reset()
                 print("🔒 Logout complete.")
                 completion()
             } catch {

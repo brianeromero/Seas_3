@@ -13,10 +13,10 @@ import FirebaseFirestore
 struct ProfileView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @StateObject var profileViewModel: ProfileViewModel
-    @ObservedObject var authViewModel: AuthViewModel
+    @ObservedObject var authViewModel: AuthViewModel // Keep this for calling signOut()
     @Binding var selectedTabIndex: LoginViewSelection
     let setupGlobalErrorHandler: () -> Void
-
+    
     private let beltOptions = ["", "White", "Blue", "Purple", "Brown", "Black"]
     @State private var isEditing = false
     @State private var originalEmail: String = ""
@@ -26,7 +26,7 @@ struct ProfileView: View {
     @State private var showMainContent = false
     @State private var navigateToAdminMenu = false
     @StateObject private var pirateIslandViewModel = PirateIslandViewModel(persistenceController: PersistenceController.shared)
-    @State private var navigateToLogin = false
+    // REMOVE THIS LINE: @State private var navigateToLogin = false // This is no longer needed for logout navigation
     @State private var showValidationAlert = false
     @State private var validationAlertMessage = ""
     @State private var showSaveAlert = false
@@ -138,11 +138,19 @@ struct ProfileView: View {
                             }
                         }
 
-                        // Sign Out
+                        // Sign Out Button
                         Button(action: {
                             Task {
-                                await authViewModel.signOut()
-                                navigateToLoginPage()
+                                do {
+                                    try await authViewModel.signOut()
+                                    // NO navigateToLoginPage() call here anymore.
+                                    // The parent view observing authViewModel.isLoggedIn will handle the navigation.
+                                } catch {
+                                    print("Error signing out from ProfileView: \(error.localizedDescription)")
+                                    // Optionally, show an alert to the user if logout failed
+                                    saveAlertMessage = "Failed to sign out: \(error.localizedDescription)"
+                                    showSaveAlert = true
+                                }
                             }
                         }) {
                             Text("Sign Out")
@@ -156,6 +164,8 @@ struct ProfileView: View {
                         .disabled(isEditing)
                         .padding(.top, 20)
 
+                        // REMOVE THIS NavigationLink BLOCK ENTIRELY
+                        /*
                         NavigationLink(
                             destination: LoginView(
                                 islandViewModel: pirateIslandViewModel,
@@ -173,6 +183,7 @@ struct ProfileView: View {
                         ) {
                             EmptyView()
                         }
+                        */
                     }
                 } else {
                     ProgressView("Loading profile...")
@@ -216,9 +227,14 @@ struct ProfileView: View {
 
     // MARK: - Helper Functions
 
+    // REMOVE OR SIMPLIFY THIS FUNCTION
     private func navigateToLoginPage() {
+        // This function is no longer needed to trigger navigation from ProfileView.
+        // It's still fine to call profileViewModel.resetProfile() if that's desired
+        // to clear profile-specific data after logout, but the navigation
+        // will be handled by the parent observing the auth state.
         profileViewModel.resetProfile()
-        navigateToLogin = true
+        // REMOVE THIS LINE: navigateToLogin = true
     }
 
     private func toggleEdit() {
@@ -229,6 +245,7 @@ struct ProfileView: View {
         }
         isEditing.toggle()
     }
+
 
     private func startEditing() {
         originalEmail = profileViewModel.email

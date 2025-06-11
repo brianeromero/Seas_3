@@ -327,12 +327,9 @@ public struct LoginView: View {
                 )
             } else if authenticationState.isAuthenticated {
                 IslandMenu(
-                    isLoggedIn: Binding(
-                        get: { authenticationState.isLoggedIn },
-                        set: { authenticationState.setIsLoggedIn($0) }
-                    ),
-                    authViewModel: AuthViewModel.shared,
-                    profileViewModel: profileViewModel
+                    // REMOVE: isLoggedIn: $authenticationState.isLoggedIn,
+                    // REMOVE: authViewModel: authViewModel,
+                    profileViewModel: profileViewModel // KEEP THIS, as it's the only one expected by your init
                 )
             } else if isSelected == .login {
                 VStack(spacing: 20) {

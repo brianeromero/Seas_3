@@ -7,6 +7,8 @@ import GoogleSignInSwift
 import GoogleSignIn
 import os.log // Assuming you're still using os_log
 import FirebaseCore
+import FirebaseAuth // Assuming you need this for AuthViewModel.shared
+import FirebaseFirestore // Assuming you need this for Firestore
 
 
 @main
@@ -28,8 +30,7 @@ struct Seas_3App: App {
 
     var body: some Scene {
         WindowGroup {
-            AppRootView(
-                appDelegate: appDelegate,
+            AppRootView( // No appDelegate parameter here anymore
                 selectedTabIndex: $selectedTabIndex,
                 appState: appDelegate.appState
             )
@@ -55,81 +56,65 @@ struct Seas_3App: App {
 }
 
 struct AppRootView: View {
-    let appDelegate: AppDelegate // We pass appDelegate to access its properties/dependencies
-    @Binding var selectedTabIndex: LoginViewSelection
-    @ObservedObject var appState: AppState // appState is passed directly, so keep it as @ObservedObject
+    @EnvironmentObject var authenticationState: AuthenticationState
+    @EnvironmentObject var authViewModel: AuthViewModel
+    @EnvironmentObject var pirateIslandViewModel: PirateIslandViewModel
+    @EnvironmentObject var profileViewModel: ProfileViewModel
 
-    // Use a @State for NavigationPath if you want programmatic control over the stack
+    @Binding var selectedTabIndex: LoginViewSelection // Used by LoginView
+    @ObservedObject var appState: AppState // Only keep if AppState has other global, non-auth-related state
+
     @State private var navigationPath = NavigationPath()
+    // If you need a temporary splash screen on app launch, use a @State for it.
+    @State private var showInitialSplash = true // Example for splash screen
 
     var body: some View {
-        // --- Add the NavigationStack here ---
-        NavigationStack(path: $navigationPath) { // <--- This is the key change!
-            if appDelegate.isFirebaseConfigured {
-                if appState.showWelcomeScreen {
-                    PirateIslandView(appState: appState)
-                        .transition(.opacity)
-                        .onAppear {
-                            print("✅ Firebase is configured. Showing app content.")
-                            print("👀 PirateIslandView appeared at \(Date())")
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-                                print("⏰ Dismissing PirateIslandView at \(Date())")
-                                withAnimation(.easeInOut(duration: 1)) {
-                                    appState.showWelcomeScreen = false
-                                }
+        NavigationStack(path: $navigationPath) {
+            // If you want a splash screen on launch:
+            if showInitialSplash {
+                PirateIslandView(appState: appState) // Assuming this is your splash
+                    .onAppear {
+                        print("AppRootView: Showing Initial Splash (PirateIslandView)")
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { // Adjust time
+                            withAnimation(.easeInOut(duration: 1)) {
+                                showInitialSplash = false // Dismiss splash
                             }
                         }
-                        .onDisappear {
-                            print("👋 PirateIslandView disappeared at \(Date())")
-                        }
-                } else {
-                    // This is the content shown AFTER the welcome screen,
-                    // which is either authenticated or unauthenticated.
-                    if appDelegate.authenticationState.isAuthenticated {
-                        // If authenticated, decide between AdminMenu and IslandMenu
-                        if appDelegate.authenticationState.navigateToAdminMenu {
-                            AdminMenu()
-                                // Environment objects are already passed from Seas_3App
-                        } else {
-                            IslandMenu(
-                                isLoggedIn: Binding(
-                                    get: { appDelegate.authenticationState.isLoggedIn },
-                                    set: { appDelegate.authenticationState.setIsLoggedIn($0) }
-                                ),
-                                authViewModel: appDelegate.authViewModel,
-                                profileViewModel: appDelegate.profileViewModel!
-                            )
-                        }
-                    } else {
-                        // If not authenticated, show the LoginView
-                        LoginView(
-                            islandViewModel: appDelegate.pirateIslandViewModel, // Use the shared instance from appDelegate
-                            profileViewModel: appDelegate.profileViewModel!,
-                            isSelected: $selectedTabIndex,
-                            navigateToAdminMenu: Binding(
-                                get: { appDelegate.authenticationState.navigateToAdminMenu },
-                                set: { appDelegate.authenticationState.navigateToAdminMenu = $0 }
-                            ),
-                            isLoggedIn: Binding(
-                                get: { appDelegate.authenticationState.isLoggedIn },
-                                set: { appDelegate.authenticationState.setIsLoggedIn($0) }
-                            )
-                        )
                     }
+            } else if authenticationState.isAuthenticated {
+                // Authenticated Content
+                DebugPrintView("AppRootView: AuthenticationState.isAuthenticated is TRUE. Displaying Authenticated Content.")
+
+                if authenticationState.navigateToAdminMenu {
+                    AdminMenu()
+                        .onAppear { print("AppRootView: AdminMenu has appeared.") }
+                } else {
+                    IslandMenu(
+                        // REMOVE: isLoggedIn: $authenticationState.isLoggedIn,
+                        // REMOVE: authViewModel: authViewModel,
+                        profileViewModel: profileViewModel // KEEP THIS, as it's the only one expected by your init
+                    )
+                    .onAppear { print("AppRootView: IslandMenu has appeared.") }
                 }
             } else {
-                ProgressView("Configuring Firebase...")
-                    .onAppear {
-                        print("⏳ Waiting for Firebase to configure...")
-                    }
+                // Unauthenticated Content (Login)
+                DebugPrintView("AppRootView: AuthenticationState.isAuthenticated is FALSE. Displaying LoginView.")
+                LoginView(
+                    islandViewModel: pirateIslandViewModel,
+                    profileViewModel: profileViewModel,
+                    isSelected: $selectedTabIndex,
+                    navigateToAdminMenu: $authenticationState.navigateToAdminMenu,
+                    isLoggedIn: $authenticationState.isLoggedIn
+                )
+                .onAppear { print("AppRootView: LoginView has appeared.") }
             }
-        } // <--- End of NavigationStack
-        // --- End of NavigationStack here ---
-        .onChange(of: appDelegate.authenticationState.isAuthenticated) { isAuthenticated in
-            if !isAuthenticated {
-                // When logging out, clear the navigation path
+        }
+        .onChange(of: authenticationState.isAuthenticated) { oldValue, newValue in
+            print("AppRootView onChange: authenticationState.isAuthenticated changed from \(oldValue) to \(newValue)")
+            if !newValue {
+                // Always clear navigation path on logout
                 navigationPath = NavigationPath()
-                print("DEBUG: AppRootView - Authentication state changed to unauthenticated. Navigation path cleared.")
+                print("DEBUG: AppRootView - Navigation path cleared (due to unauthenticated state).")
             }
         }
     }

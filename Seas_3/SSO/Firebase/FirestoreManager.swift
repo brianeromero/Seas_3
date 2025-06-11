@@ -49,7 +49,7 @@ public class FirestoreManager {
 
         userDocumentListener = db.collection("users").document(userID)
             .addSnapshotListener { [weak self] documentSnapshot, error in
-                guard let self = self else { return }
+                guard self != nil else { return }
 
                 if let error = error {
                     print("Error listening for user document changes: \(error.localizedDescription)")

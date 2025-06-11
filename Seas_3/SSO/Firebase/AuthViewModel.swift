@@ -122,7 +122,7 @@ class AuthViewModel: ObservableObject {
     private let logger = os.Logger(subsystem: "com.seas3.app", category: "AuthViewModel")
 
 
-    private var authenticationState: AuthenticationState
+    public var authenticationState: AuthenticationState
 
     var authStateHandle: AuthStateDidChangeListenerHandle?
 
@@ -276,7 +276,7 @@ class AuthViewModel: ObservableObject {
         self.formState = FormState() // Reset formState as well
     }
 
-    // Add this method to AuthViewModel
+/*    // Add this method to AuthViewModel
     func logoutUser() async throws {
         do {
             try auth.signOut()
@@ -288,6 +288,7 @@ class AuthViewModel: ObservableObject {
             throw AuthError.firebaseError(error)
         }
     }
+ */
 
     // Ensure fetchUserByEmail is async
     func fetchUserByEmail(_ email: String) async -> Result<UserInfo?, Error> {
@@ -755,15 +756,17 @@ class AuthViewModel: ObservableObject {
     
     
     // Sign out user from Firebase with a completion handler
-    func signOut() async {
+    // Modify signOut to be throwing for consistency with how it's called
+    func signOut() async throws { // Make it throwing
         do {
             try auth.signOut()
             print("Firebase sign-out successful.")
-            
+
+            // Ensure Google sign-out is always attempted if GIDSignIn is initialized
             GIDSignIn.sharedInstance.signOut()
             print("Google sign-out successful.")
-            
-            // Reset states
+
+            // Reset states on the main actor
             await MainActor.run {
                 self.userSession = nil
                 self.currentUser = nil
@@ -772,9 +775,10 @@ class AuthViewModel: ObservableObject {
                 self.isSignInEnabled = false
                 self.formState = FormState()
             }
-            print("Authentication state cleared.")
+            print("AuthViewModel states cleared locally.")
         } catch {
             print("Error signing out: \(error.localizedDescription)")
+            throw error // Re-throw the error so AuthenticationState can catch it
         }
     }
     

@@ -8,7 +8,7 @@
 import Foundation
 import SwiftUI
 
-struct FormState {
+public struct FormState { // Add 'public' here
     // User Information
     var userName: String = "" {
         didSet { validateField(userName, type: .userName) }
