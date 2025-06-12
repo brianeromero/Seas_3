@@ -5,6 +5,7 @@
 //  Created by Brian Romero on 8/1/24.
 //
 
+import Foundation
 import SwiftUI
 import CoreData
 import FirebaseFirestore
@@ -35,6 +36,8 @@ struct AddNewMatTimeSection: View {
     @State private var showToast = false
     @State private var toastMessage = ""
     
+    // FIX 1: Add @Environment for viewContext
+    @Environment(\.managedObjectContext) private var viewContext
     
     // Ensure AppDayOfWeekRepository is accessible in your view.
     @ObservedObject var appDayOfWeekRepository = AppDayOfWeekRepository.shared
@@ -98,7 +101,8 @@ struct AddNewMatTimeSection: View {
                 if let existingMatTime = matTime {
                     HStack {
                         Button(action: {
-                            updateMatTime(existingMatTime)
+                            // Pass the ObjectID to updateMatTime
+                            updateMatTime(existingMatTime.objectID)
                         }) {
                             Text("Update Mat Time")
                                 .padding()
@@ -170,14 +174,21 @@ struct AddNewMatTimeSection: View {
                 print("Fetching AppDayOfWeek for \(selectedIsland.islandName ?? "Unknown") on \(selectedDay.displayName)")
                 
                 if let appDayOfWeek = await selectIslandAndDay(selectedIsland, selectedDay) {
-                    viewModel.selectedAppDayOfWeek = appDayOfWeek
+                    // Update UI properties on the MainActor
+                    await MainActor.run {
+                        viewModel.selectedAppDayOfWeek = appDayOfWeek
+                    }
                 } else {
-                    alertTitle = "No Mat Times Found"
-                    alertMessage = "No mat times have been entered for \(selectedDay.displayName)."
-                    print("Failed to fetch or create AppDayOfWeek-No mat times have been entered for \(selectedDay.displayName).")
-                    showAlert = true
+                    await MainActor.run {
+                        alertTitle = "No Mat Times Found"
+                        alertMessage = "No mat times have been entered for \(selectedDay.displayName)."
+                        print("Failed to fetch or create AppDayOfWeek-No mat times have been entered for \(selectedDay.displayName).")
+                        showAlert = true
+                    }
                 }
-                isLoading = false
+                await MainActor.run {
+                    isLoading = false
+                }
             }
         }
     }
@@ -193,82 +204,113 @@ struct AddNewMatTimeSection: View {
         guard let selectedIsland = selectedIsland, let selectedDay = selectedDay else { return }
         
         Task {
-            isLoading = true
+            isLoading = true // Set loading true at the start
             print("About to add mat time with:")
             print("- selectedDay: \(selectedDay.displayName)")
             print("- selectedIsland: \(selectedIsland.islandName ?? "nil")")
             print("- selectedAppDayOfWeek: \(viewModel.selectedAppDayOfWeek?.day ?? "nil")")
             
             await handleAddNewMatTime(selectedIsland: selectedIsland, selectedDay: selectedDay)
+            // isLoading will be set to false inside handleAddNewMatTime
         }
     }
-    
-    
     
     func handleAddNewMatTime(selectedIsland: PirateIsland, selectedDay: DayOfWeek) async {
-        if let appDayOfWeek = viewModel.selectedAppDayOfWeek {
-            // Sync current with selected
-            viewModel.currentAppDayOfWeek = appDayOfWeek
-            await saveMatTime(appDayOfWeek: appDayOfWeek)
-        } else {
-            print("No existing AppDayOfWeek, creating a new one...")
-            
-            // Fetch user info
-            userProfileViewModel.fetchData()
-            
-            // Ensure UserInfo entity has a valid name
-            if let userInfo = userProfileViewModel.userInfo {
-                if userInfo.name.isEmpty {
-                    userInfo.name = "Unknown User"
+        print("About to add mat time with:")
+        print("- selectedDay: \(selectedDay.displayName)")
+        print("- selectedIsland: \(selectedIsland.islandName ?? "nil")")
+        print("- selectedAppDayOfWeek (pre-process): \(viewModel.selectedAppDayOfWeek?.day ?? "nil")")
+
+        do {
+            let appDayOfWeekToUseID: NSManagedObjectID
+
+            if let appDayOfWeek = viewModel.selectedAppDayOfWeek {
+                // If an existing AppDayOfWeek is selected, use its ID
+                appDayOfWeekToUseID = appDayOfWeek.objectID
+                print("Using existing AppDayOfWeek with ID: \(appDayOfWeekToUseID)")
+            } else {
+                print("No existing AppDayOfWeek, creating a new one...")
+
+                // Create new AppDayOfWeek on a background context
+                // Get ID from the main thread object
+                let selectedIslandID = selectedIsland.objectID
+
+                // --- FIX: Manual context creation and work execution ---
+                let backgroundContext = PersistenceController.shared.container.newBackgroundContext()
+
+                // Perform the work on the background context using `await` for its async nature
+                appDayOfWeekToUseID = try await backgroundContext.perform { // This `perform` *should* pass the context implicitly
+                    // Rehydrate selectedIsland on the background context
+                    guard let islandOnBGContext = try backgroundContext.existingObject(with: selectedIslandID) as? PirateIsland else {
+                        throw NSError(domain: "CoreDataError", code: 202, userInfo: [NSLocalizedDescriptionKey: "Failed to rehydrate selectedIsland in background context."])
+                    }
+
+                    let generatedName = self.appDayOfWeekRepository.generateName(for: islandOnBGContext, day: selectedDay)
+                    let newAppDayOfWeek = AppDayOfWeek(context: backgroundContext) // Use the backgroundContext here
+
+                    newAppDayOfWeek.id = UUID()
+                    newAppDayOfWeek.day = selectedDay.rawValue
+                    newAppDayOfWeek.name = generatedName
+                    newAppDayOfWeek.pIsland = islandOnBGContext // Assign on the correct context
+                    newAppDayOfWeek.createdTimestamp = Date()
+                    newAppDayOfWeek.appDayOfWeekID = self.appDayOfWeekRepository.generateAppDayOfWeekID(for: islandOnBGContext, day: selectedDay)
+
+                    print("Generated name: \(newAppDayOfWeek.name ?? "None")")
+                    print("Generated AppDayOfWeekID: \(newAppDayOfWeek.appDayOfWeekID ?? "None")")
+
+                    try backgroundContext.save() // Save the new AppDayOfWeek on the background context
+                    print("New AppDayOfWeek created in background context: \(selectedDay.displayName)")
+                    return newAppDayOfWeek.objectID
                 }
             }
-            
-            let context = PersistenceController.shared.container.viewContext
-            let generatedName = appDayOfWeekRepository.generateName(for: selectedIsland, day: selectedDay)
-            let newAppDayOfWeek = AppDayOfWeek(context: context)
-            
-            // Set required properties
-            newAppDayOfWeek.id = UUID()
-            newAppDayOfWeek.day = selectedDay.rawValue
-            newAppDayOfWeek.name = generatedName
-            newAppDayOfWeek.pIsland = selectedIsland
-            newAppDayOfWeek.createdTimestamp = Date()
-            newAppDayOfWeek.appDayOfWeekID = appDayOfWeekRepository.generateAppDayOfWeekID(for: selectedIsland, day: selectedDay)
-            
-            // Debug logging
-            print("Generated name: \(newAppDayOfWeek.name ?? "None")")
-            print("Generated AppDayOfWeekID: \(newAppDayOfWeek.appDayOfWeekID ?? "None")")
-            
-            do {
-                try context.save()
-                print("New AppDayOfWeek created: \(selectedDay.displayName)")
-                
-                // Sync both selected and current
-                viewModel.selectedAppDayOfWeek = newAppDayOfWeek
-                viewModel.currentAppDayOfWeek = newAppDayOfWeek
-                
-                await saveMatTime(appDayOfWeek: newAppDayOfWeek)
-            } catch {
-                print("Failed to create AppDayOfWeek: \(error)")
-                alertTitle = "Error"
-                alertMessage = "Failed to create AppDayOfWeek."
-                showAlert = true
-                isLoading = false
-                return
+
+            // Now call saveMatTime with the AppDayOfWeek's ObjectID
+            let matTimeObjectID = try await saveMatTime(appDayOfWeekID: appDayOfWeekToUseID)
+            print("Mat time created successfully with ID: \(matTimeObjectID)")
+
+            // Update UI properties on the MainActor
+            await MainActor.run {
+                // Rehydrate the AppDayOfWeek on the main context for UI purposes
+                if let appDayOfWeekOnMainContext = try? self.viewContext.existingObject(with: appDayOfWeekToUseID) as? AppDayOfWeek {
+                    viewModel.selectedAppDayOfWeek = appDayOfWeekOnMainContext
+                    viewModel.currentAppDayOfWeek = appDayOfWeekOnMainContext
+                    print("Synced viewModel.selectedAppDayOfWeek and currentAppDayOfWeek on MainActor.")
+                }
+
+                self.alertTitle = "Success"
+                self.alertMessage = "New mat time added successfully!"
+                self.showAlert = true
+                self.toastMessage = "Mat time added!"
+                self.showToast = true
+                self.resetStateVariables()
+
+                // This forces a refresh of mat times if you're observing them
+                if let currentSelectedDay = self.selectedDay {
+                    self.selectedDay = nil // Temporarily nil out to force change detection
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        self.selectedDay = currentSelectedDay // Reset to trigger update
+                    }
+                }
+                self.isLoading = false // Set loading false after completion
+            }
+
+        } catch {
+            await MainActor.run {
+                print("❌ Error saving mat time: \(error.localizedDescription)")
+                self.alertTitle = "Error"
+                self.alertMessage = "Failed to create or save mat time: \(error.localizedDescription)"
+                self.showAlert = true
+                self.isLoading = false // Set loading false on error
             }
         }
-        
-        print("Mat time saved successfully.")
-        isLoading = false
     }
-    
     
     func validateInput() -> Bool {
         print("Validating input with selectedAppDayOfWeek: \(String(describing: viewModel.selectedAppDayOfWeek?.day))")
         
         if !daySelected {
             alertTitle = "Error"
-            alertMessage = "Please select a day3."
+            alertMessage = "Please select a day."
             showAlert = true
             return false
         }
@@ -290,38 +332,40 @@ struct AddNewMatTimeSection: View {
         return true
     }
     
-    
-    func saveMatTime(appDayOfWeek: AppDayOfWeek) async {
-        print("💾 Starting saveMatTime()")
-        
-        guard selectedIsland != nil else {
-            print("❌ Missing necessary information: Island is nil")
-            alertTitle = "Error"
-            alertMessage = "Missing necessary information."
-            showAlert = true
-            return
+    // MARK: - saveMatTime (Adjusted to use NSManagedObjectID)
+    func saveMatTime(appDayOfWeekID: NSManagedObjectID) async throws -> NSManagedObjectID {
+        print("💾 Starting saveMatTime(appDayOfWeekID:)")
+
+        guard let selectedIsland = self.selectedIsland,
+              let selectedDay = self.selectedDay else {
+            print("❌ Missing necessary information: Island or Day is nil")
+            throw NSError(domain: "AddNewMatTimeSectionError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Selected Island or Day is missing."])
         }
-        
+
         let time = formatDateToString(selectedTime)
         let matTimeType = determineMatTimeType()
         let restrictionDescription = restrictions ? restrictionDescriptionInput : ""
-        
-        // Debugging print statements to check the values
+
         print("Time: \(time)")
         print("MatType: \(matTimeType)")
         print("RestrictionDescription: \(restrictionDescription)")
         print("Gi: \(gi), NoGi: \(noGi), OpenMat: \(openMat)")
-        
+
         do {
-            // 1. Sync current AppDayOfWeek and Save AppDayOfWeek to Firestore
-            viewModel.currentAppDayOfWeek = appDayOfWeek
             print("🔥 Saving AppDayOfWeek to Firestore...")
-            viewModel.saveAppDayOfWeekToFirestore(selectedIsland: selectedIsland!, selectedDay: selectedDay!)
-            
-            // 2. Create and Save MatTime object
+            // The appDayOfWeekID is passed to `saveAppDayOfWeekToFirestore`, it should handle rehydration if necessary internally.
+            try await viewModel.saveAppDayOfWeekToFirestore(
+                selectedIslandID: selectedIsland.objectID, // Pass the ObjectID of selectedIsland
+                selectedDay: selectedDay,
+                appDayOfWeekObjectID: appDayOfWeekID // Use the correct argument label
+            )
+
+            // 2. Create and Save MatTime object - Rehydrate AppDayOfWeek on the background context
             print("💾 Creating MatTime object...")
-            let matTime = try await viewModel.updateOrCreateMatTime(
-                nil,
+
+            // This function creates/updates the MatTime in Core Data and returns its ObjectID
+            let matTimeObjectID = try await viewModel.updateOrCreateMatTime(
+                nil, // No existing MatTime ID (for creation), so passing nil for update
                 time: time,
                 type: matTimeType,
                 gi: gi,
@@ -331,64 +375,67 @@ struct AddNewMatTimeSection: View {
                 restrictionDescription: restrictionDescription,
                 goodForBeginners: goodForBeginners,
                 kids: kids,
-                for: appDayOfWeek
+                for: appDayOfWeekID // Pass the ObjectID
             )
-            
-            // MatTime object is now created or updated
-            print("✅ MatTime created successfully: \(matTime.id?.uuidString ?? UUID().uuidString)")
-            
+
+            print("✅ MatTime created successfully with ID: \(matTimeObjectID.uriRepresentation().absoluteString)")
+
             // 3. Save MatTime to Firestore
             print("💾 Saving MatTime to Firestore...")
-            
-            var matTimeData: [String: Any] = matTime.toFirestoreData()
-            let matTimeRef = Firestore.firestore().collection("MatTime").document(matTime.id?.uuidString ?? UUID().uuidString)
-            
-            // Include a reference to AppDayOfWeek in MatTime
-            matTimeData["appDayOfWeek"] = Firestore.firestore().collection("AppDayOfWeek").document(appDayOfWeek.appDayOfWeekID ?? UUID().uuidString)
-            
-            // Save MatTime document
-            try await matTimeRef.setData(matTimeData)
-            print("✅ MatTime saved to Firestore: \(matTime.id?.uuidString ?? UUID().uuidString)")
-            
-            // 4. Save MatTime to Core Data
-            let context = PersistenceController.shared.container.viewContext
-            appDayOfWeek.addToMatTimes(matTime)
-            
-            // Save context to Core Data
-            print("💾 Saving to Core Data...")
-            try context.save()
-            print("✅ Core Data save successful")
-            
-            // 5. Reset state variables
-            DispatchQueue.main.async {
-                self.alertTitle = "Success"
-                self.alertMessage = "New mat time added successfully!"
-                self.showAlert = true
-                
-                // Show toast
-                self.toastMessage = "Mat time added!"
-                self.showToast = true
-                
-                // Reset form
-                print("🔄 Resetting state variables...")
-                self.resetStateVariables()
-                
-                // Trigger the view reset by changing selectedDay
-                if let currentSelectedDay = self.selectedDay {
-                    self.selectedDay = nil  // Clear selectedDay
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        self.selectedDay = currentSelectedDay  // Reassign to trigger onChange
-                    }
+
+            // Initialize variables to a default/empty state before the closure
+            var matTimeDataToSave: [String: Any] = [:] // Initialize with empty dictionary
+            var matTimeUUIDString: String = ""         // Initialize with empty string
+            var appDayOfWeekUUIDString: String = ""    // Initialize with empty string
+            var appDayOfWeekRef: DocumentReference! = nil // Initialize as nil or remove `!` and handle optional
+
+            let contextForFirestore = PersistenceController.shared.container.newBackgroundContext()
+
+            try await contextForFirestore.perform {
+                guard let matTimeOnBGContext = try contextForFirestore.existingObject(with: matTimeObjectID) as? MatTime,
+                      let matTimeID = matTimeOnBGContext.id, // Get the UUID directly
+                      let appDayOfWeekOnBGContext = try contextForFirestore.existingObject(with: appDayOfWeekID) as? AppDayOfWeek,
+                      let appDayOfWeekIDFromContext = appDayOfWeekOnBGContext.id // Get AppDayOfWeek UUID
+                else {
+                    throw NSError(domain: "FirestoreSerializationError", code: 202, userInfo: [NSLocalizedDescriptionKey: "Failed to rehydrate matTime or appDayOfWeek for Firestore serialization, or missing UUIDs."])
                 }
+
+                matTimeUUIDString = matTimeID.uuidString
+                appDayOfWeekUUIDString = appDayOfWeekIDFromContext.uuidString
+
+                // Construct the Firestore DocumentReference *synchronously* here
+                appDayOfWeekRef = Firestore.firestore().collection("AppDayOfWeek").document(appDayOfWeekUUIDString)
+
+                var data = matTimeOnBGContext.toFirestoreData()
+                data["appDayOfWeek"] = appDayOfWeekRef // Attach the Firestore reference
+                matTimeDataToSave = data
             }
-            
+
+            // NOW, perform the Firestore write (which is asynchronous) OUTSIDE the Core Data perform block.
+            // Add checks for initialized variables if appDayOfWeekRef was nil
+            guard !matTimeUUIDString.isEmpty, !matTimeDataToSave.isEmpty else {
+                throw NSError(domain: "FirestoreError", code: 204, userInfo: [NSLocalizedDescriptionKey: "Firestore data not prepared."])
+            }
+
+            let matTimeRef = Firestore.firestore().collection("MatTime").document(matTimeUUIDString)
+            do {
+                try await matTimeRef.setData(matTimeDataToSave)
+                print("✅ MatTime saved to Firestore: \(matTimeUUIDString)")
+            } catch {
+                print("❌ Error saving MatTime to Firestore: \(error.localizedDescription)")
+                throw error // Re-throwing ensures the outer catch block handles it.
+            }
+
+            // 4. Return the new MatTime's ObjectID
+            return matTimeObjectID
+
         } catch {
-            print("❌ Error saving mat time: \(error.localizedDescription)")
-            alertTitle = "Error"
-            alertMessage = "Failed to save mat time: \(error.localizedDescription)"
-            showAlert = true
+            print("❌ Error in saveMatTime: \(error.localizedDescription)")
+            throw error
         }
     }
+
+
     
     func deleteMatTime(_ matTime: MatTime) {
         let context = PersistenceController.shared.container.viewContext
@@ -419,6 +466,16 @@ struct AddNewMatTimeSection: View {
             self.matTime = nil
             isMatTimeSet = false
             
+            // This might trigger a refresh of the list of mat times
+            // similar to what you have in handleAddNewMatTime.
+            // If let currentSelectedDay = self.selectedDay { ... }
+            if let currentSelectedDay = self.selectedDay {
+                self.selectedDay = nil
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    self.selectedDay = currentSelectedDay
+                }
+            }
+            
         } catch {
             alertTitle = "Error"
             alertMessage = "Failed to delete mat time: \(error.localizedDescription)"
@@ -427,7 +484,7 @@ struct AddNewMatTimeSection: View {
     }
     
     func resetStateVariables() {
-        selectedTime = Date()
+        selectedTime = Date().roundToNearestHour()
         gi = false
         noGi = false
         openMat = false
@@ -438,15 +495,21 @@ struct AddNewMatTimeSection: View {
         isMatTimeSet = false
         viewModel.selectedAppDayOfWeek = nil
         daySelected = false
+        matTime = nil // Reset the matTime being edited
     }
     
-    func updateMatTime(_ matTime: MatTime) {
+    // MARK: - updateMatTime (Adjusted to use NSManagedObjectID)
+    // FIX 3: Change argument type to NSManagedObjectID
+    func updateMatTime(_ matTimeObjectID: NSManagedObjectID) {
         Task {
-            guard let appDayOfWeek = viewModel.selectedAppDayOfWeek else { return }
-            
+            guard let appDayOfWeek = viewModel.selectedAppDayOfWeek else {
+                print("❌ No selectedAppDayOfWeek found for update.")
+                return
+            }
+
             do {
-                let updatedMatTime = try await viewModel.updateOrCreateMatTime(
-                    matTime,  // existing one passed for update
+                let updatedMatTimeObjectID = try await viewModel.updateOrCreateMatTime(
+                    matTimeObjectID, // Existing MatTime's ObjectID passed for update
                     time: formatDateToString(selectedTime),
                     type: determineMatTimeType(),
                     gi: gi,
@@ -456,28 +519,71 @@ struct AddNewMatTimeSection: View {
                     restrictionDescription: restrictions ? restrictionDescriptionInput : "",
                     goodForBeginners: goodForBeginners,
                     kids: kids,
-                    for: appDayOfWeek
+                    for: appDayOfWeek.objectID
                 )
-                
-                // Save to Firestore
-                var matTimeData = updatedMatTime.toFirestoreData()
-                let matTimeRef = Firestore.firestore().collection("MatTime").document(updatedMatTime.id?.uuidString ?? UUID().uuidString)
-                matTimeData["appDayOfWeek"] = Firestore.firestore().collection("AppDayOfWeek").document(appDayOfWeek.appDayOfWeekID ?? "")
-                
-                try await matTimeRef.setData(matTimeData)
-                
-                toastMessage = "Mat time updated!"
-                showToast = true
+
+                // Initialize variables to a default/empty state before the closure
+                var matTimeDataToSave: [String: Any] = [:]      // Initialize with empty dictionary
+                var updatedMatTimeUUIDString: String = ""       // Initialize with empty string
+                var appDayOfWeekUUIDStringForFirestore: String = "" // Initialize with empty string
+                var appDayOfWeekRefForFirestore: DocumentReference! = nil // Initialize as nil or remove `!`
+
+                let contextForFirestore = PersistenceController.shared.container.newBackgroundContext()
+
+                try await contextForFirestore.perform {
+                    guard let matTimeOnBGContext = try contextForFirestore.existingObject(with: updatedMatTimeObjectID) as? MatTime,
+                          let matTimeID = matTimeOnBGContext.id,
+                          let appDayOfWeekOnBGContext = try contextForFirestore.existingObject(with: appDayOfWeek.objectID) as? AppDayOfWeek,
+                          let appDayOfWeekIDFromContext = appDayOfWeekOnBGContext.id
+                    else {
+                        throw NSError(domain: "FirestoreSerializationError", code: 203, userInfo: [NSLocalizedDescriptionKey: "Failed to rehydrate matTime or appDayOfWeek for Firestore update."])
+                    }
+
+                    updatedMatTimeUUIDString = matTimeID.uuidString
+                    appDayOfWeekUUIDStringForFirestore = appDayOfWeekIDFromContext.uuidString
+
+                    appDayOfWeekRefForFirestore = Firestore.firestore().collection("AppDayOfWeek").document(appDayOfWeekUUIDStringForFirestore)
+
+                    var data = matTimeOnBGContext.toFirestoreData()
+                    data["appDayOfWeek"] = appDayOfWeekRefForFirestore
+                    matTimeDataToSave = data
+                }
+
+                // Add checks for initialized variables before use
+                guard !updatedMatTimeUUIDString.isEmpty, !matTimeDataToSave.isEmpty else {
+                    throw NSError(domain: "FirestoreError", code: 205, userInfo: [NSLocalizedDescriptionKey: "Firestore update data not prepared."])
+                }
+
+                let matTimeRef = Firestore.firestore().collection("MatTime").document(updatedMatTimeUUIDString)
+                try await matTimeRef.setData(matTimeDataToSave)
+                print("✅ MatTime updated to Firestore: \(updatedMatTimeUUIDString)")
+
+                await MainActor.run {
+                    toastMessage = "Mat time updated!"
+                    showToast = true
+                    self.resetStateVariables()
+
+                    if let currentSelectedDay = self.selectedDay {
+                        self.selectedDay = nil
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            self.selectedDay = currentSelectedDay
+                        }
+                    }
+                }
+
             } catch {
-                alertTitle = "Error"
-                alertMessage = "Failed to update mat time: \(error.localizedDescription)"
-                showAlert = true
+                await MainActor.run {
+                    alertTitle = "Error"
+                    alertMessage = "Failed to update mat time: \(error.localizedDescription)"
+                    showAlert = true
+                }
             }
         }
     }
+
     
     func populateFieldsFromMatTime(_ matTime: MatTime) {
-        selectedTime = stringToDate(matTime.time ?? "")!
+        selectedTime = stringToDate(matTime.time ?? "") ?? Date().roundToNearestHour()
         gi = matTime.gi
         noGi = matTime.noGi
         openMat = matTime.openMat
@@ -488,8 +594,6 @@ struct AddNewMatTimeSection: View {
         isMatTimeSet = true
     }
     
-
-
     
     func determineMatTimeType() -> String {
         var matTimeType: [String] = []
@@ -512,15 +616,22 @@ struct AddNewMatTimeSection: View {
     func formatDateToString(_ date: Date) -> String {
         return DateFormat.time.string(from: date)
     }
+    
+    func stringToDate(_ string: String) -> Date? {
+        // You need to define how to convert a string back to a date.
+        // This should match the format used in `formatDateToString`.
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short // Assuming this is the format
+        return formatter.date(from: string)
+    }
 }
-
 
 extension Date {
     /// Rounds the date to the nearest hour, either up or down.
     func roundToNearestHour() -> Date {
         let calendar = Calendar.current
         let minuteComponent = calendar.component(.minute, from: self)
-
+        
         if minuteComponent >= 30 {
             // Round up to the next hour
             return calendar.date(byAdding: .minute, value: 60 - minuteComponent, to: self)!

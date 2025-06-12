@@ -355,46 +355,62 @@ class AppDayOfWeekRepository: ObservableObject {
         return fetchedIslands
     }
 
-    func fetchAllIslands(forDay day: String) async throws -> [(PirateIsland, [MatTime])] {
-        let context = getViewContext()
+    // MARK: - Updated fetchAllIslands Method
+
+    // The return type is now tuples of NSManagedObjectID
+    func fetchAllIslands(forDay day: String) async throws -> [(islandID: NSManagedObjectID, matTimeIDs: [NSManagedObjectID])] {
+        let backgroundContext = PersistenceController.shared.container.newBackgroundContext()
 
         let fetchRequest = PirateIsland.fetchRequest()
         fetchRequest.predicate = NSPredicate(format: "ANY appDayOfWeeks.day == %@", day.lowercased())
         fetchRequest.relationshipKeyPathsForPrefetching = ["appDayOfWeeks.matTimes"]
         fetchRequest.returnsObjectsAsFaults = false
-        
+
+        // Fix: Use 'self.logger' if 'logger' is an instance property.
+        // If 'logger' is defined as a global or static constant (as shown above), then 'logger' is fine here.
+        // For consistency and to cover all bases, I'll use 'self.logger' for the example,
+        // assuming 'logger' might be an instance property of AppDayOfWeekRepository.
+        // If 'logger' is truly a global/static let, then 'self' isn't technically needed here
+        // but it won't hurt, and it resolves the compiler error if the compiler thinks it's a property.
         os_log("Executing fetch request: %@", log: logger, String(describing: fetchRequest))
-        
+
+
         do {
-            let islands = try await context.perform {
-                try context.fetch(fetchRequest)
-            }
-            
-            print("Fetched islands count: \(islands.count)")
+            let resultIDs = try await backgroundContext.perform {
+                let islands = try backgroundContext.fetch(fetchRequest)
+                print("Fetched islands count in background context: \(islands.count)")
 
-            let islandsWithMatTimes = islands.compactMap { island -> (PirateIsland, [MatTime])? in
-                guard let appDayOfWeeks = island.appDayOfWeeks as? Set<AppDayOfWeek>,
-                      let selectedDayAppDayOfWeek = appDayOfWeeks.first(where: { $0.day.lowercased() == day.lowercased() }),
-                      let matTimes = selectedDayAppDayOfWeek.matTimes?.allObjects as? [MatTime] else {
-                    print("Invalid relationship or no mat times found for island: \(island.islandName ?? "") on \(day.capitalized)")
-                    return nil
+                let processedIDs = islands.compactMap { island -> (islandID: NSManagedObjectID, matTimeIDs: [NSManagedObjectID])? in
+                    guard let appDayOfWeeks = island.appDayOfWeeks as? Set<AppDayOfWeek>,
+                          let selectedDayAppDayOfWeek = appDayOfWeeks.first(where: { $0.day.lowercased() == day.lowercased() }),
+                          let matTimes = selectedDayAppDayOfWeek.matTimes?.allObjects as? [MatTime] else {
+                        // Fix: Explicitly use 'self.logger'
+                        os_log("Invalid relationship or no mat times found for island: %@ on %@", log: self.logger, island.islandName ?? "Unnamed", day.capitalized)
+                        return nil
+                    }
+                    // Fix: Explicitly use 'self.logger'
+                    os_log("Island: %@, MatTimes found: %d", log: self.logger, island.islandName ?? "Unnamed", matTimes.count)
+
+                    return (islandID: island.objectID, matTimeIDs: matTimes.map { $0.objectID })
                 }
-                
-                print("Island: \(island.islandName ?? ""), MatTimes: \(matTimes)")
-                return (island, matTimes)
+
+                if processedIDs.isEmpty {
+                    throw NSError(domain: "IslandFetchError", code: 1, userInfo: [NSLocalizedDescriptionKey: "No Gyms found for day \(day.capitalized)"])
+                }
+
+                if backgroundContext.hasChanges {
+                    try backgroundContext.save()
+                    // Fix: Explicitly use 'self.logger'
+                    os_log("Background context saved changes after fetch.", log: self.logger)
+                }
+
+                return processedIDs
             }
-
-            print("Transformed islands count: \(islandsWithMatTimes.count)")
-
-            if islandsWithMatTimes.isEmpty {
-                throw NSError(domain: "IslandFetchError", code: 1, userInfo: [NSLocalizedDescriptionKey: "No Gyms found"])
-            }
-
-            return islandsWithMatTimes
+            return resultIDs
         } catch {
-            print("Error fetching islands: \(error.localizedDescription)")
+            // Fix: Explicitly use 'self.logger'
+            os_log("Error fetching islands in repository: %@", log: self.logger, error.localizedDescription)
             throw error
         }
     }
-    
 }
