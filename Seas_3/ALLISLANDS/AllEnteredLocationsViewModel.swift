@@ -14,48 +14,61 @@ import MapKit
 
 class AllEnteredLocationsViewModel: NSObject, ObservableObject, NSFetchedResultsControllerDelegate {
     @Published var allIslands: [PirateIsland] = []
-    @Published var region: MKCoordinateRegion = MKCoordinateRegion(
-        center: CLLocationCoordinate2D(latitude: 0, longitude: 0),
-        span: MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1)
-    )
+    
+    // MARK: - CHANGE THIS LINE
+    // Now uses MapCameraPosition instead of MKCoordinateRegion
+    @Published var region: MapCameraPosition = .automatic // .automatic is a good starting point
+
+
     @Published var pirateMarkers: [CustomMapMarker] = []
     @Published var errorMessage: String?
     @Published var isDataLoaded = false
-
     
     private let dataManager: PirateIslandDataManager
-    
+
     init(dataManager: PirateIslandDataManager) {
         self.dataManager = dataManager
         super.init()
-        fetchPirateIslands()  // Fetch pirate islands at initialization
+        fetchPirateIslands()
     }
-    
+
     func fetchPirateIslands() {
         print("Fetching pirate islands...")
+        // Set isDataLoaded to false at the beginning of the fetch
+        // to show the loading indicator in the view
+        DispatchQueue.main.async {
+            self.isDataLoaded = false
+        }
+
         DispatchQueue.global(qos: .userInitiated).async {
             let result = self.dataManager.fetchPirateIslands()
-            switch result {
-            case .success(let pirateIslands):
-                DispatchQueue.main.async {
+            DispatchQueue.main.async { [weak self] in // Use [weak self] to avoid retain cycles
+                guard let self = self else { return } // Safely unwrap self
+
+                switch result {
+                case .success(let pirateIslands):
                     self.allIslands = pirateIslands
                     self.updatePirateMarkers(with: pirateIslands)
-                    self.isDataLoaded = true
+                    self.errorMessage = nil // Clear any previous error message
+                case .failure(let error):
+                    // You need to define 'handleError' or integrate its logic here
+                    // Assuming handleError sets self.errorMessage
+                    self.errorMessage = "Failed to load pirate islands: \(error.localizedDescription)"
+                    print("Error fetching pirate islands: \(error)") // Log the actual error
                 }
-            case .failure(let error):
-                DispatchQueue.main.async { [weak self] in
-                    handleError(error) // Call the standalone handleError function
-                    self?.isDataLoaded = true
-                }
+                self.isDataLoaded = true // Data fetching is complete (success or failure)
             }
         }
     }
+    
     private func updatePirateMarkers(with islands: [PirateIsland]) {
         guard !islands.isEmpty else {
-            print("Error: No pirate islands available to create markers.")
+            print("No pirate islands available to create markers.")
+            self.pirateMarkers = [] // Ensure markers are empty if no islands
+            self.updateRegion() // Still update region even if empty to reset map
             return
         }
-        
+
         let markers = islands.map { island in
             CustomMapMarker(
                 id: island.islandID ?? UUID(),
@@ -67,43 +80,40 @@ class AllEnteredLocationsViewModel: NSObject, ObservableObject, NSFetchedResults
 
         DispatchQueue.main.async {
             self.pirateMarkers = markers
-            self.updateRegion()  // Update map region after markers are set
+            self.updateRegion() // Update map region after markers are set
         }
     }
+
     func updateRegion() {
-        guard !pirateMarkers.isEmpty else { return }
+        guard !pirateMarkers.isEmpty else {
+            // If no markers, set a default camera position or reset to automatic
+            self.region = .automatic
+            return
+        }
 
         // Get coordinates for all markers
         let coordinates = pirateMarkers.map { $0.coordinate }
 
-        // Calculate the region to fit all coordinates
-        region = MapUtils.calculateRegionToFit(coordinates: coordinates)
+        // Calculate the MKCoordinateRegion to fit all coordinates using your MapUtils
+        let mkRegion = MapUtils.calculateRegionToFit(coordinates: coordinates)
+
+        // MARK: - Convert MKCoordinateRegion to MapCameraPosition
+        self.region = .region(mkRegion)
     }
-    
+
     // MARK: - Logging Methods for Debugging
-    
+
     func logTileInformation() {
         for marker in pirateMarkers {
             print("Marker ID: \(marker.id), Coordinate: \(marker.coordinate), Title: \(marker.title ?? "Unknown")")
         }
     }
-    
+
     func getPirateIsland(from marker: CustomMapMarker) -> PirateIsland? {
-        // Ensure allIslands has been populated and synced with markers
-        guard !allIslands.isEmpty else {
-            print("Error: allIslands is empty. Ensure fetchPirateIslands was called and completed.")
-            return nil
-        }
-        
-        // Attempt to find the pirate island using its name
-        if let pirateIsland = allIslands.first(where: { $0.islandName == marker.title }) {
-            return pirateIsland
-        } else {
-            // Log an error if the pirate island isn't found
-            print("Error: No PirateIsland found for marker title \(marker.title ?? "Unknown"). Ensure data is synced correctly.")
-            return nil
-        }
+        // This method is used by the View to get the actual PirateIsland from the marker.
+        // It's good practice to ensure the 'pirateIsland' property on CustomMapMarker
+        // is the source of truth, rather than relying on a separate search.
+        return marker.pirateIsland
     }
-    
 }
 

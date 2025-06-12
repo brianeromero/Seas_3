@@ -10,38 +10,39 @@ import MapKit
 
 struct AllEnteredLocations: View {
     @State private var selectedDay: DayOfWeek? = .monday
-    @Environment(\.managedObjectContext) private var viewContext // Automatically gets context from environment
+    @Environment(\.managedObjectContext) private var viewContext
     @StateObject private var viewModel: AllEnteredLocationsViewModel
     @State private var showModal = false
     @State private var selectedIsland: PirateIsland?
     @State private var selectedAppDayOfWeek: AppDayOfWeek?
-    
+
     @StateObject private var enterZipCodeViewModel: EnterZipCodeViewModel
     @StateObject private var appDayOfWeekViewModel: AppDayOfWeekViewModel
-
 
     init() {
         _viewModel = StateObject(wrappedValue: AllEnteredLocationsViewModel(
             dataManager: PirateIslandDataManager(viewContext: PersistenceController.shared.viewContext)
         ))
 
-        // Initialize the EnterZipCodeViewModel and AppDayOfWeekViewModel
         let zipCodeViewModel = EnterZipCodeViewModel(
             repository: AppDayOfWeekRepository.shared,
-            persistenceController: PersistenceController.shared // Use the shared PersistenceController here
+            persistenceController: PersistenceController.shared
         )
         _enterZipCodeViewModel = StateObject(wrappedValue: zipCodeViewModel)
 
         _appDayOfWeekViewModel = StateObject(wrappedValue: AppDayOfWeekViewModel(
             repository: AppDayOfWeekRepository.shared,
-            enterZipCodeViewModel: zipCodeViewModel // Pass the zip code view model directly
+            enterZipCodeViewModel: zipCodeViewModel
         ))
     }
 
     var body: some View {
         NavigationView {
             VStack {
-                if let errorMessage = viewModel.errorMessage {
+                if !viewModel.isDataLoaded {
+                    ProgressView("Loading Open Mats...")
+                        .padding()
+                } else if let errorMessage = viewModel.errorMessage {
                     Text(errorMessage)
                         .foregroundColor(.red)
                         .padding()
@@ -49,15 +50,18 @@ struct AllEnteredLocations: View {
                     Text("No Open Mats found.")
                         .padding()
                 } else {
-                    let pirateIslands: [PirateIsland] = viewModel.pirateMarkers.compactMap { location in
-                        return viewModel.getPirateIsland(from: location)
-                    }
-                    
-                    Map(coordinateRegion: $viewModel.region, annotationItems: pirateIslands) { island in
-                        MapAnnotation(coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude)) {
-                            IslandAnnotationView(island: island, handleIslandTap: {
-                                handleIslandTap(island: island)
-                            })
+                    // **THIS IS THE CRITICAL CHANGE**
+                    // Use the new Map initializer that takes a content closure
+                    Map(position: $viewModel.region) { // Use MapCameraPosition if you prefer
+                        ForEach(viewModel.pirateMarkers) { marker in
+                            if let island = marker.pirateIsland { // This line is crucial and correct
+                                Annotation(marker.title ?? "Unknown Island", coordinate: marker.coordinate) {
+                                    IslandAnnotationView(island: island, handleIslandTap: {
+                                        handleIslandTap(island: island)
+                                    })
+                                }
+                                .annotationTitles(.hidden)
+                            }
                         }
                     }
                     .onAppear {
@@ -68,7 +72,7 @@ struct AllEnteredLocations: View {
             }
             .navigationTitle("All Gyms")
             .onAppear {
-                viewModel.fetchPirateIslands()
+                // ViewModel's init already calls fetchPirateIslands()
             }
             .sheet(isPresented: $showModal) {
                 IslandModalContainer(
@@ -83,12 +87,12 @@ struct AllEnteredLocations: View {
         }
     }
 
-    private func handleIslandTap(island: PirateIsland) {
+    private func handleIslandTap(island: PirateIsland?) { // Note the optional for island
+        guard let island = island else { return } // Safely unwrap
         selectedIsland = island
         showModal = true
     }
 }
-
 
 /*
 struct AllEnteredLocations_Previews: PreviewProvider {
