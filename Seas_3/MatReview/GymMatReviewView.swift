@@ -16,9 +16,7 @@ import FirebaseAuth
 
 
 
-
-
-// Enum for star ratings
+// Enum for star ratings (No changes needed here)
 public enum StarRating: Int, CaseIterable {
     case zero = 0, one, two, three, four, five
 
@@ -63,7 +61,6 @@ public enum StarRating: Int, CaseIterable {
         return stars
     }
 }
-
 
 // Reusable components for review section
 struct ReviewSection: View {
@@ -124,7 +121,6 @@ struct ReviewSection: View {
         }
     }
 }
-
 
 // Reusable components for rating section
 struct RatingSection: View {
@@ -211,15 +207,16 @@ struct GymMatReviewView: View {
     
     @ObservedObject var enterZipCodeViewModel: EnterZipCodeViewModel
     @Environment(\.managedObjectContext) private var viewContext
-    @Environment(\.presentationMode) private var presentationMode
+    @Environment(\.presentationMode) private var presentationMode // Consider using @Environment(\.dismiss) instead
+    
     
     @FetchRequest(
-        entity: PirateIsland.entity(),
-        sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.islandName, ascending: true)]
-    ) private var islands: FetchedResults<PirateIsland>
+         entity: PirateIsland.entity(),
+         sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.islandName, ascending: true)]
+     ) private var islands: FetchedResults<PirateIsland>
     
     @State private var isReviewValid: Bool = false
-    @State private var reviews: [Review] = []
+    @State private var reviews: [Review] = [] // This state property might not be needed if reviews are fetched elsewhere
     var onIslandChange: (PirateIsland?) -> Void
     
     @State private var isReviewViewPresented = false
@@ -243,24 +240,27 @@ struct GymMatReviewView: View {
             Form {
                 IslandSection(islands: Array(islands), selectedIsland: $localSelectedIsland, showReview: $showReview)
                     .onChange(of: localSelectedIsland) { newIsland in
-                        guard let island = newIsland else {
-                            os_log("GymMatReviewView selectedIsland changed to: None", log: logger, type: .info)
-                            return
-                        }
+                        Task { // ✅ Wrap in Task
+                            guard let island = newIsland else {
+                                // os_log("GymMatReviewView selectedIsland changed to: None", log: logger, type: .info)
+                                return
+                            }
                         
                         os_log("Island selection changed to: %@", log: logger, type: .info, island.islandName ?? "Unknown Gym")
                         
-                        cachedIsland = island
-                        isReviewsFetched = false
-                        onIslandChange(island)
-                        
-                        activeIsland = island
-                        cachedAverageRating = Double(ReviewUtils.fetchAverageRating(for: island, in: viewContext, callerFunction: #function))
+                            cachedIsland = island
+                            isReviewsFetched = false
+                            onIslandChange(island)
+                            
+                            activeIsland = island
+                            // ✅ Await the async call
+                            cachedAverageRating = Double(await ReviewUtils.fetchAverageRating(for: island, in: viewContext, callerFunction: #function))
+                            
                         os_log("Average rating for island %@: %.2f", log: logger, type: .info, island.islandName ?? "Unknown", cachedAverageRating)
                         
                         os_log("Island selection change completed", log: logger, type: .info)
+                        } // ✅ End Task
                     }
-                
                 
                 ReviewSection(
                     reviewText: $reviewText,
@@ -281,7 +281,6 @@ struct GymMatReviewView: View {
                         dismissButton: .default(Text("OK"))
                     )
                 }
-
                 
                 Section(header: Text("Average Rating")) {
                     HStack {
@@ -310,6 +309,7 @@ struct GymMatReviewView: View {
             if !hasInitialized {
                 hasInitialized = true
                 
+                
                 os_log("GymMatReviewView body appeared", log: logger, type: .info)
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                     os_log("GymMatReviewView body still visible after 1 second", log: logger, type: .info)
@@ -318,15 +318,17 @@ struct GymMatReviewView: View {
                 
                 // ⬇️ Auto-trigger logic for the initial island selection
                 if let island = localSelectedIsland {
-                    onIslandChange(island)
-                    cachedIsland = island
-                    activeIsland = island
-                    cachedAverageRating = Double(ReviewUtils.fetchAverageRating(for: island, in: viewContext, callerFunction: #function))
+                    Task { // ✅ Wrap in Task
+                        onIslandChange(island)
+                        cachedIsland = island
+                        activeIsland = island
+                        // ✅ Await the async call
+                        cachedAverageRating = Double(await ReviewUtils.fetchAverageRating(for: island, in: viewContext, callerFunction: #function))
                     os_log("Initial island setup triggered in .onAppear: %@", log: logger, type: .info, island.islandName ?? "Unknown")
+                    } // ✅ End Task
                 }
             }
         }
-        
     }
     
     private func submitReview() {
@@ -374,7 +376,8 @@ struct GymMatReviewView: View {
                     try self.viewContext.save()
                     os_log("Review saved to CoreData successfully", log: logger, type: .info)
 
-                    self.cachedAverageRating = Double(ReviewUtils.fetchAverageRating(for: island, in: self.viewContext, callerFunction: #function))
+                    // ✅ Await the async call
+                    self.cachedAverageRating = Double(await ReviewUtils.fetchAverageRating(for: island, in: self.viewContext, callerFunction: #function))
 
                     self.reviewText = ""
                     self.selectedRating = .zero
@@ -384,6 +387,7 @@ struct GymMatReviewView: View {
                     let timestamp = Timestamp(date: newReview.createdTimestamp)
 
                     do {
+                        // ✅ Re-add 'await' here
                         try await db.collection("reviews").document(reviewID.uuidString).setData([
                             "stars": newReview.stars,
                             "review": newReview.review,
@@ -392,6 +396,7 @@ struct GymMatReviewView: View {
                             "name": newReview.userName ?? "Anonymous",
                             "reviewID": newReview.reviewID.uuidString
                         ], merge: true)
+
 
                         os_log("Review saved to Firestore successfully", log: logger, type: .info)
                         self.alertMessage = "Thanks for your review!"
@@ -424,7 +429,6 @@ struct GymMatReviewView: View {
             }
         }
     }
-
 }
 
 /*

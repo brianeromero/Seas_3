@@ -27,7 +27,6 @@ struct IslandModalContainer: View {
                 createdTimestamp: selectedIsland.createdTimestamp?.description ?? "No timestamp available", // Safely unwrapping
                 formattedTimestamp: selectedIsland.formattedTimestamp,
                 gymWebsite: selectedIsland.gymWebsite,
-                reviews: selectedIsland.reviews?.array as? [Review] ?? [],
                 dayOfWeekData: [],
                 selectedAppDayOfWeek: $selectedAppDayOfWeek,
                 selectedIsland: $selectedIsland,

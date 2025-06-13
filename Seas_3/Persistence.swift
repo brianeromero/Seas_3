@@ -384,13 +384,20 @@ class PersistenceController: ObservableObject {
 
 extension PersistenceController {
     func fetchSchedules(for predicate: NSPredicate) async throws -> [AppDayOfWeek] {
-        let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
-        fetchRequest.predicate = predicate
+        // This is the crucial change:
+        // 'await container.viewContext.perform' ensures the Core Data operation
+        // runs on the queue associated with viewContext (which is the main queue).
+        return try await container.viewContext.perform {
+            let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
+            fetchRequest.predicate = predicate
 
-        do {
-            return try viewContext.fetch(fetchRequest)
-        } catch {
-            throw PersistenceController.PersistenceError.fetchError(error)
+            do {
+                let results = try self.container.viewContext.fetch(fetchRequest)
+                return results
+            } catch {
+                // It's good to re-throw a more specific error or log it here as well
+                throw PersistenceController.PersistenceError.fetchError(error)
+            }
         }
     }
 }

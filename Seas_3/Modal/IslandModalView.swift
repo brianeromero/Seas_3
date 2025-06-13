@@ -10,11 +10,19 @@ import SwiftUI
 import CoreLocation
 
 struct IslandModalView: View {
+    @Environment(\.managedObjectContext) var viewContext // Make sure this is present!
     @ObservedObject var enterZipCodeViewModel: EnterZipCodeViewModel
     @Binding var selectedDay: DayOfWeek?
     @Binding var showModal: Bool
     @State private var isLoadingData: Bool = false
-    @State private var showReview: Bool = false  // Add showReview here
+    @State private var showReview: Bool = false
+    
+    // ✅ YOU NEED THESE TWO NEW STATE PROPERTIES
+    @State private var currentAverageStarRating: Double = 0.0 // This replaces the old computed property
+    @State private var currentReviews: [Review] = []           // This will hold the reviews fetched async
+    
+    
+    
     var isLoading: Bool {
         islandSchedules.isEmpty && !scheduleExists || isLoadingData
     }
@@ -27,7 +35,7 @@ struct IslandModalView: View {
     let createdTimestamp: String
     let formattedTimestamp: String
     let gymWebsite: URL?
-    let reviews: [Review]
+    
     let dayOfWeekData: [DayOfWeek]
     @Binding var selectedIsland: PirateIsland?
     @ObservedObject var viewModel: AppDayOfWeekViewModel
@@ -42,7 +50,6 @@ struct IslandModalView: View {
         createdTimestamp: String,
         formattedTimestamp: String,
         gymWebsite: URL?,
-        reviews: [Review],
         dayOfWeekData: [DayOfWeek],
         selectedAppDayOfWeek: Binding<AppDayOfWeek?>,
         selectedIsland: Binding<PirateIsland?>,
@@ -58,7 +65,6 @@ struct IslandModalView: View {
         self.createdTimestamp = createdTimestamp
         self.formattedTimestamp = formattedTimestamp
         self.gymWebsite = gymWebsite
-        self.reviews = reviews
         self.dayOfWeekData = dayOfWeekData
         self._selectedAppDayOfWeek = selectedAppDayOfWeek
         self._selectedIsland = selectedIsland
@@ -68,13 +74,6 @@ struct IslandModalView: View {
         self.enterZipCodeViewModel = enterZipCodeViewModel
     }
 
-    // Replace the manual average rating calculation with the static method
-    private var averageStarRating: Double {
-        guard let island = selectedIsland else { return 0.0 }
-
-        // Fetch the average rating using the ReviewUtils
-        return Double(ReviewUtils.fetchAverageRating(for: island, in: island.managedObjectContext!))
-    }
 
     var body: some View {
         NavigationView {
@@ -129,11 +128,13 @@ struct IslandModalView: View {
                         }
 
                         VStack(alignment: .leading, spacing: 8) {
-                            if !reviews.isEmpty {
+                            // ✅ CHANGE 'reviews.isEmpty' to 'currentReviews.isEmpty'
+                            if !currentReviews.isEmpty {
                                 HStack {
                                     Text("Average Rating:")
                                     Spacer()
-                                    Text(String(format: "%.1f", averageStarRating))
+                                    // ✅ CHANGE 'averageStarRating' to 'currentAverageStarRating'
+                                    Text(String(format: "%.1f", currentAverageStarRating))
                                 }
 
                                 NavigationLink(destination: ViewReviewforIsland(
@@ -204,6 +205,17 @@ struct IslandModalView: View {
             Task {
                 await viewModel.loadSchedules(for: island)
                 scheduleExists = !viewModel.schedules.isEmpty
+                
+                // ✅ FETCH REVIEWS AND AVERAGE RATING HERE
+                let fetchedAvgRating = await ReviewUtils.fetchAverageRating(for: island, in: viewContext, callerFunction: "IslandModalView.onAppear")
+                let fetchedReviews = await ReviewUtils.fetchReviews(for: island, in: viewContext, callerFunction: "IslandModalView.onAppear")
+                
+                // ✅ UPDATE @STATE PROPERTIES ON THE MAIN ACTOR
+                await MainActor.run {
+                    self.currentAverageStarRating = Double(fetchedAvgRating)
+                    self.currentReviews = fetchedReviews
+                }
+                
                 isLoadingData = false
             }
         }

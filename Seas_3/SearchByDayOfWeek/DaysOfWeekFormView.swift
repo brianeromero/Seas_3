@@ -142,41 +142,6 @@ extension DaysOfWeekFormView {
 }
 
 
-struct ErrorView: View {
-    let description: String
-    @Binding var isError: Bool
-    let retryAction: () -> Void
-
-    var body: some View {
-        VStack {
-            Image(systemName: "exclamationmark.triangle")
-                .resizable()
-                .frame(width: 50, height: 50)
-                .foregroundColor(.red)
-            Text(description)
-                .font(.headline)
-                .foregroundColor(.black)
-            Button(action: {
-                isError = false
-            }) {
-                Text("OK")
-                    .font(.body)
-                    .foregroundColor(.white)
-                    .padding()
-                    .background(Color.blue)
-                    .cornerRadius(8)
-            }
-            Button(action: retryAction) {
-                Text("Retry")
-                    .font(.body)
-                    .foregroundColor(.white)
-                    .padding()
-                    .background(Color.blue)
-                    .cornerRadius(8)
-            }
-        }
-    }
-}
 
 class MockAppDayOfWeekRepository: AppDayOfWeekRepository {
     override init(persistenceController: PersistenceController) {

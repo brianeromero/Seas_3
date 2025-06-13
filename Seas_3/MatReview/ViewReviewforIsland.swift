@@ -34,6 +34,7 @@ enum SortType: String, CaseIterable {
 }
 
 struct ViewReviewforIsland: View {
+    @Environment(\.managedObjectContext) var viewContext // Use this for Core Data operations
     @State private var isReviewViewPresented = false
     @Binding var showReview: Bool
     @Binding var selectedIsland: PirateIsland?
@@ -101,13 +102,30 @@ struct ViewReviewforIsland: View {
             .onAppear {
                 os_log("Read Gym Reviews page appeared", log: logger, type: .info)
                 os_log("ViewReviewforIsland - Selected Island: %@", selectedIsland?.islandName ?? "nil")
-                loadReviews()
+                // ✅ Call loadReviews from a Task
+                Task {
+                    await loadReviews()
+                }
             }
-            .onChange(of: selectedSortType) { _ in loadReviews() }
-            .onChange(of: selectedIsland) { _ in loadReviews() }
+            // ✅ Call loadReviews from a Task
+            .onChange(of: selectedSortType) { _ in
+                Task {
+                    await loadReviews()
+                }
+            }
+            // ✅ Call loadReviews from a Task
+            .onChange(of: selectedIsland) { _ in
+                Task {
+                    await loadReviews()
+                }
+            }
         }
     }
-
+    
+    // ✅ Computed property for filtered reviews
+    var filteredReviews: [Review] {
+        return filteredReviewsCache
+    }
     
     private struct ReviewSummaryView: View {
         let averageRating: Double
@@ -153,42 +171,60 @@ struct ViewReviewforIsland: View {
 
 
 
-    // ✅ Computed property for filtered reviews
-    var filteredReviews: [Review] {
-        return filteredReviewsCache
-    }
-
     // ✅ Extracted loading logic into a separate method
-    private func loadReviews() {
+    // ✅ Make loadReviews async
+    private func loadReviews() async { // ADD 'async' here
         guard let island = selectedIsland else {
-            filteredReviewsCache = []
-            averageRating = 0.0
+            // ✅ Use MainActor.run for state updates
+            await MainActor.run {
+                filteredReviewsCache = []
+                averageRating = 0.0
+            }
             return
         }
 
-        Task {
-            do {
+        do {
+            // Make sure the fetch request operates on the correct context.
+            // Using island.managedObjectContext is generally fine if the island
+            // itself is fetched from the main context or a child context.
+            guard let context = island.managedObjectContext else {
+                os_log("Error: Managed object context not found for selected island.", log: logger, type: .error)
+                await MainActor.run {
+                    filteredReviewsCache = []
+                    averageRating = 0.0
+                }
+                return
+            }
+
+            // Perform Core Data fetch on the context's queue
+            let fetchedReviews = try await context.perform { // ✅ Use context.perform for async Core Data access
                 let request = Review.fetchRequest() as! NSFetchRequest<Review>
-                request.predicate = NSPredicate(format: "island == %@", island.objectID)
+                request.predicate = NSPredicate(format: "island == %@", island) // Use the island object directly
                 request.sortDescriptors = [
                     NSSortDescriptor(key: selectedSortType.sortKey, ascending: selectedSortType.ascending)
                 ]
+                return try context.fetch(request)
+            }
 
-                let fetchedReviews = try island.managedObjectContext?.fetch(request) ?? []
+            // ✅ Calculate average rating using the async static method from ReviewUtils
+            // This call should also be awaited.
+            let fetchedAvgRating = await ReviewUtils.fetchAverageRating(for: island, in: context, callerFunction: "ViewReviewforIsland.loadReviews")
 
-                // ✅ Perform state mutation asynchronously to avoid runtime warnings
-                DispatchQueue.main.async {
-                    filteredReviewsCache = fetchedReviews
-                    // Calculate average rating using the static method from ReviewUtils
-                    averageRating = Double(ReviewUtils.fetchAverageRating(for: island, in: island.managedObjectContext!))
-                }
-            } catch {
-                os_log("Failed to fetch reviews: %@", log: logger, type: .error, error.localizedDescription)
+            // ✅ Update @State properties on the MainActor
+            await MainActor.run {
+                self.filteredReviewsCache = fetchedReviews
+                self.averageRating = Double(fetchedAvgRating)
+            }
+        } catch {
+            os_log("Failed to fetch reviews: %@", log: logger, type: .error, error.localizedDescription)
+            // ✅ Reset state on MainActor in case of error
+            await MainActor.run {
+                self.filteredReviewsCache = []
+                self.averageRating = 0.0
             }
         }
     }
 }
-
 
 
 

@@ -9,7 +9,7 @@ import MapKit
 
 // Equatable wrapper for MKCoordinateRegion
 struct EquatableMKCoordinateRegion: Equatable {
-    var region: MKCoordinateRegion
+    var region: MKCoordinateRegion  // <-- Change from 'let' to 'var'
 
     static func == (lhs: EquatableMKCoordinateRegion, rhs: EquatableMKCoordinateRegion) -> Bool {
         lhs.region.center.latitude == rhs.region.center.latitude &&
@@ -18,6 +18,7 @@ struct EquatableMKCoordinateRegion: Equatable {
         lhs.region.span.longitudeDelta == rhs.region.span.longitudeDelta
     }
 }
+
     
 struct ConsolidatedIslandMapView: View {
     @Environment(\.managedObjectContext) private var viewContext // Injected context

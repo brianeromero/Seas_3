@@ -50,7 +50,6 @@ struct IslandMapView: View {
                     createdTimestamp: island.formattedTimestamp,
                     formattedTimestamp: island.formattedTimestamp,
                     gymWebsite: island.gymWebsite,
-                    reviews: ReviewUtils.getReviews(from: island.reviews),
                     dayOfWeekData: island.daysOfWeekArray.compactMap { DayOfWeek(rawValue: $0.day) },
                     selectedAppDayOfWeek: $selectedAppDayOfWeek,
                     selectedIsland: $selectedIsland,

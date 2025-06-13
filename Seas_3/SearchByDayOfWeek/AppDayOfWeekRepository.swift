@@ -9,7 +9,7 @@ import SwiftUI
 import CoreData
 import CoreLocation
 import os
-import OSLog // Assuming you use OSLog
+import OSLog // For better logging in production, though print is fine for debugging
 
 
 class AppDayOfWeekRepository: ObservableObject {
@@ -248,24 +248,32 @@ class AppDayOfWeekRepository: ObservableObject {
         }
     }
     
+    // MARK: - AppDayOfWeekRepository fetchSchedules
     func fetchSchedules(for island: PirateIsland) async -> [AppDayOfWeek] {
-        print("AppDayOfWeekRepository - Fetching schedules for island: \(island.islandName ?? "Unknown Gym")")
+        print("THREAD_LOG: AppDayOfWeekRepository.fetchSchedules - START - Is Main Thread: \(Thread.isMainThread), Current Thread: \(Thread.current)")
+        
         let predicate = NSPredicate(format: "pIsland == %@", island)
         do {
-            return try await PersistenceController.shared.fetchSchedules(for: predicate)
+            let result = try await PersistenceController.shared.fetchSchedules(for: predicate)
+            print("THREAD_LOG: AppDayOfWeekRepository.fetchSchedules - END - Successfully fetched \(result.count) schedules. Is Main Thread: \(Thread.isMainThread), Current Thread: \(Thread.current)")
+            return result
         } catch {
-            print("Error fetching schedules: \(error.localizedDescription)")
+            print("THREAD_LOG: AppDayOfWeekRepository.fetchSchedules - ERROR - Error fetching schedules: \(error.localizedDescription). Is Main Thread: \(Thread.isMainThread), Current Thread: \(Thread.current)")
             return []
         }
     }
     
+    // Your other fetchSchedules function (overload)
     func fetchSchedules(for island: PirateIsland, day: DayOfWeek) async -> [AppDayOfWeek] {
-        print("AppDayOfWeekRepository - Fetching schedules for island: \(island.islandName!) and day: \(day.displayName)")
+        print("THREAD_LOG: AppDayOfWeekRepository.fetchSchedules (with day) - START - Is Main Thread: \(Thread.isMainThread), Current Thread: \(Thread.current)")
+        
         let predicate = NSPredicate(format: "pIsland == %@ AND day == %@", island, day.rawValue)
         do {
-            return try await PersistenceController.shared.fetchSchedules(for: predicate)
+            let result = try await PersistenceController.shared.fetchSchedules(for: predicate)
+            print("THREAD_LOG: AppDayOfWeekRepository.fetchSchedules (with day) - END - Successfully fetched \(result.count) schedules. Is Main Thread: \(Thread.isMainThread), Current Thread: \(Thread.current)")
+            return result
         } catch {
-            print("Error fetching schedules: \(error.localizedDescription)")
+            print("THREAD_LOG: AppDayOfWeekRepository.fetchSchedules (with day) - ERROR - Error fetching schedules: \(error.localizedDescription). Is Main Thread: \(Thread.isMainThread), Current Thread: \(Thread.current)")
             return []
         }
     }
