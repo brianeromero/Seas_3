@@ -28,11 +28,11 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
     @Published var allIslands: [PirateIsland] = []
     @Published var errorMessage: String?
     @Published var newMatTime: MatTime?
-    private let firestore = Firestore.firestore()
     
     var viewContext: NSManagedObjectContext
     private let dataManager: PirateIslandDataManager
     public var repository: AppDayOfWeekRepository
+    private let firestore = Firestore.firestore()
 
     
     // MARK: - Day Settings
@@ -671,7 +671,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
         }
     }
 
-    
+
     // MARK: - Load Schedules
     @MainActor
     func loadSchedules(for island: PirateIsland) async {
@@ -704,71 +704,93 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
     
     // MARK: - Load All Schedules
     func loadAllSchedules() async {
-        // 1. Collect results as NSManagedObjectIDs from the TaskGroup
-        let islandSchedulesIDsDict = await withTaskGroup(of: (DayOfWeek, [(NSManagedObjectID, [NSManagedObjectID])]).self) { group -> [DayOfWeek: [(NSManagedObjectID, [NSManagedObjectID])]] in
+        print("Starting loadAllSchedules()")
+
+        // 1. Collect results as NSManagedObjectID arrays from the TaskGroup
+        // The TaskGroup will now return (DayOfWeek, [NSManagedObjectID])
+        let islandObjectIDsTempDict = await withTaskGroup(of: (DayOfWeek, [NSManagedObjectID]).self) { group -> [DayOfWeek: [NSManagedObjectID]] in
+            var result: [DayOfWeek: [NSManagedObjectID]] = [:]
+
             for day in DayOfWeek.allCases {
-                group.addTask { [self] in
-                    print("Fetching islands for day: \(day.rawValue)")
+                group.addTask { [self] in // Capture self strongly for the async task
+                    print("TaskGroup: Fetching island ObjectIDs for day: \(day.rawValue)")
 
                     do {
-                        // This now correctly receives tuples of NSManagedObjectIDs
-                        let fetchedIDs = try await self.repository.fetchAllIslands(forDay: day.rawValue)
-
-                        // You cannot access properties like 'islandName' directly here
-                        // because 'fetchedIDs' contains NSManagedObjectIDs.
-                        // If you want to print names for debugging, you'd need to rehydrate them here
-                        // on a temporary context, but it's generally best to avoid
-                        // full object rehydration for logging in background tasks.
-                        // Instead, log the count or relevant ID info.
-                        print("Fetched island IDs count for day \(day.rawValue): \(fetchedIDs.count)")
-
-                        return (day, fetchedIDs)
+                        // This now correctly receives [NSManagedObjectID]
+                        let fetchedObjectIDs = try await self.repository.fetchAllIslands(forDay: day.rawValue)
+                        print("TaskGroup: Fetched \(fetchedObjectIDs.count) island ObjectIDs for day \(day.rawValue).")
+                        return (day, fetchedObjectIDs)
                     } catch {
-                        print("Error fetching Gym schedule for day \(day.rawValue): \(error.localizedDescription)")
-                        return (day, []) // Return an empty array of IDs on error
+                        print("TaskGroup: Error fetching island ObjectIDs for day \(day.rawValue): \(error.localizedDescription)")
+                        return (day, []) // Return an empty array of ObjectIDs on error
                     }
                 }
             }
 
-            var result: [DayOfWeek: [(NSManagedObjectID, [NSManagedObjectID])]] = [:]
-            for await (day, fetchedIDsForDay) in group {
-                result[day] = fetchedIDsForDay
+            // Await all tasks and collect their results
+            for await (day, fetchedObjectIDsForDay) in group {
+                result[day] = fetchedObjectIDsForDay
             }
 
-            print("Loaded All Gym Schedules (ObjectIDs): \(result.count) days")
+            print("TaskGroup: Completed fetching all island ObjectIDs. Total days processed: \(result.count)")
             return result
         }
 
-        // 2. Rehydrate NSManagedObjects on the main thread after all background fetches are complete
+        // 2. Rehydrate the PirateIsland objects and extract MatTimes on the MainActor
         await MainActor.run {
+            print("MainActor: Starting rehydration of islands and matTimes.")
             var hydratedSchedules: [DayOfWeek: [(PirateIsland, [MatTime])]] = [:]
-            for (day, idTuples) in islandSchedulesIDsDict {
-                let rehydratedIslandsForDay = idTuples.compactMap { islandID, matTimeIDs -> (PirateIsland, [MatTime])? in
-                    // Rehydrate PirateIsland
-                    guard let island = try? self.viewContext.existingObject(with: islandID) as? PirateIsland else {
-                        print("Failed to rehydrate PirateIsland with ID: \(islandID)")
-                        return nil
-                    }
 
-                    // Rehydrate MatTimes
-                    let matTimes = matTimeIDs.compactMap { matTimeID -> MatTime? in
-                        if let matTime = try? self.viewContext.existingObject(with: matTimeID) as? MatTime {
-                            return matTime
-                        } else {
-                            print("Failed to rehydrate MatTime with ID: \(matTimeID)")
-                            return nil
+            for (day, objectIDs) in islandObjectIDsTempDict {
+                var islandsWithMatTimesForDay: [(PirateIsland, [MatTime])] = []
+                for objectID in objectIDs {
+                    do {
+                        // Rehydrate the PirateIsland object on the main context
+                        guard let island = try self.viewContext.existingObject(with: objectID) as? PirateIsland else {
+                            print("    ❌ MainActor: Failed to rehydrate PirateIsland with ID: \(objectID)")
+                            continue
                         }
-                    }
 
-                    return (island, matTimes)
+                        // Now that 'island' is rehydrated on the MainActor, safely access its relationships and properties
+                        guard let appDayOfWeeks = island.appDayOfWeeks as? Set<AppDayOfWeek> else {
+                            print("    ⚠️ MainActor: Island \(island.islandName ?? "Unnamed") has no AppDayOfWeeks relationship.")
+                            continue
+                        }
+
+                        let matTimesForCurrentDay: [MatTime] = appDayOfWeeks
+                            .filter { $0.day.lowercased() == day.rawValue.lowercased() }
+                            .compactMap { appDayOfWeek in
+                                appDayOfWeek.matTimes?.allObjects as? [MatTime]
+                            }
+                            .flatMap { $0 } // flatten from [[MatTime]] → [MatTime]
+                            .sorted { ($0.createdTimestamp ?? Date()) < ($1.createdTimestamp ?? Date()) }
+
+
+                        if matTimesForCurrentDay.isEmpty {
+                            print("    ⚠️ MainActor: Island \(island.islandName ?? "Unnamed") has no MatTimes for day \(day.rawValue). Excluding from schedule.")
+                            continue // Exclude islands without mat times for this specific day
+                        }
+
+                        islandsWithMatTimesForDay.append((island, matTimesForCurrentDay))
+                        let latString = String(format: "%.6f", island.latitude)
+                        let lonString = String(format: "%.6f", island.longitude)
+                        print("    ✅ MainActor: Rehydrated and processed Island: \(island.islandName ?? "Unnamed"), MatTimes: \(matTimesForCurrentDay.count), Lat: \(latString), Lon: \(lonString), ID: \(island.objectID)")
+
+                    } catch {
+                        print("    ❌ MainActor: Error rehydrating or processing island \(objectID): \(error.localizedDescription)")
+                    }
                 }
-                hydratedSchedules[day] = rehydratedIslandsForDay
+                // Only add the day to the dictionary if there are valid islands with mat times for it
+                if !islandsWithMatTimesForDay.isEmpty {
+                    hydratedSchedules[day] = islandsWithMatTimesForDay
+                }
             }
 
             self.islandSchedules = hydratedSchedules
-            print("Updated islandSchedules on MainActor with \(self.islandSchedules.count) days.")
+            print("✨ MainActor: Successfully updated islandSchedules with \(self.islandSchedules.count) days.")
         }
     }
+    
     // MARK: - Fetch and Update List of AppDayOfWeek for a Specific Day
     func fetchAppDayOfWeekAndUpdateList(for island: PirateIsland, day: DayOfWeek, context: NSManagedObjectContext) {
         print("Fetching AppDayOfWeek for island: \(island.islandName ?? "Unknown") and day: \(day.displayName)")
@@ -1192,18 +1214,47 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
         print("Set day \(day.displayName) selected state to: \(isSelected)")
     }
 
+    
     func fetchIslands(forDay day: DayOfWeek) async {
-        do {
-            // ✅ 1. Fetch local Core Data islands (if needed)
-            let islands = try await repository.fetchAllIslands(forDay: day.rawValue)
-            print("Fetched islands from Core Data: \(islands)")
+        print("🚀 AppDayOfWeekViewModel: Starting fetch for day: \(day)")
 
-            // ✅ 2. Fetch islands from Firestore
+        do {
+            // 1. Fetch local Core Data island ObjectIDs from repository (background context)
+            let localIslandObjectIDs = try await repository.fetchAllIslands(forDay: day.rawValue)
+            print("📦 Core Data: Fetched \(localIslandObjectIDs.count) local island ObjectIDs from repository for day \(day.rawValue).")
+
+            // Rehydrate local islands on the MainActor
+            await MainActor.run {
+                var rehydratedLocalIslands: [PirateIsland] = []
+                for objectID in localIslandObjectIDs {
+                    do {
+                        // Access on the main context to rehydrate the object
+                        if let island = try self.viewContext.existingObject(with: objectID) as? PirateIsland {
+                            rehydratedLocalIslands.append(island)
+                            // Now it's safe to access properties on the main thread
+                            let latString = String(format: "%.6f", island.latitude)
+                            let lonString = String(format: "%.6f", island.longitude)
+                            print("    - Local Island Rehydrated on MainActor: \(island.islandName ?? "Unnamed"), Lat: \(latString), Lon: \(lonString), ID: \(island.objectID)")
+                        } else {
+                            print("    ❌ MainActor: Failed to rehydrate local island with ID: \(objectID)")
+                        }
+                    } catch {
+                        print("    ❌ MainActor: Error rehydrating local island \(objectID): \(error.localizedDescription)")
+                    }
+                }
+                // If you have a published property to store these, update it here:
+                // self.allIslands = rehydratedLocalIslands // Or whatever property you use for these.
+                // For now, we'll just log them.
+            }
+
+
+            // 2. Fetch islands from Firestore
             let querySnapshot = try await firestore.collection("islands")
                 .whereField("days", arrayContains: day.rawValue)
                 .getDocuments()
+            print("☁️ Firestore: Fetched \(querySnapshot.documents.count) documents from Firestore for day \(day.rawValue).")
 
-            // ✅ 3. Perform background Core Data task and return result
+            // 3. Perform background Core Data sync task
             let (objectIDsWithMatTimes, islandsToUpdateInFirestore): ([(NSManagedObjectID, [NSManagedObjectID])], [(PirateIsland, DocumentReference)]) = try await withCheckedThrowingContinuation { continuation in
                 PersistenceController.shared.container.performBackgroundTask { backgroundContext in
                     do {
@@ -1211,58 +1262,137 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
                         var firestoreUpdateList: [(PirateIsland, DocumentReference)] = []
 
                         let islandsFromFirestore = querySnapshot.documents.compactMap { document -> PirateIsland? in
-                            let island = PirateIsland(context: backgroundContext)
-                            island.configure(document.data())
-                            firestoreUpdateList.append((island, document.reference))
-                            return island
+                            let islandID = document.data()["id"] as? String ?? document.documentID
+                            let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
+                            fetchRequest.predicate = NSPredicate(format: "id == %@", islandID)
+                            fetchRequest.fetchLimit = 1
+
+                            let existingIsland = try? backgroundContext.fetch(fetchRequest).first
+
+                            if let existingIsland = existingIsland {
+                                print("    ➡️ BackgroundContext: Updating existing PirateIsland from Firestore: \(existingIsland.islandName ?? "Unnamed"), ID: \(existingIsland.objectID)")
+                                existingIsland.configure(document.data())
+                                firestoreUpdateList.append((existingIsland, document.reference))
+                                return existingIsland
+                            } else {
+                                let newIsland = PirateIsland(context: backgroundContext)
+                                newIsland.configure(document.data())
+
+                                if let uuid = UUID(uuidString: islandID) {
+                                    newIsland.islandID = uuid
+                                } else {
+                                    print("❌ Invalid UUID string from Firestore: \(islandID). Assigning random UUID instead.")
+                                    newIsland.islandID = UUID()
+                                }
+                                firestoreUpdateList.append((newIsland, document.reference))
+                                print("    ➡️ BackgroundContext: Created new PirateIsland from Firestore: \(newIsland.islandName ?? "Unnamed"), ID: \(newIsland.islandID?.uuidString ?? "nil"), FirestoreDocID: \(document.documentID)")
+                                return newIsland
+                            }
                         }
 
+                        // Filter islands that have MatTimes for the given day
                         let filteredIslands = islandsFromFirestore.compactMap { island -> (PirateIsland, [MatTime])? in
-                            guard let appDayOfWeeks = island.appDayOfWeeks else { return nil }
+                            guard let appDayOfWeeks = island.appDayOfWeeks else {
+                                print("    ❌ BackgroundContext: Island \(island.islandName ?? "Unnamed") has no appDayOfWeeks. Skipping.")
+                                return nil
+                            }
                             let matTimes = appDayOfWeeks
                                 .compactMap { $0 as? AppDayOfWeek }
                                 .filter { $0.day == day.rawValue }
-                                .flatMap { ($0.matTimes?.allObjects as? [MatTime]) ?? [] }
+                                .flatMap { $0.matTimes?.allObjects as? [MatTime] ?? [] }
 
-                            return matTimes.isEmpty ? nil : (island, matTimes)
+                            if matTimes.isEmpty {
+                                print("    ⚠️ BackgroundContext: Island \(island.islandName ?? "Unnamed") has no MatTimes for day \(day.rawValue). Skipping.")
+                                return nil
+                            } else {
+                                print("    ✅ BackgroundContext: Island \(island.islandName ?? "Unnamed") has \(matTimes.count) MatTimes for day \(day.rawValue).")
+                                return (island, matTimes)
+                            }
                         }
 
                         if backgroundContext.hasChanges {
                             try backgroundContext.save()
+                            print("    💾 BackgroundContext: Saved background context changes.")
+                        } else {
+                            print("    ℹ️ BackgroundContext: No changes to save in background context.")
                         }
 
-                        tempIDs = filteredIslands.map {
-                            ($0.0.objectID, $0.1.map { $0.objectID })
+                        tempIDs = filteredIslands.map { (island, matTimes) in
+                            print("    🔗 BackgroundContext: Preparing object IDs for island \(island.islandName ?? "Unnamed") (ID: \(island.objectID)) and its \(matTimes.count) matTime IDs.")
+                            return (island.objectID, matTimes.map { $0.objectID })
                         }
+                        print("    ✅ BackgroundContext: Prepared \(tempIDs.count) object IDs for main context rehydration.")
 
                         continuation.resume(returning: (tempIDs, firestoreUpdateList))
+
                     } catch {
+                        print("    ❌ BackgroundContext: Error during background task: \(error.localizedDescription)")
                         continuation.resume(throwing: error)
                     }
                 }
             }
 
-            // ✅ 4. Rehydrate from objectIDs on main context
+            // 4. Rehydrate islands and matTimes on main actor
             await MainActor.run {
-                self.islandsWithMatTimes = objectIDsWithMatTimes.compactMap { islandID, matTimeIDs in
-                    guard let island = try? self.viewContext.existingObject(with: islandID) as? PirateIsland else { return nil }
-                    let matTimes = matTimeIDs.compactMap { try? self.viewContext.existingObject(with: $0) as? MatTime }
-                    return (island, matTimes)
+                var rehydratedIslands: [(PirateIsland, [MatTime])] = []
+
+                for (islandObjectID, matTimeObjectIDs) in objectIDsWithMatTimes {
+                    do {
+                        guard let island = try self.viewContext.existingObject(with: islandObjectID) as? PirateIsland else {
+                            print("    ❌ MainActor: Failed to rehydrate island with ID: \(islandObjectID)")
+                            continue
+                        }
+
+                        let matTimes = matTimeObjectIDs.compactMap { matTimeID in
+                            do {
+                                return try self.viewContext.existingObject(with: matTimeID) as? MatTime
+                            } catch {
+                                print("    ❌ MainActor: Failed to rehydrate MatTime with ID: \(matTimeID): \(error.localizedDescription)")
+                                return nil
+                            }
+                        }
+
+                        // Safely unwrap latitude and longitude here as well
+                        let latString = String(format: "%.6f", island.latitude)
+                        let lonString = String(format: "%.6f", island.longitude)
+
+                        print("    ✅ MainActor: Rehydrated Island: \(island.islandName ?? "Unnamed"), MatTimes: \(matTimes.count), Lat: \(latString), Lon: \(lonString), ID: \(island.objectID)")
+                        rehydratedIslands.append((island, matTimes))
+
+                    } catch {
+                        print("    ❌ MainActor: Error rehydrating island (\(islandObjectID)): \(error.localizedDescription)")
+                    }
                 }
+
+                self.islandsWithMatTimes = rehydratedIslands
+                print("✨ AppDayOfWeekViewModel: Successfully updated islandsWithMatTimes on MainActor with \(self.islandsWithMatTimes.count) islands.")
             }
 
-            // ✅ 5. Update Firestore documents with synced days list
+            // 5. Update Firestore documents with synced days list
             for (island, ref) in islandsToUpdateInFirestore {
+                // Ensure to re-fetch on the main context if you need to access properties here
+                // Although for just getting `days` from the AppDayOfWeek relationship,
+                // the `island` object coming from `islandsToUpdateInFirestore` was created
+                // in the background context and configured there.
+                // If you *only* need the `days` property, and it was correctly set
+                // in the background context, this might be okay.
+                // However, for maximum safety, if `island` were truly from a background context,
+                // you would fetch it on the main context again for operations on the main thread.
+                // But this loop runs *after* the `performBackgroundTask`, meaning `island`
+                // here is the *reference* to the object that was created/updated *in the background context*.
+                // Firestore operations can be done off-main if not updating UI.
+                // The `days` array construction here doesn't access Core Data properties,
+                // it just uses the properties of the `island` object as it was in the background.
+
                 let days = island.appDayOfWeeks?.compactMap { ($0 as? AppDayOfWeek)?.day } ?? []
+                print("    ☁️ Firestore Update: Updating 'days' for \(island.islandName ?? "Unnamed") (Doc ID: \(ref.documentID)) with: \(days)")
                 try await ref.updateData(["days": days])
             }
 
         } catch {
-            print("❌ Error fetching islands: \(error)")
+            print("❌ AppDayOfWeekViewModel: Top-level error fetching islands: \(error.localizedDescription)")
         }
     }
-
-
     
     func updateCurrentDayAndMatTimes(for island: PirateIsland, day: DayOfWeek) {
         // Fetch the current day of the week from Firestore

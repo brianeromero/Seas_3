@@ -55,18 +55,20 @@ struct DayOfWeekSearchView: View {
         NavigationView {
             VStack {
                 DayPickerView(selectedDay: $selectedDay)
-                    .onChange(of: selectedDay) { _ in
+                    .onChange(of: selectedDay) { newDay in
+                        print("DayPickerView: selectedDay changed to \(newDay?.rawValue ?? "nil")")
                         Task { await dayOfWeekChanged() }
                     }
 
                 RadiusPicker(selectedRadius: $radius)
-                    .onChange(of: radius) { _ in
+                    .onChange(of: radius) { newRadius in
+                        print("RadiusPicker: radius changed to \(newRadius)")
                         Task { await radiusChanged() }
                     }
 
                 ErrorView(errorMessage: $errorMessage)
 
-                MapViewContainer(equatableRegion: $equatableRegion, appDayOfWeekViewModel: viewModel) { island in
+                MapViewContainer(equatableRegion: equatableRegion, appDayOfWeekViewModel: viewModel) { island in
                     handleIslandTap(island: island)
                 }
             }
@@ -81,20 +83,28 @@ struct DayOfWeekSearchView: View {
                 )
             }
             .onAppear {
+                print("DayOfWeekSearchView: onAppear triggered.")
                 setupInitialRegion()
                 requestUserLocation()
             }
             .onChange(of: userLocationMapViewModel.userLocation) { newLocation in
                 if let location = newLocation {
+                    print("DayOfWeekSearchView: User location updated to \(location.coordinate.latitude), \(location.coordinate.longitude)")
                     updateRegion(center: location.coordinate)
                     Task { await updateIslandsAndRegion() }
+                } else {
+                    print("DayOfWeekSearchView: User location is nil.")
                 }
             }
             .onChange(of: selectedIsland) { newIsland in
+                print("DayOfWeekSearchView: selectedIsland changed to \(newIsland?.islandName ?? "nil")")
                 updateSelectedIsland(from: newIsland)
             }
         }
     }
+    
+    
+    
     // Helper methods
     private func setupInitialRegion() {
         equatableRegion = MKCoordinateRegion(
@@ -117,14 +127,19 @@ struct DayOfWeekSearchView: View {
     }
 
     private func updateSelectedIsland(from newIsland: PirateIsland?) {
-        guard let newIsland = newIsland else { return }
+        guard let newIsland = newIsland else {
+            print("updateSelectedIsland: newIsland is nil.")
+            return
+        }
         if let matchingIsland = viewModel.islandsWithMatTimes.map({ $0.0 }).first(where: { $0.islandID == newIsland.islandID }) {
             selectedIsland = matchingIsland
+            print("updateSelectedIsland: Found matching island \(matchingIsland.islandName ?? "") in current selection.")
         } else {
-            // Handle the case when no matching island is found
             errorMessage = "Island not found in the current selection."
+            print("updateSelectedIsland: Error - Island \(newIsland.islandName ?? "") not found in current selection.")
         }
     }
+
 
     
 
@@ -142,29 +157,54 @@ struct DayOfWeekSearchView: View {
         }
     }
     
-    // MapViewContainer.swift (updated)
+    // MapViewContainer.swift (fixed)
     struct MapViewContainer: View {
-        @Binding var equatableRegion: MKCoordinateRegion
+        // Switch from MKCoordinateRegion to MapCameraPosition
+        @State private var cameraPosition: MapCameraPosition
         @ObservedObject var appDayOfWeekViewModel: AppDayOfWeekViewModel
         let handleIslandTap: (PirateIsland) -> Void
 
+        init(equatableRegion: MKCoordinateRegion,
+             appDayOfWeekViewModel: AppDayOfWeekViewModel,
+             handleIslandTap: @escaping (PirateIsland) -> Void) {
+            // Convert MKCoordinateRegion to MapCameraPosition
+            self._cameraPosition = State(initialValue: .region(equatableRegion))
+            self.appDayOfWeekViewModel = appDayOfWeekViewModel
+            self.handleIslandTap = handleIslandTap
+        }
+
         var body: some View {
-            Map(
-                coordinateRegion: $equatableRegion,
-                annotationItems: appDayOfWeekViewModel.islandsWithMatTimes.map { $0.0 }
-            ) { island in
-                MapAnnotation(
-                    coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude)
-                ) {
-                    IslandAnnotationView(island: island, handleIslandTap: { handleIslandTap(island) })
+            let currentIslands = appDayOfWeekViewModel.islandsWithMatTimes.map { $0.0 }
+
+            Map(position: $cameraPosition) {
+                ForEach(currentIslands) { island in
+                    Annotation("Island", coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude), anchor: .center) {
+                        IslandAnnotationView(island: island) {
+                            handleIslandTap(island)
+                        }
+                    }
+                }
+            }
+            .mapControls {
+                MapUserLocationButton()
+                MapCompass()
+                MapPitchToggle()
+            }
+            .onAppear {
+                print("MapViewContainer: Rendering Map with \(currentIslands.count) islands.")
+                for island in currentIslands {
+                    print("  - Island: \(island.islandName ?? "Unnamed"), Lat: \(island.latitude), Lon: \(island.longitude)")
                 }
             }
         }
     }
     
-    
     private func updateRegion(center: CLLocationCoordinate2D) {
         if userLocationMapViewModel.userLocation != nil {
+            print("updateRegion: User location exists. Calculating new region.")
+            print("updateRegion: Number of markers for MapUtils.updateRegion: \(viewModel.islandsWithMatTimes.count)")
+            print("updateRegion: Radius: \(radius), Center: \(center.latitude), \(center.longitude)")
+
             withAnimation {
                 equatableRegion = MapUtils.updateRegion(
                     markers: viewModel.islandsWithMatTimes.map {
@@ -179,31 +219,36 @@ struct DayOfWeekSearchView: View {
                     center: center
                 )
             }
+            print("updateRegion: New equatableRegion center: \(equatableRegion.center.latitude), \(equatableRegion.center.longitude), span: \(equatableRegion.span.latitudeDelta), \(equatableRegion.span.longitudeDelta)")
         } else {
             errorMessage = "Error updating region: User location is nil"
+            print("updateRegion: Error - User location is nil, cannot update region.")
         }
     }
-
 
     private func handleIslandTap(island: PirateIsland) {
         selectedIsland = island
         showModal = true
+        print("handleIslandTap: Tapped on island \(island.islandName ?? "Unnamed"). Showing modal.")
     }
+
 
     private func updateIslandsAndRegion() async {
         guard let selectedDay = selectedDay else {
             errorMessage = "Day of week is not selected."
+            print("updateIslandsAndRegion: Error - Day of week is not selected.")
             return
         }
 
-        print("Fetching islands for day: \(selectedDay)")
+        print("updateIslandsAndRegion: Fetching islands for day: \(selectedDay)")
 
-        // If fetchIslands doesn't throw errors, remove the do-catch
         await viewModel.fetchIslands(forDay: selectedDay)
+        print("updateIslandsAndRegion: Finished fetching islands. ViewModel has \(viewModel.islandsWithMatTimes.count) islands.")
 
-        // Check if userLocationMapViewModel.userLocation exists
         if let location = userLocationMapViewModel.userLocation {
             updateRegion(center: location.coordinate)
+        } else {
+            print("updateIslandsAndRegion: User location not available for region update.")
         }
     }
 }
