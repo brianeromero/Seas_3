@@ -8,8 +8,8 @@
 import Foundation
 import CoreData
 
-public class PirateIslandDataManager {
-    private var viewContext: NSManagedObjectContext
+public class PirateIslandDataManager: ObservableObject { // Assuming you've made it ObservableObject as discussed
+    internal var viewContext: NSManagedObjectContext // Or 'public' if needed outside the module
 
     init(viewContext: NSManagedObjectContext) {
         self.viewContext = viewContext
@@ -17,11 +17,16 @@ public class PirateIslandDataManager {
 
     enum FetchError: Error {
         case failedFetchingIslands(Error)
+        // ADD THESE TWO CASES:
+        case unknownError(Error) // Add this line
+        case coreDataError(Error) // Add this line
     }
 
     enum PersistenceError: Error {
         case invalidRecordId(String)
         case recordNotFound(String)
+        case mockError(String) // You might want a specific mock error too for completeness, or just use `unknownError`
+
     }
 
     func fetchPirateIslands(sortDescriptors: [NSSortDescriptor]? = nil, predicate: NSPredicate? = nil, fetchLimit: Int? = nil) -> Result<[PirateIsland], FetchError> {

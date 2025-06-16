@@ -129,6 +129,7 @@
 		0CF13E7C2C2A36B500D714C0 /* PirateIsland+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E762C2A36B500D714C0 /* PirateIsland+CoreDataProperties.swift */; };
 		0CF13E7D2C2A36B500D714C0 /* UserInfo+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E772C2A36B500D714C0 /* UserInfo+CoreDataClass.swift */; };
 		0CF13E7E2C2A36B500D714C0 /* UserInfo+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E782C2A36B500D714C0 /* UserInfo+CoreDataProperties.swift */; };
+		0CF3FD902E0061B3002AA79B /* IslandMenu2.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF3FD8F2E0061B3002AA79B /* IslandMenu2.swift */; };
 		AEAE0E9615D71CE4670E50C3 /* Pods_Seas_3.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 25086FDC1D4D3D355A3B55B5 /* Pods_Seas_3.framework */; };
 /* End PBXBuildFile section */
 
@@ -286,6 +287,7 @@
 		0CF13E772C2A36B500D714C0 /* UserInfo+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UserInfo+CoreDataClass.swift"; sourceTree = "<group>"; };
 		0CF13E782C2A36B500D714C0 /* UserInfo+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UserInfo+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		0CF247E92CB470D2008B02AA /* Seas_3.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Seas_3.entitlements; sourceTree = "<group>"; };
+		0CF3FD8F2E0061B3002AA79B /* IslandMenu2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandMenu2.swift; sourceTree = "<group>"; };
 		25086FDC1D4D3D355A3B55B5 /* Pods_Seas_3.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Seas_3.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		EEAE56A3091E66A29DAF87DF /* Pods-Seas_3.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Seas_3.debug.xcconfig"; path = "Target Support Files/Pods-Seas_3/Pods-Seas_3.debug.xcconfig"; sourceTree = "<group>"; };
 		F4FC15B999D5C53DF8C84223 /* Pods-Seas_3.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Seas_3.release.xcconfig"; path = "Target Support Files/Pods-Seas_3/Pods-Seas_3.release.xcconfig"; sourceTree = "<group>"; };
@@ -638,6 +640,7 @@
 				0C07B0782C2CFDBB00D0BFB2 /* PirateIslandView.swift */,
 				0C8E21752CCDB3690093CEB3 /* MenuItem.swift */,
 				0C07B0702C2CFD0300D0BFB2 /* IslandMenu.swift */,
+				0CF3FD8F2E0061B3002AA79B /* IslandMenu2.swift */,
 				0C07B0722C2CFD2800D0BFB2 /* AddNewIsland.swift */,
 				0C2CEC9C2CBA1F5400926D0D /* IslandFormSections.swift */,
 				0CC29C7F2CEC49AA00FC48F9 /* IslandDetails.swift */,
@@ -1039,6 +1042,7 @@
 				0CDF61D12C3CA0F400A8A0BF /* ScheduleDetailModal.swift in Sources */,
 				0CA142262C3EF7F200C366CF /* IslandScheduleAsCalViewController.swift in Sources */,
 				0C8B5B6B2CA12CE600C5694F /* IslandSection.swift in Sources */,
+				0CF3FD902E0061B3002AA79B /* IslandMenu2.swift in Sources */,
 				0C6F7BDA2C79194500072237 /* Review+CoreDataProperties.swift in Sources */,
 				0CF13E7B2C2A36B500D714C0 /* PirateIsland+CoreDataClass.swift in Sources */,
 				0C8B5B6D2CA130D700C5694F /* ReviewDetailView.swift in Sources */,

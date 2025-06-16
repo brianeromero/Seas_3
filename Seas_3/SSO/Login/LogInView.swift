@@ -326,7 +326,7 @@ public struct LoginView: View {
                     emailManager: UnifiedEmailManager.shared
                 )
             } else if authenticationState.isAuthenticated {
-                IslandMenu(
+                IslandMenu2(
                     // REMOVE: isLoggedIn: $authenticationState.isLoggedIn,
                     // REMOVE: authViewModel: authViewModel,
                     profileViewModel: profileViewModel // KEEP THIS, as it's the only one expected by your init

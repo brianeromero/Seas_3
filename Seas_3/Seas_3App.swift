@@ -89,7 +89,7 @@ struct AppRootView: View {
                     AdminMenu()
                         .onAppear { print("AppRootView: AdminMenu has appeared.") }
                 } else {
-                    IslandMenu(
+                    IslandMenu2(
                         // REMOVE: isLoggedIn: $authenticationState.isLoggedIn,
                         // REMOVE: authViewModel: authViewModel,
                         profileViewModel: profileViewModel // KEEP THIS, as it's the only one expected by your init

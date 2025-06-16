@@ -47,7 +47,7 @@ struct AddNewIsland: View {
                 actionButtons
             }
             .navigationDestination(for: String.self) { islandMenuPath in
-                IslandMenu(
+                IslandMenu2(
                     // REMOVE: isLoggedIn: $authenticationState.isLoggedIn,
                     // REMOVE: authViewModel: authViewModel,
                     profileViewModel: profileViewModel // KEEP THIS, as it's the only one expected by your init
@@ -159,7 +159,7 @@ struct AddNewIsland: View {
                     // Proceed with saving the island once the user is verified
                     await saveIsland(currentUser: currentUser) {
                         // Once the save operation completes, navigate
-                        navigationPath.append("IslandMenu")
+                        navigationPath.append("IslandMenu2")
                     }
                 } else {
                     self.alertMessage = "You must be logged in to save a new gym."

@@ -597,6 +597,8 @@ public class AuthenticationState: ObservableObject {
             }
         }
     }
+    
+    
 }
 
 // MARK: - SocialUser.Provider Description

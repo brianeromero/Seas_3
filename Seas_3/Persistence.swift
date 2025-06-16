@@ -27,14 +27,55 @@ class PersistenceController: ObservableObject {
     var viewContext: NSManagedObjectContext {
         container.viewContext
     }
+    
+    
+    // MARK: - Preview Provider (This block should be INSIDE the class)
+    static var preview: PersistenceController = {
+        let result = PersistenceController(inMemory: true)
+        let viewContext = result.container.viewContext
 
-    // MARK: - Unified Initializer
+        // Add some dummy data for your preview if IslandMenu2 relies on it
+        // For example, a dummy PirateIsland:
+        let dummyIsland = PirateIsland(context: viewContext)
+        dummyIsland.islandID = UUID()
+        dummyIsland.islandName = "Preview Island"
+        dummyIsland.islandLocation = "Fictional Place"
+        dummyIsland.country = "Imagination Land"
+        dummyIsland.createdByUserId = "preview_user"
+        dummyIsland.createdTimestamp = Date()
+        dummyIsland.lastModifiedByUserId = "preview_user"
+        dummyIsland.lastModifiedTimestamp = Date()
+        dummyIsland.latitude = 34.0522
+        dummyIsland.longitude = -118.2437
+        dummyIsland.gymWebsite = URL(string: "https://example.com")
+
+        // Add more dummy data (e.g., AppDayOfWeek, Reviews, MatTime)
+        // if your preview views expect them to be present.
+        // For example, a dummy AppDayOfWeek
+        let dummyAppDayOfWeek = AppDayOfWeek(context: viewContext)
+        dummyAppDayOfWeek.id = UUID() // Use the 'id' property for the UUID
+        dummyAppDayOfWeek.day = DayOfWeek.monday.rawValue // Use 'day' property, assign rawValue String
+
+
+        dummyAppDayOfWeek.pIsland = dummyIsland // Link to the dummy island using 'pIsland'
+
+        do {
+            try viewContext.save()
+        } catch {
+            let nsError = error as NSError
+            fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
+        }
+        return result
+    }()
+
+    // MARK: - Unified Initializer (This should be the ONLY initializer)
     private init(inMemory: Bool = false) {
         self.firestoreManager = FirestoreManager.shared
-        container = NSPersistentContainer(name: "Seas_3")
+        container = NSPersistentContainer(name: "Seas_3") // Use your actual data model name
 
         if inMemory {
             container.persistentStoreDescriptions.first?.url = URL(fileURLWithPath: "/dev/null")
+            // Ensure FirestoreManager can be truly "disabled" or mocked
             FirestoreManager.shared.disabled = true
         }
 
@@ -401,3 +442,5 @@ extension PersistenceController {
         }
     }
 }
+
+
