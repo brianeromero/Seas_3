@@ -10,19 +10,16 @@ import SwiftUI
 import CoreLocation
 
 struct IslandModalView: View {
-    @Environment(\.managedObjectContext) var viewContext // Make sure this is present!
+    @Environment(\.managedObjectContext) var viewContext
     @ObservedObject var enterZipCodeViewModel: EnterZipCodeViewModel
     @Binding var selectedDay: DayOfWeek?
     @Binding var showModal: Bool
     @State private var isLoadingData: Bool = false
     @State private var showReview: Bool = false
-    
-    // ✅ YOU NEED THESE TWO NEW STATE PROPERTIES
-    @State private var currentAverageStarRating: Double = 0.0 // This replaces the old computed property
-    @State private var currentReviews: [Review] = []           // This will hold the reviews fetched async
-    
-    
-    
+
+    @State private var currentAverageStarRating: Double = 0.0
+    @State private var currentReviews: [Review] = []
+
     var isLoading: Bool {
         islandSchedules.isEmpty && !scheduleExists || isLoadingData
     }
@@ -35,7 +32,7 @@ struct IslandModalView: View {
     let createdTimestamp: String
     let formattedTimestamp: String
     let gymWebsite: URL?
-    
+
     let dayOfWeekData: [DayOfWeek]
     @Binding var selectedIsland: PirateIsland?
     @ObservedObject var viewModel: AppDayOfWeekViewModel
@@ -74,36 +71,47 @@ struct IslandModalView: View {
         self.enterZipCodeViewModel = enterZipCodeViewModel
     }
 
-
+    
     var body: some View {
+        // Apply Scenario A: NavigationView wraps the content of the modal
         NavigationView {
             ZStack {
-                Color.black.opacity(0.4)
+                // Dimming background - using adaptive color for better appearance
+                // Color.primary.opacity(0.2) // This dims the background behind the modal.
+                                          // It should be fine as it adapts, but the modal itself needs clarity.
+                Color.black.opacity(0.4) // Using explicit black for dimming overlay to ensure it's dark enough
+
                     .edgesIgnoringSafeArea(.all)
                     .onTapGesture {
-                        showModal = false
+                        showModal = false // Dismiss modal by tapping outside
                     }
 
+                // Conditional content based on loading state and data availability
                 if isLoadingData {
                     ProgressView("Loading schedules...")
+                        .padding()
+                        .background(Color(.systemBackground)) // Adaptive background color
+                        .cornerRadius(10)
                 } else if let selectedIsland = selectedIsland, let _ = selectedDay {
                     VStack(alignment: .leading, spacing: 16) {
                         Text(islandName)
                             .font(.system(size: 14))
                             .bold()
+                            .foregroundColor(.primary) // Ensure it uses primary color for text
 
                         Text(islandLocation)
                             .font(.system(size: 12))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.secondary) // Ensure it uses secondary color for text
 
                         if let gymWebsite = gymWebsite {
                             HStack {
                                 Text("Website:")
                                     .font(.system(size: 12))
+                                    .foregroundColor(.primary)
                                 Spacer()
                                 Link("Visit Website", destination: gymWebsite)
                                     .font(.system(size: 12))
-                                    .foregroundColor(.blue)
+                                    .foregroundColor(.accentColor) // Uses accent color for links
                             }
                             .padding(.top, 10)
                         } else {
@@ -113,6 +121,7 @@ struct IslandModalView: View {
                                 .padding(.top, 10)
                         }
 
+                        // View Schedule Link
                         if scheduleExists {
                             NavigationLink(
                                 destination: ViewScheduleForIsland(
@@ -121,20 +130,22 @@ struct IslandModalView: View {
                                 )
                             ) {
                                 Text("View Schedule")
+                                    .foregroundColor(.accentColor) // Uses accent color for links
                             }
                         } else {
                             Text("No schedules found for this Gym.")
                                 .foregroundColor(.secondary)
                         }
 
+                        // Reviews Section
                         VStack(alignment: .leading, spacing: 8) {
-                            // ✅ CHANGE 'reviews.isEmpty' to 'currentReviews.isEmpty'
                             if !currentReviews.isEmpty {
                                 HStack {
                                     Text("Average Rating:")
+                                        .foregroundColor(.primary)
                                     Spacer()
-                                    // ✅ CHANGE 'averageStarRating' to 'currentAverageStarRating'
                                     Text(String(format: "%.1f", currentAverageStarRating))
+                                        .foregroundColor(.primary)
                                 }
 
                                 NavigationLink(destination: ViewReviewforIsland(
@@ -144,6 +155,7 @@ struct IslandModalView: View {
                                     authViewModel: authViewModel
                                 )) {
                                     Text("View Reviews")
+                                        .foregroundColor(.accentColor) // Uses accent color for links
                                 }
 
                             } else {
@@ -152,16 +164,17 @@ struct IslandModalView: View {
 
                                 NavigationLink(destination: GymMatReviewView(
                                     localSelectedIsland: .constant(selectedIsland),
-                                    enterZipCodeViewModel: enterZipCodeViewModel, authViewModel: authViewModel,
+                                    enterZipCodeViewModel: enterZipCodeViewModel,
+                                    authViewModel: authViewModel,
                                     onIslandChange: { newIsland in
-                                        // Handle island change
+                                        // Handle island change if needed after review submission
                                     }
                                 )) {
                                     HStack {
                                         Text("Be the first to write a review!")
                                         Image(systemName: "pencil.and.ellipsis.rectangle")
                                     }
-                                    .foregroundColor(.blue)
+                                    .foregroundColor(.accentColor) // Uses accent color for links
                                 }
                             }
                         }
@@ -169,6 +182,7 @@ struct IslandModalView: View {
 
                         Spacer()
 
+                        // Close Button (aligned to leading edge, as the rest of the VStack)
                         Button(action: {
                             showModal = false
                         }) {
@@ -182,7 +196,7 @@ struct IslandModalView: View {
                         }
                     }
                     .padding()
-                    .background(Color.white)
+                    .background(Color(.systemBackground)) // IMPORTANT: Ensure this is Color(.systemBackground)
                     .cornerRadius(10)
                     .frame(width: UIScreen.main.bounds.width * 0.8, height: UIScreen.main.bounds.height * 0.6)
                 } else {
@@ -190,12 +204,23 @@ struct IslandModalView: View {
                         .font(.system(size: 14))
                         .bold()
                         .padding()
-                        .background(Color.white)
+                        .background(Color(.systemBackground))
                         .cornerRadius(10)
                 }
             }
+            // Add a toolbar for a dismiss button, typical for NavigationViews in sheets
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Dismiss") {
+                        showModal = false
+                    }
+                }
+            }
+            // Optional: Set a title for the modal's navigation bar
+            .navigationTitle(selectedIsland?.islandName ?? "Island Details")
+            .navigationBarTitleDisplayMode(.inline) // Makes the title smaller
         }
-        .interactiveDismissDisabled(false)
+        .interactiveDismissDisabled(false) // Allows swipe-down dismissal if presented as a sheet
         .onAppear {
             isLoadingData = true
             guard let island = selectedIsland else {
@@ -205,17 +230,17 @@ struct IslandModalView: View {
             Task {
                 await viewModel.loadSchedules(for: island)
                 scheduleExists = !viewModel.schedules.isEmpty
-                
-                // ✅ FETCH REVIEWS AND AVERAGE RATING HERE
+
+                // Fetch reviews and average rating
                 let fetchedAvgRating = await ReviewUtils.fetchAverageRating(for: island, in: viewContext, callerFunction: "IslandModalView.onAppear")
                 let fetchedReviews = await ReviewUtils.fetchReviews(for: island, in: viewContext, callerFunction: "IslandModalView.onAppear")
-                
-                // ✅ UPDATE @STATE PROPERTIES ON THE MAIN ACTOR
+
+                // Update @State properties on the MainActor
                 await MainActor.run {
                     self.currentAverageStarRating = Double(fetchedAvgRating)
                     self.currentReviews = fetchedReviews
                 }
-                
+
                 isLoadingData = false
             }
         }
