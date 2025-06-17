@@ -30,12 +30,24 @@ struct ViewScheduleForIsland: View {
                         }) {
                             Text(day.displayName)
                                 .font(.headline)
-                                .foregroundColor(viewModel.selectedDay == day ? .blue : .black)
-                                .padding()
+                                .padding(.horizontal, 10) // Add horizontal padding for a more button-like feel
+                                .padding(.vertical, 5) // Add vertical padding
+                                .background(viewModel.selectedDay == day ? Color.accentColor : Color.clear) // Use accentColor for selected
+                                .foregroundColor(viewModel.selectedDay == day ? .white : .primary) // .white for selected, .primary for unselected
+                                .cornerRadius(8) // Add corner radius for rounded appearance
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(
+                                            viewModel.selectedDay == day ? Color.accentColor : Color.secondary.opacity(0.5),
+                                            lineWidth: 1
+                                        ) // Add a subtle border for unselected days
+                                )
                         }
                     }
                 }
+                .padding(.horizontal) // Padding for the scroll view content
             }
+            .padding(.vertical, 8) // Padding around the day selector
             
             Text("Schedule Mat Times for \(viewModel.selectedDay?.displayName ?? "Select a Day")")
                 .font(.title2)

@@ -58,6 +58,7 @@ struct AddOpenMatFormView: View {
             Picker("Day", selection: $viewModel.selectedDay) {
                 ForEach(DayOfWeek.allCases) { day in
                     Text(day.displayName).tag(day as DayOfWeek?)
+                    
                 }
             }
             .pickerStyle(MenuPickerStyle())
@@ -120,7 +121,7 @@ struct AddOpenMatFormView: View {
     }
 
     func matTimesListSection(for day: DayOfWeek) -> some View {
-        Section(header: Text("Scheduled Mat Times")) {
+        Section(header: Text("Scheduled Mat Timesssss")) {
             if let matTimes = viewModel.matTimesForDay[day] {
                 ForEach(matTimes, id: \.self) { matTime in
                     HStack {

@@ -19,22 +19,23 @@ struct ScheduledMatTimesSection: View {
     @Binding var selectedDay: DayOfWeek?
     @State private var matTimes: [MatTime] = []
     @State private var error: String?
-    
+
     @State private var successMessage: String?
     @State private var showSuccessAlert: Bool = false
     @State private var showErrorAlert: Bool = false
 
-    
-    
     @State private var editingMatTime: MatTime?
     @State private var showEditModal = false
-    
+
     private let fetchQueue = DispatchQueue(label: "fetch-queue")
 
     var body: some View {
-        Section(header: Text("Scheduled Mat Times")) {
+        // Removed `Section(header: Text("Scheduled Mat Times"))` to eliminate the large header space.
+        // The navigation title or surrounding context should provide sufficient information.
+        Group { // Use Group to contain conditional views
             if let error = error {
-                Text("⚠️ \(error)").foregroundColor(.red)
+                Text("⚠️ \(error)")
+                    .foregroundColor(.red) // Keep red for errors, but ensure it's readable
             } else if !matTimes.isEmpty {
                 MatTimesList(day: day, matTimes: matTimes,
                              onEdit: { matTime in
@@ -45,7 +46,7 @@ struct ScheduledMatTimesSection: View {
                              })
             } else {
                 Text("No mat times have been entered for \(day.rawValue.capitalized) at \(island.islandName ?? "this gym").")
-                    .foregroundColor(.gray)
+                    .foregroundColor(.secondary) // Use secondary for descriptive text
             }
         }
         .onAppear {
@@ -76,8 +77,9 @@ struct ScheduledMatTimesSection: View {
                 EditMatTimeView(matTime: editingMatTime) { updatedMatTime in
                     Task {
                         do {
+                            // Ensure save operation is performed on the correct context's queue
                             try context.save()
-                            try! await viewModel.updateMatTime(updatedMatTime)
+                            try await viewModel.updateMatTime(updatedMatTime)
                             await MainActor.run {
                                 showEditModal = false
                                 successMessage = "Mat time updated!"
@@ -96,7 +98,6 @@ struct ScheduledMatTimesSection: View {
         }
     }
 
-
     func showEditSheet(for matTime: MatTime) {
         editingMatTime = matTime
         showEditModal = true
@@ -106,13 +107,19 @@ struct ScheduledMatTimesSection: View {
         Task {
             do {
                 let fetchedMatTimes = try viewModel.fetchMatTimes(for: day)
-                
+
                 let filteredMatTimes = filterMatTimes(fetchedMatTimes, for: day, and: island)
                 let sortedMatTimes = sortMatTimes(filteredMatTimes)
-                
+
                 await MainActor.run {
                     self.matTimes = sortedMatTimes
-                    self.viewModel.matTimesForDay[self.selectedDay ?? day] = sortedMatTimes
+                    // Only update viewModel.matTimesForDay if selectedDay is not nil
+                    // to avoid unexpected behavior when selectedDay might be changing
+                    if let currentSelectedDay = self.selectedDay {
+                        self.viewModel.matTimesForDay[currentSelectedDay] = sortedMatTimes
+                    } else {
+                        self.viewModel.matTimesForDay[day] = sortedMatTimes
+                    }
                     self.error = nil
                 }
             } catch {
@@ -128,11 +135,9 @@ struct ScheduledMatTimesSection: View {
         return matTimes.filter {
             guard let appDayOfWeek = $0.appDayOfWeek else { return false }
             return appDayOfWeek.pIsland?.islandID == island.islandID &&
-                   appDayOfWeek.day.caseInsensitiveCompare(day.rawValue) == .orderedSame
+            appDayOfWeek.day.caseInsensitiveCompare(day.rawValue) == .orderedSame // Ensure day is not nil
         }
     }
-    
-    
 
     func sortMatTimes(_ matTimes: [MatTime]) -> [MatTime] {
         return matTimes.sorted { $0.time ?? "" < $1.time ?? "" }
@@ -142,10 +147,23 @@ struct ScheduledMatTimesSection: View {
         Task {
             do {
                 try await viewModel.removeMatTime(matTime)
-                fetchMatTimes(day: self.selectedDay ?? self.day)
+                // Remove from local array as well
+                await MainActor.run {
+                    if let index = matTimes.firstIndex(where: { $0.objectID == matTime.objectID }) {
+                        matTimes.remove(at: index)
+                    }
+                    if let currentSelectedDay = self.selectedDay {
+                         self.viewModel.matTimesForDay[currentSelectedDay]?.removeAll(where: { $0.objectID == matTime.objectID })
+                    } else {
+                         self.viewModel.matTimesForDay[day]?.removeAll(where: { $0.objectID == matTime.objectID })
+                    }
+                }
+                // Re-fetch to ensure consistency after deletion (optional, if local update is sufficient)
+                // fetchMatTimes(day: self.selectedDay ?? self.day)
             } catch {
                 await MainActor.run {
                     self.error = "Failed to delete mat time: \(error.localizedDescription)"
+                    self.showErrorAlert = true
                 }
             }
         }
@@ -160,7 +178,7 @@ struct ScheduledMatTimesSection: View {
                     self.successMessage = "Mat time updated successfully!"
                     self.showSuccessAlert = true
                 }
-                fetchMatTimes(day: self.selectedDay ?? self.day)
+                fetchMatTimes(day: self.selectedDay ?? self.day) // Re-fetch to update UI after successful update
             } catch {
                 await MainActor.run {
                     self.error = "Failed to update mat time: \(error.localizedDescription)"
@@ -169,11 +187,10 @@ struct ScheduledMatTimesSection: View {
             }
         }
     }
-
-    
 }
 
 
+// MARK: - MatTimesList
 struct MatTimesList: View {
     let day: DayOfWeek
     let matTimes: [MatTime]
@@ -189,9 +206,11 @@ struct MatTimesList: View {
                     if let timeString = matTime.time {
                         Text("Time: \(DayOfWeek.formatTime(from: timeString))")
                             .font(.headline)
+                            .foregroundColor(.primary) // Ensure readability in both modes
                     } else {
                         Text("Time: Unknown")
                             .font(.headline)
+                            .foregroundColor(.primary) // Ensure readability in both modes
                     }
                     HStack {
                         if matTime.gi {
@@ -199,6 +218,7 @@ struct MatTimesList: View {
                                 Image(systemName: "checkmark.circle.fill")
                                     .foregroundColor(.green)
                                 Text("Gi")
+                                    .foregroundColor(.primary) // Ensure readability
                             }
                         }
                         if matTime.noGi {
@@ -206,6 +226,7 @@ struct MatTimesList: View {
                                 Image(systemName: "checkmark.circle.fill")
                                     .foregroundColor(.green)
                                 Text("NoGi")
+                                    .foregroundColor(.primary) // Ensure readability
                             }
                         }
                         if matTime.openMat {
@@ -213,6 +234,7 @@ struct MatTimesList: View {
                                 Image(systemName: "checkmark.circle.fill")
                                     .foregroundColor(.green)
                                 Text("Open Mat")
+                                    .foregroundColor(.primary) // Ensure readability
                             }
                         }
                     }
@@ -220,7 +242,7 @@ struct MatTimesList: View {
                     if matTime.restrictions {
                         Text("Restrictions: \(matTime.restrictionDescription ?? "Yes")")
                             .font(.caption)
-                            .foregroundColor(.red)
+                            .foregroundColor(.red) // Keep red for warnings, ensure it stands out
                     }
 
                     HStack {
@@ -229,6 +251,7 @@ struct MatTimesList: View {
                                 Image(systemName: "checkmark.circle.fill")
                                     .foregroundColor(.blue)
                                 Text("Good for Beginners")
+                                    .foregroundColor(.primary) // Ensure readability
                             }
                         }
                         if matTime.kids {
@@ -236,6 +259,7 @@ struct MatTimesList: View {
                                 Image(systemName: "checkmark.circle.fill")
                                     .foregroundColor(.blue)
                                 Text("Kids Class")
+                                    .foregroundColor(.primary) // Ensure readability
                             }
                         }
                     }
@@ -247,7 +271,7 @@ struct MatTimesList: View {
                             onEdit?(matTime)
                         }) {
                             Image(systemName: "pencil")
-                                .foregroundColor(.blue)
+                                .foregroundColor(.accentColor) // Use accentColor for interactive elements
                         }
                         .buttonStyle(BorderlessButtonStyle())
 
@@ -255,15 +279,17 @@ struct MatTimesList: View {
                             onDelete?(matTime)
                         }) {
                             Image(systemName: "trash")
-                                .foregroundColor(.red)
+                                .foregroundColor(.red) // Keep red for destructive actions
                         }
                         .buttonStyle(BorderlessButtonStyle())
                     }
                 }
-                .padding()
+                .padding(.vertical, 4) // Add a little vertical padding to each row
             }
         }
-        .navigationBarTitle(Text("Scheduled Mat Times for \(day.rawValue.capitalized)"))
+        // Removed .navigationBarTitle(Text("Scheduled Mat Times for \(day.rawValue.capitalized)"))
+        // This title should be set in the parent `NavigationView` that contains this `ScheduledMatTimesSection`.
+        // This allows more flexibility and avoids redundant titles.
     }
 }
 
