@@ -7,6 +7,8 @@
 
 import Foundation
 import SwiftUI
+import SwiftUI
+
 
 struct DisclaimerView: View {
     var body: some View {
@@ -24,7 +26,7 @@ struct DisclaimerView: View {
                 Text("Welcome to MF_inder (Mat_Finder). This page outlines the terms of use and liability disclaimer for the MF_inder mobile application.")
                     .font(.body)
                     .padding(.horizontal)
-                
+
                 Group {
                     SectionView(title: "1. User-Generated Content",
                                 content: "MF_inder allows users to submit and view information about Brazilian Jiu Jitsu (BJJ) gyms and open mats. While we strive to provide accurate and up-to-date information, we do not guarantee the accuracy, reliability, or completeness of any content submitted by users.")
@@ -47,8 +49,27 @@ struct DisclaimerView: View {
                     SectionView(title: "7. Modification of Terms",
                                 content: "MF_inder reserves the right to modify these terms at any time without prior notice. Changes will be effective immediately upon posting on this page.")
                     
-                    SectionView(title: "8. Contact Us",
-                                content: "For inquiries or feedback regarding this disclaimer or any other aspect of MF_inder, please contact us at mfinder.bjj@gmail.com.")
+                    // --- UPDATED Section 8. Contact Us ---
+                    // Option 1: Modify SectionView to accept a ViewBuilder for content
+                    // (This is the most flexible long-term solution for reusable components)
+                    
+                    // For now, let's keep SectionView as is (String content) and handle the link here.
+                    // This means duplicating the title formatting from SectionView.
+                    
+                    Text("8. Contact Us") // This replicates the title styling from SectionView
+                        .font(.headline)
+                        .padding(.top, 10)
+                    
+                    HStack(alignment: .top, spacing: 0) { // Using HStack for inline text + link
+                        Text("For inquiries or feedback regarding this disclaimer or any other aspect of MF_inder, please contact us at ")
+                            .font(.body)
+                        Link(AppConstants.supportEmail, destination: URL(string: "mailto:\(AppConstants.supportEmail)")!)
+                            .font(.body)
+                            .foregroundColor(.accentColor) // Make it look like a link
+                        Text(".")
+                            .font(.body)
+                    }
+                    .padding(.horizontal) // Apply padding to the entire HStack
                 }
                 
                 Text("By using MF_inder, you acknowledge that you have read, understood, and agree to be bound by these terms.")
@@ -58,7 +79,7 @@ struct DisclaimerView: View {
                 
                 Text("Last updated: 06/18/2024")
                     .font(.footnote)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.secondary)
                     .padding(.horizontal)
             }
             .padding(.horizontal)
@@ -85,6 +106,12 @@ struct SectionView: View {
 
 struct DisclaimerView_Previews: PreviewProvider {
     static var previews: some View {
-        DisclaimerView()
+        Group {
+            DisclaimerView()
+                .preferredColorScheme(.light)
+            
+            DisclaimerView()
+                .preferredColorScheme(.dark)
+        }
     }
 }

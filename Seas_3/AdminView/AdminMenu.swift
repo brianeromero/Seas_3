@@ -9,6 +9,7 @@ import SwiftUI
 import GoogleMobileAds
 import FirebaseAuth
 
+
 struct AdminMenu: View {
     @Environment(\.persistenceController) private var persistenceController
     @EnvironmentObject var authenticationState: AuthenticationState
@@ -37,8 +38,6 @@ struct AdminMenu: View {
         MenuItem(title: "Delete Gym Record", subMenuItems: ["Delete Gym Record"], padding: 20),
         MenuItem(title: "Delete AppDayOfWeek Record", subMenuItems: ["Delete AppDayOfWeek Record"], padding: 20),
         MenuItem(title: "Manage MatTimes", subMenuItems: ["Delete MatTime Record"], padding: 20),
-
-
     ]
     
     var body: some View {
@@ -48,11 +47,12 @@ struct AdminMenu: View {
                     VStack(alignment: .leading, spacing: 5) {
                         Text(menuItem.title)
                             .font(.headline)
+                            .foregroundColor(.primary) // Adaptive text color
                         
                         ForEach(menuItem.subMenuItems, id: \.self) { subMenuItem in
                             NavigationLink(destination: destinationView(for: subMenuItem)) {
                                 Text(subMenuItem)
-                                    .foregroundColor(.blue)
+                                    .foregroundColor(.accentColor) // Adaptive accent color for links
                                     .padding(.leading, 10)
                             }
                         }
@@ -65,16 +65,21 @@ struct AdminMenu: View {
                 Button(action: signOut) {
                     Text("Sign Out")
                         .font(.headline)
-                        .foregroundColor(.blue)
+                        .foregroundColor(.primary)
                         .padding()
-                        .background(Color.gray.opacity(0.2))
+                        .frame(maxWidth: .infinity)
+                        .background(Color(UIColor.tertiarySystemBackground))
                         .cornerRadius(8)
                 }
+                .padding(.horizontal)
 
                 BannerView() // Ad banner
+                    .padding(.top, 10) // Add some spacing above the banner
             }
             .padding()
             .navigationTitle("Admin Control Panel")
+            .background(Color(uiColor: .systemBackground)) // Ensure the background adapts
+            .ignoresSafeArea() // Extend background to safe areas
         }
     }
     
@@ -90,19 +95,26 @@ struct AdminMenu: View {
         case "Manual User Verification":
             ManuallyVerifyUser()
         case "All Gyms":
+            // Ensure ContentView can also handle dark mode
             ContentView(persistenceController: persistenceController)
         case "ALL Gym Schedules":
+            // Ensure pIslandScheduleView can also handle dark mode
             pIslandScheduleView(viewModel: appDayOfWeekViewModel)
         case "ALL Mat Schedules":
+            // Ensure AllpIslandScheduleView can also handle dark mode
             AllpIslandScheduleView(viewModel: appDayOfWeekViewModel, enterZipCodeViewModel: enterZipCodeViewModel)
                 .environment(\.persistenceController, PersistenceController.shared)
         case "Delete Gym Record":
+            // Ensure DeleteRecordView can also handle dark mode
             DeleteRecordView(coreDataContext: persistenceController.container.viewContext, firestoreManager: firestoreManager)
         case "Delete User from Local Database":
+            // Ensure DeleteUserView can also handle dark mode
             DeleteUserView(coreDataContext: persistenceController.container.viewContext)
         case "Delete AppDayOfWeek Record":
+            // Ensure DeleteAppDayOfWeekRecordView can also handle dark mode
             DeleteAppDayOfWeekRecordView(coreDataContext: persistenceController.container.viewContext, firestoreManager: firestoreManager)
         case "Delete MatTime Record":
+            // Ensure DeleteMatTimeRecordView can also handle dark mode
             DeleteMatTimeRecordView(coreDataContext: persistenceController.container.viewContext, firestoreManager: firestoreManager)
         default:
             EmptyView()
@@ -114,16 +126,4 @@ struct AdminMenu: View {
             print("User signed out successfully")
         }
     }
-
 }
-
-// Mock classes for previews
-class MockAppDayOfWeekViewModel: AppDayOfWeekViewModel {
-    convenience init() {
-        let mockRepository = MockAppDayOfWeekRepository(persistenceController: PersistenceController.shared)
-        let mockEnterZipCodeViewModel = EnterZipCodeViewModel(repository: mockRepository, persistenceController: PersistenceController.shared)
-        
-        self.init(repository: mockRepository, enterZipCodeViewModel: mockEnterZipCodeViewModel)
-    }
-}
-

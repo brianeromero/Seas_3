@@ -31,8 +31,6 @@ enum AuthError: Error, LocalizedError {
     case emptyPassword
 
 
-
-    
     var errorDescription: String? {
         switch self {
         case .invalidInput:
@@ -50,9 +48,9 @@ enum AuthError: Error, LocalizedError {
         case .notSignedIn:
             return "User is not signed in."
         case .unknownError:
-            return "Unknown Error, pleaes reach out to email: mfinder.bjj@gmail.com"
+            return "Unknown Error, please reach out to email: \(AppConstants.supportEmail)" // Using the constant from AppConstants
         case .userAlreadyExists:
-            return "User Already Exists; pleaes email: mfinder.bjj@gmail.com in order to be reset"
+            return "User Already Exists; please email: \(AppConstants.supportEmail) in order to be reset" // Using the constant from AppConstants
         case .invalidStoredPassword:
             return "Password stored is invalid"
         case .emptyPassword:
@@ -378,7 +376,7 @@ class AuthViewModel: ObservableObject {
     }
     
     private func sendCustomVerificationEmail(to email: String, userName: String, password: String) async throws {
-        let success = await emailManager.sendVerificationToken(to: email, userName: userName, password: password)
+        let success = try! await emailManager.sendVerificationToken(to: email, userName: userName, password: password)
         if success {
             print("Custom verification email sent successfully.")
         } else {

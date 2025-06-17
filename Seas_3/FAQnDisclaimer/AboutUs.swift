@@ -1,5 +1,5 @@
 //
-//  WhoWeAre.swift
+//  AboutUs.swift
 //  Seas_3
 //
 //  Created by Brian Romero on 6/26/24.
@@ -8,11 +8,14 @@
 import Foundation
 import SwiftUI
 
-struct WhoWeAreView: View {
+struct AboutUsView: View {
+    // Access the current color scheme
+    @Environment(\.colorScheme) var colorScheme
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
-                Text("Who We Are")
+                Text("About Us")
                     .font(.largeTitle)
                     .bold()
                     .padding(.top, 20)
@@ -24,7 +27,7 @@ struct WhoWeAreView: View {
                             """)
                             .font(.body)
                             .padding(.horizontal)
-                            .multilineTextAlignment(.leading) // Align text left
+                            .multilineTextAlignment(.leading)
                     },
                     label: {
                         Text("WELCOME TO MF_iNDER")
@@ -32,7 +35,6 @@ struct WhoWeAreView: View {
                             .foregroundColor(.primary)
                             .bold()
                             .padding(.top, 10)
-                            .multilineTextAlignment(.leading) // Align text left
                     }
                 )
                 
@@ -43,7 +45,7 @@ struct WhoWeAreView: View {
                             """)
                             .font(.body)
                             .padding(.horizontal)
-                            .multilineTextAlignment(.leading) // Align text left
+                            .multilineTextAlignment(.leading)
                     },
                     label: {
                         Text("WHO ARE YOU? WHAT IS THIS APP?")
@@ -51,7 +53,6 @@ struct WhoWeAreView: View {
                             .foregroundColor(.primary)
                             .bold()
                             .padding(.top, 10)
-                            .multilineTextAlignment(.leading) // Align text left
                     }
                 )
                 
@@ -62,7 +63,7 @@ struct WhoWeAreView: View {
                             """)
                             .font(.body)
                             .padding(.horizontal)
-                            .multilineTextAlignment(.leading) // Align text left
+                            .multilineTextAlignment(.leading)
                     },
                     label: {
                         Text("MORE IMPORTANTLY... WHO ARE YOU?")
@@ -70,7 +71,6 @@ struct WhoWeAreView: View {
                             .foregroundColor(.primary)
                             .bold()
                             .padding(.top, 10)
-                            .multilineTextAlignment(.leading) // Align text left
                     }
                 )
                 
@@ -81,7 +81,7 @@ struct WhoWeAreView: View {
                             """)
                             .font(.body)
                             .padding(.horizontal)
-                            .multilineTextAlignment(.leading) // Align text left
+                            .multilineTextAlignment(.leading)
                     },
                     label: {
                         Text("WHY DO I HAVE TO ENTER GYM/OPEN MAT INFO? CAN’T YALL SCRUB THE INTERNET FOR THIS?")
@@ -89,7 +89,6 @@ struct WhoWeAreView: View {
                             .foregroundColor(.primary)
                             .bold()
                             .padding(.top, 10)
-                            .multilineTextAlignment(.leading) // Align text left
                     }
                 )
                 
@@ -100,7 +99,7 @@ struct WhoWeAreView: View {
                             """)
                             .font(.body)
                             .padding(.horizontal)
-                            .multilineTextAlignment(.leading) // Align text left
+                            .multilineTextAlignment(.leading)
                     },
                     label: {
                         Text("WHY ONLY iOS? GOT SOMETHING AGAINST ANDROID? ")
@@ -108,7 +107,6 @@ struct WhoWeAreView: View {
                             .foregroundColor(.primary)
                             .bold()
                             .padding(.top, 10)
-                            .multilineTextAlignment(.leading) // Align text left
                     }
                 )
                 
@@ -134,7 +132,6 @@ struct WhoWeAreView: View {
                     }
                 )
                 
-                
                 Divider()
                 
                 Text("Contact Us")
@@ -144,22 +141,24 @@ struct WhoWeAreView: View {
                 
                 Text("To report bugs or for inquiries or feedback, please reach out to us at:")
                     .font(.body)
-                    .multilineTextAlignment(.leading) // Align text left
+                    .multilineTextAlignment(.leading)
                     .padding(.horizontal)
                 
-                Text("mfinder.bjj@gmail.com")
+                // --- THIS IS THE LINE TO UPDATE ---
+                Link(AppConstants.supportEmail, destination: URL(string: "mailto:\(AppConstants.supportEmail)")!)
                     .font(.body)
-                    .foregroundColor(.blue)
                     .padding(.horizontal)
             }
             .padding(.horizontal)
         }
-        // .navigationTitle("Who We Are") // Remove navigation title here
+        // If AboutUsView is pushed onto a NavigationStack, the title should be set there.
+        // If it's a root view, you might apply a .navigationTitle
+        // .navigationTitle("About Us")
     }
 }
 
-struct WhoWeAreView_Previews: PreviewProvider {
+struct AboutUsView_Previews: PreviewProvider {
     static var previews: some View {
-        WhoWeAreView()
+        AboutUsView()
     }
 }

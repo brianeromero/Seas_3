@@ -14,76 +14,58 @@ let FAQnDisclaimerLogger = OSLog(subsystem: "Seas3.Subsystem", category: "FAQnDi
 // Add other loggers here as needed
 
 
-
 class FAQnDisclaimerMenu: ObservableObject {
-    // MenuItem must conform to Identifiable and Hashable for use with NavigationStack and navigationDestination
     enum MenuItem: Identifiable, Hashable {
-        case whoWeAre
+        case aboutus
         case disclaimer
         case faq
 
-        // Conformance to Identifiable
-        var id: Self { self }
+        var id: Self { self } // Conformance to Identifiable
     }
     
-    // 1. Change selectedItem to NavigationPath
     @Published var selectedPath = NavigationPath() // Use NavigationPath
-    
-    // The contentView computed property is no longer needed
-    // The navigationDestination(for:) modifier in the view handles presenting the correct view
 }
 
 struct FAQnDisclaimerMenuView: View {
-    @ObservedObject var menu = FAQnDisclaimerMenu()
+    // @StateObject is generally preferred for owned objects within a view's lifecycle
+    // Use @StateObject here to ensure the menu object is only created once for this view
+    @StateObject var menu = FAQnDisclaimerMenu()
     
-    // Define a single, consistent size for all icons
-    let standardIconSize: CGFloat = 70 // Choose your desired size for all icons
+    let standardIconSize: CGFloat = 70
     let iconTrailingSpacing: CGFloat = 10
 
     var body: some View {
         NavigationStack(path: $menu.selectedPath) {
             VStack(alignment: .leading) {
                 List {
-                    NavigationLink(value: FAQnDisclaimerMenu.MenuItem.whoWeAre) {
-                        HStack(alignment: .center) {
-                            Image("MF_little")
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: standardIconSize, height: standardIconSize) // NEW: Standardized size
-                                .padding(.trailing, iconTrailingSpacing) // Apply spacing directly to the icon
-                            
-                            Text("Who We Are")
-                                .font(.body)
-                        }
-                        .frame(height: standardIconSize + (iconTrailingSpacing * 2)) // Adjust row height to accommodate icon + padding
+                    // Refactored NavigationLink content for clarity and potential stability
+                    // The label for NavigationLink should define its appearance,
+                    // the 'value' handles the actual navigation.
+                    NavigationLink(value: FAQnDisclaimerMenu.MenuItem.aboutus) {
+                        MenuItemRow(
+                            imageName: "MF_little",
+                            text: "About Us",
+                            standardIconSize: standardIconSize,
+                            iconTrailingSpacing: iconTrailingSpacing
+                        )
                     }
                     
                     NavigationLink(value: FAQnDisclaimerMenu.MenuItem.disclaimer) {
-                        HStack(alignment: .center) {
-                            Image("disclaimer_logo")
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: standardIconSize, height: standardIconSize) // NEW: Standardized size
-                                .padding(.trailing, iconTrailingSpacing)
-                            
-                            Text("Disclaimer")
-                                .font(.body)
-                        }
-                        .frame(height: standardIconSize + (iconTrailingSpacing * 2)) // Adjust row height
+                        MenuItemRow(
+                            imageName: "disclaimer_logo",
+                            text: "Disclaimer",
+                            standardIconSize: standardIconSize,
+                            iconTrailingSpacing: iconTrailingSpacing
+                        )
                     }
                     
                     NavigationLink(value: FAQnDisclaimerMenu.MenuItem.faq) {
-                        HStack(alignment: .center) {
-                            Image("faq")
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: standardIconSize, height: standardIconSize) // NEW: Standardized size
-                                .padding(.trailing, iconTrailingSpacing)
-                            
-                            Text("FAQ")
-                                .font(.body)
-                        }
-                        .frame(height: standardIconSize + (iconTrailingSpacing * 2)) // Adjust row height
+                        MenuItemRow(
+                            imageName: "faq",
+                            text: "FAQ",
+                            standardIconSize: standardIconSize,
+                            iconTrailingSpacing: iconTrailingSpacing
+                        )
                     }
                 }
                 .listStyle(InsetGroupedListStyle())
@@ -93,11 +75,12 @@ struct FAQnDisclaimerMenuView: View {
             }
             .padding(.horizontal)
             .navigationTitle("FAQ & Disclaimer")
+            // Define navigation destinations using navigationDestination(for:)
             .navigationDestination(for: FAQnDisclaimerMenu.MenuItem.self) { item in
                 switch item {
-                case .whoWeAre:
-                    WhoWeAreView()
-                        .onAppear { os_log("WhoWeAreView Appeared", log: FAQnDisclaimerLogger) }
+                case .aboutus:
+                    AboutUsView()
+                        .onAppear { os_log("AboutUsView Appeared", log: FAQnDisclaimerLogger) }
                 case .disclaimer:
                     DisclaimerView()
                         .onAppear { os_log("DisclaimerView Appeared", log: FAQnDisclaimerLogger) }
@@ -110,7 +93,28 @@ struct FAQnDisclaimerMenuView: View {
     }
 }
 
-// Ensure your PreviewProvider is set up correctly
+// MARK: - Helper View for MenuItem Row
+struct MenuItemRow: View {
+    let imageName: String
+    let text: String
+    let standardIconSize: CGFloat
+    let iconTrailingSpacing: CGFloat
+    
+    var body: some View {
+        HStack(alignment: .center) {
+            Image(imageName)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: standardIconSize, height: standardIconSize)
+                .padding(.trailing, iconTrailingSpacing)
+            
+            Text(text)
+                .font(.body)
+        }
+        .frame(height: standardIconSize + (iconTrailingSpacing * 2)) // Consistent row height
+    }
+}
+
 struct FAQnDisclaimerMenuView_Previews: PreviewProvider {
     static var previews: some View {
         FAQnDisclaimerMenuView()

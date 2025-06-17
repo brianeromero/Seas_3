@@ -9,6 +9,8 @@ import Foundation
 import SwiftUI
 import CoreData
 
+
+
 struct DeleteUserView: View {
     @EnvironmentObject var authenticationState: AuthenticationState
     @State private var userID: String = ""
@@ -21,28 +23,33 @@ struct DeleteUserView: View {
             Text("Delete User")
                 .font(.title)
                 .bold()
-            
+                .foregroundColor(.primary) // Ensure title text is adaptive
+
             TextField("Enter User ID", text: $userID)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding()
+                .textFieldStyle(RoundedBorderTextFieldStyle()) // This style is adaptive
+                .padding(.horizontal) // Apply horizontal padding directly to TextField
 
             Button(action: {
                 deleteUserAndHandleCache()
             }) {
                 Text("Delete User")
                     .font(.headline)
-                    .foregroundColor(.white)
+                    .foregroundColor(.white) // White on Red is good contrast in both modes
                     .padding()
-                    .background(Color.red)
+                    .frame(maxWidth: .infinity) // Make button fill width
+                    .background(Color.red) // Red is a strong color, typically okay in both modes
                     .cornerRadius(10)
             }
-            
+            .padding(.horizontal) // Apply horizontal padding to the button
+
             Text(statusMessage)
-                .foregroundColor(.gray)
+                .foregroundColor(.secondary) // Use .secondary for adaptive subdued text
                 .multilineTextAlignment(.center)
-                .padding()
+                .padding(.horizontal) // Apply horizontal padding
         }
-        .padding()
+        .padding(.vertical) // Vertical padding for the VStack content
+        .background(Color(uiColor: .systemBackground)) // Use system background for the view's overall background
+        .ignoresSafeArea() // Extend background to safe areas if desired
     }
     
     private func deleteUser(userID: String, coreDataContext: NSManagedObjectContext) async -> (Bool, String) {
@@ -55,7 +62,7 @@ struct DeleteUserView: View {
                 try coreDataContext.fetch(fetchRequest) as? [NSManagedObject]
             }
             
-            if let results = results {
+            if let results = results, !results.isEmpty { // Added check for empty results
                 for object in results {
                     coreDataContext.delete(object)
                 }
@@ -65,7 +72,7 @@ struct DeleteUserView: View {
                 print("User deleted from Core Data.")
                 return (true, "")
             } else {
-                return (false, "Failed to delete from Core Data: No results found")
+                return (false, "Failed to delete from Core Data: No user found with this ID.")
             }
         } catch {
             print("Error deleting user: \(error.localizedDescription)")

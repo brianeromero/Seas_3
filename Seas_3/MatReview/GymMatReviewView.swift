@@ -15,8 +15,7 @@ import os.log
 import FirebaseAuth
 
 
-
-// Enum for star ratings (No changes needed here)
+// Enum for star ratings (No changes needed here - it's already well-designed)
 public enum StarRating: Int, CaseIterable {
     case zero = 0, one, two, three, four, five
 
@@ -66,7 +65,7 @@ public enum StarRating: Int, CaseIterable {
 struct ReviewSection: View {
     @Binding var reviewText: String
     @Binding var isReviewValid: Bool
-    @Binding var selectedRating: StarRating  // NEW LINE 👈
+    @Binding var selectedRating: StarRating
 
     let textEditorHeight: CGFloat = 150
     let cornerRadius: CGFloat = 8
@@ -78,7 +77,7 @@ struct ReviewSection: View {
                 .frame(height: textEditorHeight)
                 .overlay(
                     RoundedRectangle(cornerRadius: cornerRadius)
-                        .stroke(Color.gray, lineWidth: 1)
+                        .stroke(Color.gray.opacity(0.6), lineWidth: 1) // Use adaptive gray with opacity
                 )
                 .onChange(of: reviewText) { _ in
                     // Check conditions and update isReviewValid accordingly
@@ -89,14 +88,13 @@ struct ReviewSection: View {
                     }
                 }
 
-
             let charactersUsed = reviewText.count
             let overLimit = max(0, charactersUsed - characterLimit)
             let remainingCharacters = max(0, characterLimit - charactersUsed)
 
             Text("\(charactersUsed) / \(characterLimit) characters used")
                 .font(.caption)
-                .foregroundColor(charactersUsed > characterLimit ? .red : .gray)
+                .foregroundColor(charactersUsed > characterLimit ? .red : .secondary) // Use .secondary for adaptive gray
 
             if overLimit > 0 {
                 Text("Over limit by \(overLimit) characters")
@@ -105,7 +103,7 @@ struct ReviewSection: View {
             } else if remainingCharacters > 0 {
                 Text("\(remainingCharacters) characters remaining")
                     .font(.caption)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.secondary) // Use .secondary for adaptive gray
             }
 
             // ✅ THIS is the special warning for zero-star rating
@@ -122,18 +120,19 @@ struct ReviewSection: View {
     }
 }
 
+
 // Reusable components for rating section
 struct RatingSection: View {
     @Binding var selectedRating: StarRating
     @Binding var isReviewValid: Bool
-    @Binding var reviewText: String  // Add this line to bind the review text
+    @Binding var reviewText: String
 
     var body: some View {
         Section(header: Text("Rate the Gym")) {
             HStack {
                 ForEach(0..<5, id: \.self) { index in
                     Image(systemName: index < selectedRating.rawValue ? "star.fill" : "star")
-                        .foregroundColor(index < selectedRating.rawValue ? .yellow : .gray)
+                        .foregroundColor(index < selectedRating.rawValue ? .yellow : .secondary) // Use .secondary for empty stars
                         .onTapGesture {
                             if selectedRating.rawValue == index + 1 {
                                 selectedRating = .zero
@@ -156,33 +155,40 @@ struct RatingSection: View {
 }
 
 
-
 // Ledger for displaying star ratings
 struct StarRatingsLedger: View {
     var body: some View {
         VStack(alignment: .leading) {
             Text("Star Ratings:")
                 .font(.subheadline)
+                .foregroundColor(.primary) // Ensure text color adapts
             ForEach(StarRating.allCases, id: \.self) { rating in
                 HStack {
                     ForEach(Array(rating.stars.enumerated()), id: \.0) { index, star in
                         Image(systemName: star)
                             .font(.caption)
+                            .foregroundColor(star.contains(".fill") ? .yellow : .secondary) // Adapt filled/empty star colors
                             .id(rating.rawValue * 10 + index)
                     }
                     Text("\(rating.description)")
                         .font(.system(size: 10))
+                        .foregroundColor(.primary) // Ensure text color adapts
                 }
             }
         }
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 20)
-        .padding(.bottom, 20)
-        .background(Color.white.opacity(0.8))
+        .padding(.vertical, 10) // Changed padding to vertical for better spacing within the background
+        .background(Color.clear) // Use Color.clear or remove background for default adaptive behavior
+        // If you need a distinct background that adapts, consider Material (iOS 15+)
+        // .background(.thickMaterial)
         .cornerRadius(10)
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Color.gray.opacity(0.3), lineWidth: 0.5) // Optional subtle border
+        )
     }
 }
-
 
 // Main view for Gym Mat Review
 struct GymMatReviewView: View {
@@ -211,12 +217,12 @@ struct GymMatReviewView: View {
     
     
     @FetchRequest(
-         entity: PirateIsland.entity(),
-         sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.islandName, ascending: true)]
-     ) private var islands: FetchedResults<PirateIsland>
+        entity: PirateIsland.entity(),
+        sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.islandName, ascending: true)]
+    ) private var islands: FetchedResults<PirateIsland>
     
     @State private var isReviewValid: Bool = false
-    @State private var reviews: [Review] = [] // This state property might not be needed if reviews are fetched elsewhere
+    @State private var reviews: [Review] = []
     var onIslandChange: (PirateIsland?) -> Void
     
     @State private var isReviewViewPresented = false
@@ -242,23 +248,21 @@ struct GymMatReviewView: View {
                     .onChange(of: localSelectedIsland) { newIsland in
                         Task { // ✅ Wrap in Task
                             guard let island = newIsland else {
-                                // os_log("GymMatReviewView selectedIsland changed to: None", log: logger, type: .info)
                                 return
                             }
-                        
-                        os_log("Island selection changed to: %@", log: logger, type: .info, island.islandName ?? "Unknown Gym")
-                        
+                            
+                            os_log("Island selection changed to: %@", log: logger, type: .info, island.islandName ?? "Unknown Gym")
+                            
                             cachedIsland = island
                             isReviewsFetched = false
                             onIslandChange(island)
                             
                             activeIsland = island
-                            // ✅ Await the async call
                             cachedAverageRating = Double(await ReviewUtils.fetchAverageRating(for: island, in: viewContext, callerFunction: #function))
                             
-                        os_log("Average rating for island %@: %.2f", log: logger, type: .info, island.islandName ?? "Unknown", cachedAverageRating)
-                        
-                        os_log("Island selection change completed", log: logger, type: .info)
+                            os_log("Average rating for island %@: %.2f", log: logger, type: .info, island.islandName ?? "Unknown", cachedAverageRating)
+                            
+                            os_log("Island selection change completed", log: logger, type: .info)
                         } // ✅ End Task
                     }
                 
@@ -284,12 +288,13 @@ struct GymMatReviewView: View {
                 
                 Section(header: Text("Average Rating")) {
                     HStack {
-                        ForEach(0..<Int(cachedAverageRating.rounded()), id: \.self) { index in
-                            Image(systemName: "star.fill")
-                                .foregroundColor(.yellow)
-                                .id(index) // Ensure uniqueness
+                        // Use StarRating.getStars to display a mixed star average accurately
+                        ForEach(StarRating.getStars(for: cachedAverageRating), id: \.self) { starName in
+                            Image(systemName: starName)
+                                .foregroundColor(.yellow) // Keep yellow for average stars
                         }
                         Text(String(format: "%.1f", cachedAverageRating))
+                            .foregroundColor(.primary) // Ensure text adapts
                     }
                 }
             }
@@ -299,8 +304,8 @@ struct GymMatReviewView: View {
             StarRatingsLedger()
                 .frame(height: 150)
                 .padding(.horizontal, 20)
-                .background(Color.white.opacity(0.8))
-                .cornerRadius(10)
+                // Removed fixed white background and hardcoded opacity
+                // The StarRatingsLedger now handles its own adaptable background
         }
         
         
@@ -308,7 +313,6 @@ struct GymMatReviewView: View {
         .onAppear {
             if !hasInitialized {
                 hasInitialized = true
-                
                 
                 os_log("GymMatReviewView body appeared", log: logger, type: .info)
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
@@ -322,9 +326,8 @@ struct GymMatReviewView: View {
                         onIslandChange(island)
                         cachedIsland = island
                         activeIsland = island
-                        // ✅ Await the async call
                         cachedAverageRating = Double(await ReviewUtils.fetchAverageRating(for: island, in: viewContext, callerFunction: #function))
-                    os_log("Initial island setup triggered in .onAppear: %@", log: logger, type: .info, island.islandName ?? "Unknown")
+                        os_log("Initial island setup triggered in .onAppear: %@", log: logger, type: .info, island.islandName ?? "Unknown")
                     } // ✅ End Task
                 }
             }
@@ -340,11 +343,12 @@ struct GymMatReviewView: View {
 
         if !isReviewValid {
             alertMessage = """
-            Please ensure that:
+            We’d love your feedback:
 
-            - If rating is zero, review should be at least 150 characters long.
-            - Other ratings, review cannot exceed 300 characters.
+            - If you're giving 0 stars, please include at least 150 characters to explain why.
+            - For all other ratings, please keep your review under 300 characters.
             """
+
             showAlert = true
             return
         }

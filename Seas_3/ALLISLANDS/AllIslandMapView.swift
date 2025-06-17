@@ -19,7 +19,7 @@ struct EquatableMKCoordinateRegion: Equatable {
     }
 }
 
-    
+
 struct ConsolidatedIslandMapView: View {
     @Environment(\.managedObjectContext) private var viewContext // Injected context
     @FetchRequest(
@@ -68,9 +68,15 @@ struct ConsolidatedIslandMapView: View {
             .navigationTitle("Gyms Near Me")
             .overlay(overlayContentView())
             .onAppear(perform: onAppear)
-            .onChange(of: locationManager.userLocation, perform: onChangeUserLocation)
-            .onChange(of: equatableRegion, perform: onChangeEquatableRegion)
-            .onChange(of: selectedRadius, perform: onChangeSelectedRadius)
+            .onChange(of: locationManager.userLocation) { newUserLocation in // Use new onChange syntax
+                onChangeUserLocation(newUserLocation)
+            }
+            .onChange(of: equatableRegion) { newRegion in // Use new onChange syntax
+                onChangeEquatableRegion(newRegion)
+            }
+            .onChange(of: selectedRadius) { newRadius in // Use new onChange syntax
+                onChangeSelectedRadius(newRadius)
+            }
         }
     }
 
@@ -95,12 +101,13 @@ struct ConsolidatedIslandMapView: View {
     private func overlayContentView() -> some View {
         ZStack {
             if showModal {
-                Color.black.opacity(0.4)
+                // Use adaptive background for the overlay dimming effect
+                Color.primary.opacity(0.2) // Using primary with opacity for adaptive dimming
                     .edgesIgnoringSafeArea(.all)
                     .onTapGesture {
                         showModal = false
                     }
-                
+
                 if selectedIsland != nil {
                     IslandModalContainer(
                         selectedIsland: $selectedIsland,
@@ -111,26 +118,33 @@ struct ConsolidatedIslandMapView: View {
                         selectedAppDayOfWeek: $selectedAppDayOfWeek
                     )
                     .frame(width: UIScreen.main.bounds.width * 0.8, height: UIScreen.main.bounds.height * 0.6)
-                    .background(Color.white)
+                    // Use system background colors for modal background
+                    .background(Color(.systemBackground)) // Adapts to light/dark mode
                     .cornerRadius(10)
                     .padding()
                     .transition(.opacity)
                 } else {
                     Text("No Gym Selected")
                         .padding()
+                        // Ensure text color also adapts if not default .primary
+                        .foregroundColor(.primary)
                 }
             }
         }
         .animation(.easeInOut, value: showModal)
     }
-
+    
+    
     private func mapAnnotationView(for marker: CustomMapMarker) -> some View {
         VStack {
             Text(marker.title ?? "")
                 .font(.caption)
                 .padding(5)
-                .background(Color.white)
+                // Use system background for the text bubble background
+                .background(Color(.systemBackground)) // Adapts to light/dark mode
                 .cornerRadius(5)
+                // Text color naturally adapts to .primary, so no explicit change usually needed
+                .foregroundColor(.primary)
             CustomMarkerView()
                 .onTapGesture {
                     if let pirateIsland = marker.pirateIsland {
@@ -143,7 +157,8 @@ struct ConsolidatedIslandMapView: View {
             print("Annotation view for marker: \(marker)")
         }
     }
-
+    
+    
     private func onAppear() {
         locationManager.startLocationServices()
         if let userLocation = locationManager.userLocation {
@@ -151,11 +166,12 @@ struct ConsolidatedIslandMapView: View {
         }
     }
 
+
     private func onChangeUserLocation(_ newUserLocation: CLLocation?) {
         guard let newUserLocation = newUserLocation else { return }
         updateRegion(newUserLocation, radius: selectedRadius)
 
-        let address = "Your Address Here"
+        let address = "Your Address Here" // This will likely need to be dynamic
         
         Task {
             do {
@@ -172,9 +188,10 @@ struct ConsolidatedIslandMapView: View {
         }
     }
 
-
     private func onChangeEquatableRegion(_ newRegion: EquatableMKCoordinateRegion) {
         // Handle region change
+        // You might want to re-filter and update markers here if the map is interactively moved
+        updateMarkers(for: newRegion.region) // Ensure markers update when region changes
     }
 
     private func onChangeSelectedRadius(_ newRadius: Double) {
@@ -190,8 +207,9 @@ struct ConsolidatedIslandMapView: View {
             longitudinalMeters: radius * 1609.34
         )
         equatableRegion = EquatableMKCoordinateRegion(region: newRegion)
-        updateMarkers(for: newRegion)
+        // updateMarkers is called by onChangeEquatableRegion which is triggered by this change
     }
+
 
     private func updateMarkers(for region: MKCoordinateRegion) {
         let radiusInMeters = region.span.latitudeDelta * 111_000  // Approximate meters per degree of latitude
@@ -201,7 +219,7 @@ struct ConsolidatedIslandMapView: View {
             return distance <= radiusInMeters
         }.map { island in
             CustomMapMarker(
-                id: island.islandID ?? UUID(),
+                id: island.islandID ?? UUID(), // Ensure islandID is non-nil or provide default
                 coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude),
                 title: island.islandName,
                 pirateIsland: island

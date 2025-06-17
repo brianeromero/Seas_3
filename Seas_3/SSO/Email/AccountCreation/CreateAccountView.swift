@@ -64,6 +64,8 @@ struct CreateAccountView: View {
     @State private var selectedCountry: Country? = Country(name: Country.Name(common: "United States"), cca2: "US", flag: "") {
         didSet {
             islandDetails.selectedCountry = selectedCountry
+            // Also update the formState's selected country
+            formState.selectedCountry = selectedCountry
         }
     }
     @State private var governorate = ""
@@ -126,7 +128,7 @@ struct CreateAccountView: View {
         _profileViewModel = StateObject(wrappedValue: ProfileViewModel(viewContext: persistenceController.container.viewContext))
     }
 
- 
+    
     // Validation logic
     var isIslandNameRequired: Bool {
         let isRequired = islandDetails.islandName.trimmingCharacters(in: .whitespaces).isEmpty
@@ -171,54 +173,55 @@ struct CreateAccountView: View {
     }
 
 
-
-
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                Text("Create Account")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                    .padding(.horizontal, 20)
-                
-                if let error = errorMessage {
-                    Text(error)
-                        .foregroundColor(.red)
-                        .padding(.bottom)
-                }
-                
-                UserInformationView(formState: $formState)
-                
-                PasswordField(
-                    password: $formState.password,
-                    isValid: $formState.isPasswordValid,
-                    errorMessage: $formState.passwordErrorMessage,
-                    bypassValidation: $bypassValidation,
-                    validateField: { password in
-                        if let validationMessage = ValidationUtility.validateField(password, type: .password) {
-                            return (false, validationMessage.rawValue)
-                        } else {
-                            return (true, "")
-                        }
-                    }
-                )
-                
-                
-                ConfirmPasswordField(
-                    confirmPassword: $formState.confirmPassword,
-                    isValid: $formState.isConfirmPasswordValid,
-                    password: $formState.password
-                )
-                
-                BeltSection(belt: $belt, beltOptions: beltOptions, usePickerStyle: true)
-
-                Section(header: HStack {
-                    Text("Gym Information")
+        NavigationView { // Added NavigationView for potential navigation if not already embedded
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    Text("Create Account")
+                        .font(.largeTitle)
                         .fontWeight(.bold)
-                    Text("(Optional)")
-                        .foregroundColor(.gray)
-                        .opacity(0.7)
-                }
+                        .foregroundColor(.primary) // Adaptive text color
+                        .padding(.horizontal, 20)
+                    
+                    if let error = errorMessage {
+                        Text(error)
+                            .foregroundColor(.red) // Red for error is generally fine
+                            .padding(.horizontal, 20) // Add padding for consistency
+                            .padding(.bottom)
+                    }
+                    
+                    UserInformationView(formState: $formState) // Ensure this view is adaptive
+                    
+                    PasswordField(
+                        password: $formState.password,
+                        isValid: $formState.isPasswordValid,
+                        errorMessage: $formState.passwordErrorMessage,
+                        bypassValidation: $bypassValidation,
+                        validateField: { password in
+                            if let validationMessage = ValidationUtility.validateField(password, type: .password) {
+                                return (false, validationMessage.rawValue)
+                            } else {
+                                return (true, "")
+                            }
+                        }
+                    )
+                    
+                    ConfirmPasswordField(
+                        confirmPassword: $formState.confirmPassword,
+                        isValid: $formState.isConfirmPasswordValid,
+                        password: $formState.password
+                    )
+                    
+                    BeltSection(belt: $belt, beltOptions: beltOptions, usePickerStyle: true) // Ensure this view is adaptive
+
+                    Section(header: HStack {
+                        Text("Gym Information")
+                            .fontWeight(.bold)
+                            .foregroundColor(.primary) // Adaptive text color
+                        Text("(Optional)")
+                            .foregroundColor(.secondary) // Adaptive subdued text
+                            .opacity(0.7) // Can still use opacity with adaptive colors
+                    }
                     .padding(.horizontal, 20)) {
                         IslandFormSections(
                             viewModel: islandViewModel,
@@ -229,12 +232,11 @@ struct CreateAccountView: View {
                             city: $islandDetails.city,
                             state: $islandDetails.state,
                             postalCode: $islandDetails.postalCode,
-                            islandDetails: $islandDetails,  // Keep islandDetails in the correct position
+                            islandDetails: $islandDetails,
                             selectedCountry: $selectedCountry,
                             gymWebsite: $islandDetails.gymWebsite,
                             gymWebsiteURL: $gymWebsiteURL,
                             
-                            // Correct order:
                             province: $province,
                             neighborhood: $neighborhood,
                             complement: $complement,
@@ -244,7 +246,6 @@ struct CreateAccountView: View {
                             governorate: $governorate,
                             additionalInfo: $additionalInfo,
 
-                            // Add the new fields:
                             department: $islandDetails.department,
                             parish: $islandDetails.parish,
                             district: $islandDetails.district,
@@ -256,7 +257,6 @@ struct CreateAccountView: View {
                             block: $islandDetails.block,
                             island: $islandDetails.island,
 
-                            // Validation and alert:
                             isIslandNameValid: $isIslandNameValid,
                             islandNameErrorMessage: $islandNameErrorMessage,
                             isFormValid: $isFormValid,
@@ -265,111 +265,107 @@ struct CreateAccountView: View {
                             formState: $formState
                         )
                     }
-
-                
-                Button(action: {
-                    // Display values before validation to confirm they are correctly populated
-                    print("Island Name: '\(islandDetails.islandName)'")
-                    print("Street: '\(islandDetails.street)'")
-                    print("City: '\(islandDetails.city)'")
                     
-                    // Start by disabling the button
-                    print("Button tapped - isButtonDisabled: \(isButtonDisabled)")
-                    if isButtonDisabled {
-                        return // Don't proceed if the button is disabled
-                    }
+                    Button(action: {
+                        print("Button tapped - isButtonDisabled: \(isButtonDisabled)")
+                        if isButtonDisabled {
+                            return
+                        }
 
-                    // Disable the button to prevent multiple taps
-                    isButtonDisabled = true
-                    
-                    // Call the task to validate the form and create the account
-                    Task {
-                        debugPrint("Create Account Button tapped - validating form")
+                        isButtonDisabled = true
                         
-                        if let countryCode = selectedCountry?.cca2 {
-                            let normalizedCountryCode = countryCode.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
-                            print("Normalized Country Code before validation: \(normalizedCountryCode)")
+                        Task {
+                            debugPrint("Create Account Button tapped - validating form")
                             
-                            do {
-                                let addressFields = try getAddressFields(for: selectedCountry?.cca2 ?? "")
-                                print("Address Fields Required: \(addressFields)")
-                            } catch {
-                                print("Error fetching address fields: \(error)")
+                            if let countryCode = selectedCountry?.cca2 {
+                                let normalizedCountryCode = countryCode.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
+                                print("Normalized Country Code before validation: \(normalizedCountryCode)")
+                                
+                                do {
+                                    let addressFields = try getAddressFields(for: selectedCountry?.cca2 ?? "")
+                                    print("Address Fields Required: \(addressFields)")
+                                } catch {
+                                    print("Error fetching address fields: \(error)")
+                                }
                             }
-                        }
-                        
-                        // Update country with the selected country's name
-                        let country = selectedCountry?.name.common ?? ""
-                        
-                        // Use the updated isValidForm function
-                        let (isValid, errorMessage) = isValidForm()
-                        if isValid {
-                            // Call createAccount with the updated country
-                            createAccount(country: country)
-                        } else {
-                            debugPrint("Form is invalid")
-                            self.errorMessage = errorMessage
-                            self.showValidationMessage = true
-                        }
-                        
-                        // When the process finishes (either success or failure), enable the button again
-                        isButtonDisabled = false
-                    }
-                }) {
-                    Text("Create Account")
-                        .font(.title)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(isButtonDisabled || !isValidForm().isValid ? Color.gray : Color.blue) // Reflect form validity & disabled state
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
-                        .scaleEffect(isButtonDisabled ? 1.0 : 0.98) // Add subtle scale effect when button is pressed
-                        .shadow(radius: isButtonDisabled ? 0 : 5) // Shadow effect to make the button look like it's raised
-                        .opacity(isButtonDisabled || !isValidForm().isValid ? 0.5 : 1) // Adjust opacity based on button state
-                }
-                .disabled(isButtonDisabled || !isValidForm().isValid) // Disable the button if already disabled or form is invalid
-                .padding(.bottom)
-                .padding(.horizontal, 24)
-                .onAppear {
-                    print("Island Name: '\(islandDetails.islandName)'")
-                    print("Full Address: '\(islandDetails.fullAddress)'")
-                    print("Form State - isUserNameValid: \(formState.isUserNameValid), isEmailValid: \(formState.isEmailValid)")
-                    print("Debug: Initial state - islandName: '\(islandDetails.islandName)', fullAddress: '\(islandDetails.fullAddress)', email: '\(formState.email)', username: '\(formState.userName)'")
-
-                    Task {
-                        await countryService.fetchCountries()
-                    }
-                }
-                .alert(isPresented: $showErrorAlert) {
-                    Alert(
-                        title: Text(successMessage != nil ? "Success" : "Error"),
-                        message: Text(successMessage ?? errorMessage ?? "Unknown error"),
-                        dismissButton: .default(Text("OK")) {
-                            self.shouldNavigateToLogin = successMessage != nil
-                            isUserProfileActive = false
-                            successMessage = nil
-                            errorMessage = nil
-
-                            // Set authentication flags using Task to safely call async MainActor methods
-                            Task {
-                                authenticationState.reset()
+                            
+                            let country = selectedCountry?.name.common ?? ""
+                            
+                            let (isValid, errorMessage) = isValidForm()
+                            if isValid {
+                                createAccount(country: country)
+                            } else {
+                                debugPrint("Form is invalid")
+                                self.errorMessage = errorMessage
+                                self.showValidationMessage = true
                             }
+                            
+                            isButtonDisabled = false
                         }
-                    )
-                }
+                    }) {
+                        Text("Create Account")
+                            .font(.title)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(
+                                // Use adaptive colors for button background
+                                isButtonDisabled || !isValidForm().isValid
+                                ? Color.secondary.opacity(0.4) // Softer gray for disabled/invalid
+                                : Color.accentColor // Use accent color for active button
+                            )
+                            .foregroundColor(.white) // White text on colored background should be fine
+                            .cornerRadius(8)
+                            .scaleEffect(isButtonDisabled ? 1.0 : 0.98)
+                            .shadow(radius: isButtonDisabled ? 0 : 5)
+                            .opacity(isButtonDisabled || !isValidForm().isValid ? 0.7 : 1) // Slightly less opaque when disabled
+                    }
+                    .disabled(isButtonDisabled || !isValidForm().isValid)
+                    .padding(.bottom)
+                    .padding(.horizontal, 24)
+                    .onAppear {
+                        print("Island Name: '\(islandDetails.islandName)'")
+                        print("Full Address: '\(islandDetails.fullAddress)'")
+                        print("Form State - isUserNameValid: \(formState.isUserNameValid), isEmailValid: \(formState.isEmailValid)")
+                        print("Debug: Initial state - islandName: '\(islandDetails.islandName)', fullAddress: '\(islandDetails.fullAddress)', email: '\(formState.email)', username: '\(formState.userName)'")
 
-                .navigationDestination(isPresented: $shouldNavigateToLogin) {
-                    LoginView(
-                        islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.shared),
-                        profileViewModel: profileViewModel,
-                        isSelected: .constant(LoginViewSelection(rawValue: selectedTabIndex) ?? .login),
-                        navigateToAdminMenu: $authenticationState.navigateToAdminMenu,
-                        isLoggedIn: $localIsLoggedIn
-                    )
+                        Task {
+                            await countryService.fetchCountries()
+                        }
+                    }
+                    .alert(isPresented: $showErrorAlert) {
+                        Alert(
+                            title: Text(successMessage != nil ? "Success" : "Error"),
+                            message: Text(successMessage ?? errorMessage ?? "Unknown error"),
+                            dismissButton: .default(Text("OK")) {
+                                self.shouldNavigateToLogin = successMessage != nil
+                                isUserProfileActive = false
+                                successMessage = nil
+                                errorMessage = nil
+
+                                Task {
+                                    authenticationState.reset()
+                                }
+                            }
+                        )
+                    }
+
+                    .navigationDestination(isPresented: $shouldNavigateToLogin) {
+                        LoginView(
+                            islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.shared),
+                            profileViewModel: profileViewModel,
+                            isSelected: .constant(LoginViewSelection(rawValue: selectedTabIndex) ?? .login),
+                            navigateToAdminMenu: $authenticationState.navigateToAdminMenu,
+                            isLoggedIn: $localIsLoggedIn
+                        )
+                    }
                 }
+                .padding(.vertical) // Vertical padding for the VStack content
+                .background(Color(uiColor: .systemBackground)) // Ensure the background adapts
+                .ignoresSafeArea() // Extend background to safe areas if desired
             }
         }
     }
+    
     
     @ViewBuilder
     func addressField(for field: AddressField) -> some View {
@@ -402,32 +398,29 @@ struct CreateAccountView: View {
         }
     }
     
+    
     private func createAccount(country: String) {
         os_log("Calling createAccount", type: .info)
 
-        // Start form validation
         os_log("Debug: Starting form validation", type: .debug)
 
         print("Debug: Full Address456 = '\(islandDetails.fullAddress)'")
 
         logFormState()
 
-        // Check if form is valid
         let (isValid, errorMessage) = isValidForm()
         if !isValid {
             os_log("Form is invalid. Validation failed.", type: .debug)
             self.errorMessage = errorMessage
             self.showValidationMessage = true
-            isButtonDisabled = false  // Ensure button is re-enabled on failure
+            isButtonDisabled = false
             return
         }
 
         os_log("Debug: All validations passed. Proceeding to create account.", type: .debug)
 
-        Task {
+        Task { @MainActor in // Ensure UI updates are on MainActor
             do {
-                // Check if user already exists
-                // CHANGE THIS LINE: from authViewModel.userAlreadyExists()
                 if await AuthViewModel.shared.userAlreadyExists() {
                     os_log("User already exists. Aborting account creation.", type: .error)
                     self.errorMessage = "An account with this email already exists."
@@ -436,8 +429,6 @@ struct CreateAccountView: View {
                     return
                 }
 
-                // Attempt to create the user account
-                // CHANGE THIS LINE: from authViewModel.createUser(...)
                 try await AuthViewModel.shared.createUser(
                     withEmail: formState.email,
                     password: formState.password,
@@ -459,18 +450,17 @@ struct CreateAccountView: View {
             } catch {
                 handleCreateAccountError(error)
             }
-
-            // Re-enable the button after everything is complete
             isButtonDisabled = false
         }
     }
+
 
     // MARK: - Helper Functions
 
     private func logFormState() {
         os_log("Debug: Form state validation - %@", type: .debug, "\(formState)")
         os_log("Debug: Username Valid: %d, Name Valid: %d, Email Valid: %d, Password Valid: %d",
-               type: .debug, formState.isUserNameValid, formState.isNameValid, formState.isEmailValid, formState.isPasswordValid)
+                type: .debug, formState.isUserNameValid, formState.isNameValid, formState.isEmailValid, formState.isPasswordValid)
     }
 
     private func logAddressDetails() {
@@ -499,13 +489,13 @@ struct CreateAccountView: View {
         // Address Validation (only if islandName is not blank)
         if !formState.islandName.isEmpty {
             guard let selectedCountry = formState.selectedCountry,
-                  !selectedCountry.cca2.isEmpty else {
+                    !selectedCountry.cca2.isEmpty else {
                 errorMessage = "Please select a valid country."
                 return (false, errorMessage)
             }
 
             if !isAddressValid(for: selectedCountry.cca2) {
-                errorMessage = "Please fill in all required address fields."
+                errorMessage = "Please fill in all required address fields for gym information."
                 return (false, errorMessage)
             }
         }
@@ -522,7 +512,6 @@ struct CreateAccountView: View {
             return (false, errorMessage)
         }
 
-        // Debug logging for detailed validation statuses
         print("""
         Debug: Validation Status -
         Username Valid: \(formState.isUserNameValid),
@@ -530,7 +519,7 @@ struct CreateAccountView: View {
         Email Valid: \(formState.isEmailValid),
         Password Valid: \(formState.isPasswordValid),
         Confirm Password Match: \(formState.password == formState.confirmPassword),
-        Address Valid: \(isAddressValid(for: formState.selectedCountry?.cca2 ?? "")),
+        Address Valid: \((formState.islandName.isEmpty || isAddressValid(for: formState.selectedCountry?.cca2 ?? ""))),
         Error Message: \(String(describing: errorMessage))
         """)
 
@@ -538,8 +527,6 @@ struct CreateAccountView: View {
     }
 
 
-
-    // Address Validation Logic
     func isAddressValid(for countryCode: String) -> Bool {
         let normalizedCode = countryCode.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
 
@@ -575,6 +562,8 @@ struct CreateAccountView: View {
                     case .division: if islandDetails.division.isEmpty { return false }
                     case .zone: if islandDetails.zone.isEmpty { return false }
                     case .island: if islandDetails.island.isEmpty { return false }
+                    //case .country: // This field is typically handled by a picker, not a text field for validation this way
+                        //if selectedCountry == nil { return false }
                 }
             }
             return true
@@ -586,12 +575,9 @@ struct CreateAccountView: View {
 
 
 
-
-
     private func createPirateIslandIfValid() async {
         os_log("Debug: Validating island form...", type: .debug)
         
-        // Logging inputs
         os_log("createPirateIslandIfValid islandName: %@", type: .info, islandDetails.islandName)
         os_log("createPirateIslandIfValid street: %@", type: .info, islandDetails.street)
         os_log("createPirateIslandIfValid city: %@", type: .info, islandDetails.city)
@@ -606,7 +592,6 @@ struct CreateAccountView: View {
         os_log("createPirateIslandIfValid createdByUserId: %@", type: .info, formState.userName)
         os_log("createPirateIslandIfValid gymWebsite: %@", type: .info, gymWebsite)
         
-        // Form validation
         let (isValid, errorMessage) = ValidationUtility.validateIslandForm(
             islandName: islandDetails.islandName,
             street: islandDetails.street,
@@ -636,8 +621,6 @@ struct CreateAccountView: View {
             return
         }
 
-        // ✅ Await the current user
-        // CHANGE THIS LINE: from authViewModel.getCurrentUser()
         guard let currentUser = await AuthViewModel.shared.getCurrentUser() else {
             toastMessage = "Error: No user logged in"
             showToast = true
@@ -655,7 +638,7 @@ struct CreateAccountView: View {
                 gymWebsite: gymWebsite,
                 country: selectedCountry.cca2,
                 selectedCountry: selectedCountry,
-                createdByUser: currentUser // ✅ Pass the currentUser directly
+                createdByUser: currentUser
             )
 
             print("Pirate island created: \(newIsland.islandName ?? "Unknown Name")")
@@ -690,8 +673,6 @@ struct CreateAccountView: View {
     }
 
 
-
-    
     private func handleCreateAccountError(_ error: Error) {
         os_log("Create account error occurred: %@", type: .error, error.localizedDescription)
         errorMessage = getErrorMessage(error)
@@ -700,10 +681,9 @@ struct CreateAccountView: View {
         print("Create account error: \(errorMessage ?? "An unknown error occurred.")")
         os_log("Debug: Error details: %@", type: .debug, error.localizedDescription)
 
-
+        // Ensure this method exists and works as expected
         resetAuthenticationState()
     }
-
     
     /// Handles successful account creation.
     private func handleSuccess() {
@@ -718,21 +698,49 @@ struct CreateAccountView: View {
     private func sendVerificationEmails() {
         let email = formState.email
 
-        // Send Firebase email verification
-        UnifiedEmailManager.shared.sendEmailVerification(to: email) { success in
-            os_log("Firebase email verification sent: %@", type: .info, success ? "Passed" : "Failed")
-            print("Firebase email verification sent: \(success ? "Passed" : "Failed")")
-        }
-
-        // Send custom verification token email
         Task {
-            let success = await UnifiedEmailManager.shared.sendVerificationToken(
-                to: email,
-                userName: formState.userName,
-                password: formState.password
-            )
-            print("Custom verification token email sent: \(success ? "Passed" : "Failed")")
-            os_log("Custom verification token email sent: %@", type: .info, success ? "Passed" : "Failed")
+            // --- Firebase email verification (still using completion handler) ---
+            UnifiedEmailManager.shared.sendEmailVerification(to: email) { success in
+                if success {
+                    os_log("Firebase email verification sent: Passed", type: .info)
+                    print("Firebase email verification sent: Passed")
+                } else {
+                    // If the completion handler *could* pass an Error, you'd handle it here.
+                    // For now, we only know 'success' or 'failure'.
+                    os_log("Firebase email verification sent: Failed", type: .error) // Log as error if failed
+                    print("Firebase email verification sent: Failed")
+                    // Potentially show an alert to the user that this specific email failed
+                }
+            }
+
+            // --- Custom verification token email (now correctly handled as async throws) ---
+            do {
+                // CRITICAL: Re-evaluate the 'password' parameter for security.
+                // Place 'try' directly before 'await' for the throwing function
+                // Assign the result to a variable if you need to use it.
+                let customTokenSuccess = try await UnifiedEmailManager.shared.sendVerificationToken(
+                    to: email,
+                    userName: formState.userName,
+                    password: formState.password
+                )
+
+                // Now you can use customTokenSuccess if it returns a Bool,
+                // otherwise, if it just throws on failure and returns Void on success,
+                // the existence of this line means it succeeded.
+                if customTokenSuccess { // Only if sendVerificationToken returns Bool
+                    print("Custom verification token email sent: Passed")
+                    os_log("Custom verification token email sent: Passed", type: .info)
+                } else {
+                    // If it returns false without throwing an error
+                    print("Custom verification token email sent: Failed (returned false)")
+                    os_log("Custom verification token email sent: Failed (returned false)", type: .error)
+                }
+
+            } catch { // This catch block is now reachable because of 'try await'
+                print("Custom verification token email failed: \(error.localizedDescription)")
+                os_log("Custom verification token email failed: %@", type: .error, error.localizedDescription)
+                // Potentially show an alert to the user
+            }
         }
     }
     
@@ -758,8 +766,8 @@ struct CreateAccountView: View {
                 return "State is missing"
             case .postalCodeMissing:
                 return "Postal code is missing"
-            case .fieldMissing(_):
-                return "Some OTHER field is missing"
+            case .fieldMissing(let fieldName):
+                return "\(fieldName) is missing." // More specific
             case .invalidGymWebsite:
                 return "Gym Website appears to be invalid"
             }

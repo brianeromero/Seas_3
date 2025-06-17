@@ -39,7 +39,7 @@
 		0C07B0B22C2D00DC00D0BFB2 /* CustomMapMarker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0B12C2D00DC00D0BFB2 /* CustomMapMarker.swift */; };
 		0C07B0B42C2D00F300D0BFB2 /* CustomPin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0B32C2D00F300D0BFB2 /* CustomPin.swift */; };
 		0C07B0B72C2D015C00D0BFB2 /* FAQnDisclaimerMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0B62C2D015C00D0BFB2 /* FAQnDisclaimerMenu.swift */; };
-		0C07B0B92C2D017500D0BFB2 /* WhoWeAre.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0B82C2D017500D0BFB2 /* WhoWeAre.swift */; };
+		0C07B0B92C2D017500D0BFB2 /* AboutUs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0B82C2D017500D0BFB2 /* AboutUs.swift */; };
 		0C07B0BB2C2D018D00D0BFB2 /* Disclaimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0BA2C2D018D00D0BFB2 /* Disclaimer.swift */; };
 		0C07B0BD2C2D01AB00D0BFB2 /* FAQ.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0BC2C2D01AB00D0BFB2 /* FAQ.swift */; };
 		0C07B0D32C2D033700D0BFB2 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0D22C2D033700D0BFB2 /* AppState.swift */; };
@@ -185,7 +185,7 @@
 		0C07B0B12C2D00DC00D0BFB2 /* CustomMapMarker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomMapMarker.swift; sourceTree = "<group>"; };
 		0C07B0B32C2D00F300D0BFB2 /* CustomPin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomPin.swift; sourceTree = "<group>"; };
 		0C07B0B62C2D015C00D0BFB2 /* FAQnDisclaimerMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FAQnDisclaimerMenu.swift; sourceTree = "<group>"; };
-		0C07B0B82C2D017500D0BFB2 /* WhoWeAre.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhoWeAre.swift; sourceTree = "<group>"; };
+		0C07B0B82C2D017500D0BFB2 /* AboutUs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutUs.swift; sourceTree = "<group>"; };
 		0C07B0BA2C2D018D00D0BFB2 /* Disclaimer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Disclaimer.swift; sourceTree = "<group>"; };
 		0C07B0BC2C2D01AB00D0BFB2 /* FAQ.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FAQ.swift; sourceTree = "<group>"; };
 		0C07B0C02C2D01F300D0BFB2 /* CustomUnarchiveTransformer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomUnarchiveTransformer.swift; sourceTree = "<group>"; };
@@ -407,9 +407,9 @@
 			path = AdminView;
 			sourceTree = "<group>";
 		};
-		0CA111932DFA13D8006944A3 /* HELPER */ = {
+		0CA111932DFA13D8006944A3 /* HELPERS */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = HELPER;
+			path = HELPERS;
 			sourceTree = "<group>";
 		};
 		0CEF69CF2CAF995600C2614C /* SSO */ = {
@@ -515,7 +515,7 @@
 			isa = PBXGroup;
 			children = (
 				0C07B0B62C2D015C00D0BFB2 /* FAQnDisclaimerMenu.swift */,
-				0C07B0B82C2D017500D0BFB2 /* WhoWeAre.swift */,
+				0C07B0B82C2D017500D0BFB2 /* AboutUs.swift */,
 				0C07B0BA2C2D018D00D0BFB2 /* Disclaimer.swift */,
 				0C07B0BC2C2D01AB00D0BFB2 /* FAQ.swift */,
 				0CD9014F2CB655B40097D71F /* DoNotStorePasswords.swift */,
@@ -626,7 +626,7 @@
 		0CF13E432C2A326700D714C0 /* Seas_3 */ = {
 			isa = PBXGroup;
 			children = (
-				0CA111932DFA13D8006944A3 /* HELPER */,
+				0CA111932DFA13D8006944A3 /* HELPERS */,
 				0C882BFA2CE666B600E03B02 /* IDFA Analytrics */,
 				0C882BF52CE6598600E03B02 /* International Changer */,
 				0C343B6E2CD937EC00468E89 /* UserProfile */,
@@ -758,7 +758,7 @@
 				0C882BF52CE6598600E03B02 /* International Changer */,
 				0C882BFA2CE666B600E03B02 /* IDFA Analytrics */,
 				0C8E21722CCDAD0B0093CEB3 /* AdminView */,
-				0CA111932DFA13D8006944A3 /* HELPER */,
+				0CA111932DFA13D8006944A3 /* HELPERS */,
 			);
 			name = Seas_3;
 			productName = Seas_3;
@@ -1070,7 +1070,7 @@
 				0C07B0BB2C2D018D00D0BFB2 /* Disclaimer.swift in Sources */,
 				0C1635542C3613A2008FC297 /* ToastView.swift in Sources */,
 				0C33DC152CC09E7C002C4835 /* PrivacyPolicy.swift in Sources */,
-				0C07B0B92C2D017500D0BFB2 /* WhoWeAre.swift in Sources */,
+				0C07B0B92C2D017500D0BFB2 /* AboutUs.swift in Sources */,
 				0C6F7BDC2C7931E600072237 /* GymMatReviewSelect.swift in Sources */,
 				0CC8AA312DEA5476001D9E9F /* EditMatTimeView.swift in Sources */,
 				0CDBEA302D024CA500559B6A /* MatTimesViewModel.swift in Sources */,

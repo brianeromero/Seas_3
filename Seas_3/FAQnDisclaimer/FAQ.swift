@@ -8,7 +8,15 @@
 import Foundation
 import SwiftUI
 
+// Make FAQItem Identifiable for more robust ForEach usage
+struct FAQItem: Identifiable {
+    let id = UUID() // Add unique ID for Identifiable conformance
+    var question: String
+    var answer: String // Keep answer as String, but handle links in the View
+}
+
 struct FAQView: View {
+    // FAQ items are already defined
     var faqItems: [FAQItem] = [
         FAQItem(question: "What is MF_inder (Mat_Finder)?",
                 answer: "MF_inder is a mobile application designed for Brazilian Jiu Jitsu (BJJ) practitioners to find gyms and open mat opportunities near their location or any specified area."),
@@ -28,42 +36,100 @@ struct FAQView: View {
                 answer: "We encourage users to update information regularly. New submissions and edits are processed promptly."),
         FAQItem(question: "Is MF_inder available on Android?",
                 answer: "Currently, MF_inder is available only on iOS. We are working on an Android version."),
+        
+        // Modified FAQ items to handle the email as a link
         FAQItem(question: "How can I report inaccurate information or issues with the app?",
-                answer: "Please report any issues or inaccuracies by contacting our support team at mfinder.bjj@gmail.com."),
+                answer: "Please report any issues or inaccuracies by contacting our support team at **EMAIL_LINK**."), // Use a placeholder
         FAQItem(question: "Will MF_inder have advertisements in the future?",
                 answer: "While MF_inder is currently ad-free, we may introduce advertisements in the future to support the app's development and maintenance costs."),
         FAQItem(question: "How can I contact support if I have more questions?",
-                answer: "For further assistance or questions, please email us at mfinder.bjj@gmail.com. We are here to help!")
+                answer: "For further assistance or questions, please email us at **EMAIL_LINK**. We are here to help!") // Use a placeholder
     ]
     
+    // REMOVE THIS LINE: You no longer need a local 'supportEmail' constant here
+    // let supportEmail = "mfinder.bjj@gmail.com"
     
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("FAQ")
-                    .font(.largeTitle)
-                    .bold()
-                    .padding(.top, 10)
-                
-                ForEach(faqItems.indices, id: \.self) { index in
-                    DisclosureGroup(content: {
-                        Text(faqItems[index].answer)
-                            .font(.body)
-                            .foregroundColor(.secondary)
-                            .accentColor(.black)
-
-                    }, label: {
-                        Text(faqItems[index].question)
-                            .font(.headline)
-                    })
-                    .accentColor(.black)
+        NavigationView {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 15) {
+                    ForEach(faqItems) { item in
+                        DisclosureGroup(
+                            content: {
+                                VStack(alignment: .leading) { // Use a VStack to lay out multiple text/link elements
+                                    // Handle the answers with embedded email links
+                                    if item.answer.contains("**EMAIL_LINK**") {
+                                        let parts = item.answer.components(separatedBy: "**EMAIL_LINK**")
+                                        
+                                        // Display text before the link
+                                        Text(parts[0])
+                                            .font(.body)
+                                            .foregroundColor(.secondary)
+                                            .multilineTextAlignment(.leading)
+                                        
+                                        // Display the email link, now using AppConstants.supportEmail
+                                        Link(AppConstants.supportEmail, destination: URL(string: "mailto:\(AppConstants.supportEmail)")!)
+                                            .font(.body)
+                                            .foregroundColor(.accentColor)
+                                        
+                                        // Display text after the link (if any)
+                                        if parts.count > 1 && !parts[1].isEmpty {
+                                            Text(parts[1])
+                                                .font(.body)
+                                                .foregroundColor(.secondary)
+                                                .multilineTextAlignment(.leading)
+                                        }
+                                    } else {
+                                        // For answers without an embedded link, display as a single Text
+                                        Text(item.answer)
+                                            .font(.body)
+                                            .foregroundColor(.secondary)
+                                            .multilineTextAlignment(.leading)
+                                    }
+                                }
+                                .padding(.horizontal) // Apply padding to the VStack inside content
+                            },
+                            label: {
+                                Text(item.question)
+                                    .font(.title3)
+                                    .bold()
+                                    .foregroundColor(.primary)
+                                    .multilineTextAlignment(.leading)
+                            }
+                        )
+                        .padding(.vertical, 5)
+                    }
+                    
+                    Divider()
+                        .padding(.vertical, 10)
+                    
+                    Text("Contact Us")
+                        .font(.title)
+                        .bold()
+                        .foregroundColor(.primary)
+                        .padding(.top, 10)
+                    
+                    Text("To report bugs or for inquiries or feedback, please reach out to us at:")
+                        .font(.body)
+                        .foregroundColor(.primary)
+                        .multilineTextAlignment(.leading)
+                    
+                    // This Link is now using AppConstants.supportEmail
+                    Link(AppConstants.supportEmail, destination: URL(string: "mailto:\(AppConstants.supportEmail)")!)
+                        .font(.body)
+                        .foregroundColor(.accentColor)
+                        .padding(.bottom, 20)
                 }
+                .padding(.horizontal)
+                .background(Color(uiColor: .systemBackground))
+                .ignoresSafeArea()
             }
-            .padding(.horizontal)
+            .navigationTitle("FAQ")
         }
     }
 }
 
+// FAQItemView and Previews remain the same as they are for display/testing
 struct FAQItemView: View {
     var item: FAQItem
     
@@ -71,6 +137,7 @@ struct FAQItemView: View {
         VStack(alignment: .leading, spacing: 5) {
             Text(item.question)
                 .font(.headline)
+                .foregroundColor(.primary)
             
             Text(item.answer)
                 .font(.body)
@@ -80,13 +147,14 @@ struct FAQItemView: View {
     }
 }
 
-struct FAQItem {
-    var question: String
-    var answer: String
-}
-
 struct FAQView_Previews: PreviewProvider {
     static var previews: some View {
-        FAQView()
+        Group {
+            FAQView()
+                .preferredColorScheme(.light)
+            
+            FAQView()
+                .preferredColorScheme(.dark)
+        }
     }
 }

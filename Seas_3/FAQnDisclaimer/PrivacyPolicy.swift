@@ -8,6 +8,7 @@
 import Foundation
 import SwiftUI
 
+
 struct PrivacyPolicyView: View {
     var body: some View {
         ScrollView {
@@ -72,17 +73,30 @@ struct PrivacyPolicyView: View {
                     .fontWeight(.semibold)
 
                 Text("""
-                    We take reasonable steps to protect your information from unauthorized access, disclosure, alteration, or destruction. Passwords are securely hashed using industry-standard methods before being stored in our systems. We do not store or retain plain-text passwords, and they are not visible to any developer or anyone at MF_inder. However, no internet transmission or electronic storage is completely secure.
+                    We take reasonable steps to protect your information from unauthorized access, disclosure, alteration, or destruction. Passwords are securely hashed using industry-standard methods and are not stored in plain text. We do not store or retain plain-text passwords, and they are not visible to any developer or anyone at MF_inder. However, no internet transmission or electronic storage is completely secure.
                     """)
                 
                 Text("Your Choices")
                     .font(.title2)
                     .fontWeight(.semibold)
 
-                Text("""
-                    - **Location Sharing:** You can enable or disable location sharing in your device settings.
-                    - **Contacting Us:** You may request to delete your information by emailing us at mfinder.bjj@gmail.com.
-                    """)
+                // --- CORRECTED SECTION FOR "Your Choices" ---
+                // Using an HStack to combine static text with a Link
+                VStack(alignment: .leading) { // Keep leading alignment for the entire block
+                    Text("- **Location Sharing:** You can enable or disable location sharing in your device settings.")
+                        .font(.body)
+                    
+                    HStack(alignment: .top, spacing: 0) { // Use HStack for the "Contacting Us" line
+                        Text("- **Contacting Us:** You may request to delete your information by emailing us at ")
+                            .font(.body)
+                        Link(AppConstants.supportEmail, destination: URL(string: "mailto:\(AppConstants.supportEmail)")!)
+                            .font(.body)
+                            .foregroundColor(.accentColor)
+                        Text(".")
+                            .font(.body)
+                    }
+                }
+                .padding(.bottom, 10) // Add some padding after this section if needed
                 
                 Text("Children's Privacy")
                     .font(.title2)
@@ -104,9 +118,16 @@ struct PrivacyPolicyView: View {
                     .font(.title2)
                     .fontWeight(.semibold)
 
-                Text("""
-                    For any questions, please contact us at mfinder.bjj@gmail.com.
-                    """)
+                // This section was already correctly updated in the previous turn, keeping it.
+                HStack(alignment: .top, spacing: 0) {
+                    Text("For any questions, please contact us at ")
+                        .font(.body)
+                    Link(AppConstants.supportEmail, destination: URL(string: "mailto:\(AppConstants.supportEmail)")!)
+                        .font(.body)
+                        .foregroundColor(.accentColor)
+                    Text(".")
+                        .font(.body)
+                }
                 
                 Spacer()
             }

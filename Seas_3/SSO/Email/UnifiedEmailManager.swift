@@ -45,8 +45,9 @@ class UnifiedEmailManager {
 
 
     // Sends verification token email
-    func sendVerificationToken(to email: String, userName: String, password: String) async -> Bool {
+    func sendVerificationToken(to email: String, userName: String, password: String) async throws -> Bool {
         print("Sending verification token email (from sendVerificationToken)...")
+        
         let subject = "Verify Your Account"
         let verificationToken = UUID().uuidString
 
@@ -56,27 +57,14 @@ class UnifiedEmailManager {
         userInfo.email = email
         userInfo.userName = userName
         userInfo.verificationToken = verificationToken
-        
-        // Assign required fields directly
-        userInfo.isVerified = false // Set default value for isVerified
-        userInfo.name = userName    // Use userName as the name
-        
-        do {
-            let hashPassword = HashPassword()
-            let hashedPassword = try hashPassword.hashPasswordScrypt(password)
-            userInfo.passwordHash = hashedPassword.hash // Corrected here
-        } catch {
-            print("Error hashing password: \(error)")
-            return false
-        }
+        userInfo.isVerified = false
+        userInfo.name = userName
 
-        do {
-            try managedObjectContext.save()
-            print("UserInfo saved successfully.")
-        } catch let saveError as NSError {
-            print("Error saving context (sendVerificationToken): \(saveError), \(saveError.userInfo)")
-            return false
-        }
+        let hashPassword = HashPassword()
+        let hashedPassword = try hashPassword.hashPasswordScrypt(password) // <-- throws
+        userInfo.passwordHash = hashedPassword.hash
+
+        try managedObjectContext.save() // <-- throws
 
         let verificationLink = "http://mfinderbjj.rf.gd/verify.php?token=\(verificationToken)&email=\(email)"
         let content = """
@@ -91,9 +79,10 @@ class UnifiedEmailManager {
         Best regards,
         The Mat Finder Team
         """
-        return await sendCustomEmail(to: email, subject: subject, content: content)
-    }
 
+        let emailSent = await sendCustomEmail(to: email, subject: subject, content: content)
+        return emailSent
+    }
     
     // Sends a custom email using SendGrid
     func sendCustomEmail(to email: String, subject: String, content: String) async -> Bool {

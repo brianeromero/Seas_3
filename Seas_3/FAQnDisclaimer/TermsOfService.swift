@@ -8,6 +8,7 @@
 import Foundation
 import SwiftUI
 
+
 struct ApplicationOfServiceView: View {
     var body: some View {
         ScrollView {
@@ -19,7 +20,7 @@ struct ApplicationOfServiceView: View {
 
                 Text("Effective Date: 10/14/2024")
                     .font(.subheadline)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.secondary)
 
                 Text("1. Acceptance of Terms")
                     .font(.title2)
@@ -98,9 +99,24 @@ struct ApplicationOfServiceView: View {
                     .font(.title2)
                     .fontWeight(.semibold)
 
-                Text("""
-                    If you have any questions about these terms, contact us at mfinder.bjj@gmail.com.
-                    """)
+                // --- THIS IS THE LINE TO UPDATE ---
+                // You can either make it a full Link view or embed it in a Text if the surrounding text is fixed.
+                // Given the current structure, let's embed it in a Text view and make only the email clickable.
+                // This requires a bit more advanced Text combination or a custom view if you want surrounding text
+                // that is not part of the link itself.
+
+                // Option 1: The simplest and most direct way to make only the email a link in this specific context.
+                // Replace the entire Text block with this:
+                HStack(alignment: .top, spacing: 0) { // Use HStack for inline elements
+                    Text("If you have any questions about these terms, contact us at ")
+                        .font(.body)
+                    Link(AppConstants.supportEmail, destination: URL(string: "mailto:\(AppConstants.supportEmail)")!)
+                        .font(.body)
+                        .foregroundColor(.accentColor) // Ensure it looks like a link
+                    Text(".") // Add the period back if needed
+                        .font(.body)
+                }
+
 
                 Spacer()
             }
@@ -112,6 +128,12 @@ struct ApplicationOfServiceView: View {
 
 struct ApplicationOfServiceView_Previews: PreviewProvider {
     static var previews: some View {
-        ApplicationOfServiceView()
+        Group {
+            ApplicationOfServiceView()
+                .preferredColorScheme(.light)
+            
+            ApplicationOfServiceView()
+                .preferredColorScheme(.dark)
+        }
     }
 }

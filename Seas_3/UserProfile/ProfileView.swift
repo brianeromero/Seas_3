@@ -10,12 +10,13 @@ import FirebaseAuth
 import FirebaseFirestore
 
 
+
 struct ProfileView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @StateObject var profileViewModel: ProfileViewModel
     @ObservedObject var authViewModel: AuthViewModel // Keep this for calling signOut()
     @Binding var selectedTabIndex: LoginViewSelection
-    let setupGlobalErrorHandler: () -> Void
+    let setupGlobalErrorHandler: () -> Void // Dummy closure for preview
     
     private let beltOptions = ["", "White", "Blue", "Purple", "Brown", "Black"]
     @State private var isEditing = false
@@ -26,12 +27,12 @@ struct ProfileView: View {
     @State private var showMainContent = false
     @State private var navigateToAdminMenu = false
     @StateObject private var pirateIslandViewModel = PirateIslandViewModel(persistenceController: PersistenceController.shared)
-    // REMOVE THIS LINE: @State private var navigateToLogin = false // This is no longer needed for logout navigation
     @State private var showValidationAlert = false
     @State private var validationAlertMessage = ""
     @State private var showSaveAlert = false
     @State private var saveAlertMessage = ""
-    @State private var errorMessages: [ValidationType: String] = [:]
+    // Changed to String? for validation messages
+    @State private var errorMessages: [ValidationType: String?] = [:]
     @FocusState private var focusedField: Field?
 
     enum Field: Hashable {
@@ -42,15 +43,22 @@ struct ProfileView: View {
         case email, userName, name, password
     }
 
+
     var body: some View {
         NavigationStack {
             VStack {
                 if profileViewModel.isProfileLoaded {
                     VStack {
+                        // FIX: Changed to Color(uiColor: .systemGray5) for broader iOS compatibility
                         Rectangle()
-                            .fill(Color.gray)
+                            .fill(Color(uiColor: .systemGray5)) // Adaptive background for older iOS
                             .frame(height: 150)
-                            .overlay(Text("Profile"))
+                            .overlay(
+                                Text("Profile")
+                                    .font(.largeTitle)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.primary) // Ensure text is adaptive
+                            )
                         
                         Form {
                             Section(header: Text("Account Information")) {
@@ -60,14 +68,16 @@ struct ProfileView: View {
                                         Text("Email:")
                                         TextField("Email", text: $profileViewModel.email)
                                             .disabled(!isEditing)
-                                            .foregroundColor(isEditing ? .primary : .gray)
+                                            .foregroundColor(isEditing ? .primary : .secondary)
                                             .focused($focusedField, equals: .email)
-                                            .onChange(of: profileViewModel.email) { _ in
+                                            // FIX: Updated onChange syntax
+                                            .onChange(of: profileViewModel.email) {
                                                 validateField(.email)
                                             }
                                     }
-                                    if let errorMessage = errorMessages[.email] {
-                                        Text(errorMessage)
+                                    // Accessing errorMessage as optional String?
+                                    if let errorMessage = errorMessages[.email], errorMessage != nil {
+                                        Text(errorMessage!)
                                             .foregroundColor(.red)
                                             .font(.footnote)
                                     }
@@ -79,14 +89,15 @@ struct ProfileView: View {
                                         Text("Username:")
                                         TextField("Username", text: $profileViewModel.userName)
                                             .disabled(!isEditing)
-                                            .foregroundColor(isEditing ? .primary : .gray)
+                                            .foregroundColor(isEditing ? .primary : .secondary)
                                             .focused($focusedField, equals: .username)
-                                            .onChange(of: profileViewModel.userName) { _ in
+                                            // FIX: Updated onChange syntax
+                                            .onChange(of: profileViewModel.userName) {
                                                 validateField(.userName)
                                             }
                                     }
-                                    if let errorMessage = errorMessages[.userName] {
-                                        Text(errorMessage)
+                                    if let errorMessage = errorMessages[.userName], errorMessage != nil {
+                                        Text(errorMessage!)
                                             .foregroundColor(.red)
                                             .font(.footnote)
                                     }
@@ -98,14 +109,15 @@ struct ProfileView: View {
                                         Text("Name:")
                                         TextField("Name", text: $profileViewModel.name)
                                             .disabled(!isEditing)
-                                            .foregroundColor(isEditing ? .primary : .gray)
+                                            .foregroundColor(isEditing ? .primary : .secondary)
                                             .focused($focusedField, equals: .name)
-                                            .onChange(of: profileViewModel.name) { _ in
+                                            // FIX: Updated onChange syntax
+                                            .onChange(of: profileViewModel.name) {
                                                 validateField(.name)
                                             }
                                     }
-                                    if let errorMessage = errorMessages[.name] {
-                                        Text(errorMessage)
+                                    if let errorMessage = errorMessages[.name], errorMessage != nil {
+                                        Text(errorMessage!)
                                             .foregroundColor(.red)
                                             .font(.footnote)
                                     }
@@ -115,7 +127,9 @@ struct ProfileView: View {
                             // Belt Selection
                             Section(header: HStack {
                                 Text("Belt")
-                                Text("(Optional)").foregroundColor(.gray).opacity(0.7)
+                                Text("(Optional)")
+                                    .foregroundColor(.secondary)
+                                    .opacity(0.7)
                             }) {
                                 Menu {
                                     ForEach(beltOptions, id: \.self) { belt in
@@ -128,10 +142,10 @@ struct ProfileView: View {
                                 } label: {
                                     HStack {
                                         Text(profileViewModel.belt.isEmpty ? "Not selected" : profileViewModel.belt)
-                                            .foregroundColor(isEditing ? .primary : .gray)
+                                            .foregroundColor(isEditing ? .primary : .secondary)
                                         Spacer()
                                         Image(systemName: "chevron.down")
-                                            .foregroundColor(.gray)
+                                            .foregroundColor(.secondary)
                                     }
                                 }
                                 .disabled(!isEditing)
@@ -143,11 +157,8 @@ struct ProfileView: View {
                             Task {
                                 do {
                                     try await authViewModel.signOut()
-                                    // NO navigateToLoginPage() call here anymore.
-                                    // The parent view observing authViewModel.isLoggedIn will handle the navigation.
                                 } catch {
                                     print("Error signing out from ProfileView: \(error.localizedDescription)")
-                                    // Optionally, show an alert to the user if logout failed
                                     saveAlertMessage = "Failed to sign out: \(error.localizedDescription)"
                                     showSaveAlert = true
                                 }
@@ -163,30 +174,10 @@ struct ProfileView: View {
                         }
                         .disabled(isEditing)
                         .padding(.top, 20)
-
-                        // REMOVE THIS NavigationLink BLOCK ENTIRELY
-                        /*
-                        NavigationLink(
-                            destination: LoginView(
-                                islandViewModel: pirateIslandViewModel,
-                                profileViewModel: profileViewModel,
-                                isSelected: $selectedTabIndex,
-                                navigateToAdminMenu: $navigateToAdminMenu,
-                                isLoggedIn: $profileViewModel.isLoggedIn
-                            )
-                            .environment(\.managedObjectContext, viewContext)
-                            .environmentObject(authViewModel)
-                            .onAppear {
-                                setupGlobalErrorHandler()
-                            },
-                            isActive: $navigateToLogin
-                        ) {
-                            EmptyView()
-                        }
-                        */
                     }
                 } else {
                     ProgressView("Loading profile...")
+                        .foregroundColor(.primary)
                 }
             }
             .navigationTitle("Profile")
@@ -227,14 +218,8 @@ struct ProfileView: View {
 
     // MARK: - Helper Functions
 
-    // REMOVE OR SIMPLIFY THIS FUNCTION
     private func navigateToLoginPage() {
-        // This function is no longer needed to trigger navigation from ProfileView.
-        // It's still fine to call profileViewModel.resetProfile() if that's desired
-        // to clear profile-specific data after logout, but the navigation
-        // will be handled by the parent observing the auth state.
         profileViewModel.resetProfile()
-        // REMOVE THIS LINE: navigateToLogin = true
     }
 
     private func toggleEdit() {
@@ -245,7 +230,6 @@ struct ProfileView: View {
         }
         isEditing.toggle()
     }
-
 
     private func startEditing() {
         originalEmail = profileViewModel.email
@@ -259,6 +243,7 @@ struct ProfileView: View {
         profileViewModel.userName = originalUserName
         profileViewModel.name = originalName
         profileViewModel.belt = originalBelt
+        errorMessages = [:] // Clear validation errors on cancel
     }
 
     private func saveChanges() {
@@ -268,9 +253,14 @@ struct ProfileView: View {
             return
         }
 
-        let isValid = profileViewModel.validateProfile()
-
-        if !isValid {
+        validateField(.email)
+        validateField(.userName)
+        validateField(.name)
+        
+        // FIX: Check if there are any *non-nil* error messages
+        let hasErrors = errorMessages.values.contains { $0 != nil }
+        
+        if hasErrors {
             validationAlertMessage = "Please fix the validation errors before saving."
             showValidationAlert = true
             return
@@ -282,6 +272,7 @@ struct ProfileView: View {
                 saveAlertMessage = "Profile saved successfully!"
                 showSaveAlert = true
                 isEditing = false
+                errorMessages = [:] // Clear validation errors on successful save
             } catch {
                 saveAlertMessage = "Failed to save profile: \(error.localizedDescription)"
                 showSaveAlert = true
@@ -298,7 +289,8 @@ struct ProfileView: View {
         case .name:
             errorMessages[.name] = profileViewModel.validateName(profileViewModel.name)
         case .password:
-            errorMessages[.password] = profileViewModel.validatePassword(profileViewModel.password)
+            errorMessages[.password] = profileViewModel.validatePassword("") // Or profileViewModel.password if it exists
         }
     }
 }
+
