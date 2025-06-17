@@ -28,8 +28,10 @@ struct IslandMapView: View {
                         Text(island.islandName ?? "Unknown Title")
                             .font(.caption)
                             .padding(5)
-                            .background(Color.white)
+                            // --- THIS IS THE KEY CHANGE ---
+                            .background(Color(.systemBackground)) // Adapts to light/dark mode
                             .cornerRadius(5)
+                            .foregroundColor(.primary) // Ensure text is adaptive
                         CustomMarkerView()
                     }
                     .onTapGesture {
@@ -61,6 +63,7 @@ struct IslandMapView: View {
             } else {
                 Text("No Gym Selected")
                     .padding()
+                    .foregroundColor(.primary) // Ensure this text also adapts
             }
         }
     }
@@ -155,8 +158,10 @@ struct IslandMapViewMap: View {
                     Text(islandName)
                         .font(.caption)
                         .padding(5)
-                        .background(Color.white)
+                        // --- THIS IS THE KEY CHANGE ---
+                        .background(Color(.systemBackground)) // Adapts to light/dark mode
                         .cornerRadius(5)
+                        .foregroundColor(.primary) // Ensure text is adaptive
                     CustomMarkerView()
                 }
                 .onTapGesture {
@@ -167,8 +172,8 @@ struct IslandMapViewMap: View {
         .edgesIgnoringSafeArea(.all)
         .alert(isPresented: $showConfirmationDialog) {
             Alert(
-                title: Text("Open in Maps?"),
-                message: Text("Do you want to open \(islandName) in Maps?"),
+                title: Text("Open in Maps?").foregroundColor(.primary), // Ensure alert title text is adaptive
+                message: Text("Do you want to open \(islandName) in Maps?").foregroundColor(.primary), // Ensure alert message text is adaptive
                 primaryButton: .default(Text("Open")) {
                     ReviewUtils.openInMaps(
                         latitude: coordinate.latitude,

@@ -37,7 +37,7 @@ struct DayOfWeekSearchView: View {
         _selectedAppDayOfWeek = selectedAppDayOfWeek
         _region = region
         _searchResults = searchResults
-        
+
         // Initialize viewModel here using the same enterZipCodeViewModel instance
         // Note: we need to create enterZipCodeViewModel before viewModel, so we use a temporary property here
         let enterZipVM = EnterZipCodeViewModel(
@@ -50,7 +50,7 @@ struct DayOfWeekSearchView: View {
             enterZipCodeViewModel: enterZipVM
         ))
     }
-    
+
     @State private var radius: Double = 10.0
     @State private var equatableRegionWrapper = EquatableMKCoordinateRegion(
         region: MKCoordinateRegion(
@@ -71,21 +71,22 @@ struct DayOfWeekSearchView: View {
                         Task { await dayOfWeekChanged() }
                     }
 
-                
+                ErrorView(errorMessage: $errorMessage)
+
+                // <<-- MAP VIEW FIRST -->>
+                MapViewContainer(
+                    region: $equatableRegionWrapper,
+                    appDayOfWeekViewModel: viewModel
+                ) { island in
+                    handleIslandTap(island: island)
+                }
+
+                // <<-- THEN RADIUS PICKER -->>
                 RadiusPicker(selectedRadius: $radius)
                     .onChange(of: radius) { oldValue, newValue in
                         print("RadiusPicker: radius changed from \(oldValue) to \(newValue)")
                         Task { await radiusChanged() }
                     }
-                
-                ErrorView(errorMessage: $errorMessage)
-                
-                MapViewContainer(
-                    region: $equatableRegionWrapper, // ← Pass the entire wrapper, not just `.region`
-                    appDayOfWeekViewModel: viewModel
-                ) { island in
-                    handleIslandTap(island: island)
-                }
             }
             .sheet(isPresented: $showModal) {
                 IslandModalContainer(
@@ -111,12 +112,10 @@ struct DayOfWeekSearchView: View {
                     print("User location is nil.")
                 }
             }
-
             .onChange(of: selectedIsland) { oldValue, newValue in
                 print("Selected island changed from \(oldValue?.islandName ?? "nil") to \(newValue?.islandName ?? "nil")")
                 updateSelectedIsland(from: newValue)
             }
-
         }
     }
     
@@ -289,17 +288,18 @@ struct IslandAnnotationView: View {
                 Text(island.islandName ?? "Unnamed Gym")
                     .font(.caption2)
                     .padding(4)
-                    .background(Color.white.opacity(0.85))
+                    // --- KEY CHANGE HERE for background ---
+                    .background(Color(.systemBackground).opacity(0.85)) // Use adaptive system background
                     .cornerRadius(4)
-                    .foregroundColor(.black)
-                
+                    // --- KEY CHANGE HERE for foreground text color ---
+                    .foregroundColor(.primary) // Use adaptive primary text color
+
                 CustomMarkerView()
             }
             .shadow(radius: 3)
         }
     }
 }
-
 
 
 /*

@@ -89,7 +89,7 @@ struct ConsolidatedIslandMapView: View {
                 mapAnnotationView(for: marker)
             }
         }
-        .frame(height: 300)
+        .frame(height: 400) // Adjust to match EnterZipCodeView
         .padding()
     }
 
@@ -140,11 +140,11 @@ struct ConsolidatedIslandMapView: View {
             Text(marker.title ?? "")
                 .font(.caption)
                 .padding(5)
-                // Use system background for the text bubble background
+                // --- THIS IS THE KEY CHANGE ---
                 .background(Color(.systemBackground)) // Adapts to light/dark mode
                 .cornerRadius(5)
                 // Text color naturally adapts to .primary, so no explicit change usually needed
-                .foregroundColor(.primary)
+                .foregroundColor(.primary) // Explicitly setting to .primary for clarity, though often default
             CustomMarkerView()
                 .onTapGesture {
                     if let pirateIsland = marker.pirateIsland {
@@ -157,7 +157,6 @@ struct ConsolidatedIslandMapView: View {
             print("Annotation view for marker: \(marker)")
         }
     }
-    
     
     private func onAppear() {
         locationManager.startLocationServices()

@@ -19,6 +19,10 @@ struct EnterZipCodeView: View {
     @State private var selectedAppDayOfWeek: AppDayOfWeek? = nil
     @State private var selectedDay: DayOfWeek? = .monday
     @State private var selectedRadius: Double = 5.0 // Radius in miles
+    
+    @State private var searchCancellable: Task<(), Never>? = nil // To store and cancel the search task
+
+    
 
     var body: some View {
         NavigationView {
@@ -26,14 +30,17 @@ struct EnterZipCodeView: View {
                 TextField("Enter Location (Zip Code, Address, City, State)", text: $locationInput)
                     .padding()
                     .textFieldStyle(RoundedBorderTextFieldStyle())
-
-                // Use the reusable RadiusPicker component
-                RadiusPicker(selectedRadius: $selectedRadius)
-
-                Button(action: search) {
-                    Text("Search")
-                }
-                .padding()
+                    .onChange(of: locationInput) { _, newValue in
+                        // Cancel any pending search
+                        searchCancellable?.cancel()
+                        // Start a new search task after a short delay
+                        searchCancellable = Task {
+                            try? await Task.sleep(nanoseconds: 750_000_000) // Debounce for 0.75 seconds
+                            if !Task.isCancelled { // Only proceed if not cancelled
+                                await search()
+                            }
+                        }
+                    }
 
                 // Map View
                 IslandMapView(
@@ -44,17 +51,31 @@ struct EnterZipCodeView: View {
                     selectedDay: $selectedDay,
                     allEnteredLocationsViewModel: allEnteredLocationsViewModel,
                     enterZipCodeViewModel: enterZipCodeViewModel,
-                    region: $region, // Pass the region as a binding
-                    searchResults: $searchResults // Pass the search results as a binding
+                    region: $region,
+                    searchResults: $searchResults
                 )
-                .frame(height: 400)
-                .onChange(of: searchResults) { _ in
+                .frame(height: 400) // Consistent map height
+
+                // NEW LOCATION for Radius Picker
+                RadiusPicker(selectedRadius: $selectedRadius)
+                    .padding(.top)
+                    .onChange(of: selectedRadius) { _, newValue in
+                        searchCancellable?.cancel() // Cancel pending search
+                        searchCancellable = Task {
+                            try? await Task.sleep(nanoseconds: 200_000_000) // Shorter debounce for slider
+                            if !Task.isCancelled {
+                                await search()
+                            }
+                        }
+                    }
+
+                .onChange(of: searchResults) { _, _ in // Using new onChange syntax for searchResults
                     if let firstIsland = searchResults.first {
                         self.region.center = CLLocationCoordinate2D(latitude: firstIsland.latitude, longitude: firstIsland.longitude)
                     }
                 }
             }
-            .padding() // Add padding to match overall view
+            .padding()
             .navigationTitle("Enter Location")
         }
         .sheet(isPresented: $showModal) {
@@ -69,12 +90,12 @@ struct EnterZipCodeView: View {
         }
     }
 
+    // private func search() remains the same as it contains the core logic
     private func search() {
         Task {
             do {
                 let coordinate = try await MapUtils.geocodeAddressWithFallback(locationInput)
 
-                // Update the region with the new coordinates
                 self.region = MKCoordinateRegion(
                     center: coordinate,
                     span: MKCoordinateSpan(
@@ -83,13 +104,11 @@ struct EnterZipCodeView: View {
                     )
                 )
 
-                // Fetch Pirate Islands near the found location
                 self.enterZipCodeViewModel.fetchPirateIslandsNear(
                     CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude),
                     within: self.selectedRadius * 1609.34
                 )
 
-                // Filter results based on the selected radius
                 let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
                 self.searchResults = self.enterZipCodeViewModel.pirateIslands.compactMap { $0.pirateIsland }.filter {
                     let marker = CustomMapMarker(
