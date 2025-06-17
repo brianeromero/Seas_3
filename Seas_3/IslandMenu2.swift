@@ -174,7 +174,7 @@ struct IslandMenu2: View {
                     Spacer() // Push logo to the center
                     Text("Mat_Finder") // Placeholder for your logo/brand name
                         .font(.system(size: 20, weight: .bold))
-                        .foregroundColor(.black)
+                        .foregroundColor(.primary) // Automatically black in Light, white/light gray in Dark
                     Spacer()
                 }
                 .padding(.horizontal)
@@ -191,10 +191,10 @@ struct IslandMenu2: View {
                                     Image(systemName: option.iconName)
                                         .font(option == .profile ? .title2 : .body) // Larger icon for Profile
                                         .frame(width: option == .profile ? nil : 25) // Fixed width for other icons
-                                        .foregroundColor(option == .profile ? .blue : .gray) // Icon color
+                                        .foregroundColor(option == .profile ? .blue : .secondary) // .secondary will adapt
                                     Text(option.rawValue)
-                                        .font(option == .profile ? .headline : .body) // Larger font for Profile
-                                        .foregroundColor(.black) // Text color
+                                        .font(.system(size: 20, weight: .bold))
+                                        .foregroundColor(.primary) // Automatically black in Light, white/light gray in Dark
                                     Spacer()
                                 }
                                 .padding(.vertical, 10) // Padding for each menu item
