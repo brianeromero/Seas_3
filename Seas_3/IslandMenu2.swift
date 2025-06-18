@@ -166,19 +166,17 @@ struct IslandMenu2: View {
 
     // MARK: - Body
     var body: some View {
-        NavigationView { // Wrap with NavigationView for navigation links
-            // We'll put the GIFView inside the VStack's background
-            VStack(alignment: .leading, spacing: 0) { // Align content to the leading edge
-                // Top Bar (Logo and Icons)
+        NavigationView {
+            VStack(alignment: .leading, spacing: 0) {
                 HStack {
-                    Spacer() // Push logo to the center
+                    Spacer()
                     Text("Mat_Finder") // Placeholder for your logo/brand name
                         .font(.system(size: 20, weight: .bold))
-                        .foregroundColor(.primary) // Automatically black in Light, white/light gray in Dark
+                        .foregroundColor(.primary)
                     Spacer()
                 }
                 .padding(.horizontal)
-                .padding(.top, 10) // Adjust top padding
+                .padding(.top, 10)
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
@@ -207,29 +205,27 @@ struct IslandMenu2: View {
                                     }
                             )
 
-                            // YOU ARE MISSING THIS BLOCK HERE!
-                            // This checks if a divider is needed AND then if a header text exists for it.
                             if option.needsDivider {
                                 Divider()
                                     .padding(.leading, menuLeadingPadding) // Indent divider
 
-                                // ✨ THIS IS THE NEW PART YOU NEED TO ADD HERE:
+ 
                                 if let header = option.dividerHeaderText {
                                     Text(header)
-                                        .font(.caption) // Choose an appropriate font size
-                                        .fontWeight(.bold) // Make it stand out as a header
-                                        .foregroundColor(.gray) // Choose an appropriate color
-                                        .padding(.leading, menuLeadingPadding + 5) // Indent slightly more than divider
-                                        .padding(.top, 8) // Space above the header text
-                                        .padding(.bottom, 4) // Space below the header text
+                                        .font(.caption)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.gray)
+                                        .padding(.leading, menuLeadingPadding + 5)
+                                        .padding(.top, 8)
+                                        .padding(.bottom, 4)
                                 }
                             }
                         }
                     }
                 }
-                .padding(.top, 10) // Padding between header and scrollable menu
+                .padding(.top, 10)
 
-                Spacer() // Pushes content to top, and bottom bar to bottom if not using fixed height
+                Spacer()
 
                 
   /*
@@ -283,9 +279,7 @@ struct IslandMenu2: View {
                     .ignoresSafeArea() // Make the GIF background ignore safe areas
                     .background(Color.clear) // Ensure it doesn't have an opaque background itself if GIF has transparency
             )
-            // You might still need an overall leading padding on the NavigationView or the VStack if the whole screen is too far left
-            // If the entire layout (VStack + GIF background) is still off, you can add this:
-            // .padding(.leading, 70) // Adjust this value to shift the whole content
+
 
             .navigationBarHidden(true) // Hide default navigation bar for custom header
             .setupListeners(

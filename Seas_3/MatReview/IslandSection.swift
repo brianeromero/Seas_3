@@ -11,8 +11,8 @@ import CoreData
 
 struct IslandSection: View {
     var islands: [PirateIsland]
-    @Binding var selectedIsland: PirateIsland?
-    @Binding var showReview: Bool
+    @Binding var selectedIsland: PirateIsland? // This binding now points to ViewReviewforIsland's internal state
+    @Binding var showReview: Bool // Unused in this snippet, but kept for context
 
     var body: some View {
         Section(header: Text("Select A Gym")) {
@@ -24,23 +24,21 @@ struct IslandSection: View {
                 }
             }
             .onAppear {
-                // If selectedIsland is nil, set it to the first island from the list
                 if selectedIsland == nil, !islands.isEmpty {
                     selectedIsland = islands.first
                 }
                 print("FROM IslandSection2: Initial selected island: \(selectedIsland?.islandName ?? "No island selected initially.")")
             }
             .onChange(of: islands) { _ in
-                // If islands change and selectedIsland is nil, set to the first one
                 if !islands.isEmpty, selectedIsland == nil {
                     selectedIsland = islands.first
                 }
             }
             .onChange(of: selectedIsland) { newIsland in
-                // Handle selected island change
                 print("FROM IslandSection3: Selected Gym: \(newIsland?.islandName ?? "No island selected.")")
             }
         }
-        .id(selectedIsland?.islandID ?? UUID()) // Use UUID to force view reload on islandID change
+        // >>> REMOVE THIS LINE <<<
+        // .id(selectedIsland?.islandID ?? UUID()) // This was actively causing re-initializations
     }
 }

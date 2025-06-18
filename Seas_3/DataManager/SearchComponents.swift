@@ -128,13 +128,13 @@ struct IslandListItem: View {
 
 struct IslandList: View {
     let islands: [PirateIsland]
-    @Binding var selectedIsland: PirateIsland?
+    @Binding var selectedIsland: PirateIsland? // This is the source of the value
     @Binding var searchText: String
     let navigationDestination: NavigationDestination
     let title: String
     let enterZipCodeViewModel: EnterZipCodeViewModel
     let authViewModel: AuthViewModel
-    let onIslandChange: (PirateIsland?) -> Void // Change here
+    let onIslandChange: (PirateIsland?) -> Void
     @State private var showNavigationDestination = false
 
     var filteredIslands: [PirateIsland] {
@@ -149,51 +149,57 @@ struct IslandList: View {
     }
 
     var body: some View {
-        NavigationStack {
-            List {
-                ForEach(filteredIslands, id: \.self) { island in
-                    Button(action: {
-                        selectedIsland = island
-                        onIslandChange(selectedIsland) // Change here
-                        showNavigationDestination = true
-                    }) {
-                        IslandListItem(island: island, selectedIsland: $selectedIsland)
-                    }
+        List {
+            ForEach(filteredIslands, id: \.self) { island in
+                Button(action: {
+                    selectedIsland = island
+                    onIslandChange(selectedIsland)
+                    showNavigationDestination = true
+                }) {
+                    IslandListItem(island: island, selectedIsland: $selectedIsland)
                 }
             }
-            .navigationTitle(title)
-            .navigationDestination(isPresented: $showNavigationDestination) {
-                if let island = selectedIsland {
-                    switch self.navigationDestination {
-                    case .editExistingIsland:
-                        EditExistingIsland(
-                            island: island,
-                            islandViewModel: PirateIslandViewModel(
-                                persistenceController: PersistenceController.shared
-                            ),
-                            profileViewModel: ProfileViewModel(
-                                viewContext: PersistenceController.shared.container.viewContext,
-                                authViewModel: authViewModel
-                            )
-                        )
-                    case .viewReviewForIsland:
-                        ViewReviewforIsland(
-                            showReview: .constant(true),
-                            selectedIsland: $selectedIsland,
-                            enterZipCodeViewModel: enterZipCodeViewModel,
+        }
+        .navigationTitle(title)
+        .navigationDestination(isPresented: $showNavigationDestination) {
+            // No need for 'if let island = selectedIsland' here for passing to children,
+            // as 'selectedIsland' is already optional and children are expecting optional.
+            // If a child *requires* a non-optional island, then the 'if let' is needed for that specific child.
+            switch self.navigationDestination {
+            case .editExistingIsland:
+                // This case currently expects a non-optional `PirateIsland`
+                // Ensure 'island' is non-nil if this destination is chosen.
+                // Assuming `EditExistingIsland` takes a non-optional `PirateIsland`
+                if let island = selectedIsland { // Keep this if EditExistingIsland needs non-optional
+                    EditExistingIsland(
+                        island: island, // Pass the non-optional VALUE
+                        islandViewModel: PirateIslandViewModel(
+                            persistenceController: PersistenceController.shared
+                        ),
+                        profileViewModel: ProfileViewModel(
+                            viewContext: PersistenceController.shared.container.viewContext,
                             authViewModel: authViewModel
                         )
-                    case .review:
-                        GymMatReviewView(
-                            localSelectedIsland: $selectedIsland,
-                            enterZipCodeViewModel: enterZipCodeViewModel,
-                            authViewModel: authViewModel,
-                            onIslandChange: onIslandChange
-                        )
-                    }
+                    )
                 } else {
-                    EmptyView()
+                    EmptyView() // Or an error view
                 }
+
+            case .viewReviewForIsland:
+                ViewReviewforIsland(
+                    showReview: .constant(true),
+                    selectedIsland: selectedIsland, // ✅ FIX: Pass the optional VALUE, not the binding
+                    enterZipCodeViewModel: enterZipCodeViewModel,
+                    authViewModel: authViewModel
+                )
+
+            case .review:
+                GymMatReviewView(
+                    localSelectedIsland: $selectedIsland, // This one still wants a Binding<PirateIsland?>
+                    enterZipCodeViewModel: enterZipCodeViewModel,
+                    authViewModel: authViewModel,
+                    onIslandChange: onIslandChange
+                )
             }
         }
     }
@@ -201,13 +207,13 @@ struct IslandList: View {
 
 struct ReviewDestinationView: View {
     @ObservedObject var viewModel: IslandListViewModel
-    let selectedIsland: PirateIsland?
+    let selectedIsland: PirateIsland? // <--- Keep as value if ViewReviewforIsland takes value
     @State private var showReview: Bool = false
     
-    init(viewModel: IslandListViewModel, selectedIsland: PirateIsland?) {
+    init(viewModel: IslandListViewModel, selectedIsland: PirateIsland?) { // <--- And here in init
         os_log("ReviewDestinationView initialized with island: %@", log: logger, selectedIsland?.islandName ?? "Unknown")
         self.viewModel = viewModel
-        self.selectedIsland = selectedIsland
+        self.selectedIsland = selectedIsland // Assign the value
     }
 
     var body: some View {
@@ -216,7 +222,7 @@ struct ReviewDestinationView: View {
             if let selectedIsland = selectedIsland {
                 ViewReviewforIsland(
                     showReview: $showReview,
-                    selectedIsland: .constant(selectedIsland),
+                    selectedIsland: selectedIsland, // <--- Pass the VALUE directly
                     enterZipCodeViewModel: viewModel.enterZipCodeViewModel,
                     // CHANGE THIS LINE:
                     authViewModel: AuthViewModel.shared
@@ -229,31 +235,6 @@ struct ReviewDestinationView: View {
 }
 
 
-struct SearchBar_Previews: PreviewProvider {
-    static var previews: some View {
-        Group {
-            SearchBar(text: .constant("Search..."))
-                .previewLayout(.sizeThatFits)
-                .previewDisplayName("With Text")
-
-            SearchBar(text: .constant(""))
-                .previewLayout(.sizeThatFits)
-                .previewDisplayName("Empty Text")
-
-            SearchBar(text: .constant("Canvas Preview"))
-                .previewLayout(.fixed(width: 300, height: 100))
-                .previewDisplayName("Canvas Preview")
-        }
-    }
-}
-
-struct SearchHeader_Previews: PreviewProvider {
-    static var previews: some View {
-        SearchHeader()
-            .previewLayout(.sizeThatFits)
-    }
-}
-
 // New View for Selected Island
 enum DestinationView {
     case gymMatReview
@@ -262,8 +243,8 @@ enum DestinationView {
 
 // New View for Selected Island
 struct SelectedIslandView: View {
-    let island: PirateIsland
-    @Binding var selectedIsland: PirateIsland?  // Change to @Binding
+    let island: PirateIsland // This is the non-optional island that was passed to SelectedIslandView
+    @Binding var selectedIsland: PirateIsland? // This is the binding that came from parent (used for GymMatReviewView)
     var enterZipCodeViewModel: EnterZipCodeViewModel
     var onIslandChange: (PirateIsland?) -> Void
     var authViewModel: AuthViewModel
@@ -273,7 +254,7 @@ struct SelectedIslandView: View {
         switch destinationView {
         case .gymMatReview:
             GymMatReviewView(
-                localSelectedIsland: $selectedIsland,  // Bind to selectedIsland
+                localSelectedIsland: $selectedIsland, // Needs binding
                 enterZipCodeViewModel: enterZipCodeViewModel,
                 authViewModel: authViewModel,
                 onIslandChange: onIslandChange
@@ -281,7 +262,7 @@ struct SelectedIslandView: View {
         case .viewReviewForIsland:
             ViewReviewforIsland(
                 showReview: .constant(false),
-                selectedIsland: $selectedIsland,
+                selectedIsland: selectedIsland, // ✅ FIX: Pass the optional VALUE, not the binding
                 enterZipCodeViewModel: enterZipCodeViewModel,
                 authViewModel: authViewModel
             )

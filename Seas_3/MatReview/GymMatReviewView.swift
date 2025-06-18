@@ -237,7 +237,7 @@ struct GymMatReviewView: View {
         self.enterZipCodeViewModel = enterZipCodeViewModel
         self.authViewModel = authViewModel
         self.onIslandChange = onIslandChange
-        os_log("GymMatReviewView initialized", log: logger, type: .info)
+        os_log("GymMatReviewView initialized1", log: logger, type: .info)
     }
     
     
@@ -288,13 +288,13 @@ struct GymMatReviewView: View {
                 
                 Section(header: Text("Average Rating")) {
                     HStack {
-                        // Use StarRating.getStars to display a mixed star average accurately
-                        ForEach(StarRating.getStars(for: cachedAverageRating), id: \.self) { starName in
+                        // Use enumerated() to get a unique ID for each star
+                        ForEach(Array(StarRating.getStars(for: cachedAverageRating).enumerated()), id: \.offset) { index, starName in
                             Image(systemName: starName)
-                                .foregroundColor(.yellow) // Keep yellow for average stars
+                                .foregroundColor(.yellow)
                         }
                         Text(String(format: "%.1f", cachedAverageRating))
-                            .foregroundColor(.primary) // Ensure text adapts
+                            .foregroundColor(.primary)
                     }
                 }
             }
@@ -317,7 +317,7 @@ struct GymMatReviewView: View {
                 os_log("GymMatReviewView body appeared", log: logger, type: .info)
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                     os_log("GymMatReviewView body still visible after 1 second", log: logger, type: .info)
-                    os_log("GymMatReviewView initialized", log: logger, type: .info)
+                    os_log("GymMatReviewView initialized2", log: logger, type: .info)
                 }
                 
                 // ⬇️ Auto-trigger logic for the initial island selection

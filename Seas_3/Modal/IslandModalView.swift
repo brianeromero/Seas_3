@@ -71,144 +71,18 @@ struct IslandModalView: View {
         self.enterZipCodeViewModel = enterZipCodeViewModel
     }
 
-    
     var body: some View {
-        // Apply Scenario A: NavigationView wraps the content of the modal
         NavigationView {
             ZStack {
-                // Dimming background - using adaptive color for better appearance
-                // Color.primary.opacity(0.2) // This dims the background behind the modal.
-                                          // It should be fine as it adapts, but the modal itself needs clarity.
-                Color.black.opacity(0.4) // Using explicit black for dimming overlay to ensure it's dark enough
-
+                Color.black.opacity(0.4)
                     .edgesIgnoringSafeArea(.all)
                     .onTapGesture {
-                        showModal = false // Dismiss modal by tapping outside
+                        showModal = false
                     }
 
                 // Conditional content based on loading state and data availability
-                if isLoadingData {
-                    ProgressView("Loading schedules...")
-                        .padding()
-                        .background(Color(.systemBackground)) // Adaptive background color
-                        .cornerRadius(10)
-                } else if let selectedIsland = selectedIsland, let _ = selectedDay {
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text(islandName)
-                            .font(.system(size: 14))
-                            .bold()
-                            .foregroundColor(.primary) // Ensure it uses primary color for text
-
-                        Text(islandLocation)
-                            .font(.system(size: 12))
-                            .foregroundColor(.secondary) // Ensure it uses secondary color for text
-
-                        if let gymWebsite = gymWebsite {
-                            HStack {
-                                Text("Website:")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.primary)
-                                Spacer()
-                                Link("Visit Website", destination: gymWebsite)
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.accentColor) // Uses accent color for links
-                            }
-                            .padding(.top, 10)
-                        } else {
-                            Text("No website available.")
-                                .font(.system(size: 12))
-                                .foregroundColor(.secondary)
-                                .padding(.top, 10)
-                        }
-
-                        // View Schedule Link
-                        if scheduleExists {
-                            NavigationLink(
-                                destination: ViewScheduleForIsland(
-                                    viewModel: viewModel,
-                                    island: selectedIsland
-                                )
-                            ) {
-                                Text("View Schedule")
-                                    .foregroundColor(.accentColor) // Uses accent color for links
-                            }
-                        } else {
-                            Text("No schedules found for this Gym.")
-                                .foregroundColor(.secondary)
-                        }
-
-                        // Reviews Section
-                        VStack(alignment: .leading, spacing: 8) {
-                            if !currentReviews.isEmpty {
-                                HStack {
-                                    Text("Average Rating:")
-                                        .foregroundColor(.primary)
-                                    Spacer()
-                                    Text(String(format: "%.1f", currentAverageStarRating))
-                                        .foregroundColor(.primary)
-                                }
-
-                                NavigationLink(destination: ViewReviewforIsland(
-                                    showReview: $showReview,
-                                    selectedIsland: $selectedIsland,
-                                    enterZipCodeViewModel: enterZipCodeViewModel,
-                                    authViewModel: authViewModel
-                                )) {
-                                    Text("View Reviews")
-                                        .foregroundColor(.accentColor) // Uses accent color for links
-                                }
-
-                            } else {
-                                Text("No reviews available.")
-                                    .foregroundColor(.secondary)
-
-                                NavigationLink(destination: GymMatReviewView(
-                                    localSelectedIsland: .constant(selectedIsland),
-                                    enterZipCodeViewModel: enterZipCodeViewModel,
-                                    authViewModel: authViewModel,
-                                    onIslandChange: { newIsland in
-                                        // Handle island change if needed after review submission
-                                    }
-                                )) {
-                                    HStack {
-                                        Text("Be the first to write a review!")
-                                        Image(systemName: "pencil.and.ellipsis.rectangle")
-                                    }
-                                    .foregroundColor(.accentColor) // Uses accent color for links
-                                }
-                            }
-                        }
-                        .padding(.top, 20)
-
-                        Spacer()
-
-                        // Close Button (aligned to leading edge, as the rest of the VStack)
-                        Button(action: {
-                            showModal = false
-                        }) {
-                            Text("Close")
-                                .font(.system(size: 12))
-                                .padding(10)
-                                .background(Color.red)
-                                .foregroundColor(.white)
-                                .cornerRadius(5)
-                                .padding(.horizontal, 10)
-                        }
-                    }
-                    .padding()
-                    .background(Color(.systemBackground)) // IMPORTANT: Ensure this is Color(.systemBackground)
-                    .cornerRadius(10)
-                    .frame(width: UIScreen.main.bounds.width * 0.8, height: UIScreen.main.bounds.height * 0.6)
-                } else {
-                    Text("Error: selectedIsland or selectedDay is nil.")
-                        .font(.system(size: 14))
-                        .bold()
-                        .padding()
-                        .background(Color(.systemBackground))
-                        .cornerRadius(10)
-                }
+                contentView
             }
-            // Add a toolbar for a dismiss button, typical for NavigationViews in sheets
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Dismiss") {
@@ -216,11 +90,10 @@ struct IslandModalView: View {
                     }
                 }
             }
-            // Optional: Set a title for the modal's navigation bar
             .navigationTitle(selectedIsland?.islandName ?? "Island Details")
-            .navigationBarTitleDisplayMode(.inline) // Makes the title smaller
+            .navigationBarTitleDisplayMode(.inline)
         }
-        .interactiveDismissDisabled(false) // Allows swipe-down dismissal if presented as a sheet
+        .interactiveDismissDisabled(false)
         .onAppear {
             isLoadingData = true
             guard let island = selectedIsland else {
@@ -231,18 +104,161 @@ struct IslandModalView: View {
                 await viewModel.loadSchedules(for: island)
                 scheduleExists = !viewModel.schedules.isEmpty
 
-                // Fetch reviews and average rating
                 let fetchedAvgRating = await ReviewUtils.fetchAverageRating(for: island, in: viewContext, callerFunction: "IslandModalView.onAppear")
                 let fetchedReviews = await ReviewUtils.fetchReviews(for: island, in: viewContext, callerFunction: "IslandModalView.onAppear")
 
-                // Update @State properties on the MainActor
                 await MainActor.run {
                     self.currentAverageStarRating = Double(fetchedAvgRating)
                     self.currentReviews = fetchedReviews
                 }
-
                 isLoadingData = false
             }
+        }
+    }
+
+    // MARK: - Extracted Subviews and NavigationLink Destinations
+
+    @ViewBuilder
+    private var contentView: some View {
+        if isLoadingData {
+            ProgressView("Loading schedules...")
+                .padding()
+                .background(Color(.systemBackground))
+                .cornerRadius(10)
+        } else if let island = selectedIsland, selectedDay != nil { // Use 'island' directly in the if-let
+            modalContent(island: island)
+        } else {
+            Text("Error: selectedIsland or selectedDay is nil.")
+                .font(.system(size: 14))
+                .bold()
+                .padding()
+                .background(Color(.systemBackground))
+                .cornerRadius(10)
+        }
+    }
+
+    private func modalContent(island: PirateIsland) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(islandName)
+                .font(.system(size: 14))
+                .bold()
+                .foregroundColor(.primary)
+
+            Text(islandLocation)
+                .font(.system(size: 12))
+                .foregroundColor(.secondary)
+
+            websiteSection
+
+            scheduleSection(for: island) // Pass island to schedule section
+
+            reviewsSection
+
+            Spacer()
+
+            closeButton
+        }
+        .padding()
+        .background(Color(.systemBackground))
+        .cornerRadius(10)
+        .frame(width: UIScreen.main.bounds.width * 0.8, height: UIScreen.main.bounds.height * 0.6)
+    }
+
+    private var websiteSection: some View {
+        Group {
+            if let gymWebsite = gymWebsite {
+                HStack {
+                    Text("Website:")
+                        .font(.system(size: 12))
+                        .foregroundColor(.primary)
+                    Spacer()
+                    Link("Visit Website", destination: gymWebsite)
+                        .font(.system(size: 12))
+                        .foregroundColor(.accentColor)
+                }
+                .padding(.top, 10)
+            } else {
+                Text("No website available.")
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+                    .padding(.top, 10)
+            }
+        }
+    }
+
+    private func scheduleSection(for island: PirateIsland) -> some View {
+        Group {
+            if scheduleExists {
+                NavigationLink(
+                    destination: ViewScheduleForIsland(
+                        viewModel: viewModel,
+                        island: island // Use the passed island
+                    )
+                ) {
+                    Text("View Schedule")
+                        .foregroundColor(.accentColor)
+                }
+            } else {
+                Text("No schedules found for this Gym.")
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+
+    private var reviewsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if !currentReviews.isEmpty {
+                HStack {
+                    Text("Average Rating:")
+                        .foregroundColor(.primary)
+                    Spacer()
+                    Text(String(format: "%.1f", currentAverageStarRating))
+                        .foregroundColor(.primary)
+                }
+
+                NavigationLink(destination: ViewReviewforIsland(
+                    showReview: $showReview,
+                    selectedIsland: selectedIsland, // Pass the optional VALUE directly
+                    enterZipCodeViewModel: enterZipCodeViewModel,
+                    authViewModel: authViewModel
+                )) {
+                    Text("View Reviews")
+                        .foregroundColor(.accentColor)
+                }
+            } else {
+                Text("No reviews available.")
+                    .foregroundColor(.secondary)
+
+                NavigationLink(destination: GymMatReviewView(
+                    localSelectedIsland: $selectedIsland,
+                    enterZipCodeViewModel: enterZipCodeViewModel,
+                    authViewModel: authViewModel,
+                    onIslandChange: { newIsland in
+                        // Handle island change if needed after review submission
+                    }
+                )) {
+                    HStack {
+                        Text("Be the first to write a review!")
+                        Image(systemName: "pencil.and.ellipsis.rectangle")
+                    }
+                    .foregroundColor(.accentColor)
+                }
+            }
+        }
+        .padding(.top, 20)
+    }
+    
+    private var closeButton: some View {
+        Button(action: {
+            showModal = false
+        }) {
+            Text("Close")
+                .font(.system(size: 12))
+                .padding(10)
+                .background(Color.red)
+                .foregroundColor(.white)
+                .cornerRadius(5)
+                .padding(.horizontal, 10)
         }
     }
 }

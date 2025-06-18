@@ -34,10 +34,17 @@ enum SortType: String, CaseIterable {
 }
 
 struct ViewReviewforIsland: View {
-    @Environment(\.managedObjectContext) var viewContext // Use this for Core Data operations
+    @Environment(\.managedObjectContext) var viewContext
     @State private var isReviewViewPresented = false
-    @Binding var showReview: Bool
-    @Binding var selectedIsland: PirateIsland?
+    @Binding var showReview: Bool // Consider if this is still needed or can be removed
+    // Option 1 (Recommended): Receive the island value directly
+    // Make sure it's non-optional if a review page always requires an island.
+    var initialSelectedIsland: PirateIsland? // Changed from @Binding to var
+
+    // Internal state for the currently displayed island, which can be changed by the picker
+    @State private var selectedIslandInternal: PirateIsland?
+
+    
     @State private var selectedSortType: SortType = .latest
     @ObservedObject var enterZipCodeViewModel: EnterZipCodeViewModel
     @ObservedObject var authViewModel: AuthViewModel
@@ -47,19 +54,29 @@ struct ViewReviewforIsland: View {
 
     @FetchRequest(entity: PirateIsland.entity(), sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.islandName, ascending: true)])
     private var islands: FetchedResults<PirateIsland>
+
+    // Initialize with the provided island
+    init(showReview: Binding<Bool>, selectedIsland: PirateIsland?, enterZipCodeViewModel: EnterZipCodeViewModel, authViewModel: AuthViewModel) {
+        self._showReview = showReview
+        self.initialSelectedIsland = selectedIsland // Assign to the new var
+        self.enterZipCodeViewModel = enterZipCodeViewModel
+        self.authViewModel = authViewModel
+        _selectedIslandInternal = State(initialValue: selectedIsland) // Initialize internal state
+    }
     
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading) {
+                    // Pass the internal state to IslandSection
                     IslandSection(
                         islands: Array(islands),
-                        selectedIsland: $selectedIsland,
+                        selectedIsland: $selectedIslandInternal, // Use internal state
                         showReview: $showReview
                     )
                     .padding(.horizontal, 16)
 
-                    if selectedIsland != nil {
+                    if selectedIslandInternal != nil { // Use the internal state
                         SortSection(selectedSortType: $selectedSortType)
                             .padding(.horizontal, 16)
 
@@ -70,7 +87,7 @@ struct ViewReviewforIsland: View {
 
                         if filteredReviews.isEmpty {
                             NoReviewsView(
-                                selectedIsland: $selectedIsland,
+                                selectedIsland: $selectedIslandInternal, // Use internal state
                                 enterZipCodeViewModel: enterZipCodeViewModel,
                                 authViewModel: authViewModel
                             )
@@ -79,10 +96,9 @@ struct ViewReviewforIsland: View {
                                 filteredReviews: filteredReviews,
                                 selectedSortType: $selectedSortType
                             )
-                            
-                            // ✅ ADD THIS: "Add My Own Review!" link when reviews exist
+
                             NavigationLink(destination: GymMatReviewView(
-                                localSelectedIsland: $selectedIsland,
+                                localSelectedIsland: $selectedIslandInternal, // Use internal state
                                 enterZipCodeViewModel: enterZipCodeViewModel,
                                 authViewModel: authViewModel,
                                 onIslandChange: { _ in }
@@ -94,6 +110,9 @@ struct ViewReviewforIsland: View {
                                     .padding()
                             }
                         }
+                    } else {
+                        Text("Please select a gym to view reviews.")
+                            .padding()
                     }
                 }
                 .padding()
@@ -101,20 +120,19 @@ struct ViewReviewforIsland: View {
             .navigationTitle("Read Gym Reviews")
             .onAppear {
                 os_log("Read Gym Reviews page appeared", log: logger, type: .info)
-                os_log("ViewReviewforIsland - Selected Island: %@", selectedIsland?.islandName ?? "nil")
-                // ✅ Call loadReviews from a Task
+                os_log("ViewReviewforIsland - Selected Island: %@", selectedIslandInternal?.islandName ?? "nil")
+                // Load reviews for the initial island if available
                 Task {
                     await loadReviews()
                 }
             }
-            // ✅ Call loadReviews from a Task
             .onChange(of: selectedSortType) { _ in
                 Task {
                     await loadReviews()
                 }
             }
-            // ✅ Call loadReviews from a Task
-            .onChange(of: selectedIsland) { _ in
+            // IMPORTANT: This onChange should now observe `selectedIslandInternal`
+            .onChange(of: selectedIslandInternal) { _ in
                 Task {
                     await loadReviews()
                 }
@@ -137,7 +155,7 @@ struct ViewReviewforIsland: View {
                     .font(.headline)
 
                 HStack {
-                    ForEach(StarRating.getStars(for: averageRating), id: \.self) { star in
+                    ForEach(Array(StarRating.getStars(for: averageRating).enumerated()), id: \.offset) { index, star in
                         Image(systemName: star)
                             .foregroundColor(.yellow)
                             .font(.system(size: 20))
@@ -170,11 +188,11 @@ struct ViewReviewforIsland: View {
     }
 
 
-
     // ✅ Extracted loading logic into a separate method
     // ✅ Make loadReviews async
-    private func loadReviews() async { // ADD 'async' here
-        guard let island = selectedIsland else {
+    private func loadReviews() async {
+        // 1. Use selectedIslandInternal instead of the old selectedIsland binding
+        guard let island = selectedIslandInternal else { // <--- FIX: Use selectedIslandInternal
             // ✅ Use MainActor.run for state updates
             await MainActor.run {
                 filteredReviewsCache = []
@@ -197,7 +215,8 @@ struct ViewReviewforIsland: View {
             }
 
             // Perform Core Data fetch on the context's queue
-            let fetchedReviews = try await context.perform { // ✅ Use context.perform for async Core Data access
+            // Ensure context.perform can actually throw errors from its closure
+            let fetchedReviews = try await context.perform { () throws -> [Review] in // <--- FIX: Explicitly mark closure as 'throws'
                 let request = Review.fetchRequest() as! NSFetchRequest<Review>
                 request.predicate = NSPredicate(format: "island == %@", island) // Use the island object directly
                 request.sortDescriptors = [
@@ -215,7 +234,7 @@ struct ViewReviewforIsland: View {
                 self.filteredReviewsCache = fetchedReviews
                 self.averageRating = Double(fetchedAvgRating)
             }
-        } catch {
+        } catch { // The catch block should now be reachable
             os_log("Failed to fetch reviews: %@", log: logger, type: .error, error.localizedDescription)
             // ✅ Reset state on MainActor in case of error
             await MainActor.run {

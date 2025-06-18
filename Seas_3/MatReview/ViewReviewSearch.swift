@@ -10,12 +10,13 @@ import CoreData
 import os
 
 struct ViewReviewSearch: View {
-    @Binding var selectedIsland: PirateIsland?
+    @Binding var selectedIsland: PirateIsland? // This binding will still update IslandMenu2
     var titleString: String
     var enterZipCodeViewModel: EnterZipCodeViewModel
     var authViewModel: AuthViewModel
+    
     @State private var navigateToReviewPage = false
-
+    @State private var tempSelectedIsland: PirateIsland? // NEW: Local state for the island about to be navigated to
 
     @StateObject private var viewModel = ViewReviewSearchViewModel()
 
@@ -24,9 +25,9 @@ struct ViewReviewSearch: View {
         sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.islandName, ascending: true)]
     ) private var pirateIslands: FetchedResults<PirateIsland>
 
-    private func handleIslandChange(_ island: PirateIsland?) {
-        selectedIsland = island
-    }
+//    private func handleIslandChange(_ island: PirateIsland?) {
+//        selectedIsland = island
+  //  }
 
     // Break down the List row content into a separate function
     private func islandRow(island: PirateIsland) -> some View {
@@ -41,13 +42,13 @@ struct ViewReviewSearch: View {
     // Break down the NavigationLink into a separate function
     private func navigationLink(island: PirateIsland) -> some View {
         Button {
-            selectedIsland = island
-            navigateToReviewPage = true
+            self.selectedIsland = island // Still update the binding to IslandMenu2 (if needed for other purposes)
+            self.tempSelectedIsland = island // Store the island locally for navigation
+            self.navigateToReviewPage = true
         } label: {
             islandRow(island: island)
         }
     }
-
 
     var body: some View {
         NavigationView {
@@ -65,10 +66,11 @@ struct ViewReviewSearch: View {
                 .listStyle(PlainListStyle())
 
                 // ✅ This is the hidden NavigationLink that drives the navigation
+                // Pass the tempSelectedIsland directly
                 NavigationLink(
                     destination: ViewReviewforIsland(
                         showReview: .constant(true),
-                        selectedIsland: $selectedIsland,
+                        selectedIsland: tempSelectedIsland, // Pass the local state here
                         enterZipCodeViewModel: enterZipCodeViewModel,
                         authViewModel: authViewModel
                     ),
@@ -91,17 +93,16 @@ struct ViewReviewSearch: View {
                 viewModel.updateFilteredIslands(with: pirateIslands)
             }
             .onChange(of: selectedIsland) { newIsland in
+                // This onChange is primarily for logging what was selected outside this view
                 if let islandName = newIsland?.islandName {
-                    os_log("Selected Island: %@", log: OSLog.default, type: .info, islandName)
+                    os_log("Selected Island (from binding): %@", log: OSLog.default, type: .info, islandName)
                 } else {
-                    os_log("Selected Island: nil", log: OSLog.default, type: .info)
+                    os_log("Selected Island (from binding): nil", log: OSLog.default, type: .info)
                 }
             }
         }
     }
-
 }
-
 
 
 
