@@ -16,6 +16,8 @@ struct IslandModalContainer: View {
     @ObservedObject var enterZipCodeViewModel: EnterZipCodeViewModel
     @Binding var selectedAppDayOfWeek: AppDayOfWeek?
     @State private var isLoading = true
+    @Binding var navigationPath: NavigationPath
+
 
     var body: some View {
         if let selectedIsland = selectedIsland {
@@ -33,7 +35,9 @@ struct IslandModalContainer: View {
                 viewModel: viewModel,
                 selectedDay: $selectedDay,
                 showModal: $showModal,
-                enterZipCodeViewModel: enterZipCodeViewModel
+                enterZipCodeViewModel: enterZipCodeViewModel,
+                navigationPath: $navigationPath // ✅ Add this
+
             )
         } else {
             EmptyView()

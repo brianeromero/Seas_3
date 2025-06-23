@@ -12,7 +12,7 @@ import Combine
 import FirebaseFirestore
 import os
 
-struct AddNewIsland: View {
+public struct AddNewIsland: View {
     // Environment Variables
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.presentationMode) private var presentationMode
@@ -32,14 +32,14 @@ struct AddNewIsland: View {
     @State private var gymWebsite = ""
     @State private var showToast = false
     @State private var toastMessage = ""
-    @State private var navigationPath = NavigationPath()
-    
+    @Binding var navigationPath: NavigationPath
+
     @Binding var islandDetails: IslandDetails
     @State private var isSuccessAlert = false
 
     
     // Body
-    var body: some View {
+    public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 islandFormSection
@@ -48,9 +48,8 @@ struct AddNewIsland: View {
             }
             .navigationDestination(for: String.self) { islandMenuPath in
                 IslandMenu2(
-                    // REMOVE: isLoggedIn: $authenticationState.isLoggedIn,
-                    // REMOVE: authViewModel: authViewModel,
-                    profileViewModel: profileViewModel // KEEP THIS, as it's the only one expected by your init
+                    profileViewModel: profileViewModel,
+                    navigationPath: $navigationPath
                 )
             }
             .navigationBarTitle("Add New Gym", displayMode: .inline)

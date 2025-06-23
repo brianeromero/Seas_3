@@ -192,10 +192,9 @@ struct StarRatingsLedger: View {
 
 // Main view for Gym Mat Review
 struct GymMatReviewView: View {
-    
     @Binding var localSelectedIsland: PirateIsland?
     @State private var isReviewsFetched = false
-    @State private var showReview = false
+    @State private var showReview = false // This might be redundant if GymMatReviewView's presentation is managed by NavigationLink
     @State private var activeIsland: PirateIsland?
     @State private var reviewText: String = ""
     @State private var selectedRating: StarRating = .zero
@@ -203,77 +202,55 @@ struct GymMatReviewView: View {
     @State private var alertMessage = ""
     @State private var isLoading = false
     @State private var cachedAverageRating: Double = 0
-    @State private var isRatingUpdated = false
+    // @State private var isRatingUpdated = false // REMOVED - Unused, you can safely delete this line
     @State private var cachedIsland: PirateIsland?
-    @State private var hasInitialized = false
-    @ObservedObject var authViewModel: AuthViewModel
-    
-    @Environment(\.dismiss) private var dismiss
+    // @State private var hasInitialized = false // REMOVED - Unused, you can safely delete this line
 
-    
-    @ObservedObject var enterZipCodeViewModel: EnterZipCodeViewModel
+    @Environment(\.dismiss) private var dismiss // Use this instead of presentationMode
+
+    @EnvironmentObject var authViewModel: AuthViewModel
+    @EnvironmentObject var enterZipCodeViewModel: EnterZipCodeViewModel
     @Environment(\.managedObjectContext) private var viewContext
-    @Environment(\.presentationMode) private var presentationMode // Consider using @Environment(\.dismiss) instead
-    
-    
+    // @Environment(\.presentationMode) private var presentationMode // REMOVED - Deprecated, use @Environment(\.dismiss)
+
     @FetchRequest(
         entity: PirateIsland.entity(),
         sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.islandName, ascending: true)]
     ) private var islands: FetchedResults<PirateIsland>
-    
+
     @State private var isReviewValid: Bool = false
     @State private var reviews: [Review] = []
-    var onIslandChange: (PirateIsland?) -> Void
-    
-    @State private var isReviewViewPresented = false
-    
-    init(
-        localSelectedIsland: Binding<PirateIsland?>,
-        enterZipCodeViewModel: EnterZipCodeViewModel,
-        authViewModel: AuthViewModel,
-        onIslandChange: @escaping (PirateIsland?) -> Void
-    ) {
+    //var onIslandChange: (PirateIsland?) -> Void
+
+    @State private var isReviewViewPresented = false // This also might be redundant
+
+    init(localSelectedIsland: Binding<PirateIsland?>, callerFile: String = #file, callerFunction: String = #function) {
         self._localSelectedIsland = localSelectedIsland
-        self.enterZipCodeViewModel = enterZipCodeViewModel
-        self.authViewModel = authViewModel
-        self.onIslandChange = onIslandChange
-        os_log("GymMatReviewView initialized1", log: logger, type: .info)
+        // REMOVE THIS LINE:
+        // self.onIslandChange = onIslandChange // <-- DELETE THIS!
+        os_log("GymMatReviewView INITIALIZED from %{public}s, function: %{public}s", log: logger, type: .info, (callerFile as NSString).lastPathComponent, callerFunction)
     }
-    
-    
+
     var body: some View {
+        let _ = os_log("GymMatReviewView BODY rendered (selectedIsland: %@)", log: logger, type: .debug, localSelectedIsland?.islandName ?? "nil")
+
+        // === THIS IS THE FULL FORM BLOCK ===
         VStack {
             Form {
                 IslandSection(islands: Array(islands), selectedIsland: $localSelectedIsland, showReview: $showReview)
-                    .onChange(of: localSelectedIsland) { newIsland in
-                        Task { // ✅ Wrap in Task
-                            guard let island = newIsland else {
-                                return
-                            }
-                            
-                            os_log("Island selection changed to: %@", log: logger, type: .info, island.islandName ?? "Unknown Gym")
-                            
-                            cachedIsland = island
-                            isReviewsFetched = false
-                            onIslandChange(island)
-                            
-                            activeIsland = island
-                            cachedAverageRating = Double(await ReviewUtils.fetchAverageRating(for: island, in: viewContext, callerFunction: #function))
-                            
-                            os_log("Average rating for island %@: %.2f", log: logger, type: .info, island.islandName ?? "Unknown", cachedAverageRating)
-                            
-                            os_log("Island selection change completed", log: logger, type: .info)
-                        } // ✅ End Task
-                    }
-                
+
                 ReviewSection(
                     reviewText: $reviewText,
                     isReviewValid: $isReviewValid,
                     selectedRating: $selectedRating
                 )
-                
-                RatingSection(selectedRating: $selectedRating, isReviewValid: $isReviewValid, reviewText: $reviewText)
-                
+
+                RatingSection(
+                    selectedRating: $selectedRating,
+                    isReviewValid: $isReviewValid,
+                    reviewText: $reviewText
+                )
+
                 Button(action: submitReview) {
                     Text("Submit Review")
                 }
@@ -285,11 +262,10 @@ struct GymMatReviewView: View {
                         dismissButton: .default(Text("OK"))
                     )
                 }
-                
+
                 Section(header: Text("Average Rating")) {
                     HStack {
-                        // Use enumerated() to get a unique ID for each star
-                        ForEach(Array(StarRating.getStars(for: cachedAverageRating).enumerated()), id: \.offset) { index, starName in
+                        ForEach(Array(StarRating.getStars(for: cachedAverageRating).enumerated()), id: \.offset) { _, starName in
                             Image(systemName: starName)
                                 .foregroundColor(.yellow)
                         }
@@ -298,39 +274,48 @@ struct GymMatReviewView: View {
                     }
                 }
             }
-            
+
             Spacer()
-            
+
             StarRatingsLedger()
                 .frame(height: 150)
                 .padding(.horizontal, 20)
-                // Removed fixed white background and hardcoded opacity
-                // The StarRatingsLedger now handles its own adaptable background
         }
-        
-        
+        // === END FULL FORM BLOCK ===
+
         .navigationTitle("Add Gym Review")
         .onAppear {
-            if !hasInitialized {
-                hasInitialized = true
-                
-                os_log("GymMatReviewView body appeared", log: logger, type: .info)
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                    os_log("GymMatReviewView body still visible after 1 second", log: logger, type: .info)
-                    os_log("GymMatReviewView initialized2", log: logger, type: .info)
-                }
-                
-                // ⬇️ Auto-trigger logic for the initial island selection
-                if let island = localSelectedIsland {
-                    Task { // ✅ Wrap in Task
-                        onIslandChange(island)
-                        cachedIsland = island
-                        activeIsland = island
-                        cachedAverageRating = Double(await ReviewUtils.fetchAverageRating(for: island, in: viewContext, callerFunction: #function))
-                        os_log("Initial island setup triggered in .onAppear: %@", log: logger, type: .info, island.islandName ?? "Unknown")
-                    } // ✅ End Task
-                }
+            os_log("GymMatReviewView ON APPEAR for island: %@", log: logger, type: .info, localSelectedIsland?.islandName ?? "nil")
+        }
+        .onDisappear {
+            os_log("GymMatReviewView ON DISAPPEAR - localSelectedIsland: %@", log: logger, type: .info, localSelectedIsland?.islandName ?? "nil")
+        }
+        .task(id: localSelectedIsland?.objectID) {
+            guard let island = localSelectedIsland else {
+                os_log("GymMatReviewView .task: localSelectedIsland is nil, returning.", log: logger, type: .info)
+                return
             }
+            guard cachedIsland?.objectID != island.objectID else {
+                os_log("GymMatReviewView .task: Island selection unchanged — skipping task for %@", log: logger, type: .info, island.islandName ?? "nil")
+                return
+            }
+
+            os_log("GymMatReviewView .task: Island selection changed to: %@", log: logger, type: .info, island.islandName ?? "Unknown Gym")
+
+            cachedIsland = island
+            isReviewsFetched = false // Reset for new island
+            //onIslandChange(island)
+
+            activeIsland = island
+            cachedAverageRating = Double(await ReviewUtils.fetchAverageRating(
+                for: island,
+                in: viewContext,
+                callerFunction: #function
+            ))
+
+            os_log("GymMatReviewView .task: Average rating for island %@: %.2f", log: logger, type: .info, island.islandName ?? "Unknown", cachedAverageRating)
+
+            os_log("GymMatReviewView .task: Island selection change completed", log: logger, type: .info)
         }
     }
     
@@ -434,38 +419,3 @@ struct GymMatReviewView: View {
         }
     }
 }
-
-/*
-// Previews for GymMatReviewView
-struct GymMatReviewView_Previews: PreviewProvider {
-    static var previews: some View {
-        PreviewView()
-    }
-}
-
-struct PreviewView: View {
-    @StateObject private var enterZipCodeViewModel = EnterZipCodeViewModel(
-        repository: AppDayOfWeekRepository(persistenceController: PersistenceController.preview),
-        persistenceController: PersistenceController.preview
-    )
-    @State private var selectedIsland: PirateIsland? = nil
-
-    // Create a preview instance of AuthViewModel
-    @StateObject private var authViewModel = AuthViewModel(
-        managedObjectContext: PersistenceController.preview.container.viewContext
-    )
-
-    var body: some View {
-        NavigationView {
-            GymMatReviewView(
-                localSelectedIsland: $selectedIsland,
-                enterZipCodeViewModel: enterZipCodeViewModel,
-                authViewModel: authViewModel
-            ) { newIsland in
-                selectedIsland = newIsland
-            }
-            .navigationTitle("Add Gym Review")
-        }
-    }
-}
-*/

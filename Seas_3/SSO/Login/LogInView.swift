@@ -36,6 +36,7 @@ enum UserFetchError: Error {
 // but review the signIn logic if it's still directly calling Firebase
 // instead of AuthViewModel.shared)
 struct LoginForm: View {
+    
     @Binding var usernameOrEmail: String
     @Binding var password: String
     @Binding var isSignInEnabled: Bool
@@ -213,6 +214,8 @@ struct LoginForm: View {
 
 
 public struct LoginView: View {
+    @Binding var navigationPath: NavigationPath
+
     @EnvironmentObject var authenticationState: AuthenticationState
     @Environment(\.managedObjectContext) private var viewContext
     @State private var showMainContent: Bool = false
@@ -236,19 +239,23 @@ public struct LoginView: View {
     @State private var navigateToCreateAccount = false
     @StateObject private var profileViewModel: ProfileViewModel
 
+
     public init(
         islandViewModel: PirateIslandViewModel,
         profileViewModel: ProfileViewModel,
         isSelected: Binding<LoginViewSelection>,
         navigateToAdminMenu: Binding<Bool>,
-        isLoggedIn: Binding<Bool>
+        isLoggedIn: Binding<Bool>,
+        navigationPath: Binding<NavigationPath> // <-- Add this
     ) {
         _isSelected = isSelected
         _navigateToAdminMenu = navigateToAdminMenu
         _isLoggedIn = isLoggedIn
+        _navigationPath = navigationPath // <-- Fixes the compile error
         _islandViewModel = StateObject(wrappedValue: islandViewModel)
         _profileViewModel = StateObject(wrappedValue: profileViewModel)
     }
+
 
     public var body: some View {
         ZStack {
@@ -327,9 +334,8 @@ public struct LoginView: View {
                 )
             } else if authenticationState.isAuthenticated {
                 IslandMenu2(
-                    // REMOVE: isLoggedIn: $authenticationState.isLoggedIn,
-                    // REMOVE: authViewModel: authViewModel,
-                    profileViewModel: profileViewModel // KEEP THIS, as it's the only one expected by your init
+                    profileViewModel: profileViewModel,
+                    navigationPath: $navigationPath
                 )
             } else if isSelected == .login {
                 VStack(spacing: 20) {
@@ -422,9 +428,9 @@ extension View {
     }
 }
 
-
-// Preview with mock data
 struct LoginView_Previews: PreviewProvider {
+    @State static var navigationPath = NavigationPath()
+
     static var previews: some View {
         LoginView(
             islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.shared),
@@ -434,7 +440,8 @@ struct LoginView_Previews: PreviewProvider {
             ),
             isSelected: .constant(.login),
             navigateToAdminMenu: .constant(false),
-            isLoggedIn: .constant(false)
+            isLoggedIn: .constant(false),
+            navigationPath: $navigationPath // Pass binding here
         )
         .environmentObject(AuthenticationState(hashPassword: HashPassword()))
         .environment(\.managedObjectContext, PersistenceController.shared.container.viewContext)

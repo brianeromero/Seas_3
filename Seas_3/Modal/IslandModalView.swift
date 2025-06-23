@@ -19,6 +19,9 @@ struct IslandModalView: View {
 
     @State private var currentAverageStarRating: Double = 0.0
     @State private var currentReviews: [Review] = []
+    
+    @Binding var navigationPath: NavigationPath
+
 
     var isLoading: Bool {
         islandSchedules.isEmpty && !scheduleExists || isLoadingData
@@ -53,7 +56,9 @@ struct IslandModalView: View {
         viewModel: AppDayOfWeekViewModel,
         selectedDay: Binding<DayOfWeek?>,
         showModal: Binding<Bool>,
-        enterZipCodeViewModel: EnterZipCodeViewModel
+        enterZipCodeViewModel: EnterZipCodeViewModel,
+        navigationPath: Binding<NavigationPath>
+        
     ) {
         self.customMapMarker = customMapMarker
         self.islandName = islandName
@@ -69,6 +74,8 @@ struct IslandModalView: View {
         self._selectedDay = selectedDay
         self._showModal = showModal
         self.enterZipCodeViewModel = enterZipCodeViewModel
+        self._navigationPath = navigationPath
+
     }
 
     var body: some View {
@@ -216,33 +223,31 @@ struct IslandModalView: View {
                         .foregroundColor(.primary)
                 }
 
-                NavigationLink(destination: ViewReviewforIsland(
-                    showReview: $showReview,
-                    selectedIsland: selectedIsland, // Pass the optional VALUE directly
-                    enterZipCodeViewModel: enterZipCodeViewModel,
-                    authViewModel: authViewModel
-                )) {
-                    Text("View Reviews")
+                // Updated "View Reviews" NavigationLink to go to ViewReviewforIsland
+                // This assumes AppScreen.viewAllReviews(island) will be handled by navigationDestination
+                // to present ViewReviewforIsland
+                NavigationLink(value: AppScreen.viewAllReviews(selectedIsland!)) { // NEW: Dedicated case for View Reviews
+                    Text("View All Reviews") // Clearer text
+                        .font(.headline) // Make it look like a button/link
                         .foregroundColor(.accentColor)
                 }
+                .buttonStyle(.plain) // Apply plain style if you want text-like link
+
             } else {
                 Text("No reviews available.")
                     .foregroundColor(.secondary)
 
-                NavigationLink(destination: GymMatReviewView(
-                    localSelectedIsland: $selectedIsland,
-                    enterZipCodeViewModel: enterZipCodeViewModel,
-                    authViewModel: authViewModel,
-                    onIslandChange: { newIsland in
-                        // Handle island change if needed after review submission
-                    }
-                )) {
+                // "Be the first to write a review!" -> goes to GymMatReviewView (to ADD review)
+                // This is correct if AppScreen.review(island) leads to GymMatReviewView
+                NavigationLink(value: AppScreen.review(selectedIsland!)) {
                     HStack {
                         Text("Be the first to write a review!")
                         Image(systemName: "pencil.and.ellipsis.rectangle")
                     }
+                    .font(.headline) // Make it look like a button/link
                     .foregroundColor(.accentColor)
                 }
+                .buttonStyle(.plain) // Apply plain style if you want text-like link
             }
         }
         .padding(.top, 20)

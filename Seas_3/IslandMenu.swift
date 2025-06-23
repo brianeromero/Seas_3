@@ -22,6 +22,8 @@ struct IslandMenu: View {
     @EnvironmentObject var authViewModel: AuthViewModel // Changed from @ObservedObject to @EnvironmentObject
     @EnvironmentObject var allEnteredLocationsViewModel: AllEnteredLocationsViewModel
 
+    @State private var navigationPath = NavigationPath()
+    
     @State private var islandDetails = IslandDetails()
 
     // MARK: - State Variables
@@ -245,6 +247,7 @@ struct IslandMenu: View {
                     islandViewModel: pirateIslandViewModel,
                     profileViewModel: profileViewModel,
                     authViewModel: authViewModel,
+                    navigationPath: $navigationPath,
                     islandDetails: $islandDetails
                 )
                 .onAppear {
@@ -371,9 +374,10 @@ struct IslandMenu: View {
             return AnyView(
                 ViewReviewSearch(
                     selectedIsland: $selectedIsland,
-                    titleString: "Read Gym Reviews",
-                    enterZipCodeViewModel: enterZipCodeViewModelForReviews,
-                    authViewModel: authViewModel
+                    titleString: "Read Gym Reviews"
+                    // enterZipCodeViewModel and authViewModel are now @EnvironmentObject in ViewReviewSearch, so remove direct parameters
+                    // enterZipCodeViewModel: enterZipCodeViewModelForReviews, // REMOVED
+                    // authViewModel: authViewModel // REMOVED
                 )
                 .onAppear {
                     let userID = authViewModel.currentUserID ?? "Unknown"
@@ -392,7 +396,8 @@ struct IslandMenu: View {
                 GymMatReviewSelect(
                     selectedIsland: $selectedIsland,
                     enterZipCodeViewModel: enterZipCodeViewModelForReviews,
-                    authViewModel: authViewModel
+                    authViewModel: authViewModel,
+                    navigationPath: $navigationPath 
                 )
                 .onAppear {
                     let userID = authViewModel.currentUserID ?? "Unknown"
@@ -405,7 +410,6 @@ struct IslandMenu: View {
                     )
                 }
             )
-
         case .faqDisclaimer:
             return AnyView(
                 FAQnDisclaimerMenuView()

@@ -9,14 +9,16 @@ import SwiftUI
 import CoreData
 import os
 
+
 struct ViewReviewSearch: View {
-    @Binding var selectedIsland: PirateIsland? // This binding will still update IslandMenu2
+    @Binding var selectedIsland: PirateIsland?
     var titleString: String
-    var enterZipCodeViewModel: EnterZipCodeViewModel
-    var authViewModel: AuthViewModel
+
+    // ✅ Use @EnvironmentObject to receive these, as they are provided at the top level
+    @EnvironmentObject var enterZipCodeViewModel: EnterZipCodeViewModel
+    @EnvironmentObject var authViewModel: AuthViewModel
     
-    @State private var navigateToReviewPage = false
-    @State private var tempSelectedIsland: PirateIsland? // NEW: Local state for the island about to be navigated to
+    @State private var navigationPath = NavigationPath()
 
     @StateObject private var viewModel = ViewReviewSearchViewModel()
 
@@ -25,12 +27,8 @@ struct ViewReviewSearch: View {
         sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.islandName, ascending: true)]
     ) private var pirateIslands: FetchedResults<PirateIsland>
 
-//    private func handleIslandChange(_ island: PirateIsland?) {
-//        selectedIsland = island
-  //  }
-
     // Break down the List row content into a separate function
-    private func islandRow(island: PirateIsland) -> some View {
+    private func islandRowContent(island: PirateIsland) -> some View {
         VStack(alignment: .leading) {
             Text(island.islandName ?? "Unknown Gym")
                 .font(.headline)
@@ -39,46 +37,35 @@ struct ViewReviewSearch: View {
         }
     }
 
-    // Break down the NavigationLink into a separate function
-    private func navigationLink(island: PirateIsland) -> some View {
-        Button {
-            self.selectedIsland = island // Still update the binding to IslandMenu2 (if needed for other purposes)
-            self.tempSelectedIsland = island // Store the island locally for navigation
-            self.navigateToReviewPage = true
-        } label: {
-            islandRow(island: island)
-        }
+    // Helper to create the destination view for NavigationLink
+    private func destinationView(for island: PirateIsland) -> some View {
+        ViewReviewforIsland(
+            showReview: .constant(true),
+            selectedIsland: island,
+            navigationPath: $navigationPath
+        )
     }
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack(alignment: .leading) {
                 SearchHeader()
                 SearchBar(text: $viewModel.searchQuery)
-                    .onChange(of: viewModel.searchQuery) { _ in
+                    .onChange(of: viewModel.searchQuery) { _, _ in
                         viewModel.updateFilteredIslands(with: pirateIslands)
                     }
 
-                List(viewModel.searchQuery.isEmpty ? Array(pirateIslands) : viewModel.filteredIslands, id: \.self) { island in
-                    navigationLink(island: island)
+                // ---
+                // ✅ Fix: Simplify the List content using ForEach and the helper function
+                List {
+                    ForEach(viewModel.searchQuery.isEmpty ? Array(pirateIslands) : viewModel.filteredIslands, id: \.self) { island in
+                        NavigationLink(destination: destinationView(for: island)) {
+                            islandRowContent(island: island)
+                        }
+                    }
                 }
                 .frame(minHeight: 400, maxHeight: .infinity)
-                .listStyle(PlainListStyle())
-
-                // ✅ This is the hidden NavigationLink that drives the navigation
-                // Pass the tempSelectedIsland directly
-                NavigationLink(
-                    destination: ViewReviewforIsland(
-                        showReview: .constant(true),
-                        selectedIsland: tempSelectedIsland, // Pass the local state here
-                        enterZipCodeViewModel: enterZipCodeViewModel,
-                        authViewModel: authViewModel
-                    ),
-                    isActive: $navigateToReviewPage
-                ) {
-                    EmptyView()
-                }
-                .hidden()
+                .listStyle(.plain)
             }
             .navigationTitle(titleString)
             .alert(isPresented: $viewModel.showNoMatchAlert) {
@@ -92,19 +79,16 @@ struct ViewReviewSearch: View {
                 os_log("ViewReviewSearch appeared", log: OSLog.default, type: .info)
                 viewModel.updateFilteredIslands(with: pirateIslands)
             }
-            .onChange(of: selectedIsland) { newIsland in
-                // This onChange is primarily for logging what was selected outside this view
+            .onChange(of: selectedIsland) { _, newIsland in
                 if let islandName = newIsland?.islandName {
-                    os_log("Selected Island (from binding): %@", log: OSLog.default, type: .info, islandName)
+                    os_log("Selected Island (from binding in ViewReviewSearch): %@", log: OSLog.default, type: .info, islandName)
                 } else {
-                    os_log("Selected Island (from binding): nil", log: OSLog.default, type: .info)
+                    os_log("Selected Island (from binding in ViewReviewSearch): nil", log: OSLog.default, type: .info)
                 }
             }
         }
     }
 }
-
-
 
 class ViewReviewSearchViewModel: ObservableObject {
     @Published var searchQuery: String = ""
@@ -121,8 +105,8 @@ class ViewReviewSearchViewModel: ObservableObject {
             filteredIslands = Array(pirateIslands)
         } else {
             debounceTimer?.invalidate()
-            debounceTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { _ in
-                self.performFiltering(with: pirateIslands)
+            debounceTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { [weak self] _ in // Added [weak self]
+                self?.performFiltering(with: pirateIslands)
             }
         }
     }
@@ -141,7 +125,6 @@ class ViewReviewSearchViewModel: ObservableObject {
             }
         }
     }
-
     
     private func filterIslands(_ pirateIslands: FetchedResults<PirateIsland>, query: String) -> [PirateIsland] {
         pirateIslands.compactMap { island -> PirateIsland? in
@@ -157,67 +140,3 @@ class ViewReviewSearchViewModel: ObservableObject {
         }
     }
 }
-    
-/*
-// Preview
-struct ViewReviewSearch_Previews: PreviewProvider {
-    static var previews: some View {
-        let persistenceController = PersistenceController.preview
-        
-        let mockIsland1 = PirateIsland(context: persistenceController.container.viewContext)
-        mockIsland1.islandID = UUID()
-        mockIsland1.islandName = "Mock Island 1"
-        mockIsland1.islandLocation = "123 Main Street, Miami, FL"
-        mockIsland1.latitude = 25.7617
-        mockIsland1.longitude = -80.1918
-        mockIsland1.createdTimestamp = Date()
-
-        let mockIsland2 = PirateIsland(context: persistenceController.container.viewContext)
-        mockIsland2.islandID = UUID()
-        mockIsland2.islandName = "Mock Island 2"
-        mockIsland2.islandLocation = "456 Ocean Drive, Miami Beach, FL"
-        mockIsland2.latitude = 25.7917
-        mockIsland2.longitude = -80.1418
-        mockIsland2.createdTimestamp = Date()
-
-        do {
-            try persistenceController.container.viewContext.save()
-        } catch {
-            print("Failed to save context: \(error.localizedDescription)")
-        }
-
-        let mockRepository = AppDayOfWeekRepository(persistenceController: persistenceController)
-        let mockEnterZipCodeViewModel = EnterZipCodeViewModel(repository: mockRepository, persistenceController: persistenceController)
-        let authViewModel = AuthViewModel.shared // Provide the authViewModel instance
-
-        return Group {
-            ViewReviewSearch(
-                selectedIsland: .constant(mockIsland1),
-                titleString: "Read Gym Reviews2",
-                enterZipCodeViewModel: mockEnterZipCodeViewModel,
-                authViewModel: authViewModel
-            )
-            .previewLayout(.sizeThatFits)
-            .previewDisplayName("default")
-
-            ViewReviewSearch(
-                selectedIsland: .constant(nil),
-                titleString: "Read Gym Reviews3",
-                enterZipCodeViewModel: mockEnterZipCodeViewModel,
-                authViewModel: authViewModel
-            )
-            .previewLayout(.sizeThatFits)
-            .previewDisplayName("emptySearchQuery")
-
-            ViewReviewSearch(
-                selectedIsland: .constant(nil),
-                titleString: "Read Gym Reviews4",
-                enterZipCodeViewModel: mockEnterZipCodeViewModel,
-                authViewModel: authViewModel
-            )
-            .previewLayout(.sizeThatFits)
-            .previewDisplayName("noMatchesFound")
-        }
-    }
-}
-*/

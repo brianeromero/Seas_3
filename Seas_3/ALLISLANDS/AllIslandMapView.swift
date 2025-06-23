@@ -43,6 +43,9 @@ struct ConsolidatedIslandMapView: View {
     @State private var selectedAppDayOfWeek: AppDayOfWeek?
     @State private var selectedDay: DayOfWeek? = .monday
     @State private var fetchedLocation: CLLocation?
+    
+    @State private var navigationPath = NavigationPath()
+
 
     init(
         viewModel: AppDayOfWeekViewModel,
@@ -115,7 +118,8 @@ struct ConsolidatedIslandMapView: View {
                         selectedDay: $selectedDay,
                         showModal: $showModal,
                         enterZipCodeViewModel: enterZipCodeViewModel,
-                        selectedAppDayOfWeek: $selectedAppDayOfWeek
+                        selectedAppDayOfWeek: $selectedAppDayOfWeek,
+                        navigationPath: $navigationPath // ✅ Add this line
                     )
                     .frame(width: UIScreen.main.bounds.width * 0.8, height: UIScreen.main.bounds.height * 0.6)
                     // Use system background colors for modal background

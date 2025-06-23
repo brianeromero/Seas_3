@@ -16,6 +16,9 @@ struct DayOfWeekSearchView: View {
     @Binding var region: MKCoordinateRegion
     @Binding var searchResults: [PirateIsland]
     
+    @State private var navigationPath = NavigationPath()
+
+    
     @StateObject private var userLocationMapViewModel = UserLocationMapViewModel()
     
     // Create one shared EnterZipCodeViewModel instance
@@ -95,9 +98,11 @@ struct DayOfWeekSearchView: View {
                     selectedDay: $selectedDay,
                     showModal: $showModal,
                     enterZipCodeViewModel: enterZipCodeViewModel,
-                    selectedAppDayOfWeek: $selectedAppDayOfWeek
+                    selectedAppDayOfWeek: $selectedAppDayOfWeek,
+                    navigationPath: $navigationPath // <-- Add this
                 )
             }
+
             .onAppear {
                 print("DayOfWeekSearchView: onAppear triggered.")
                 setupInitialRegion()

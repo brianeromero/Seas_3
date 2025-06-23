@@ -109,6 +109,9 @@ struct CreateAccountView: View {
     @State private var localIsLoggedIn = false
 
     
+    @State private var navigationPath = NavigationPath()
+
+    
     let emailManager: UnifiedEmailManager
     
     init(
@@ -355,9 +358,11 @@ struct CreateAccountView: View {
                             profileViewModel: profileViewModel,
                             isSelected: .constant(LoginViewSelection(rawValue: selectedTabIndex) ?? .login),
                             navigateToAdminMenu: $authenticationState.navigateToAdminMenu,
-                            isLoggedIn: $localIsLoggedIn
+                            isLoggedIn: $localIsLoggedIn,
+                            navigationPath: $navigationPath // ✅ Add this line
                         )
                     }
+
                 }
                 .padding(.vertical) // Vertical padding for the VStack content
                 .background(Color(uiColor: .systemBackground)) // Ensure the background adapts

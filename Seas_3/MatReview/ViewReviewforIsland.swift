@@ -9,74 +9,105 @@ import SwiftUI
 import CoreData
 import os
 
-enum SortType: String, CaseIterable {
+enum SortType: String, CaseIterable, Identifiable {
     case latest = "Latest"
     case oldest = "Oldest"
     case stars = "Stars"
+
+    var id: String { self.rawValue }
 
     var sortKey: String {
         switch self {
         case .latest, .oldest:
             return "createdTimestamp"
         case .stars:
-            return "stars"
+            return "stars" // Using "stars" directly for the sort key, assuming this is the attribute name
         }
     }
 
     var ascending: Bool {
         switch self {
-        case .latest, .stars:
+        case .latest:
             return false
         case .oldest:
             return true
+        case .stars:
+            return false
+        }
+    }
+}
+
+
+// Define a type for your navigation destinations if they aren't already Identifiable
+// This can be an enum or a struct conforming to Hashable and Identifiable
+enum AppScreen: Hashable, Identifiable {
+    // For navigating to the review SUBMISSION screen (GymMatReviewView) for a specific island.
+    case review(PirateIsland)
+
+    // For navigating to the screen that SHOWS ALL REVIEWS for a specific island (ViewReviewforIsland).
+    case viewAllReviews(PirateIsland)
+
+    // For navigating to the screen where the user SELECTS a gym to review (GymMatReviewSelect).
+    case selectGymForReview
+
+    // The 'id' property is crucial for Identifiable conformance, used by NavigationLink
+    var id: String {
+        switch self {
+        case .review(let island): return "review-\(island.objectID.uriRepresentation().absoluteString)"
+        case .viewAllReviews(let island): return "viewAllReviews-\(island.objectID.uriRepresentation().absoluteString)"
+        case .selectGymForReview: return "selectGymForReview"
         }
     }
 }
 
 struct ViewReviewforIsland: View {
     @Environment(\.managedObjectContext) var viewContext
-    @State private var isReviewViewPresented = false
-    @Binding var showReview: Bool // Consider if this is still needed or can be removed
-    // Option 1 (Recommended): Receive the island value directly
-    // Make sure it's non-optional if a review page always requires an island.
-    var initialSelectedIsland: PirateIsland? // Changed from @Binding to var
+    @Binding var showReview: Bool
+    @Binding var navigationPath: NavigationPath
 
-    // Internal state for the currently displayed island, which can be changed by the picker
+    let selectedIsland: PirateIsland
+
     @State private var selectedIslandInternal: PirateIsland?
-
-    
     @State private var selectedSortType: SortType = .latest
-    @ObservedObject var enterZipCodeViewModel: EnterZipCodeViewModel
-    @ObservedObject var authViewModel: AuthViewModel
-
     @State private var filteredReviewsCache: [Review] = []
     @State private var averageRating: Double = 0.0
 
-    @FetchRequest(entity: PirateIsland.entity(), sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.islandName, ascending: true)])
+    @EnvironmentObject var enterZipCodeViewModel: EnterZipCodeViewModel
+    @EnvironmentObject var authViewModel: AuthViewModel
+
+    @FetchRequest(
+        entity: PirateIsland.entity(),
+        sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.islandName, ascending: true)]
+    )
     private var islands: FetchedResults<PirateIsland>
 
-    // Initialize with the provided island
-    init(showReview: Binding<Bool>, selectedIsland: PirateIsland?, enterZipCodeViewModel: EnterZipCodeViewModel, authViewModel: AuthViewModel) {
+    init(
+        showReview: Binding<Bool>,
+        selectedIsland: PirateIsland,
+        navigationPath: Binding<NavigationPath>
+    ) {
         self._showReview = showReview
-        self.initialSelectedIsland = selectedIsland // Assign to the new var
-        self.enterZipCodeViewModel = enterZipCodeViewModel
-        self.authViewModel = authViewModel
-        _selectedIslandInternal = State(initialValue: selectedIsland) // Initialize internal state
+        self.selectedIsland = selectedIsland
+        self._selectedIslandInternal = State(initialValue: selectedIsland)
+        self._navigationPath = navigationPath
+
+        os_log("ViewReviewforIsland INIT - selectedIslandInternal: %@", log: logger, type: .info, selectedIsland.islandName ?? "nil")
     }
-    
+
     var body: some View {
-        NavigationStack {
+        let _ = os_log("ViewReviewforIsland BODY rendered", log: logger, type: .debug)
+
+        NavigationStack(path: $navigationPath) {
             ScrollView {
                 VStack(alignment: .leading) {
-                    // Pass the internal state to IslandSection
                     IslandSection(
                         islands: Array(islands),
-                        selectedIsland: $selectedIslandInternal, // Use internal state
+                        selectedIsland: $selectedIslandInternal,
                         showReview: $showReview
                     )
                     .padding(.horizontal, 16)
 
-                    if selectedIslandInternal != nil { // Use the internal state
+                    if let island = selectedIslandInternal {
                         SortSection(selectedSortType: $selectedSortType)
                             .padding(.horizontal, 16)
 
@@ -87,9 +118,8 @@ struct ViewReviewforIsland: View {
 
                         if filteredReviews.isEmpty {
                             NoReviewsView(
-                                selectedIsland: $selectedIslandInternal, // Use internal state
-                                enterZipCodeViewModel: enterZipCodeViewModel,
-                                authViewModel: authViewModel
+                                selectedIsland: $selectedIslandInternal,
+                                path: $navigationPath
                             )
                         } else {
                             ReviewList(
@@ -97,18 +127,10 @@ struct ViewReviewforIsland: View {
                                 selectedSortType: $selectedSortType
                             )
 
-                            NavigationLink(destination: GymMatReviewView(
-                                localSelectedIsland: $selectedIslandInternal, // Use internal state
-                                enterZipCodeViewModel: enterZipCodeViewModel,
-                                authViewModel: authViewModel,
-                                onIslandChange: { _ in }
-                            )) {
-                                Text("Add My Own Review!")
-                                    .font(.headline)
-                                    .foregroundColor(.blue)
-                                    .underline()
-                                    .padding()
-                            }
+                            AddMyOwnReviewView(
+                                island: island,
+                                path: $navigationPath
+                            )
                         }
                     } else {
                         Text("Please select a gym to view reviews.")
@@ -119,32 +141,46 @@ struct ViewReviewforIsland: View {
             }
             .navigationTitle("Read Gym Reviews")
             .onAppear {
-                os_log("Read Gym Reviews page appeared", log: logger, type: .info)
-                os_log("ViewReviewforIsland - Selected Island: %@", selectedIslandInternal?.islandName ?? "nil")
-                // Load reviews for the initial island if available
-                Task {
-                    await loadReviews()
-                }
+                os_log("ViewReviewforIsland onAppear - island: %@", log: logger, type: .info, selectedIslandInternal?.islandName ?? "nil")
+
+                guard selectedIslandInternal != nil else { return }
+                Task { await loadReviews() }
             }
-            .onChange(of: selectedSortType) { _ in
-                Task {
-                    await loadReviews()
-                }
+            .onChange(of: selectedSortType) { _, _ in
+                Task { await loadReviews() }
             }
-            // IMPORTANT: This onChange should now observe `selectedIslandInternal`
-            .onChange(of: selectedIslandInternal) { _ in
-                Task {
-                    await loadReviews()
+            .onChange(of: selectedIslandInternal) { _, _ in
+                Task { await loadReviews() }
+            }
+            .navigationDestination(for: AppScreen.self) { screen in
+                switch screen {
+                case .review(let island):
+                    GymMatReviewView(
+                        localSelectedIsland: .constant(island),
+                        callerFile: #file,
+                        callerFunction: #function
+                    )
+
+                case .selectGymForReview:
+                    GymMatReviewSelect(
+                        selectedIsland: $selectedIslandInternal,
+                        enterZipCodeViewModel: enterZipCodeViewModel,
+                        authViewModel: authViewModel,
+                        navigationPath: $navigationPath
+                    )
+
+                case .viewAllReviews:
+                    // Prevent recursive self-navigation
+                    EmptyView()
                 }
             }
         }
     }
-    
-    // ✅ Computed property for filtered reviews
+
     var filteredReviews: [Review] {
-        return filteredReviewsCache
+        filteredReviewsCache
     }
-    
+
     private struct ReviewSummaryView: View {
         let averageRating: Double
         let reviewCount: Int
@@ -155,7 +191,7 @@ struct ViewReviewforIsland: View {
                     .font(.headline)
 
                 HStack {
-                    ForEach(Array(StarRating.getStars(for: averageRating).enumerated()), id: \.offset) { index, star in
+                    ForEach(Array(StarRating.getStars(for: averageRating).enumerated()), id: \.offset) { _, star in
                         Image(systemName: star)
                             .foregroundColor(.yellow)
                             .font(.system(size: 20))
@@ -163,21 +199,24 @@ struct ViewReviewforIsland: View {
                 }
                 .padding(.vertical, 4)
             }
+            .padding(.horizontal, 16)
         }
     }
-    
+
     private struct NoReviewsView: View {
         @Binding var selectedIsland: PirateIsland?
-        var enterZipCodeViewModel: EnterZipCodeViewModel
-        @ObservedObject var authViewModel: AuthViewModel
+        @Binding var path: NavigationPath
+
+        @EnvironmentObject var enterZipCodeViewModel: EnterZipCodeViewModel
+        @EnvironmentObject var authViewModel: AuthViewModel
 
         var body: some View {
-            NavigationLink(destination: GymMatReviewView(
-                localSelectedIsland: $selectedIsland,
-                enterZipCodeViewModel: enterZipCodeViewModel,
-                authViewModel: authViewModel,
-                onIslandChange: { _ in }
-            )) {
+            Button {
+                if let island = selectedIsland {
+                    os_log("Tapped 'No reviews available' button, appending AppScreen.review to path", log: logger, type: .info)
+                    path.append(AppScreen.review(island))
+                }
+            } label: {
                 Text("No reviews available. Be the first to write a review!")
                     .font(.headline)
                     .foregroundColor(.blue)
@@ -186,27 +225,45 @@ struct ViewReviewforIsland: View {
             }
         }
     }
+    
+    private struct AddMyOwnReviewView: View {
+        let island: PirateIsland
+        @Binding var path: NavigationPath
+
+        var body: some View {
+            VStack {
+                Button {
+                    path.append(AppScreen.review(island))
+                } label: {
+                    Text("Add My Own Review!")
+                        .font(.headline)
+                        .foregroundColor(.blue)
+                        .underline()
+                        .padding()
+                }
+                .buttonStyle(.plain)
+                .padding(.top)
+            }
+        }
+    }
 
 
-    // ✅ Extracted loading logic into a separate method
-    // ✅ Make loadReviews async
+
     private func loadReviews() async {
-        // 1. Use selectedIslandInternal instead of the old selectedIsland binding
-        guard let island = selectedIslandInternal else { // <--- FIX: Use selectedIslandInternal
-            // ✅ Use MainActor.run for state updates
+        guard let island = selectedIslandInternal else {
             await MainActor.run {
                 filteredReviewsCache = []
                 averageRating = 0.0
             }
+            os_log("ViewReviewforIsland: loadReviews called with nil island", log: logger, type: .info)
             return
         }
 
+        os_log("ViewReviewforIsland: Loading reviews for island: %@", log: logger, type: .info, island.islandName ?? "Unknown")
+
         do {
-            // Make sure the fetch request operates on the correct context.
-            // Using island.managedObjectContext is generally fine if the island
-            // itself is fetched from the main context or a child context.
             guard let context = island.managedObjectContext else {
-                os_log("Error: Managed object context not found for selected island.", log: logger, type: .error)
+                os_log("Error: Managed object context not found for selected island in loadReviews.", log: logger, type: .error)
                 await MainActor.run {
                     filteredReviewsCache = []
                     averageRating = 0.0
@@ -214,29 +271,30 @@ struct ViewReviewforIsland: View {
                 return
             }
 
-            // Perform Core Data fetch on the context's queue
-            // Ensure context.perform can actually throw errors from its closure
-            let fetchedReviews = try await context.perform { () throws -> [Review] in // <--- FIX: Explicitly mark closure as 'throws'
+            let fetchedReviews = try await context.perform {
                 let request = Review.fetchRequest() as! NSFetchRequest<Review>
-                request.predicate = NSPredicate(format: "island == %@", island) // Use the island object directly
+                request.predicate = NSPredicate(format: "island == %@", island)
                 request.sortDescriptors = [
                     NSSortDescriptor(key: selectedSortType.sortKey, ascending: selectedSortType.ascending)
                 ]
                 return try context.fetch(request)
             }
 
-            // ✅ Calculate average rating using the async static method from ReviewUtils
-            // This call should also be awaited.
-            let fetchedAvgRating = await ReviewUtils.fetchAverageRating(for: island, in: context, callerFunction: "ViewReviewforIsland.loadReviews")
+            let fetchedAvgRating = await ReviewUtils.fetchAverageRating(
+                for: island,
+                in: context,
+                callerFunction: "ViewReviewforIsland.loadReviews"
+            )
 
-            // ✅ Update @State properties on the MainActor
             await MainActor.run {
                 self.filteredReviewsCache = fetchedReviews
                 self.averageRating = Double(fetchedAvgRating)
             }
-        } catch { // The catch block should now be reachable
-            os_log("Failed to fetch reviews: %@", log: logger, type: .error, error.localizedDescription)
-            // ✅ Reset state on MainActor in case of error
+
+            os_log("ViewReviewforIsland: Updated reviews and average rating for island %@", log: logger, type: .info, island.islandName ?? "Unknown")
+
+        } catch {
+            os_log("ViewReviewforIsland: Failed to fetch reviews: %@", log: logger, type: .error, error.localizedDescription)
             await MainActor.run {
                 self.filteredReviewsCache = []
                 self.averageRating = 0.0
@@ -246,6 +304,7 @@ struct ViewReviewforIsland: View {
 }
 
 
+// MARK: - ReviewList
 
 struct ReviewList: View {
     var filteredReviews: [Review]
@@ -258,7 +317,7 @@ struct ReviewList: View {
                     ForEach(filteredReviews, id: \.reviewID) { review in
                         NavigationLink(destination: FullReviewView(review: review)) {
                             VStack(alignment: .leading, spacing: 8) {
-                                Text(review.review.prefix(100) + (review.review.count > 100 ? "..." : ""))
+                                Text(review.review)
                                     .font(.body)
                                     .lineLimit(2)
 
@@ -285,13 +344,13 @@ struct ReviewList: View {
                 }
                 .padding()
             } else {
-                Text("No reviews available. Be the first to write a review!")
+                Text("No reviews available.")
             }
         }
     }
 }
 
-
+// MARK: - SortSection
 
 struct SortSection: View {
     @Binding var selectedSortType: SortType
@@ -315,6 +374,8 @@ struct SortSection: View {
     }
 }
 
+// MARK: - FullReviewView
+
 struct FullReviewView: View {
     var review: Review
 
@@ -330,68 +391,17 @@ struct FullReviewView: View {
                         Image(systemName: "star.fill")
                             .foregroundColor(.yellow)
                     }
+
                     Spacer()
+
                     Text(review.createdTimestamp, style: .date)
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
                 .padding()
-
             }
         }
         .navigationTitle("Full Review")
         .navigationBarTitleDisplayMode(.inline)
     }
 }
-
-/*
-struct ViewReviewforIsland_Previews: PreviewProvider {
-    static var previews: some View {
-        IslandReviewPreview()
-    }
-}
-
-struct IslandReviewPreview: View {
-    @State private var selectedIsland: PirateIsland?
-    @State private var showReview: Bool = false
-
-    var body: some View {
-        let persistenceController = PersistenceController.preview
-        let context = persistenceController.container.viewContext
-
-        // Create and save a mock island
-        let mockIsland = PirateIsland(context: context)
-        mockIsland.islandName = "Mock Island"
-        mockIsland.islandLocation = "Mock Location"
-
-        // Create mock reviews
-        for i in 1...5 {
-            let mockReview = Review(context: context)
-            mockReview.review = "Review \(i): This is a sample review for the mock island."
-            mockReview.stars = Int16(i)
-            mockReview.createdTimestamp = Date().addingTimeInterval(TimeInterval(-i * 86400))
-            mockReview.island = mockIsland
-        }
-
-        try? context.save()
-
-        selectedIsland = mockIsland
-
-        let mockEnterZipViewModel = EnterZipCodeViewModel(
-            repository: AppDayOfWeekRepository.shared,
-            persistenceController: persistenceController
-        )
-
-        let mockAuthViewModel = AuthViewModel() // Replace with actual init if needed
-
-        return ScrollView {
-            ViewReviewforIsland(
-                showReview: $showReview,
-                selectedIsland: $selectedIsland,
-                enterZipCodeViewModel: mockEnterZipViewModel,
-                authViewModel: mockAuthViewModel
-            )
-        }
-    }
-}
-*/

@@ -31,7 +31,6 @@ struct SearchHeader: View {
 }
 
 
-
 struct SearchBar: View {
     @Binding var text: String
 
@@ -58,8 +57,6 @@ struct SearchBar: View {
     }
 }
 
-
-
 struct GrayPlaceholderTextField: View {
     private let placeholder: String
     @Binding private var text: String
@@ -81,7 +78,7 @@ struct GrayPlaceholderTextField: View {
                 .background(Color(.systemGray6))
                 .cornerRadius(8.0)
                 .textFieldStyle(PlainTextFieldStyle())
-                .onChange(of: text) { newText in
+                .onChange(of: text) { newText, _ in
                     os_log("Text changed: %@", log: logger, newText)
                 }
         }
@@ -90,6 +87,7 @@ struct GrayPlaceholderTextField: View {
         }
     }
 }
+
 
 class IslandListViewModel: ObservableObject {
     static let shared = IslandListViewModel(persistenceController: PersistenceController.shared)
@@ -107,12 +105,9 @@ class IslandListViewModel: ObservableObject {
     }
 }
 
-
-
 struct IslandListItem: View {
     let island: PirateIsland
     @Binding var selectedIsland: PirateIsland?
-
 
     var body: some View {
         os_log("Rendering IslandListItem for %@", log: logger, island.islandName ?? "Unknown")
@@ -136,6 +131,9 @@ struct IslandList: View {
     let authViewModel: AuthViewModel
     let onIslandChange: (PirateIsland?) -> Void
     @State private var showNavigationDestination = false
+    
+    // Add NavigationPath state here to pass to ViewReviewforIsland
+    @State private var navigationPath = NavigationPath()
 
     var filteredIslands: [PirateIsland] {
         if searchText.isEmpty {
@@ -162,17 +160,11 @@ struct IslandList: View {
         }
         .navigationTitle(title)
         .navigationDestination(isPresented: $showNavigationDestination) {
-            // No need for 'if let island = selectedIsland' here for passing to children,
-            // as 'selectedIsland' is already optional and children are expecting optional.
-            // If a child *requires* a non-optional island, then the 'if let' is needed for that specific child.
             switch self.navigationDestination {
             case .editExistingIsland:
-                // This case currently expects a non-optional `PirateIsland`
-                // Ensure 'island' is non-nil if this destination is chosen.
-                // Assuming `EditExistingIsland` takes a non-optional `PirateIsland`
-                if let island = selectedIsland { // Keep this if EditExistingIsland needs non-optional
+                if let island = selectedIsland {
                     EditExistingIsland(
-                        island: island, // Pass the non-optional VALUE
+                        island: island,
                         islandViewModel: PirateIslandViewModel(
                             persistenceController: PersistenceController.shared
                         ),
@@ -182,23 +174,21 @@ struct IslandList: View {
                         )
                     )
                 } else {
-                    EmptyView() // Or an error view
+                    EmptyView()
                 }
-
+                
             case .viewReviewForIsland:
+                // Pass the navigationPath binding here
                 ViewReviewforIsland(
                     showReview: .constant(true),
-                    selectedIsland: selectedIsland, // ✅ FIX: Pass the optional VALUE, not the binding
-                    enterZipCodeViewModel: enterZipCodeViewModel,
-                    authViewModel: authViewModel
+                    selectedIsland: selectedIsland!,
+                    navigationPath: $navigationPath
                 )
 
             case .review:
                 GymMatReviewView(
-                    localSelectedIsland: $selectedIsland, // This one still wants a Binding<PirateIsland?>
-                    enterZipCodeViewModel: enterZipCodeViewModel,
-                    authViewModel: authViewModel,
-                    onIslandChange: onIslandChange
+                    localSelectedIsland: $selectedIsland,
+                    //onIslandChange: onIslandChange
                 )
             }
         }
@@ -207,13 +197,16 @@ struct IslandList: View {
 
 struct ReviewDestinationView: View {
     @ObservedObject var viewModel: IslandListViewModel
-    let selectedIsland: PirateIsland? // <--- Keep as value if ViewReviewforIsland takes value
+    let selectedIsland: PirateIsland?
     @State private var showReview: Bool = false
     
-    init(viewModel: IslandListViewModel, selectedIsland: PirateIsland?) { // <--- And here in init
+    // Add NavigationPath here
+    @State private var navigationPath = NavigationPath()
+    
+    init(viewModel: IslandListViewModel, selectedIsland: PirateIsland?) {
         os_log("ReviewDestinationView initialized with island: %@", log: logger, selectedIsland?.islandName ?? "Unknown")
         self.viewModel = viewModel
-        self.selectedIsland = selectedIsland // Assign the value
+        self.selectedIsland = selectedIsland
     }
 
     var body: some View {
@@ -222,10 +215,8 @@ struct ReviewDestinationView: View {
             if let selectedIsland = selectedIsland {
                 ViewReviewforIsland(
                     showReview: $showReview,
-                    selectedIsland: selectedIsland, // <--- Pass the VALUE directly
-                    enterZipCodeViewModel: viewModel.enterZipCodeViewModel,
-                    // CHANGE THIS LINE:
-                    authViewModel: AuthViewModel.shared
+                    selectedIsland: selectedIsland,
+                    navigationPath: $navigationPath
                 )
             } else {
                 EmptyView()
@@ -241,30 +232,30 @@ enum DestinationView {
     case viewReviewForIsland
 }
 
-// New View for Selected Island
+
 struct SelectedIslandView: View {
-    let island: PirateIsland // This is the non-optional island that was passed to SelectedIslandView
-    @Binding var selectedIsland: PirateIsland? // This is the binding that came from parent (used for GymMatReviewView)
+    let island: PirateIsland
+    @Binding var selectedIsland: PirateIsland?
     var enterZipCodeViewModel: EnterZipCodeViewModel
     var onIslandChange: (PirateIsland?) -> Void
     var authViewModel: AuthViewModel
     var destinationView: DestinationView
+    
+    // Add navigationPath here
+    @State private var navigationPath = NavigationPath()
 
     var body: some View {
         switch destinationView {
         case .gymMatReview:
             GymMatReviewView(
-                localSelectedIsland: $selectedIsland, // Needs binding
-                enterZipCodeViewModel: enterZipCodeViewModel,
-                authViewModel: authViewModel,
-                onIslandChange: onIslandChange
+                localSelectedIsland: $selectedIsland,
+                //onIslandChange: onIslandChange
             )
         case .viewReviewForIsland:
             ViewReviewforIsland(
                 showReview: .constant(false),
-                selectedIsland: selectedIsland, // ✅ FIX: Pass the optional VALUE, not the binding
-                enterZipCodeViewModel: enterZipCodeViewModel,
-                authViewModel: authViewModel
+                selectedIsland: island,
+                navigationPath: $navigationPath
             )
         }
     }

@@ -61,12 +61,12 @@ struct AppRootView: View {
     @EnvironmentObject var pirateIslandViewModel: PirateIslandViewModel
     @EnvironmentObject var profileViewModel: ProfileViewModel
 
-    @Binding var selectedTabIndex: LoginViewSelection // Used by LoginView
-    @ObservedObject var appState: AppState // Only keep if AppState has other global, non-auth-related state
+    @Binding var selectedTabIndex: LoginViewSelection
+    @ObservedObject var appState: AppState
 
-    @State private var navigationPath = NavigationPath()
-    // If you need a temporary splash screen on app launch, use a @State for it.
-    @State private var showInitialSplash = true // Example for splash screen
+    @State private var navigationPath = NavigationPath() // This is your ONE TRUE NavigationPath
+
+    @State private var showInitialSplash = true
 
     var body: some View {
         NavigationStack(path: $navigationPath) {
@@ -90,9 +90,8 @@ struct AppRootView: View {
                         .onAppear { print("AppRootView: AdminMenu has appeared.") }
                 } else {
                     IslandMenu2(
-                        // REMOVE: isLoggedIn: $authenticationState.isLoggedIn,
-                        // REMOVE: authViewModel: authViewModel,
-                        profileViewModel: profileViewModel // KEEP THIS, as it's the only one expected by your init
+                        profileViewModel: profileViewModel,
+                        navigationPath: $navigationPath // ✅ Add this binding
                     )
                     .onAppear { print("AppRootView: IslandMenu has appeared.") }
                 }
@@ -104,8 +103,10 @@ struct AppRootView: View {
                     profileViewModel: profileViewModel,
                     isSelected: $selectedTabIndex,
                     navigateToAdminMenu: $authenticationState.navigateToAdminMenu,
-                    isLoggedIn: $authenticationState.isLoggedIn
+                    isLoggedIn: $authenticationState.isLoggedIn,
+                    navigationPath: $navigationPath  // <-- pass binding here
                 )
+
                 .onAppear { print("AppRootView: LoginView has appeared.") }
             }
         }

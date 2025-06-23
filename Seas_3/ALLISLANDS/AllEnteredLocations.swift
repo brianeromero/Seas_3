@@ -18,6 +18,9 @@ struct AllEnteredLocations: View {
 
     @StateObject private var enterZipCodeViewModel: EnterZipCodeViewModel
     @StateObject private var appDayOfWeekViewModel: AppDayOfWeekViewModel
+    
+    @State private var navigationPath = NavigationPath()
+
 
     init() {
         _viewModel = StateObject(wrappedValue: AllEnteredLocationsViewModel(
@@ -81,7 +84,8 @@ struct AllEnteredLocations: View {
                     selectedDay: $selectedDay,
                     showModal: $showModal,
                     enterZipCodeViewModel: enterZipCodeViewModel,
-                    selectedAppDayOfWeek: $selectedAppDayOfWeek
+                    selectedAppDayOfWeek: $selectedAppDayOfWeek,
+                    navigationPath: $navigationPath // ✅ Add this
                 )
             }
         }

@@ -19,6 +19,9 @@ struct IslandMapView: View {
     @ObservedObject var enterZipCodeViewModel: EnterZipCodeViewModel
     @Binding var region: MKCoordinateRegion
     @Binding var searchResults: [PirateIsland]
+    
+    @State private var navigationPath = NavigationPath()
+
 
     var body: some View {
         ZStack {
@@ -58,12 +61,13 @@ struct IslandMapView: View {
                     viewModel: viewModel,
                     selectedDay: $selectedDay,
                     showModal: $showModal,
-                    enterZipCodeViewModel: self.enterZipCodeViewModel
+                    enterZipCodeViewModel: self.enterZipCodeViewModel,
+                    navigationPath: $navigationPath // <-- Add this
                 )
             } else {
                 Text("No Gym Selected")
                     .padding()
-                    .foregroundColor(.primary) // Ensure this text also adapts
+                    .foregroundColor(.primary)
             }
         }
     }
