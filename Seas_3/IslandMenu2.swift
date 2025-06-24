@@ -451,10 +451,7 @@ struct IslandMenu2: View {
         case .submitReview:
             GymMatReviewSelect(
                 selectedIsland: $selectedIsland,
-                // If GymMatReviewSelect's init requires these, pass them
-                enterZipCodeViewModel: enterZipCodeViewModelForReviews,
-                authViewModel: authViewModel,
-                navigationPath: $navigationPath 
+                navigationPath: $navigationPath
             )
             .onAppear {
                 let userID = authViewModel.currentUserID ?? "Unknown"

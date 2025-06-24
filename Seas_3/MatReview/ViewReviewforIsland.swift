@@ -60,6 +60,7 @@ enum AppScreen: Hashable, Identifiable {
     }
 }
 
+
 struct ViewReviewforIsland: View {
     @Environment(\.managedObjectContext) var viewContext
     @Binding var showReview: Bool
@@ -95,86 +96,84 @@ struct ViewReviewforIsland: View {
     }
 
     var body: some View {
-        let _ = os_log("ViewReviewforIsland BODY rendered", log: logger, type: .debug)
-
         NavigationStack(path: $navigationPath) {
             ScrollView {
-                VStack(alignment: .leading) {
-                    IslandSection(
-                        islands: Array(islands),
-                        selectedIsland: $selectedIslandInternal,
-                        showReview: $showReview
-                    )
-                    .padding(.horizontal, 16)
-
-                    if let island = selectedIslandInternal {
-                        SortSection(selectedSortType: $selectedSortType)
-                            .padding(.horizontal, 16)
-
-                        ReviewSummaryView(
-                            averageRating: averageRating,
-                            reviewCount: filteredReviews.count
-                        )
-
-                        if filteredReviews.isEmpty {
-                            NoReviewsView(
-                                selectedIsland: $selectedIslandInternal,
-                                path: $navigationPath
-                            )
-                        } else {
-                            ReviewList(
-                                filteredReviews: filteredReviews,
-                                selectedSortType: $selectedSortType
-                            )
-
-                            AddMyOwnReviewView(
-                                island: island,
-                                path: $navigationPath
-                            )
-                        }
-                    } else {
-                        Text("Please select a gym to view reviews.")
-                            .padding()
-                    }
-                }
-                .padding()
+                mainContent
             }
             .navigationTitle("Read Gym Reviews")
-            .onAppear {
-                os_log("ViewReviewforIsland onAppear - island: %@", log: logger, type: .info, selectedIslandInternal?.islandName ?? "nil")
+            .onAppear(perform: handleOnAppear)
+            .onChange(of: selectedSortType) { _, _ in Task { await loadReviews() } }
+            .onChange(of: selectedIslandInternal) { _, _ in Task { await loadReviews() } }
+            .navigationDestination(for: AppScreen.self, destination: destinationView)
+        }
+    }
 
-                guard selectedIslandInternal != nil else { return }
-                Task { await loadReviews() }
-            }
-            .onChange(of: selectedSortType) { _, _ in
-                Task { await loadReviews() }
-            }
-            .onChange(of: selectedIslandInternal) { _, _ in
-                Task { await loadReviews() }
-            }
-            .navigationDestination(for: AppScreen.self) { screen in
-                switch screen {
-                case .review(let island):
-                    GymMatReviewView(
-                        localSelectedIsland: .constant(island),
-                        callerFile: #file,
-                        callerFunction: #function
-                    )
+    private var mainContent: some View {
+        VStack(alignment: .leading) {
+            IslandSection(
+                islands: Array(islands),
+                selectedIsland: $selectedIslandInternal,
+                showReview: $showReview
+            )
+            .padding(.horizontal, 16)
 
-                case .selectGymForReview:
-                    GymMatReviewSelect(
+            if let island = selectedIslandInternal {
+                SortSection(selectedSortType: $selectedSortType)
+                    .padding(.horizontal, 16)
+
+                ReviewSummaryView(
+                    averageRating: averageRating,
+                    reviewCount: filteredReviews.count
+                )
+
+                if filteredReviews.isEmpty {
+                    NoReviewsView(
                         selectedIsland: $selectedIslandInternal,
-                        enterZipCodeViewModel: enterZipCodeViewModel,
-                        authViewModel: authViewModel,
-                        navigationPath: $navigationPath
+                        path: $navigationPath
+                    )
+                } else {
+                    ReviewList(
+                        filteredReviews: filteredReviews,
+                        selectedSortType: $selectedSortType
                     )
 
-                case .viewAllReviews:
-                    // Prevent recursive self-navigation
-                    EmptyView()
+                    AddMyOwnReviewView(
+                        island: island,
+                        path: $navigationPath
+                    )
                 }
+            } else {
+                Text("Please select a gym to view reviews.")
+                    .padding()
             }
         }
+        .padding()
+    }
+
+    private func destinationView(for screen: AppScreen) -> some View {
+        switch screen {
+        case .review(let island):
+            return AnyView(GymMatReviewView(
+                localSelectedIsland: .constant(island),
+                callerFile: #file,
+                callerFunction: #function
+            ))
+
+        case .selectGymForReview:
+            return AnyView(GymMatReviewSelect(
+                selectedIsland: $selectedIslandInternal,
+                navigationPath: $navigationPath
+            ))
+
+        case .viewAllReviews:
+            return AnyView(EmptyView())
+        }
+    }
+
+    private func handleOnAppear() {
+        os_log("ViewReviewforIsland onAppear - island: %@", log: logger, type: .info, selectedIslandInternal?.islandName ?? "nil")
+        guard selectedIslandInternal != nil else { return }
+        Task { await loadReviews() }
     }
 
     var filteredReviews: [Review] {
@@ -225,7 +224,7 @@ struct ViewReviewforIsland: View {
             }
         }
     }
-    
+
     private struct AddMyOwnReviewView: View {
         let island: PirateIsland
         @Binding var path: NavigationPath
@@ -246,8 +245,6 @@ struct ViewReviewforIsland: View {
             }
         }
     }
-
-
 
     private func loadReviews() async {
         guard let island = selectedIslandInternal else {

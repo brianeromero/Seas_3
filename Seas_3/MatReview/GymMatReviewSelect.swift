@@ -8,102 +8,158 @@
 import Foundation
 import SwiftUI
 import CoreData
+import os.log // For logging, matching ViewReviewSearch
+
+
 
 struct GymMatReviewSelect: View {
     @Binding var selectedIsland: PirateIsland?
-    @State private var searchQuery: String = ""
-    @State private var filteredIslands: [PirateIsland] = []
-    @State private var showNoMatchAlert: Bool = false
-    @Environment(\.managedObjectContext) private var viewContext
-    var enterZipCodeViewModel: EnterZipCodeViewModel
-    @ObservedObject var authViewModel: AuthViewModel
+
+    @EnvironmentObject var enterZipCodeViewModel: EnterZipCodeViewModel
+    @EnvironmentObject var authViewModel: AuthViewModel
 
     @Binding var navigationPath: NavigationPath
 
-    // Move debounceTimer here!
-    @State private var debounceTimer: Timer? // <-- Keep this here
-
-    init(
-        selectedIsland: Binding<PirateIsland?>,
-        enterZipCodeViewModel: EnterZipCodeViewModel,
-        authViewModel: AuthViewModel,
-        navigationPath: Binding<NavigationPath>
-    ) {
-        _selectedIsland = selectedIsland
-        self.enterZipCodeViewModel = enterZipCodeViewModel
-        self.authViewModel = authViewModel
-        _navigationPath = navigationPath
-    }
+    @StateObject private var viewModel = GymMatReviewSelectViewModel()
 
     @FetchRequest(
         entity: PirateIsland.entity(),
         sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.islandName, ascending: true)]
     ) private var islands: FetchedResults<PirateIsland>
 
-    var body: some View {
-        Form {
-            Section(header: Text("Search by: gym name, zip code, or address/location")
-                            .font(.headline)
-                            .foregroundColor(.gray)) {
-                SearchBar(text: $searchQuery)
-                    .onChange(of: searchQuery) { // Updated onChange syntax
-                        updateFilteredIslands()
-                    }
-            }
+    init(
+        selectedIsland: Binding<PirateIsland?>,
+        navigationPath: Binding<NavigationPath>
+    ) {
+        _selectedIsland = selectedIsland
+        _navigationPath = navigationPath
+    }
 
-            List(filteredIslands, id: \.self) { island in
-                NavigationLink(value: AppScreen.review(island)) {
-                    VStack(alignment: .leading) {
-                        Text(island.islandName ?? "Unknown Gym")
-                            .font(.headline)
-                        Text(island.islandLocation ?? "")
-                            .foregroundColor(.secondary)
+    private func islandRowContent(island: PirateIsland) -> some View {
+        VStack(alignment: .leading) {
+            Text(island.islandName ?? "Unknown Gym")
+                .font(.headline)
+            Text(island.islandLocation ?? "")
+                .foregroundColor(.secondary)
+        }
+    }
+
+    var body: some View {
+        NavigationStack(path: $navigationPath) {
+            VStack(alignment: .leading) {
+                Text("Search by: gym name, zip code, or address/location")
+                    .font(.headline)
+                    .foregroundColor(.gray)
+                    .padding(.leading)
+                    .padding(.top, 8)
+
+                SearchBar(text: $viewModel.searchQuery)
+                    .onChange(of: viewModel.searchQuery) { _, _ in
+                        viewModel.updateFilteredIslands(with: islands)
+                    }
+
+                List {
+                    ForEach(viewModel.searchQuery.isEmpty ? Array(islands) : viewModel.filteredIslands, id: \.self) { island in
+                        NavigationLink(value: AppScreen.review(island)) {
+                            islandRowContent(island: island)
+                        }
                     }
                 }
+                .frame(minHeight: 400, maxHeight: .infinity)
+                .listStyle(.plain)
             }
-            .frame(minHeight: 400, maxHeight: .infinity)
-            .listStyle(PlainListStyle())
             .navigationTitle("Select Gym to Review")
-            .alert(isPresented: $showNoMatchAlert) {
+            .alert(isPresented: $viewModel.showNoMatchAlert) {
                 Alert(
                     title: Text("No Match Found"),
                     message: Text("No gyms match your search criteria."),
                     dismissButton: .default(Text("OK"))
                 )
             }
+            .onAppear {
+                os_log("GymMatReviewSelect appeared", log: OSLog.default, type: .info)
+                viewModel.updateFilteredIslands(with: islands)
+            }
+            .onChange(of: selectedIsland) { _, newIsland in
+                if let islandName = newIsland?.islandName {
+                    os_log("Selected Island (from binding in GymMatReviewSelect): %@", log: OSLog.default, type: .info, islandName)
+                } else {
+                    os_log("Selected Island (from binding in GymMatReviewSelect): nil", log: OSLog.default, type: .info)
+                }
+            }
+            // ✅ Add this navigationDestination modifier here!
+            .navigationDestination(for: AppScreen.self) { screen in
+                switch screen {
+                case .review(let island):
+                    // This is the actual view that will be pushed when AppScreen.review(island) is selected
+                    // Make sure 'ViewReviewforIsland' or whatever your review detail view is, is correctly imported and available.
+                    ViewReviewforIsland(
+                        // Adjust these bindings/parameters as per your ViewReviewforIsland's init requirements
+                        showReview: .constant(true), // Assuming it takes a binding or you can make it a regular var
+                        selectedIsland: island,
+                        navigationPath: $navigationPath
+                    )
+                case .selectGymForReview:
+                    // This case is typically not handled by itself if you navigate *to* selectGymForReview.
+                    // If you navigate *from* here, it would be handled in the parent's NavigationStack.
+                    // For now, it's safer to have a fallback or ensure this path isn't reached this way.
+                    Text("Selecting Gym For Review (Already in this view)")
+                case .viewAllReviews:
+                    Text("View All Reviews Placeholder") // Replace with your actual ViewAllReviews view
+                }
+            }
         }
-        .onAppear {
-            updateFilteredIslands()
-        }
-        // No handleIslandChange function here.
     }
+}
 
-    private func updateFilteredIslands() {
-        // Now `self.debounce` will correctly refer to the method below
-        // which has access to `self.debounceTimer`
-        self.debounce(0.5) {
-            self.performFiltering()
-        }
-    }
+// MARK: - GymMatReviewSelectViewModel (No changes needed here)
 
-    private func performFiltering() {
-        let lowercasedQuery = searchQuery.lowercased()
+class GymMatReviewSelectViewModel: ObservableObject {
+    @Published var searchQuery: String = ""
+    @Published var filteredIslands: [PirateIsland] = []
+    @Published var showNoMatchAlert: Bool = false
+    @Published var isLoading: Bool = false
 
-        if !searchQuery.isEmpty {
-            let predicate = NSPredicate(format: "islandName CONTAINS[c] %@ OR islandLocation CONTAINS[c] %@ OR gymWebsite.absoluteString CONTAINS[c] %@", lowercasedQuery, lowercasedQuery, lowercasedQuery)
-            filteredIslands = islands.filter { predicate.evaluate(with: $0) }
+    private var debounceTimer: Timer?
+
+    func updateFilteredIslands(with pirateIslands: FetchedResults<PirateIsland>) {
+        if searchQuery.isEmpty {
+            filteredIslands = Array(pirateIslands)
+            showNoMatchAlert = false
         } else {
-            filteredIslands = Array(islands)
+            debounceTimer?.invalidate()
+            debounceTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { [weak self] _ in
+                self?.performFiltering(with: pirateIslands)
+            }
         }
-
-        showNoMatchAlert = filteredIslands.isEmpty && !searchQuery.isEmpty
     }
 
-    // Move the debounce function here, inside the struct
-    func debounce(_ interval: TimeInterval, action: @escaping () -> Void) {
-        debounceTimer?.invalidate()
-        debounceTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: false) { _ in
-            action()
+    private func performFiltering(with pirateIslands: FetchedResults<PirateIsland>) {
+        isLoading = true
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            let lowercasedQuery = self.searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            let filteredIslands = self.filterIslands(pirateIslands, query: lowercasedQuery)
+
+            DispatchQueue.main.async {
+                self.filteredIslands = filteredIslands
+                self.showNoMatchAlert = !self.searchQuery.isEmpty && self.filteredIslands.isEmpty
+                self.isLoading = false
+            }
+        }
+    }
+
+    private func filterIslands(_ pirateIslands: FetchedResults<PirateIsland>, query: String) -> [PirateIsland] {
+        pirateIslands.compactMap { island -> PirateIsland? in
+            guard let islandName = island.islandName?.lowercased(),
+                  let islandLocation = island.islandLocation?.lowercased() else {
+                return nil
+            }
+
+            let nameMatch = islandName.contains(query)
+            let locationMatch = islandLocation.contains(query)
+
+            return nameMatch || locationMatch ? island : nil
         }
     }
 }

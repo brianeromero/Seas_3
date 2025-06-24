@@ -395,9 +395,7 @@ struct IslandMenu: View {
             return AnyView(
                 GymMatReviewSelect(
                     selectedIsland: $selectedIsland,
-                    enterZipCodeViewModel: enterZipCodeViewModelForReviews,
-                    authViewModel: authViewModel,
-                    navigationPath: $navigationPath 
+                    navigationPath: $navigationPath
                 )
                 .onAppear {
                     let userID = authViewModel.currentUserID ?? "Unknown"
@@ -410,6 +408,7 @@ struct IslandMenu: View {
                     )
                 }
             )
+            
         case .faqDisclaimer:
             return AnyView(
                 FAQnDisclaimerMenuView()
