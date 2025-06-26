@@ -65,7 +65,7 @@ public enum StarRating: Int, CaseIterable {
 struct ReviewSection: View {
     @Binding var reviewText: String
     @Binding var isReviewValid: Bool
-    @Binding var selectedRating: StarRating
+    @Binding var selectedRating: StarRating // Assuming StarRating is an Enum or similar
 
     let textEditorHeight: CGFloat = 150
     let cornerRadius: CGFloat = 8
@@ -79,7 +79,8 @@ struct ReviewSection: View {
                     RoundedRectangle(cornerRadius: cornerRadius)
                         .stroke(Color.gray.opacity(0.6), lineWidth: 1) // Use adaptive gray with opacity
                 )
-                .onChange(of: reviewText) { _ in
+                // FIX: Updated onChange to the new iOS 17+ syntax
+                .onChange(of: reviewText) { _, _ in // Using two parameters: old and new values. We don't use them, so _ is fine.
                     // Check conditions and update isReviewValid accordingly
                     if selectedRating == .zero {
                         isReviewValid = reviewText.count >= 150
@@ -113,13 +114,14 @@ struct ReviewSection: View {
                     .foregroundColor(.red)
             }
 
+            // This validation message needs to be carefully managed based on your isReviewValid logic.
+            // It might flicker if isReviewValid changes rapidly.
             Text(isReviewValid ? "" : "Please enter a review")
                 .font(.caption)
                 .foregroundColor(.red)
         }
     }
 }
-
 
 // Reusable components for rating section
 struct RatingSection: View {
@@ -286,11 +288,19 @@ struct GymMatReviewView: View {
         .navigationTitle("Add Gym Review")
         .onAppear {
             os_log("GymMatReviewView ON APPEAR for island: %@", log: logger, type: .info, localSelectedIsland?.islandName ?? "nil")
+            print("🟢 GymMatReviewView ON APPEAR for island: \(localSelectedIsland?.islandName ?? "nil")")
+            
+
         }
         .onDisappear {
             os_log("GymMatReviewView ON DISAPPEAR - localSelectedIsland: %@", log: logger, type: .info, localSelectedIsland?.islandName ?? "nil")
+            print("🔴 GymMatReviewView ON DISAPPEAR - localSelectedIsland: \(localSelectedIsland?.islandName ?? "nil")")
+
         }
         .task(id: localSelectedIsland?.objectID) {
+            print("📘 GymMatReviewView .task started. Island: \(localSelectedIsland?.islandName ?? "nil")")
+
+            
             guard let island = localSelectedIsland else {
                 os_log("GymMatReviewView .task: localSelectedIsland is nil, returning.", log: logger, type: .info)
                 return

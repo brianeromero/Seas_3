@@ -9,6 +9,116 @@ import SwiftUI
 import CoreData
 import os
 
+
+
+enum AppScreen: Hashable, Identifiable, Codable {
+    case review(String)
+    case viewAllReviews(String)
+    case selectGymForReview
+    case searchReviews
+
+    // ✅ Add these new cases to support the full IslandMenu2 menu:
+    case profile
+    case allLocations
+    case currentLocation
+    case postalCode
+    case dayOfWeek
+    case addNewGym
+    case updateExistingGyms
+    case addOrEditScheduleOpenMat
+    case faqDisclaimer
+
+    var id: String {
+        switch self {
+        case .review(let id): return "review-\(id)"
+        case .viewAllReviews(let id): return "viewAllReviews-\(id)"
+        case .selectGymForReview: return "selectGymForReview"
+        case .searchReviews: return "searchReviews"
+        case .profile: return "profile"
+        case .allLocations: return "allLocations"
+        case .currentLocation: return "currentLocation"
+        case .postalCode: return "postalCode"
+        case .dayOfWeek: return "dayOfWeek"
+        case .addNewGym: return "addNewGym"
+        case .updateExistingGyms: return "updateExistingGyms"
+        case .addOrEditScheduleOpenMat: return "addOrEditScheduleOpenMat"
+        case .faqDisclaimer: return "faqDisclaimer"
+        }
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case review, viewAllReviews, selectGymForReview, searchReviews
+        case profile, allLocations, currentLocation, postalCode, dayOfWeek
+        case addNewGym, updateExistingGyms, addOrEditScheduleOpenMat, faqDisclaimer
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        if let id = try container.decodeIfPresent(String.self, forKey: .review) {
+            self = .review(id)
+        } else if let id = try container.decodeIfPresent(String.self, forKey: .viewAllReviews) {
+            self = .viewAllReviews(id)
+        } else if container.contains(.selectGymForReview) {
+            self = .selectGymForReview
+        } else if container.contains(.searchReviews) {
+            self = .searchReviews
+        } else if container.contains(.profile) {
+            self = .profile
+        } else if container.contains(.allLocations) {
+            self = .allLocations
+        } else if container.contains(.currentLocation) {
+            self = .currentLocation
+        } else if container.contains(.postalCode) {
+            self = .postalCode
+        } else if container.contains(.dayOfWeek) {
+            self = .dayOfWeek
+        } else if container.contains(.addNewGym) {
+            self = .addNewGym
+        } else if container.contains(.updateExistingGyms) {
+            self = .updateExistingGyms
+        } else if container.contains(.addOrEditScheduleOpenMat) {
+            self = .addOrEditScheduleOpenMat
+        } else if container.contains(.faqDisclaimer) {
+            self = .faqDisclaimer
+        } else {
+            throw DecodingError.dataCorruptedError(forKey: .review, in: container, debugDescription: "Unknown AppScreen case")
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case .review(let id):
+            try container.encode(id, forKey: .review)
+        case .viewAllReviews(let id):
+            try container.encode(id, forKey: .viewAllReviews)
+        case .selectGymForReview:
+            try container.encodeNil(forKey: .selectGymForReview)
+        case .searchReviews:
+            try container.encodeNil(forKey: .searchReviews)
+        case .profile:
+            try container.encodeNil(forKey: .profile)
+        case .allLocations:
+            try container.encodeNil(forKey: .allLocations)
+        case .currentLocation:
+            try container.encodeNil(forKey: .currentLocation)
+        case .postalCode:
+            try container.encodeNil(forKey: .postalCode)
+        case .dayOfWeek:
+            try container.encodeNil(forKey: .dayOfWeek)
+        case .addNewGym:
+            try container.encodeNil(forKey: .addNewGym)
+        case .updateExistingGyms:
+            try container.encodeNil(forKey: .updateExistingGyms)
+        case .addOrEditScheduleOpenMat:
+            try container.encodeNil(forKey: .addOrEditScheduleOpenMat)
+        case .faqDisclaimer:
+            try container.encodeNil(forKey: .faqDisclaimer)
+        }
+    }
+}
+
+
 enum SortType: String, CaseIterable, Identifiable {
     case latest = "Latest"
     case oldest = "Oldest"
@@ -38,30 +148,9 @@ enum SortType: String, CaseIterable, Identifiable {
 }
 
 
-// Define a type for your navigation destinations if they aren't already Identifiable
-// This can be an enum or a struct conforming to Hashable and Identifiable
-enum AppScreen: Hashable, Identifiable {
-    // For navigating to the review SUBMISSION screen (GymMatReviewView) for a specific island.
-    case review(PirateIsland)
-
-    // For navigating to the screen that SHOWS ALL REVIEWS for a specific island (ViewReviewforIsland).
-    case viewAllReviews(PirateIsland)
-
-    // For navigating to the screen where the user SELECTS a gym to review (GymMatReviewSelect).
-    case selectGymForReview
-
-    // The 'id' property is crucial for Identifiable conformance, used by NavigationLink
-    var id: String {
-        switch self {
-        case .review(let island): return "review-\(island.objectID.uriRepresentation().absoluteString)"
-        case .viewAllReviews(let island): return "viewAllReviews-\(island.objectID.uriRepresentation().absoluteString)"
-        case .selectGymForReview: return "selectGymForReview"
-        }
-    }
-}
-
 
 struct ViewReviewforIsland: View {
+    
     @Environment(\.managedObjectContext) var viewContext
     @Binding var showReview: Bool
     @Binding var navigationPath: NavigationPath
@@ -96,17 +185,20 @@ struct ViewReviewforIsland: View {
     }
 
     var body: some View {
-        NavigationStack(path: $navigationPath) {
-            ScrollView {
-                mainContent
-            }
-            .navigationTitle("Read Gym Reviews")
-            .onAppear(perform: handleOnAppear)
-            .onChange(of: selectedSortType) { _, _ in Task { await loadReviews() } }
-            .onChange(of: selectedIslandInternal) { _, _ in Task { await loadReviews() } }
-            .navigationDestination(for: AppScreen.self, destination: destinationView)
+        ScrollView {
+            mainContent
+        }
+        .navigationTitle("Read Gym Reviews")
+        .onAppear(perform: handleOnAppear)
+        .onChange(of: selectedSortType) { _, _ in Task { await loadReviews() } }
+        .onChange(of: selectedIslandInternal) { _, _ in Task { await loadReviews() } }
+
+        // ✅ Reintroduce this here
+        .navigationDestination(for: AppScreen.self) { screen in
+            destinationView(for: screen)
         }
     }
+
 
     private var mainContent: some View {
         VStack(alignment: .leading) {
@@ -152,12 +244,28 @@ struct ViewReviewforIsland: View {
 
     private func destinationView(for screen: AppScreen) -> some View {
         switch screen {
-        case .review(let island):
-            return AnyView(GymMatReviewView(
-                localSelectedIsland: .constant(island),
-                callerFile: #file,
-                callerFunction: #function
-            ))
+        case .review(let islandIDString):
+            os_log("Navigating to GymMatReviewView for islandID: %@", log: logger, type: .info, islandIDString)
+
+            guard let url = URL(string: islandIDString),
+                  let objectID = viewContext.persistentStoreCoordinator?.managedObjectID(forURIRepresentation: url) else {
+                return AnyView(Text("Error: Invalid Island ID for review."))
+            }
+
+            do {
+                let island = try viewContext.existingObject(with: objectID) as? PirateIsland
+                if let island = island {
+                    return AnyView(GymMatReviewView(
+                        localSelectedIsland: .constant(island),
+                        callerFile: #file,
+                        callerFunction: #function
+                    ))
+                } else {
+                    return AnyView(Text("Error: Island not found for review."))
+                }
+            } catch {
+                return AnyView(Text("Error fetching island: \(error.localizedDescription)"))
+            }
 
         case .selectGymForReview:
             return AnyView(GymMatReviewSelect(
@@ -165,10 +273,40 @@ struct ViewReviewforIsland: View {
                 navigationPath: $navigationPath
             ))
 
-        case .viewAllReviews:
-            return AnyView(EmptyView())
+        case .viewAllReviews(let islandIDString):
+            os_log("Navigating to ViewReviewforIsland for islandID: %@", log: logger, type: .info, islandIDString)
+
+            guard let url = URL(string: islandIDString),
+                  let objectID = viewContext.persistentStoreCoordinator?.managedObjectID(forURIRepresentation: url) else {
+                return AnyView(Text("Error: Invalid Island ID for all reviews."))
+            }
+
+            do {
+                let island = try viewContext.existingObject(with: objectID) as? PirateIsland
+                if let island = island {
+                    return AnyView(ViewReviewforIsland(
+                        showReview: .constant(true),
+                        selectedIsland: island,
+                        navigationPath: $navigationPath
+                    ))
+                } else {
+                    return AnyView(Text("Error: Island not found for all reviews."))
+                }
+            } catch {
+                return AnyView(Text("Error fetching island: \(error.localizedDescription)"))
+            }
+
+        case .searchReviews:
+            return AnyView(ViewReviewSearch(selectedIsland: $selectedIslandInternal, titleString: "Search Gym Reviews", navigationPath: $navigationPath))
+
+        // --- Handle all other cases here with a default placeholder ---
+        case .profile, .allLocations, .currentLocation, .postalCode, .dayOfWeek,
+             .addNewGym, .updateExistingGyms, .addOrEditScheduleOpenMat, .faqDisclaimer:
+            return AnyView(Text("Navigation to \(screen.id) is not handled in ViewReviewforIsland."))
+
         }
     }
+
 
     private func handleOnAppear() {
         os_log("ViewReviewforIsland onAppear - island: %@", log: logger, type: .info, selectedIslandInternal?.islandName ?? "nil")
@@ -206,14 +344,16 @@ struct ViewReviewforIsland: View {
         @Binding var selectedIsland: PirateIsland?
         @Binding var path: NavigationPath
 
-        @EnvironmentObject var enterZipCodeViewModel: EnterZipCodeViewModel
+        // Make sure this matches your top-level environment object type
+        @EnvironmentObject var enterZipCodeViewModel: AllEnteredLocationsViewModel // Changed to AllEnteredLocationsViewModel
         @EnvironmentObject var authViewModel: AuthViewModel
 
         var body: some View {
             Button {
                 if let island = selectedIsland {
                     os_log("Tapped 'No reviews available' button, appending AppScreen.review to path", log: logger, type: .info)
-                    path.append(AppScreen.review(island))
+                    // FIX: Pass the objectID's URI string, not the PirateIsland object
+                    path.append(AppScreen.review(island.objectID.uriRepresentation().absoluteString))
                 }
             } label: {
                 Text("No reviews available. Be the first to write a review!")
@@ -226,13 +366,17 @@ struct ViewReviewforIsland: View {
     }
 
     private struct AddMyOwnReviewView: View {
-        let island: PirateIsland
+        // The `island` property now needs to be `PirateIsland` itself for its content.
+        // However, when pushing to AppScreen, you'll use its ID.
+        let island: PirateIsland // This is correct if you need the actual object here
         @Binding var path: NavigationPath
 
         var body: some View {
             VStack {
                 Button {
-                    path.append(AppScreen.review(island))
+                    os_log("✅ AddMyOwnReviewView: Tapped button to navigate to review screen for island: %@", log: logger, type: .info, island.islandName ?? "nil")
+                    // Fix: Pass the objectID URI string, not the PirateIsland object
+                    path.append(AppScreen.review(island.objectID.uriRepresentation().absoluteString))
                 } label: {
                     Text("Add My Own Review!")
                         .font(.headline)
@@ -240,8 +384,6 @@ struct ViewReviewforIsland: View {
                         .underline()
                         .padding()
                 }
-                .buttonStyle(.plain)
-                .padding(.top)
             }
         }
     }

@@ -374,10 +374,8 @@ struct IslandMenu: View {
             return AnyView(
                 ViewReviewSearch(
                     selectedIsland: $selectedIsland,
-                    titleString: "Read Gym Reviews"
-                    // enterZipCodeViewModel and authViewModel are now @EnvironmentObject in ViewReviewSearch, so remove direct parameters
-                    // enterZipCodeViewModel: enterZipCodeViewModelForReviews, // REMOVED
-                    // authViewModel: authViewModel // REMOVED
+                    titleString: "Read Gym Reviews",
+                    navigationPath: $navigationPath // <--- PASS THE BINDING HERE!
                 )
                 .onAppear {
                     let userID = authViewModel.currentUserID ?? "Unknown"

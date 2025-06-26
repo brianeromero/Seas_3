@@ -211,7 +211,7 @@ struct IslandModalView: View {
             }
         }
     }
-
+    
     private var reviewsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             if !currentReviews.isEmpty {
@@ -223,31 +223,32 @@ struct IslandModalView: View {
                         .foregroundColor(.primary)
                 }
 
-                // Updated "View Reviews" NavigationLink to go to ViewReviewforIsland
-                // This assumes AppScreen.viewAllReviews(island) will be handled by navigationDestination
-                // to present ViewReviewforIsland
-                NavigationLink(value: AppScreen.viewAllReviews(selectedIsland!)) { // NEW: Dedicated case for View Reviews
-                    Text("View All Reviews") // Clearer text
-                        .font(.headline) // Make it look like a button/link
+                // Fix for "Cannot convert value of type 'PirateIsland' to expected argument type 'String'"
+                // You need to pass the objectID.uriRepresentation().absoluteString
+                NavigationLink(value: AppScreen.viewAllReviews(selectedIsland!.objectID.uriRepresentation().absoluteString)) {
+                    Text("View All Reviews")
+                        .font(.headline)
                         .foregroundColor(.accentColor)
                 }
-                .buttonStyle(.plain) // Apply plain style if you want text-like link
+                .buttonStyle(.plain)
 
             } else {
                 Text("No reviews available.")
                     .foregroundColor(.secondary)
 
-                // "Be the first to write a review!" -> goes to GymMatReviewView (to ADD review)
-                // This is correct if AppScreen.review(island) leads to GymMatReviewView
-                NavigationLink(value: AppScreen.review(selectedIsland!)) {
+                // Fix for "Cannot find 'island' in scope"
+                // You should be using `selectedIsland` here.
+                // Also ensure it's safely unwrapped or checked, although `!` is used here
+                // assuming `selectedIsland` won't be nil in this context.
+                NavigationLink(value: AppScreen.review(selectedIsland!.objectID.uriRepresentation().absoluteString)) {
                     HStack {
                         Text("Be the first to write a review!")
                         Image(systemName: "pencil.and.ellipsis.rectangle")
                     }
-                    .font(.headline) // Make it look like a button/link
+                    .font(.headline)
                     .foregroundColor(.accentColor)
                 }
-                .buttonStyle(.plain) // Apply plain style if you want text-like link
+                .buttonStyle(.plain)
             }
         }
         .padding(.top, 20)

@@ -10,12 +10,12 @@ import SwiftUI
 import CoreData
 import os.log // For logging, matching ViewReviewSearch
 
-
-
 struct GymMatReviewSelect: View {
     @Binding var selectedIsland: PirateIsland?
 
-    @EnvironmentObject var enterZipCodeViewModel: EnterZipCodeViewModel
+    @Environment(\.managedObjectContext) private var viewContext
+    // Ensure this matches the type passed from AppRootView
+    @EnvironmentObject var enterZipCodeViewModel: AllEnteredLocationsViewModel // Changed to AllEnteredLocationsViewModel
     @EnvironmentObject var authViewModel: AuthViewModel
 
     @Binding var navigationPath: NavigationPath
@@ -35,6 +35,14 @@ struct GymMatReviewSelect: View {
         _navigationPath = navigationPath
     }
 
+    private var displayedIslands: [PirateIsland] {
+        if viewModel.searchQuery.isEmpty {
+            return Array(islands)
+        } else {
+            return viewModel.filteredIslands
+        }
+    }
+
     private func islandRowContent(island: PirateIsland) -> some View {
         VStack(alignment: .leading) {
             Text(island.islandName ?? "Unknown Gym")
@@ -44,71 +52,95 @@ struct GymMatReviewSelect: View {
         }
     }
 
-    var body: some View {
-        NavigationStack(path: $navigationPath) {
-            VStack(alignment: .leading) {
-                Text("Search by: gym name, zip code, or address/location")
-                    .font(.headline)
-                    .foregroundColor(.gray)
-                    .padding(.leading)
-                    .padding(.top, 8)
+    // MARK: - REMOVE Helper for Navigation Destinations
+    // You no longer need `destinationView` here, as AppRootDestinationView handles all AppScreen types.
+    /*
+    @ViewBuilder
+    private func destinationView(for screen: AppScreen) -> some View {
+        switch screen {
+        case .review(let island):
+            GymMatReviewView(localSelectedIsland: .constant(island))
+                .environmentObject(authViewModel)
+                .environmentObject(enterZipCodeViewModel)
+                .environment(\.managedObjectContext, viewContext)
 
-                SearchBar(text: $viewModel.searchQuery)
-                    .onChange(of: viewModel.searchQuery) { _, _ in
-                        viewModel.updateFilteredIslands(with: islands)
-                    }
+        case .viewAllReviews(let island):
+            ViewReviewforIsland(
+                showReview: .constant(true),
+                selectedIsland: island,
+                navigationPath: $navigationPath
+            )
+            .environmentObject(authViewModel)
+            .environmentObject(enterZipCodeViewModel)
+            .environment(\.managedObjectContext, viewContext)
 
-                List {
-                    ForEach(viewModel.searchQuery.isEmpty ? Array(islands) : viewModel.filteredIslands, id: \.self) { island in
-                        NavigationLink(value: AppScreen.review(island)) {
-                            islandRowContent(island: island)
-                        }
-                    }
-                }
-                .frame(minHeight: 400, maxHeight: .infinity)
-                .listStyle(.plain)
-            }
-            .navigationTitle("Select Gym to Review")
-            .alert(isPresented: $viewModel.showNoMatchAlert) {
-                Alert(
-                    title: Text("No Match Found"),
-                    message: Text("No gyms match your search criteria."),
-                    dismissButton: .default(Text("OK"))
-                )
-            }
-            .onAppear {
-                os_log("GymMatReviewSelect appeared", log: OSLog.default, type: .info)
-                viewModel.updateFilteredIslands(with: islands)
-            }
-            .onChange(of: selectedIsland) { _, newIsland in
-                if let islandName = newIsland?.islandName {
-                    os_log("Selected Island (from binding in GymMatReviewSelect): %@", log: OSLog.default, type: .info, islandName)
-                } else {
-                    os_log("Selected Island (from binding in GymMatReviewSelect): nil", log: OSLog.default, type: .info)
-                }
-            }
-            // ✅ Add this navigationDestination modifier here!
-            .navigationDestination(for: AppScreen.self) { screen in
-                switch screen {
-                case .review(let island):
-                    // This is the actual view that will be pushed when AppScreen.review(island) is selected
-                    // Make sure 'ViewReviewforIsland' or whatever your review detail view is, is correctly imported and available.
-                    ViewReviewforIsland(
-                        // Adjust these bindings/parameters as per your ViewReviewforIsland's init requirements
-                        showReview: .constant(true), // Assuming it takes a binding or you can make it a regular var
-                        selectedIsland: island,
-                        navigationPath: $navigationPath
-                    )
-                case .selectGymForReview:
-                    // This case is typically not handled by itself if you navigate *to* selectGymForReview.
-                    // If you navigate *from* here, it would be handled in the parent's NavigationStack.
-                    // For now, it's safer to have a fallback or ensure this path isn't reached this way.
-                    Text("Selecting Gym For Review (Already in this view)")
-                case .viewAllReviews:
-                    Text("View All Reviews Placeholder") // Replace with your actual ViewAllReviews view
-                }
-            }
+        case .selectGymForReview:
+            // This case is problematic if it tries to push itself.
+            // If you need to return to the root of this view, you'd manipulate navigationPath directly.
+            GymMatReviewSelect(selectedIsland: $selectedIsland, navigationPath: $navigationPath)
+                .environmentObject(authViewModel)
+                .environmentObject(enterZipCodeViewModel)
+                .environment(\.managedObjectContext, viewContext)
         }
+    }
+    */
+
+    var body: some View {
+        VStack(alignment: .leading) {
+            Text("Search by: gym name, zip code, or address/location")
+                .font(.headline)
+                .foregroundColor(.gray)
+                .padding(.leading)
+                .padding(.top, 8)
+
+            SearchBar(text: $viewModel.searchQuery)
+                .onChange(of: viewModel.searchQuery) { _, _ in
+                    viewModel.updateFilteredIslands(with: islands)
+                }
+
+            List {
+                ForEach(displayedIslands, id: \.objectID) { island in
+                    // This NavigationLink is correct. It pushes an AppScreen value
+                    // onto the navigationPath, which AppRootView's .navigationDestination
+                    // will then handle by presenting AppRootDestinationView.
+                    NavigationLink(value: AppScreen.review(island.objectID.uriRepresentation().absoluteString)) {
+                        islandRowContent(island: island)
+                            .onAppear {
+                                print("🧭 NavigationLink triggered for island: \(island.islandName ?? "nil")")
+                            }
+                    }
+                }
+            }
+            .frame(minHeight: 400, maxHeight: .infinity)
+            .listStyle(.plain)
+
+        }
+        .navigationTitle("Select Gym to Review")
+        .alert(isPresented: $viewModel.showNoMatchAlert) {
+            Alert(
+                title: Text("No Match Found"),
+                message: Text("No gyms match your search criteria."),
+                dismissButton: .default(Text("OK"))
+            )
+        }
+        .onAppear {
+            print("🟢 GymMatReviewSelect appeared")
+            os_log("GymMatReviewSelect appeared", log: OSLog.default, type: .info)
+            viewModel.updateFilteredIslands(with: islands)
+        }
+        .onDisappear {
+            print("🔴 GymMatReviewSelect disappeared")
+            os_log("GymMatReviewSelect disappeared", log: OSLog.default, type: .info)
+        }
+        .onChange(of: selectedIsland) { oldIsland, newIsland in
+            print("SelectedIsland changed in GymMatReviewSelect from \(oldIsland?.islandName ?? "nil") to \(newIsland?.islandName ?? "nil")")
+            os_log("SelectedIsland changed in GymMatReviewSelect from %{public}@ to %{public}@", log: OSLog.default, type: .info, oldIsland?.islandName ?? "nil", newIsland?.islandName ?? "nil")
+        }
+        // REMOVE THIS LINE: The navigationDestination modifier should NOT be here.
+        // It belongs on the NavigationStack in AppRootView.
+        // .navigationDestination(for: AppScreen.self) { screen in
+        //     destinationView(for: screen)
+        // }
     }
 }
 
