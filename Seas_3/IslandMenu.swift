@@ -280,7 +280,10 @@ struct IslandMenu: View {
 
         case .allLocations:
             return AnyView(
-                AllEnteredLocations()
+                AllEnteredLocations(
+                    viewModel: allEnteredLocationsViewModel, // Use the instance from EnvironmentObject
+                    navigationPath: $navigationPath // Pass the binding for navigationPath
+                )
                 .onAppear {
                     let userID = authViewModel.currentUserID ?? "Unknown"
                     let timestamp = "\(Date())"
@@ -297,7 +300,8 @@ struct IslandMenu: View {
             return AnyView(
                 ConsolidatedIslandMapView(
                     viewModel: appDayOfWeekViewModel,
-                    enterZipCodeViewModel: enterZipCodeViewModelForAppDayOfWeek
+                    enterZipCodeViewModel: enterZipCodeViewModelForAppDayOfWeek,
+                    navigationPath: $navigationPath // <--- Add this line!
                 )
                 .onAppear {
                     let userID = authViewModel.currentUserID ?? "Unknown"

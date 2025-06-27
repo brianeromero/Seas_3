@@ -10,7 +10,6 @@ import FirebaseCore
 import FirebaseAuth // Assuming you need this for AuthViewModel.shared
 import FirebaseFirestore // Assuming you need this for Firestore
 
-
 @main
 struct Seas_3App: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
@@ -19,29 +18,52 @@ struct Seas_3App: App {
 
     // MARK: - Instantiate AllEnteredLocationsViewModel here
     @StateObject var allEnteredLocationsViewModel: AllEnteredLocationsViewModel
+    
+    // ✅ Add AppDayOfWeekViewModel here
+    @StateObject var appDayOfWeekViewModel: AppDayOfWeekViewModel
+    
+    @StateObject var enterZipCodeViewModel: EnterZipCodeViewModel
+
 
     // Use an initializer to set up your @StateObject
     init() {
         _allEnteredLocationsViewModel = StateObject(wrappedValue: AllEnteredLocationsViewModel(
             dataManager: PirateIslandDataManager(viewContext: PersistenceController.shared.container.viewContext)
         ))
+
+        _appDayOfWeekViewModel = StateObject(wrappedValue: AppDayOfWeekViewModel(
+            selectedIsland: nil,
+            repository: AppDayOfWeekRepository(persistenceController: PersistenceController.shared),
+            enterZipCodeViewModel: EnterZipCodeViewModel(
+                repository: AppDayOfWeekRepository.shared,
+                persistenceController: PersistenceController.shared
+            )
+        ))
+
+        _enterZipCodeViewModel = StateObject(wrappedValue: EnterZipCodeViewModel(
+            repository: AppDayOfWeekRepository.shared,
+            persistenceController: PersistenceController.shared
+        ))
+
         setupGlobalErrorHandler()
     }
 
+    
     var body: some Scene {
         WindowGroup {
             AppRootView(
                 selectedTabIndex: $selectedTabIndex,
                 appState: appDelegate.appState
             )
-            // MARK: - Inject ALL top-level EnvironmentObjects here
-            // These objects will now be available to AppRootView and all its descendants.
+            // 👇 Inject all necessary view models into environment
             .environmentObject(appDelegate.authenticationState)
             .environmentObject(AuthViewModel.shared)
             .environmentObject(appDelegate.pirateIslandViewModel)
             .environmentObject(appDelegate.profileViewModel!)
-            .environmentObject(allEnteredLocationsViewModel) // This is what GymMatReviewSelect uses as enterZipCodeViewModel
-            .environment(\.managedObjectContext, appDelegate.persistenceController.container.viewContext) // Ensure context is also in environment
+            .environmentObject(allEnteredLocationsViewModel)
+            .environmentObject(appDayOfWeekViewModel) // ✅ Inject here so it’s available app-wide
+            .environmentObject(enterZipCodeViewModel)
+            .environment(\.managedObjectContext, appDelegate.persistenceController.container.viewContext)
         }
     }
 
@@ -60,18 +82,19 @@ struct AppRootView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @EnvironmentObject var pirateIslandViewModel: PirateIslandViewModel
     @EnvironmentObject var profileViewModel: ProfileViewModel
-    @EnvironmentObject var allEnteredLocationsViewModel: AllEnteredLocationsViewModel // Assuming this is your EnterZipCodeViewModel equivalent
+    @EnvironmentObject var allEnteredLocationsViewModel: AllEnteredLocationsViewModel
+    @EnvironmentObject var appDayOfWeekViewModel: AppDayOfWeekViewModel // Access it here too
 
     @Binding var selectedTabIndex: LoginViewSelection
     @ObservedObject var appState: AppState
 
-    @State private var navigationPath = NavigationPath() // This is your ONE TRUE NavigationPath
+    @State private var navigationPath = NavigationPath()
 
     @State private var showInitialSplash = true
 
     var body: some View {
-        NavigationStack(path: $navigationPath) { // This is the single NavigationStack
-            Group { // Use a Group to wrap your conditional root views
+        NavigationStack(path: $navigationPath) {
+            Group {
                 if showInitialSplash {
                     PirateIslandView(appState: appState)
                         .onAppear {
@@ -91,7 +114,7 @@ struct AppRootView: View {
                     } else {
                         IslandMenu2(
                             profileViewModel: profileViewModel,
-                            navigationPath: $navigationPath // ✅ Pass the binding down
+                            navigationPath: $navigationPath
                         )
                         .onAppear { print("AppRootView: IslandMenu has appeared.") }
                     }
@@ -103,21 +126,19 @@ struct AppRootView: View {
                         isSelected: $selectedTabIndex,
                         navigateToAdminMenu: $authenticationState.navigateToAdminMenu,
                         isLoggedIn: $authenticationState.isLoggedIn,
-                        navigationPath: $navigationPath // <-- pass binding here
+                        navigationPath: $navigationPath
                     )
                     .onAppear { print("AppRootView: LoginView has appeared.") }
                 }
-            } // END of Group
-            // Apply .navigationDestination to the Group (or a direct child of NavigationStack)
+            }
             .navigationDestination(for: AppScreen.self) { screen in
                 AppRootDestinationView(screen: screen, navigationPath: $navigationPath)
                     .environmentObject(authenticationState)
                     .environmentObject(authViewModel)
                     .environmentObject(pirateIslandViewModel)
                     .environmentObject(profileViewModel)
-                    .environmentObject(allEnteredLocationsViewModel) // Make sure this is passed down!
-                    // REMOVED: .environment(\.managedObjectContext, appDelegate.persistenceController.container.viewContext)
-                    // AppRootDestinationView already gets viewContext via @Environment
+                    .environmentObject(allEnteredLocationsViewModel)
+                    .environmentObject(appDayOfWeekViewModel) // Inject here as well!
             }
         }
         .onChange(of: authenticationState.isAuthenticated) { oldValue, newValue in
@@ -133,7 +154,6 @@ struct AppRootView: View {
     }
 }
 
-// Helper view for AppRootView's navigation destinations
 struct AppRootDestinationView: View {
     let screen: AppScreen
     @Binding var navigationPath: NavigationPath
@@ -142,7 +162,11 @@ struct AppRootDestinationView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @EnvironmentObject var pirateIslandViewModel: PirateIslandViewModel
     @EnvironmentObject var profileViewModel: ProfileViewModel
-    @EnvironmentObject var enterZipCodeViewModel: AllEnteredLocationsViewModel
+
+    @EnvironmentObject var allEnteredLocationsViewModel: AllEnteredLocationsViewModel
+    @EnvironmentObject var appDayOfWeekViewModel: AppDayOfWeekViewModel
+    @EnvironmentObject var enterZipCodeViewModel: EnterZipCodeViewModel
+
     @Environment(\.managedObjectContext) private var viewContext
 
     var body: some View {
@@ -182,16 +206,35 @@ struct AppRootDestinationView: View {
         case .searchReviews:
             ViewReviewSearch(selectedIsland: .constant(nil), titleString: "Search Gym Reviews", navigationPath: $navigationPath)
 
-        // MARK: - New cases with placeholders
-
         case .profile:
-            Text("Profile Screen - To be implemented")
-
+            ProfileView(
+                profileViewModel: profileViewModel,
+                authViewModel: authViewModel,
+                selectedTabIndex: .constant(.login),
+                setupGlobalErrorHandler: { }
+            )
+            .onAppear {
+                print("🧭 Navigating to screen: .profile")
+            }
+            
         case .allLocations:
-            Text("All Locations Screen - To be implemented")
+            AllEnteredLocations(
+                viewModel: allEnteredLocationsViewModel,
+                navigationPath: $navigationPath
+            )
+            .onAppear {
+                print("🧭 Navigating to screen: .allLocations")
+            }
 
         case .currentLocation:
-            Text("Current Location Screen - To be implemented")
+            ConsolidatedIslandMapView(
+                viewModel: appDayOfWeekViewModel,
+                enterZipCodeViewModel: enterZipCodeViewModel,
+                navigationPath: $navigationPath
+            )
+            .onAppear {
+                print("🧭 Navigating to screen: .currentLocation (ConsolidatedIslandMapView)")
+            }
 
         case .postalCode:
             Text("Postal Code Screen - To be implemented")
@@ -213,6 +256,7 @@ struct AppRootDestinationView: View {
         }
     }
 }
+
 
 
 // Optional: Extension for injecting PersistenceController via Environment

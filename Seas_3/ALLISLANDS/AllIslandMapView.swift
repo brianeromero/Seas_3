@@ -26,10 +26,13 @@ struct ConsolidatedIslandMapView: View {
         entity: PirateIsland.entity(),
         sortDescriptors: []
     ) private var islands: FetchedResults<PirateIsland>
-    @State private var enterZipCodeViewModel: EnterZipCodeViewModel
+
+    // CHANGE: Removed @State for enterZipCodeViewModel, now passed directly
+    @ObservedObject var enterZipCodeViewModel: EnterZipCodeViewModel // CHANGE: Changed to @ObservedObject
 
     @StateObject private var viewModel: AppDayOfWeekViewModel
     @StateObject private var locationManager: UserLocationMapViewModel
+
     @State private var selectedRadius: Double = 5.0
     @State private var equatableRegion = EquatableMKCoordinateRegion(
         region: MKCoordinateRegion(
@@ -43,69 +46,87 @@ struct ConsolidatedIslandMapView: View {
     @State private var selectedAppDayOfWeek: AppDayOfWeek?
     @State private var selectedDay: DayOfWeek? = .monday
     @State private var fetchedLocation: CLLocation?
-    
-    @State private var navigationPath = NavigationPath()
+
+    // CHANGE: Changed from @State to @Binding to receive navigationPath from parent
+    @Binding var navigationPath: NavigationPath
 
 
     init(
         viewModel: AppDayOfWeekViewModel,
-        enterZipCodeViewModel: EnterZipCodeViewModel
+        enterZipCodeViewModel: EnterZipCodeViewModel,
+        navigationPath: Binding<NavigationPath> // CHANGE: Add navigationPath to init
     ) {
         _viewModel = StateObject(wrappedValue: viewModel)
-        _enterZipCodeViewModel = State(wrappedValue: enterZipCodeViewModel)
+        // CHANGE: No longer wrap enterZipCodeViewModel with @State(wrappedValue:), just assign
+        self.enterZipCodeViewModel = enterZipCodeViewModel
         _locationManager = StateObject(wrappedValue: UserLocationMapViewModel())
         _selectedDay = State(initialValue: .monday)
+        self._navigationPath = navigationPath // CHANGE: Assign navigationPath binding
     }
 
+
     var body: some View {
-        NavigationView {
-            VStack {
-                if locationManager.userLocation != nil {
-                    makeMapView()
-                    makeRadiusPicker()
-                } else {
-                    Text("Fetching user location...")
-                        .navigationTitle("Gyms Near Me")
-                }
-            }
-            .navigationTitle("Gyms Near Me")
-            .overlay(overlayContentView())
-            .onAppear(perform: onAppear)
-            .onChange(of: locationManager.userLocation) { newUserLocation in // Use new onChange syntax
-                onChangeUserLocation(newUserLocation)
-            }
-            .onChange(of: equatableRegion) { newRegion in // Use new onChange syntax
-                onChangeEquatableRegion(newRegion)
-            }
-            .onChange(of: selectedRadius) { newRadius in // Use new onChange syntax
-                onChangeSelectedRadius(newRadius)
+        // CHANGE: REMOVE NavigationView to prevent nesting
+        VStack {
+            if locationManager.userLocation != nil {
+                makeMapView()
+                makeRadiusPicker()
+            } else {
+                Text("Fetching user location...")
+                    // .navigationTitle("Gyms Near Me") // This can be on the VStack
             }
         }
+        .navigationTitle("Gyms Near Me") // CHANGE: Apply navigationTitle directly to the VStack
+        .overlay(overlayContentView())
+        .onAppear(perform: onAppear)
+        .onChange(of: locationManager.userLocation) { _, newValue in
+            onChangeUserLocation(newValue)
+        }
+        .onChange(of: equatableRegion) { _, newValue in
+            onChangeEquatableRegion(newValue)
+        }
+        .onChange(of: selectedRadius) { _, newValue in
+            onChangeSelectedRadius(newValue)
+        }
+        // No .sheet here, it should be in the main content if it's a modal,
+        // or if it's a NavigationLink, it should push.
+        // Your overlayContentView() handles the modal, so sheet is not needed here.
     }
 
     private func makeMapView() -> some View {
-        Map(coordinateRegion: Binding(
-            get: { equatableRegion.region },
-            set: { equatableRegion.region = $0 }
-        ), showsUserLocation: true, annotationItems: pirateMarkers) { marker in
-            MapAnnotation(coordinate: marker.coordinate) {
-                mapAnnotationView(for: marker)
+        // NOTE: Map in iOS 17+ prefers MapCameraPosition.
+        // If you are using an older version of SwiftUI/iOS, MKCoordinateRegion might still be correct.
+        // Assuming iOS 17+ and Map(position: ...), but keeping your MKCoordinateRegion as it implies a binding.
+        // If you are using iOS 17+, you'd typically convert equatableRegion.region to MapCameraPosition.
+        // Example for iOS 17+:
+        // Map(position: .constant(.region(equatableRegion.region)), showsUserLocation: true) { ... }
+        // For now, retaining your Map(coordinateRegion: ...) which works on older iOS.
+        Map(position: .constant(.region(equatableRegion.region))) {
+            UserAnnotation() // ✅ Shows the user's current location
+
+            ForEach(pirateMarkers) { marker in
+                Annotation(marker.title ?? "", coordinate: marker.coordinate) {
+                    mapAnnotationView(for: marker)
+                }
             }
         }
-        .frame(height: 400) // Adjust to match EnterZipCodeView
+        .frame(height: 400)
         .padding()
+
     }
+
 
     private func makeRadiusPicker() -> some View {
         RadiusPicker(selectedRadius: $selectedRadius)
             .padding()
     }
 
+
+
     private func overlayContentView() -> some View {
         ZStack {
             if showModal {
-                // Use adaptive background for the overlay dimming effect
-                Color.primary.opacity(0.2) // Using primary with opacity for adaptive dimming
+                Color.primary.opacity(0.2)
                     .edgesIgnoringSafeArea(.all)
                     .onTapGesture {
                         showModal = false
@@ -119,36 +140,32 @@ struct ConsolidatedIslandMapView: View {
                         showModal: $showModal,
                         enterZipCodeViewModel: enterZipCodeViewModel,
                         selectedAppDayOfWeek: $selectedAppDayOfWeek,
-                        navigationPath: $navigationPath // ✅ Add this line
+                        navigationPath: $navigationPath // ✅ Pass the binding here!
                     )
                     .frame(width: UIScreen.main.bounds.width * 0.8, height: UIScreen.main.bounds.height * 0.6)
-                    // Use system background colors for modal background
-                    .background(Color(.systemBackground)) // Adapts to light/dark mode
+                    .background(Color(.systemBackground))
                     .cornerRadius(10)
                     .padding()
                     .transition(.opacity)
                 } else {
                     Text("No Gym Selected")
                         .padding()
-                        // Ensure text color also adapts if not default .primary
                         .foregroundColor(.primary)
                 }
             }
         }
         .animation(.easeInOut, value: showModal)
     }
-    
+
     
     private func mapAnnotationView(for marker: CustomMapMarker) -> some View {
         VStack {
             Text(marker.title ?? "")
                 .font(.caption)
                 .padding(5)
-                // --- THIS IS THE KEY CHANGE ---
-                .background(Color(.systemBackground)) // Adapts to light/dark mode
+                .background(Color(.systemBackground))
                 .cornerRadius(5)
-                // Text color naturally adapts to .primary, so no explicit change usually needed
-                .foregroundColor(.primary) // Explicitly setting to .primary for clarity, though often default
+                .foregroundColor(.primary)
             CustomMarkerView()
                 .onTapGesture {
                     if let pirateIsland = marker.pirateIsland {
@@ -175,13 +192,12 @@ struct ConsolidatedIslandMapView: View {
         updateRegion(newUserLocation, radius: selectedRadius)
 
         let address = "Your Address Here" // This will likely need to be dynamic
-        
         Task {
             do {
+                // Assuming MapUtils.fetchLocation returns CLLocationCoordinate2D
                 let locationCoordinate = try await MapUtils.fetchLocation(for: address)
-                // Create a CLLocation object using the fetched coordinate
                 self.fetchedLocation = CLLocation(latitude: locationCoordinate.latitude, longitude: locationCoordinate.longitude)
-                
+
                 if let location = self.fetchedLocation {
                     updateRegion(location, radius: selectedRadius)
                 }
@@ -192,9 +208,7 @@ struct ConsolidatedIslandMapView: View {
     }
 
     private func onChangeEquatableRegion(_ newRegion: EquatableMKCoordinateRegion) {
-        // Handle region change
-        // You might want to re-filter and update markers here if the map is interactively moved
-        updateMarkers(for: newRegion.region) // Ensure markers update when region changes
+        updateMarkers(for: newRegion.region)
     }
 
     private func onChangeSelectedRadius(_ newRadius: Double) {
@@ -203,14 +217,14 @@ struct ConsolidatedIslandMapView: View {
         }
     }
 
+
     private func updateRegion(_ location: CLLocation, radius: Double) {
         let newRegion = MKCoordinateRegion(
             center: location.coordinate,
-            latitudinalMeters: radius * 1609.34,  // Convert miles to meters
+            latitudinalMeters: radius * 1609.34,
             longitudinalMeters: radius * 1609.34
         )
         equatableRegion = EquatableMKCoordinateRegion(region: newRegion)
-        // updateMarkers is called by onChangeEquatableRegion which is triggered by this change
     }
 
 

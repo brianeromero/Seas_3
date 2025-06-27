@@ -13,6 +13,8 @@ struct IslandDetailView: View {
     let island: PirateIsland
     @Binding var selectedDestination: IslandDestination?
     @StateObject var viewModel: AllEnteredLocationsViewModel
+    @State private var navigationPath = NavigationPath() // ✅ Add this line
+
 
     init(island: PirateIsland, selectedDestination: Binding<IslandDestination?>) {
         self.island = island
@@ -29,7 +31,9 @@ struct IslandDetailView: View {
         IslandDetailContent(
             island: island,
             selectedDestination: $selectedDestination,
-            viewModel: viewModel
+            viewModel: viewModel,
+            navigationPath: $navigationPath // ✅ Pass it as a binding
+
         )
         .onAppear(perform: fetchIsland)
     }
@@ -67,6 +71,8 @@ struct IslandDetailContent: View {
             persistenceController: PersistenceController.shared // Pass PersistenceController.shared here
         )
     )
+    @Binding var navigationPath: NavigationPath // ✅ Add this line
+
 
     @Environment(\.managedObjectContext) private var viewContext
 
@@ -93,7 +99,8 @@ struct IslandDetailContent: View {
                     enterZipCodeViewModel: EnterZipCodeViewModel(
                         repository: AppDayOfWeekRepository.shared,
                         persistenceController: PersistenceController.shared // Pass PersistenceController.shared here
-                    )
+                    ),
+                    navigationPath: $navigationPath // ✅ Pass it as a binding
                 )
             }
             Text("Entered By: \(island.createdByUserId ?? "Unknown")")

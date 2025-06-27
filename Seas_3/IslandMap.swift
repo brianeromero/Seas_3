@@ -19,26 +19,27 @@ struct IslandMap: View {
 
     init(islands: [CustomMapMarker], region: Binding<MKCoordinateRegion>) {
         self.islands = islands
-        self._region = region // Bind to the passed in Binding
+        self._region = region
     }
 
     var body: some View {
-        Map(coordinateRegion: $region, interactionModes: [], showsUserLocation: false, userTrackingMode: nil, annotationItems: islands) { marker in
-            MapAnnotation(coordinate: marker.coordinate) {
-                MapAnnotationContent()
+        Map(position: .constant(.region(region))) {
+            ForEach(islands) { marker in
+                Annotation(marker.title ?? "Gym", coordinate: marker.coordinate) {
+                    MapAnnotationContent()
+                }
             }
         }
         .navigationTitle("Gym Map")
         .onAppear {
             print("Gym Map appeared with gyms count: \(islands.count)")
             for marker in islands {
-                print("Gym: \(marker.title ?? "Unknown Gym"), Location: \(marker.subtitle ?? "Unknown Location"), Latitude: \(marker.coordinate.latitude), Longitude: \(marker.coordinate.longitude)")
+                print("Gym: \(marker.title ?? "Unknown Gym"), Latitude: \(marker.coordinate.latitude), Longitude: \(marker.coordinate.longitude)")
             }
         }
     }
 }
 
-// Define MapAnnotationContent as a View conforming to View protocol
 struct MapAnnotationContent: View {
     var body: some View {
         Image(systemName: "mappin.circle.fill")

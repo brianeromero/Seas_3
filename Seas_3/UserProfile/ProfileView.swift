@@ -9,22 +9,20 @@ import FirebaseCore
 import FirebaseAuth
 import FirebaseFirestore
 
-
-
 struct ProfileView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @StateObject var profileViewModel: ProfileViewModel
     @ObservedObject var authViewModel: AuthViewModel // Keep this for calling signOut()
     @Binding var selectedTabIndex: LoginViewSelection
     let setupGlobalErrorHandler: () -> Void // Dummy closure for preview
-    
+
     private let beltOptions = ["", "White", "Blue", "Purple", "Brown", "Black"]
     @State private var isEditing = false
     @State private var originalEmail: String = ""
     @State private var originalUserName: String = ""
     @State private var originalName: String = ""
     @State private var originalBelt: String = ""
-    @State private var showMainContent = false
+    @State private var showMainContent = false // Keep this state
     @State private var navigateToAdminMenu = false
     @StateObject private var pirateIslandViewModel = PirateIslandViewModel(persistenceController: PersistenceController.shared)
     @State private var showValidationAlert = false
@@ -43,176 +41,175 @@ struct ProfileView: View {
         case email, userName, name, password
     }
 
-
     var body: some View {
-        NavigationStack {
-            VStack {
-                if profileViewModel.isProfileLoaded {
-                    VStack {
-                        // FIX: Changed to Color(uiColor: .systemGray5) for broader iOS compatibility
-                        Rectangle()
-                            .fill(Color(uiColor: .systemGray5)) // Adaptive background for older iOS
-                            .frame(height: 150)
-                            .overlay(
-                                Text("Profile")
-                                    .font(.largeTitle)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.primary) // Ensure text is adaptive
-                            )
-                        
-                        Form {
-                            Section(header: Text("Account Information")) {
-                                // Email
-                                VStack(alignment: .leading, spacing: 4) {
-                                    HStack {
-                                        Text("Email:")
-                                        TextField("Email", text: $profileViewModel.email)
-                                            .disabled(!isEditing)
-                                            .foregroundColor(isEditing ? .primary : .secondary)
-                                            .focused($focusedField, equals: .email)
-                                            // FIX: Updated onChange syntax
-                                            .onChange(of: profileViewModel.email) {
-                                                validateField(.email)
-                                            }
-                                    }
-                                    // Accessing errorMessage as optional String?
-                                    if let errorMessage = errorMessages[.email], errorMessage != nil {
-                                        Text(errorMessage!)
-                                            .foregroundColor(.red)
-                                            .font(.footnote)
-                                    }
-                                }
+        // REMOVE THE NavigationStack HERE
+        VStack {
+            // Add `&& showMainContent` to the condition
+            if profileViewModel.isProfileLoaded && showMainContent {
+                VStack {
+                    Rectangle()
+                        .fill(Color(uiColor: .systemGray5))
+                        .frame(height: 150)
+                        .overlay(
+                            Text("Profile")
+                                .font(.largeTitle)
+                                .fontWeight(.bold)
+                                .foregroundColor(.primary)
+                        )
 
-                                // Username
-                                VStack(alignment: .leading, spacing: 4) {
-                                    HStack {
-                                        Text("Username:")
-                                        TextField("Username", text: $profileViewModel.userName)
-                                            .disabled(!isEditing)
-                                            .foregroundColor(isEditing ? .primary : .secondary)
-                                            .focused($focusedField, equals: .username)
-                                            // FIX: Updated onChange syntax
-                                            .onChange(of: profileViewModel.userName) {
-                                                validateField(.userName)
-                                            }
-                                    }
-                                    if let errorMessage = errorMessages[.userName], errorMessage != nil {
-                                        Text(errorMessage!)
-                                            .foregroundColor(.red)
-                                            .font(.footnote)
-                                    }
-                                }
-
-                                // Name
-                                VStack(alignment: .leading, spacing: 4) {
-                                    HStack {
-                                        Text("Name:")
-                                        TextField("Name", text: $profileViewModel.name)
-                                            .disabled(!isEditing)
-                                            .foregroundColor(isEditing ? .primary : .secondary)
-                                            .focused($focusedField, equals: .name)
-                                            // FIX: Updated onChange syntax
-                                            .onChange(of: profileViewModel.name) {
-                                                validateField(.name)
-                                            }
-                                    }
-                                    if let errorMessage = errorMessages[.name], errorMessage != nil {
-                                        Text(errorMessage!)
-                                            .foregroundColor(.red)
-                                            .font(.footnote)
-                                    }
-                                }
-                            }
-
-                            // Belt Selection
-                            Section(header: HStack {
-                                Text("Belt")
-                                Text("(Optional)")
-                                    .foregroundColor(.secondary)
-                                    .opacity(0.7)
-                            }) {
-                                Menu {
-                                    ForEach(beltOptions, id: \.self) { belt in
-                                        Button(action: {
-                                            profileViewModel.belt = belt
-                                        }) {
-                                            Text(belt)
+                    Form {
+                        Section(header: Text("Account Information")) {
+                            // Email
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack {
+                                    Text("Email:")
+                                    TextField("Email", text: $profileViewModel.email)
+                                        .disabled(!isEditing)
+                                        .foregroundColor(isEditing ? .primary : .secondary)
+                                        .focused($focusedField, equals: .email)
+                                        .onChange(of: profileViewModel.email) {
+                                            validateField(.email)
                                         }
-                                    }
-                                } label: {
-                                    HStack {
-                                        Text(profileViewModel.belt.isEmpty ? "Not selected" : profileViewModel.belt)
-                                            .foregroundColor(isEditing ? .primary : .secondary)
-                                        Spacer()
-                                        Image(systemName: "chevron.down")
-                                            .foregroundColor(.secondary)
-                                    }
                                 }
-                                .disabled(!isEditing)
+                                if let errorMessage = errorMessages[.email], errorMessage != nil {
+                                    Text(errorMessage!)
+                                        .foregroundColor(.red)
+                                        .font(.footnote)
+                                }
+                            }
+
+                            // Username
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack {
+                                    Text("Username:")
+                                    TextField("Username", text: $profileViewModel.userName)
+                                        .disabled(!isEditing)
+                                        .foregroundColor(isEditing ? .primary : .secondary)
+                                        .focused($focusedField, equals: .username)
+                                        .onChange(of: profileViewModel.userName) {
+                                            validateField(.userName)
+                                        }
+                                }
+                                if let errorMessage = errorMessages[.userName], errorMessage != nil {
+                                    Text(errorMessage!)
+                                        .foregroundColor(.red)
+                                        .font(.footnote)
+                                }
+                            }
+
+                            // Name
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack {
+                                    Text("Name:")
+                                    TextField("Name", text: $profileViewModel.name)
+                                        .disabled(!isEditing)
+                                        .foregroundColor(isEditing ? .primary : .secondary)
+                                        .focused($focusedField, equals: .name)
+                                        .onChange(of: profileViewModel.name) {
+                                            validateField(.name)
+                                        }
+                                }
+                                if let errorMessage = errorMessages[.name], errorMessage != nil {
+                                    Text(errorMessage!)
+                                        .foregroundColor(.red)
+                                        .font(.footnote)
+                                }
                             }
                         }
 
-                        // Sign Out Button
-                        Button(action: {
-                            Task {
-                                do {
-                                    try await authViewModel.signOut()
-                                } catch {
-                                    print("Error signing out from ProfileView: \(error.localizedDescription)")
-                                    saveAlertMessage = "Failed to sign out: \(error.localizedDescription)"
-                                    showSaveAlert = true
+                        // Belt Selection
+                        Section(header: HStack {
+                            Text("Belt")
+                            Text("(Optional)")
+                                .foregroundColor(.secondary)
+                                .opacity(0.7)
+                        }) {
+                            Menu {
+                                ForEach(beltOptions, id: \.self) { belt in
+                                    Button(action: {
+                                        profileViewModel.belt = belt
+                                    }) {
+                                        Text(belt)
+                                    }
+                                }
+                            } label: {
+                                HStack {
+                                    Text(profileViewModel.belt.isEmpty ? "Not selected" : profileViewModel.belt)
+                                        .foregroundColor(isEditing ? .primary : .secondary)
+                                    Spacer()
+                                    Image(systemName: "chevron.down")
+                                        .foregroundColor(.secondary)
                                 }
                             }
-                        }) {
-                            Text("Sign Out")
-                                .font(.headline)
-                                .padding()
-                                .frame(minWidth: 335)
-                                .background(Color.red)
-                                .foregroundColor(.white)
-                                .cornerRadius(40)
+                            .disabled(!isEditing)
                         }
-                        .disabled(isEditing)
-                        .padding(.top, 20)
+                    }
+
+                    // Sign Out Button
+                    Button(action: {
+                        Task {
+                            do {
+                                try await authViewModel.signOut()
+                            } catch {
+                                print("Error signing out from ProfileView: \(error.localizedDescription)")
+                                saveAlertMessage = "Failed to sign out: \(error.localizedDescription)"
+                                showSaveAlert = true
+                            }
+                        }
+                    }) {
+                        Text("Sign Out")
+                            .font(.headline)
+                            .padding()
+                            .frame(minWidth: 335)
+                            .background(Color.red)
+                            .foregroundColor(.white)
+                            .cornerRadius(40)
+                    }
+                    .disabled(isEditing)
+                    .padding(.top, 20)
+                }
+            } else {
+                ProgressView("Loading profile...")
+                    .foregroundColor(.primary)
+            }
+        }
+        .navigationTitle("Profile") // Keep navigationTitle here
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                if isEditing {
+                    Button("Save") {
+                        saveChanges()
                     }
                 } else {
-                    ProgressView("Loading profile...")
-                        .foregroundColor(.primary)
-                }
-            }
-            .navigationTitle("Profile")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    if isEditing {
-                        Button("Save") {
-                            saveChanges()
-                        }
-                    } else {
-                        Button("Edit") {
-                            toggleEdit()
-                        }
-                    }
-                }
-                ToolbarItem(placement: .navigationBarLeading) {
-                    if isEditing {
-                        Button("Cancel") {
-                            toggleEdit()
-                        }
+                    Button("Edit") {
+                        toggleEdit()
                     }
                 }
             }
-            .onAppear {
-                Task {
-                    try? await Task.sleep(nanoseconds: 300_000_000)
-                    await profileViewModel.loadProfile()
+            ToolbarItem(placement: .navigationBarLeading) {
+                if isEditing {
+                    Button("Cancel") {
+                        cancelEditing() // Call cancelEditing to revert changes
+                        isEditing.toggle() // Then toggle editing mode
+                    }
                 }
             }
-            .alert(isPresented: $showSaveAlert) {
-                Alert(title: Text("Save Status"), message: Text(saveAlertMessage), dismissButton: .default(Text("OK")))
+        }
+        .onAppear {
+            Task {
+                // Small delay to allow the view hierarchy to settle, then load profile
+                try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
+                await profileViewModel.loadProfile()
+                // Set original values once the profile is loaded
+                startEditing() // Initialize original values
+                showMainContent = true // Set to true after content is loaded and ready
             }
-            .alert(isPresented: $showValidationAlert) {
-                Alert(title: Text("Validation Error"), message: Text(validationAlertMessage), dismissButton: .default(Text("OK")))
-            }
+        }
+        .alert(isPresented: $showSaveAlert) {
+            Alert(title: Text("Save Status"), message: Text(saveAlertMessage), dismissButton: .default(Text("OK")))
+        }
+        .alert(isPresented: $showValidationAlert) {
+            Alert(title: Text("Validation Error"), message: Text(validationAlertMessage), dismissButton: .default(Text("OK")))
         }
     }
 
@@ -224,8 +221,10 @@ struct ProfileView: View {
 
     private func toggleEdit() {
         if isEditing {
+            // If currently editing, and we toggle, it means we're cancelling
             cancelEditing()
         } else {
+            // If not editing, and we toggle, it means we're starting to edit
             startEditing()
         }
         isEditing.toggle()
@@ -256,10 +255,10 @@ struct ProfileView: View {
         validateField(.email)
         validateField(.userName)
         validateField(.name)
-        
-        // FIX: Check if there are any *non-nil* error messages
+
+        // Check if there are any *non-nil* error messages
         let hasErrors = errorMessages.values.contains { $0 != nil }
-        
+
         if hasErrors {
             validationAlertMessage = "Please fix the validation errors before saving."
             showValidationAlert = true
@@ -289,8 +288,9 @@ struct ProfileView: View {
         case .name:
             errorMessages[.name] = profileViewModel.validateName(profileViewModel.name)
         case .password:
-            errorMessages[.password] = profileViewModel.validatePassword("") // Or profileViewModel.password if it exists
+            // Assuming you have logic for password changes elsewhere,
+            // or pass the correct password field for validation if it's new/confirm
+            errorMessages[.password] = profileViewModel.validatePassword(profileViewModel.newPassword)
         }
     }
 }
-
