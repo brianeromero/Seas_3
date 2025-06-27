@@ -14,6 +14,9 @@ import OSLog // For os_log
 
 
 
+
+// (Keep all your dummy types and definitions as provided previously)
+
 // MARK: - View Definition
 struct IslandMenu2: View {
 
@@ -71,7 +74,6 @@ struct IslandMenu2: View {
             enterZipCodeViewModel: enterZipCodeViewModelForAppDayOfWeek
         ))
 
-        // Assign local values to properties last
         self.appDayOfWeekRepository = appDayOfWeekRepository
         self.enterZipCodeViewModelForAppDayOfWeek = enterZipCodeViewModelForAppDayOfWeek
         self.enterZipCodeViewModelForReviews = enterZipCodeViewModelForReviews
@@ -83,7 +85,7 @@ struct IslandMenu2: View {
         var id: String { rawValue }
 
         case profile = "Profile"
-        case empty = ""
+        case empty = "" // Used as a placeholder for the first header
         case allLocations = "All Locations"
         case currentLocation = "Current Location"
         case postalCode = "Postal Code"
@@ -149,6 +151,7 @@ struct IslandMenu2: View {
 
     // MARK: - Body
     var body: some View {
+        // The main content of your menu
         VStack(alignment: .leading, spacing: 0) {
             HStack {
                 Spacer()
@@ -163,9 +166,21 @@ struct IslandMenu2: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     ForEach(menuItemsFlat) { option in
-                        menuItemView(for: option)
+                        if option == .empty {
+                            if let header = option.dividerHeaderText {
+                                Text(header)
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.gray)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(.leading, menuLeadingPadding)
+                                    .padding(.top, 8)
+                            }
+                        } else {
+                            menuItemView(for: option)
+                        }
 
-                        if option.needsDivider {
+                        if option.needsDivider && option != .empty {
                             Divider()
                                 .padding(.leading, menuLeadingPadding)
 
@@ -174,9 +189,9 @@ struct IslandMenu2: View {
                                     .font(.caption)
                                     .fontWeight(.bold)
                                     .foregroundColor(.gray)
-                                    .padding(.leading, menuLeadingPadding + 5)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(.leading, menuLeadingPadding)
                                     .padding(.top, 8)
-                                    .padding(.bottom, 4)
                             }
                         }
                     }
@@ -186,7 +201,19 @@ struct IslandMenu2: View {
 
             Spacer()
         }
-        .background(Color.white.opacity(0.1))
+        // CHANGE: Apply the background using the .background() modifier on the main VStack
+        .background(
+            ZStack { // Use a ZStack within .background if the background itself has multiple layers or specific positioning
+                GIFView(name: "flashing2")
+                    .frame(width: 500, height: 450)
+                    .offset(x: 100, y: -150)
+                    .ignoresSafeArea() // Makes the GIF fill the whole screen behind the content
+                
+                // Add your semi-transparent color background here as well
+                Color.white.opacity(0.1) // This creates the subtle overlay you had before
+            }
+        )
+        // Keep other modifiers on the main VStack
         .navigationBarHidden(true)
         .setupListeners(
             showToastMessage: $showToastMessage,
@@ -203,7 +230,6 @@ struct IslandMenu2: View {
     }
 
     // MARK: - Extracted View Builders
-
     @ViewBuilder
     private func menuItemView(for option: IslandMenuOption) -> some View {
         switch option {
@@ -256,7 +282,6 @@ struct IslandMenu2: View {
         }
     }
 
-
     private func menuItemLabel(for option: IslandMenuOption) -> some View {
         HStack {
             Image(systemName: option.iconName)
@@ -268,6 +293,7 @@ struct IslandMenu2: View {
                 .foregroundColor(.primary)
             Spacer()
         }
+        .contentShape(Rectangle())
         .padding(.vertical, 10)
         .padding(.leading, menuLeadingPadding)
     }
