@@ -244,9 +244,10 @@ struct IslandMenu: View {
         case .addNewGym:
             return AnyView(
                 AddNewIsland(
-                    islandViewModel: pirateIslandViewModel,
-                    profileViewModel: profileViewModel,
-                    authViewModel: authViewModel,
+                    // ✅ No longer pass these explicitly, AddNewIsland should get them from the environment
+                    // islandViewModel: pirateIslandViewModel,
+                    // profileViewModel: profileViewModel,
+                    // authViewModel: authViewModel,
                     navigationPath: $navigationPath,
                     islandDetails: $islandDetails
                 )

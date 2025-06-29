@@ -170,6 +170,10 @@ struct AppRootDestinationView: View {
     @EnvironmentObject var enterZipCodeViewModel: EnterZipCodeViewModel
 
     @Environment(\.managedObjectContext) private var viewContext
+    
+    // MARK: - New State for AddNewIsland
+    @State private var islandDetails = IslandDetails() // Initialize with default values
+
 
     var body: some View {
         switch screen {
@@ -257,7 +261,18 @@ struct AppRootDestinationView: View {
                 }
 
         case .addNewGym:
-            Text("Add New Gym Screen - To be implemented")
+            // ✅ CORRECTED: Remove explicit passing of EnvironmentObjects.
+            // AddNewIsland should declare them as @EnvironmentObject and receive them automatically.
+            AddNewIsland(
+                // islandViewModel: pirateIslandViewModel, // REMOVED
+                // profileViewModel: profileViewModel,     // REMOVED
+                // authViewModel: authViewModel,           // REMOVED
+                navigationPath: $navigationPath,
+                islandDetails: $islandDetails // This is a @Binding and needs to be passed explicitly
+            )
+            .onAppear {
+                print("🧭 Navigating to screen: .addNewGym (AddNewIsland)")
+            }
 
         case .updateExistingGyms:
             Text("Update Existing Gyms Screen - To be implemented")

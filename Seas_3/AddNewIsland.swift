@@ -17,11 +17,12 @@ public struct AddNewIsland: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.presentationMode) private var presentationMode
     
-    // Observed Objects
-    @ObservedObject var islandViewModel: PirateIslandViewModel
-    @ObservedObject var profileViewModel: ProfileViewModel
-    @StateObject var countryService = CountryService.shared
-    @ObservedObject var authViewModel: AuthViewModel
+    // ✅ Change to @EnvironmentObject for shared view models
+    @EnvironmentObject var islandViewModel: PirateIslandViewModel
+    @EnvironmentObject var profileViewModel: ProfileViewModel
+    @EnvironmentObject var authViewModel: AuthViewModel
+    
+    @StateObject var countryService = CountryService.shared // This can remain @StateObject if it's unique to this view's lifecycle
     
     // State Variables
     @State private var gymWebsiteURL: URL? = nil
@@ -37,7 +38,6 @@ public struct AddNewIsland: View {
     @Binding var islandDetails: IslandDetails
     @State private var isSuccessAlert = false
 
-    
     // Body
     public var body: some View {
         ScrollView {
@@ -48,7 +48,7 @@ public struct AddNewIsland: View {
             }
             .navigationDestination(for: String.self) { islandMenuPath in
                 IslandMenu2(
-                    profileViewModel: profileViewModel,
+                    profileViewModel: profileViewModel, // `profileViewModel` is now @EnvironmentObject
                     navigationPath: $navigationPath
                 )
             }
@@ -77,8 +77,8 @@ public struct AddNewIsland: View {
     // MARK: - Subviews
     private var islandFormSection: some View {
         IslandFormSections(
-            viewModel: islandViewModel,
-            profileViewModel: profileViewModel,
+            viewModel: islandViewModel, // Now @EnvironmentObject
+            profileViewModel: profileViewModel, // Now @EnvironmentObject
             countryService: countryService,
             islandName: $islandDetails.islandName,
             street: $islandDetails.street,
@@ -125,8 +125,6 @@ public struct AddNewIsland: View {
     }
 
 
-
-
     private var enteredBySection: some View {
         Section(header: Text("Entered By")) {
             Text(profileViewModel.name)
@@ -148,7 +146,7 @@ public struct AddNewIsland: View {
             // Ensure getCurrentUser correctly fetches the user
             Task {
                 // Now we await the current user
-                if let currentUser = await authViewModel.getCurrentUser() {
+                if let currentUser = await authViewModel.getCurrentUser() { // authViewModel is now @EnvironmentObject
                     if currentUser.name.isEmpty {
                         self.alertMessage = "Could not find your profile info. Please log in again."
                         self.showAlert = true
@@ -168,7 +166,6 @@ public struct AddNewIsland: View {
         }
         .disabled(!isSaveEnabled)
     }
-
 
 
     private var cancelButton: some View {
@@ -234,7 +231,6 @@ public struct AddNewIsland: View {
         isSaveEnabled = isSaveEnabled && finalIsValid // Update isSaveEnabled
     }
 
-
     private func isValidField(_ field: AddressFieldType) -> Bool {
         guard let keyPath = fieldValues.first(where: { $1 == field })?.0 else {
             return false
@@ -242,7 +238,6 @@ public struct AddNewIsland: View {
         let value = islandDetails[keyPath: keyPath] as? String ?? ""
         return !value.isEmpty
     }
-
 
     private func saveIsland(currentUser: User, onSave: @escaping () -> Void) async {
         guard isSaveEnabled else {
@@ -258,7 +253,7 @@ public struct AddNewIsland: View {
         }
 
         do {
-            let newIsland = try await islandViewModel.createPirateIsland(
+            let newIsland = try await islandViewModel.createPirateIsland( // islandViewModel is now @EnvironmentObject
                 islandDetails: islandDetails,
                 createdByUserId: currentUser.userName,
                 gymWebsite: gymWebsite,
@@ -289,7 +284,6 @@ public struct AddNewIsland: View {
         }
     }
 
-
     private func clearFields() {
         islandDetails.islandName = ""
         islandDetails.street = ""
@@ -307,9 +301,7 @@ public struct AddNewIsland: View {
         islandDetails.province = ""
         islandDetails.additionalInfo = ""
         gymWebsite = ""
-        islandDetails.gymWebsite = "" // ✅ the actual field tied to the TextField
-        gymWebsiteURL = nil           // ✅ also reset the processed URL if needed
-
+        islandDetails.gymWebsite = ""
+        gymWebsiteURL = nil
     }
-
 }
