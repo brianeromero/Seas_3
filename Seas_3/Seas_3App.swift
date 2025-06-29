@@ -10,6 +10,8 @@ import FirebaseCore
 import FirebaseAuth // Assuming you need this for AuthViewModel.shared
 import FirebaseFirestore // Assuming you need this for Firestore
 
+
+
 @main
 struct Seas_3App: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
@@ -237,10 +239,22 @@ struct AppRootDestinationView: View {
             }
 
         case .postalCode:
-            Text("Postal Code Screen - To be implemented")
+            // ✅ Replace the placeholder Text with EnterZipCodeView
+            EnterZipCodeView(
+                appDayOfWeekViewModel: appDayOfWeekViewModel,
+                allEnteredLocationsViewModel: allEnteredLocationsViewModel,
+                enterZipCodeViewModel: enterZipCodeViewModel
+            )
+            .onAppear {
+                print("🧭 Navigating to screen: .postalCode (EnterZipCodeView)")
+            }
 
         case .dayOfWeek:
-            Text("Day Of Week Screen - To be implemented")
+            // ✅ Direct to DayOfWeekSearchView, now relying on environment objects
+            DayOfWeekSearchView() // This is now correct!
+                .onAppear {
+                    print("🧭 Navigating to screen: .dayOfWeek (DayOfWeekSearchView)")
+                }
 
         case .addNewGym:
             Text("Add New Gym Screen - To be implemented")

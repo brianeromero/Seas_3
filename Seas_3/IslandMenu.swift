@@ -85,7 +85,7 @@ struct IslandMenu: View {
     enum IslandMenuOption: String, CaseIterable {
         case allLocations = "All Locations"
         case currentLocation = "Current Location"
-        case postalCode = "Postal Code"
+        case postalCode = "Enter Location"
         case dayOfWeek = "Day of the Week"
         case addNewGym = "Add New Gym"
         case updateExistingGyms = "Update Existing Gyms"
@@ -355,13 +355,9 @@ struct IslandMenu: View {
             )
 
         case .dayOfWeek:
+
             return AnyView(
-                DayOfWeekSearchView(
-                    selectedIsland: $selectedIsland,
-                    selectedAppDayOfWeek: .constant(nil),
-                    region: $region,
-                    searchResults: $searchResults
-                )
+                DayOfWeekSearchView()
                 .onAppear {
                     let userID = authViewModel.currentUserID ?? "Unknown"
                     let timestamp = "\(Date())"
@@ -373,7 +369,6 @@ struct IslandMenu: View {
                     )
                 }
             )
-
         case .searchReviews:
             return AnyView(
                 ViewReviewSearch(

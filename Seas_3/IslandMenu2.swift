@@ -88,7 +88,7 @@ struct IslandMenu2: View {
         case empty = "" // Used as a placeholder for the first header
         case allLocations = "All Locations"
         case currentLocation = "Current Location"
-        case postalCode = "Postal Code"
+        case postalCode = "Enter Location"
         case dayOfWeek = "Day of the Week"
         case addNewGym = "Add New Gym"
         case updateExistingGyms = "Update Existing Gyms"

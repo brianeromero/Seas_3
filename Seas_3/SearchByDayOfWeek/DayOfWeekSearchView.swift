@@ -10,57 +10,34 @@ import CoreLocation
 import CoreData
 import Combine
 
+
 struct DayOfWeekSearchView: View {
-    @Binding var selectedIsland: PirateIsland?
-    @Binding var selectedAppDayOfWeek: AppDayOfWeek?
-    @Binding var region: MKCoordinateRegion
-    @Binding var searchResults: [PirateIsland]
-    
-    @State private var navigationPath = NavigationPath()
+    // These should be @State as they are primarily internal UI state,
+    // and passed as bindings to subviews like IslandModalContainer.
+    @State var selectedIsland: PirateIsland?
+    @State var selectedAppDayOfWeek: AppDayOfWeek?
 
-    
-    @StateObject private var userLocationMapViewModel = UserLocationMapViewModel()
-    
-    // Create one shared EnterZipCodeViewModel instance
-    @StateObject private var enterZipCodeViewModel = EnterZipCodeViewModel(
-        repository: AppDayOfWeekRepository.shared,
-        persistenceController: PersistenceController.shared
-    )
-    
-    // Pass shared enterZipCodeViewModel into AppDayOfWeekViewModel
-    @StateObject private var viewModel: AppDayOfWeekViewModel
-    
-    init(
-        selectedIsland: Binding<PirateIsland?>,
-        selectedAppDayOfWeek: Binding<AppDayOfWeek?>,
-        region: Binding<MKCoordinateRegion>,
-        searchResults: Binding<[PirateIsland]>
-    ) {
-        _selectedIsland = selectedIsland
-        _selectedAppDayOfWeek = selectedAppDayOfWeek
-        _region = region
-        _searchResults = searchResults
-
-        // Initialize viewModel here using the same enterZipCodeViewModel instance
-        // Note: we need to create enterZipCodeViewModel before viewModel, so we use a temporary property here
-        let enterZipVM = EnterZipCodeViewModel(
-            repository: AppDayOfWeekRepository.shared,
-            persistenceController: PersistenceController.shared
-        )
-        _enterZipCodeViewModel = StateObject(wrappedValue: enterZipVM)
-        _viewModel = StateObject(wrappedValue: AppDayOfWeekViewModel(
-            repository: AppDayOfWeekRepository.shared,
-            enterZipCodeViewModel: enterZipVM
-        ))
-    }
-
-    @State private var radius: Double = 10.0
+    // Region is already managed by this internal State property
     @State private var equatableRegionWrapper = EquatableMKCoordinateRegion(
         region: MKCoordinateRegion(
             center: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
             span: MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1)
         )
     )
+
+    // SearchResults binding is removed as it seems redundant;
+    // MapViewContainer uses appDayOfWeekViewModel.islandsWithMatTimes
+
+    @State private var navigationPath = NavigationPath()
+
+    // UserLocationMapViewModel can remain @StateObject if it's specific to this view's lifecycle
+    @StateObject private var userLocationMapViewModel = UserLocationMapViewModel()
+
+    // ✅ IMPORTANT: Use @EnvironmentObject for shared view models
+    @EnvironmentObject var viewModel: AppDayOfWeekViewModel
+    @EnvironmentObject var enterZipCodeViewModel: EnterZipCodeViewModel
+
+    @State private var radius: Double = 10.0
     @State private var errorMessage: String?
     @State private var selectedDay: DayOfWeek? = .monday
     @State private var showModal: Bool = false
@@ -79,7 +56,7 @@ struct DayOfWeekSearchView: View {
                 // <<-- MAP VIEW FIRST -->>
                 MapViewContainer(
                     region: $equatableRegionWrapper,
-                    appDayOfWeekViewModel: viewModel
+                    appDayOfWeekViewModel: viewModel // Use the environment object
                 ) { island in
                     handleIslandTap(island: island)
                 }
@@ -94,12 +71,12 @@ struct DayOfWeekSearchView: View {
             .sheet(isPresented: $showModal) {
                 IslandModalContainer(
                     selectedIsland: $selectedIsland,
-                    viewModel: viewModel,
+                    viewModel: viewModel, // Use the environment object
                     selectedDay: $selectedDay,
                     showModal: $showModal,
-                    enterZipCodeViewModel: enterZipCodeViewModel,
+                    enterZipCodeViewModel: enterZipCodeViewModel, // Use the environment object
                     selectedAppDayOfWeek: $selectedAppDayOfWeek,
-                    navigationPath: $navigationPath // <-- Add this
+                    navigationPath: $navigationPath
                 )
             }
 
@@ -212,7 +189,6 @@ struct DayOfWeekSearchView: View {
         }
     }
 }
-    
 
 // MARK: - Error View
 
