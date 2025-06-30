@@ -34,7 +34,7 @@ struct Seas_3App: App {
         ))
 
         _appDayOfWeekViewModel = StateObject(wrappedValue: AppDayOfWeekViewModel(
-            selectedIsland: nil,
+            selectedIsland: nil, // This 'nil' is for AppDayOfWeekViewModel's own 'selectedIsland' parameter
             repository: AppDayOfWeekRepository(persistenceController: PersistenceController.shared),
             enterZipCodeViewModel: EnterZipCodeViewModel(
                 repository: AppDayOfWeekRepository.shared,
@@ -49,7 +49,6 @@ struct Seas_3App: App {
 
         setupGlobalErrorHandler()
     }
-
     
     var body: some Scene {
         WindowGroup {
@@ -275,7 +274,10 @@ struct AppRootDestinationView: View {
             }
 
         case .updateExistingGyms:
-            Text("Update Existing Gyms Screen - To be implemented")
+            EditExistingIslandList()
+                .onAppear {
+                    print("🧭 Navigating to screen: .updateExistingGyms (EditExistingIslandList)")
+                }
 
         case .addOrEditScheduleOpenMat:
             Text("Add or Edit Schedule Open Mat Screen - To be implemented")
