@@ -22,7 +22,7 @@ struct EditMatTimeView: View {
 
     let matTime: MatTime
     let onSave: (MatTime) -> Void
-    @Environment(\.presentationMode) var presentationMode
+    @Environment(\.dismiss) var dismiss // ✅ Correct way to use @Environment(\.dismiss)
 
     init(matTime: MatTime, onSave: @escaping (MatTime) -> Void) {
         self.matTime = matTime
@@ -70,7 +70,7 @@ struct EditMatTimeView: View {
             .navigationTitle("Edit Mat Time")
             .navigationBarItems(
                 leading: Button("Cancel") {
-                    presentationMode.wrappedValue.dismiss()
+                    dismiss()
                 },
                 trailing: Button("Save") {
                     saveChanges()
@@ -92,6 +92,5 @@ struct EditMatTimeView: View {
         matTime.kids = kids
 
         onSave(matTime)
-        presentationMode.wrappedValue.dismiss()
-    }
+        dismiss()    }
 }

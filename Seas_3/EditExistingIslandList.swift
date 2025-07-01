@@ -9,34 +9,31 @@ import Foundation
 import SwiftUI
 import CoreData
 
+// MARK: - EditExistingIslandList (Wrapper View)
 struct EditExistingIslandList: View {
     @StateObject private var persistenceController = PersistenceController.shared
     @State private var selectedIsland: PirateIsland? = nil
     
-    // ✅ Change to @EnvironmentObject for consistency
     @EnvironmentObject private var authViewModel: AuthViewModel
+    @Binding var navigationPath: NavigationPath
 
     var body: some View {
         EditExistingIslandListContent(
             viewContext: persistenceController.viewContext,
             selectedIsland: $selectedIsland,
-            authViewModel: _authViewModel
+            navigationPath: $navigationPath
         )
-        .padding()
     }
 }
 
-
-
+// MARK: - EditExistingIslandListContent (Content View)
 struct EditExistingIslandListContent: View {
-    let viewContext: NSManagedObjectContext // This is correct for CoreData access
+    let viewContext: NSManagedObjectContext
     @Binding var selectedIsland: PirateIsland?
 
-    // ✅ Use @EnvironmentObject for shared view models
     @EnvironmentObject var authViewModel: AuthViewModel
-    @EnvironmentObject var enterZipCodeViewModel: EnterZipCodeViewModel // Assuming this is also provided via Environment
+    @EnvironmentObject var enterZipCodeViewModel: EnterZipCodeViewModel
 
-    // ✅ Use @StateObject for the new ViewModel
     @StateObject private var viewModel = EditExistingIslandListViewModel()
 
     @FetchRequest(
@@ -45,76 +42,102 @@ struct EditExistingIslandListContent: View {
     )
     private var islands: FetchedResults<PirateIsland>
     
-    @State private var showEdit: Bool = false // This state is still relevant to the view
+    @State private var showEdit: Bool = false
+
+    @Binding var navigationPath: NavigationPath
+
+    init(viewContext: NSManagedObjectContext, selectedIsland: Binding<PirateIsland?>, navigationPath: Binding<NavigationPath>) {
+        self.viewContext = viewContext
+        self._selectedIsland = selectedIsland
+        self._navigationPath = navigationPath
+    }
 
     var body: some View {
-        VStack(alignment: .leading) {
-            SearchHeader() // Assuming this is a static view
+        VStack(alignment: .leading, spacing: 0) {
+            // "Search by..." text
+            Text("Search by: gym name, postal code, or address/location") // Updated text to match image
+                .font(.subheadline) // Smaller font, as in the "Select Gym to Review" image
+                .foregroundColor(.secondary) // Gray/light gray color
+                .padding(.horizontal, 16) // Inset padding
+                .padding(.top, 8)
+                .padding(.bottom, 4)
             
-            SearchBar(text: $viewModel.searchQuery) // Bind to ViewModel's searchQuery
-                .onChange(of: viewModel.searchQuery) { _, _ in // Using new onChange syntax
-                    viewModel.updateFilteredIslands(with: islands) // Pass fetched results to ViewModel
+            SearchBar(text: $viewModel.searchQuery)
+                .onChange(of: viewModel.searchQuery) { _, _ in
+                    viewModel.updateFilteredIslands(with: islands)
                 }
+                .padding(.horizontal, 16) // Inset padding for search bar
             
-            // Add a loading indicator
             if viewModel.isLoading {
                 ProgressView("Searching...")
                     .padding()
             } else if viewModel.filteredIslands.isEmpty && !viewModel.searchQuery.isEmpty {
-                // Show "No Match Found" only if query is not empty and no results
                 Spacer()
                 Text("No gyms match your search criteria.")
-                    .foregroundColor(.gray)
+                    .foregroundColor(.secondary)
                     .font(.subheadline)
                     .frame(maxWidth: .infinity, alignment: .center)
                 Spacer()
             } else {
+                // The IslandList component itself will now handle the List and NavigationLinks
                 IslandList(
-                    islands: viewModel.searchQuery.isEmpty ? Array(islands) : viewModel.filteredIslands, // Use ViewModel's filtered results
+                    islands: viewModel.searchQuery.isEmpty ? Array(islands) : viewModel.filteredIslands,
                     selectedIsland: $selectedIsland,
-                    searchText: $viewModel.searchQuery, // Bind to ViewModel's searchQuery
-                    navigationDestination: .editExistingIsland, // Assuming AppScreen.editExistingIsland exists
-                    title: "Edit Gyms",
-                    enterZipCodeViewModel: enterZipCodeViewModel, // ✅ Use the EnvironmentObject
-                    authViewModel: authViewModel, // ✅ Use the EnvironmentObject
-                    onIslandChange: { _ in } // Pass through or implement as needed
+                    searchText: $viewModel.searchQuery,
+                    navigationDestination: .editExistingIsland, // Still passing this for IslandList's internal logic
+                    title: "Edit Gyms", // Title for IslandList (which it now displays)
+                    onIslandChange: { _ in },
+                    navigationPath: $navigationPath // Pass navigationPath
                 )
-                // Removed the .alert here as the message is now inline
             }
         }
+        .background(Color(.systemBackground)) // Overall view background
+        .navigationTitle("Edit Gyms") // Set the navigation title for this screen
         .onAppear {
-            // Initial filter when the view appears
             viewModel.updateFilteredIslands(with: islands)
-            // logFetch() // This function is not in the ViewModel, consider moving or removing
-            createNewPirateIslandIfNeeded() // This function is not in the ViewModel, consider moving or removing
+            createNewPirateIslandIfNeeded()
         }
-        // No longer need onChange for searchQuery here, handled by SearchBar's onChange
     }
-
     
-    // These helper methods now belong in the ViewModel or are no longer needed here
     private func createNewPirateIslandIfNeeded() {
-        // Check if you need to create a new PirateIsland object
         _ = PirateIsland(context: viewContext)
-        // ...
     }
-    
-    // Removed updateSearchResults(), updateFilteredIslands(), matchesIsland(), logFetch()
-    // as their logic is now within EditExistingIslandListViewModel
+}
+
+// MARK: - IslandListRowContent (No changes, as it was already set up for dynamic colors and padding)
+struct IslandListRowContent: View {
+    let island: PirateIsland
+
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading) {
+                Text(island.islandName ?? "Unknown Gym")
+                    .font(.headline)
+                    .foregroundColor(.primary) // Adapts to Light/Dark Mode
+                
+                Text(island.islandLocation ?? "")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary) // Adapts to Light/Dark Mode
+            }
+            Spacer()
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 16) // This creates the internal padding for text
+        .background(Color(.systemBackground)) // Row content background
+    }
 }
 
 
 // MARK: - Create EditExistingIslandListViewModel
-
+// MARK: - EditExistingIslandListViewModel (No changes needed)
 class EditExistingIslandListViewModel: ObservableObject {
     @Published var searchQuery: String = ""
     @Published var filteredIslands: [PirateIsland] = []
     @Published var showNoMatchAlert: Bool = false
-    @Published var isLoading: Bool = false // Add loading state for UI feedback
+    @Published var isLoading: Bool = false
 
     private var debounceTimer: Timer?
 
-    // This method will be called by the View to initiate filtering
     func updateFilteredIslands(with pirateIslands: FetchedResults<PirateIsland>) {
         if searchQuery.isEmpty {
             filteredIslands = Array(pirateIslands)
@@ -130,7 +153,6 @@ class EditExistingIslandListViewModel: ObservableObject {
     }
 
     private func performFiltering(with pirateIslands: FetchedResults<PirateIsland>) {
-        // Set loading state to true while filtering is in progress
         DispatchQueue.main.async {
             self.isLoading = true
         }
@@ -141,9 +163,9 @@ class EditExistingIslandListViewModel: ObservableObject {
                 let properties = [
                     island.islandName,
                     island.islandLocation,
-                    island.gymWebsite?.absoluteString, // Ensure URL is converted to String
-                    String(island.latitude), // Convert Double to String
-                    String(island.longitude) // Convert Double to String
+                    island.gymWebsite?.absoluteString,
+                    String(island.latitude),
+                    String(island.longitude)
                 ]
                 return properties.compactMap { $0?.lowercased() }.contains { $0.contains(lowercasedQuery) }
             }
@@ -151,7 +173,7 @@ class EditExistingIslandListViewModel: ObservableObject {
             DispatchQueue.main.async {
                 self.filteredIslands = filtered
                 self.showNoMatchAlert = !self.searchQuery.isEmpty && self.filteredIslands.isEmpty
-                self.isLoading = false // Set loading state to false after filtering
+                self.isLoading = false
             }
         }
     }

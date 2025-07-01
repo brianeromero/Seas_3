@@ -63,7 +63,7 @@ struct Seas_3App: App {
             .environmentObject(appDelegate.profileViewModel!)
             .environmentObject(allEnteredLocationsViewModel)
             .environmentObject(appDayOfWeekViewModel) // ✅ Inject here so it’s available app-wide
-            .environmentObject(enterZipCodeViewModel)
+            .environmentObject(enterZipCodeViewModel) // Ensure this is also injected at the root
             .environment(\.managedObjectContext, appDelegate.persistenceController.container.viewContext)
         }
     }
@@ -84,7 +84,10 @@ struct AppRootView: View {
     @EnvironmentObject var pirateIslandViewModel: PirateIslandViewModel
     @EnvironmentObject var profileViewModel: ProfileViewModel
     @EnvironmentObject var allEnteredLocationsViewModel: AllEnteredLocationsViewModel
-    @EnvironmentObject var appDayOfWeekViewModel: AppDayOfWeekViewModel // Access it here too
+    @EnvironmentObject var appDayOfWeekViewModel: AppDayOfWeekViewModel
+    
+    // ✅ ADD THIS LINE: To make enterZipCodeViewModel available in this view's hierarchy
+    @EnvironmentObject var enterZipCodeViewModel: EnterZipCodeViewModel
 
     @Binding var selectedTabIndex: LoginViewSelection
     @ObservedObject var appState: AppState
@@ -140,6 +143,7 @@ struct AppRootView: View {
                     .environmentObject(profileViewModel)
                     .environmentObject(allEnteredLocationsViewModel)
                     .environmentObject(appDayOfWeekViewModel) // Inject here as well!
+                    .environmentObject(enterZipCodeViewModel) // Ensure this is also injected
             }
         }
         .onChange(of: authenticationState.isAuthenticated) { oldValue, newValue in
@@ -274,10 +278,32 @@ struct AppRootDestinationView: View {
             }
 
         case .updateExistingGyms:
-            EditExistingIslandList()
+            // ✅ CRITICAL: Pass the navigationPath binding here
+            EditExistingIslandList(navigationPath: $navigationPath) // <--- THIS IS THE LINE TO UPDATE
                 .onAppear {
                     print("🧭 Navigating to screen: .updateExistingGyms (EditExistingIslandList)")
                 }
+
+        case .editExistingIsland(let islandIDString):
+            if let objectID = viewContext.persistentStoreCoordinator?.managedObjectID(forURIRepresentation: URL(string: islandIDString)!) {
+                if let island = try? viewContext.existingObject(with: objectID) as? PirateIsland {
+                    // ✅ Assuming EditExistingIsland now uses @EnvironmentObject for these
+                    EditExistingIsland(
+                        island: island
+                        // REMOVED explicit passing of islandViewModel, profileViewModel, authViewModel
+                        // as they should be injected via environment if needed.
+                        // If EditExistingIsland *still* requires these as direct parameters,
+                        // you will need to add them back here and to EditExistingIsland's init.
+                    )
+                    .onAppear {
+                        print("🧭 Navigating to screen: .editExistingIsland -> \(island.islandName ?? "Unknown")")
+                    }
+                } else {
+                    Text("Error: Island not found for editing.")
+                }
+            } else {
+                Text("Error: Invalid Island ID for editing.")
+            }
 
         case .addOrEditScheduleOpenMat:
             Text("Add or Edit Schedule Open Mat Screen - To be implemented")

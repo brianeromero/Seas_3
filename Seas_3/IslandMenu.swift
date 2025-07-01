@@ -18,7 +18,7 @@ struct IslandMenu: View {
 
     // MARK: - Environment Variables
     @Environment(\.managedObjectContext) private var viewContext
-    @Environment(\.dismiss) private var dismiss // Updated for iOS 15+
+    @Environment(\.dismiss) var dismiss // ✅ Correct way to use @Environment(\.dismiss)
     @EnvironmentObject var authViewModel: AuthViewModel // Changed from @ObservedObject to @EnvironmentObject
     @EnvironmentObject var allEnteredLocationsViewModel: AllEnteredLocationsViewModel
 
@@ -266,7 +266,7 @@ struct IslandMenu: View {
 
         case .updateExistingGyms:
             return AnyView(
-                EditExistingIslandList()
+                EditExistingIslandList(navigationPath: $navigationPath) // <-- ADDED navigationPath here
                 .onAppear {
                     let userID = authViewModel.currentUserID ?? "Unknown"
                     let timestamp = "\(Date())"
@@ -278,6 +278,7 @@ struct IslandMenu: View {
                     )
                 }
             )
+
 
         case .allLocations:
             return AnyView(

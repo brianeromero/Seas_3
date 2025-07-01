@@ -9,7 +9,7 @@ import SwiftUI
 import CoreData
 import os
 
-
+import Foundation // Needed for Hashable, Identifiable, Codable
 
 enum AppScreen: Hashable, Identifiable, Codable {
     case review(String)
@@ -25,6 +25,8 @@ enum AppScreen: Hashable, Identifiable, Codable {
     case dayOfWeek
     case addNewGym
     case updateExistingGyms
+    // ✅ THIS IS THE CRITICAL NEW CASE YOU MUST ADD/VERIFY
+    case editExistingIsland(String) // String will be the objectID.uriRepresentation().absoluteString
     case addOrEditScheduleOpenMat
     case faqDisclaimer
 
@@ -41,6 +43,8 @@ enum AppScreen: Hashable, Identifiable, Codable {
         case .dayOfWeek: return "dayOfWeek"
         case .addNewGym: return "addNewGym"
         case .updateExistingGyms: return "updateExistingGyms"
+        // ✅ VERIFY THIS ID CASE IS PRESENT for editExistingIsland
+        case .editExistingIsland(let id): return "editExistingIsland-\(id)"
         case .addOrEditScheduleOpenMat: return "addOrEditScheduleOpenMat"
         case .faqDisclaimer: return "faqDisclaimer"
         }
@@ -49,7 +53,8 @@ enum AppScreen: Hashable, Identifiable, Codable {
     private enum CodingKeys: String, CodingKey {
         case review, viewAllReviews, selectGymForReview, searchReviews
         case profile, allLocations, currentLocation, postalCode, dayOfWeek
-        case addNewGym, updateExistingGyms, addOrEditScheduleOpenMat, faqDisclaimer
+        case addNewGym, updateExistingGyms, editExistingIsland // ✅ VERIFY THIS IS IN CODINGKEYS
+        case addOrEditScheduleOpenMat, faqDisclaimer
     }
 
     init(from decoder: Decoder) throws {
@@ -76,6 +81,8 @@ enum AppScreen: Hashable, Identifiable, Codable {
             self = .addNewGym
         } else if container.contains(.updateExistingGyms) {
             self = .updateExistingGyms
+        } else if let id = try container.decodeIfPresent(String.self, forKey: .editExistingIsland) { // ✅ VERIFY DECODING FOR NEW CASE
+            self = .editExistingIsland(id)
         } else if container.contains(.addOrEditScheduleOpenMat) {
             self = .addOrEditScheduleOpenMat
         } else if container.contains(.faqDisclaimer) {
@@ -110,6 +117,8 @@ enum AppScreen: Hashable, Identifiable, Codable {
             try container.encodeNil(forKey: .addNewGym)
         case .updateExistingGyms:
             try container.encodeNil(forKey: .updateExistingGyms)
+        case .editExistingIsland(let id): // ✅ VERIFY ENCODING FOR NEW CASE
+            try container.encode(id, forKey: .editExistingIsland)
         case .addOrEditScheduleOpenMat:
             try container.encodeNil(forKey: .addOrEditScheduleOpenMat)
         case .faqDisclaimer:
@@ -117,7 +126,6 @@ enum AppScreen: Hashable, Identifiable, Codable {
         }
     }
 }
-
 
 enum SortType: String, CaseIterable, Identifiable {
     case latest = "Latest"
@@ -193,10 +201,11 @@ struct ViewReviewforIsland: View {
         .onChange(of: selectedSortType) { _, _ in Task { await loadReviews() } }
         .onChange(of: selectedIslandInternal) { _, _ in Task { await loadReviews() } }
 
-        // ✅ Reintroduce this here
-        .navigationDestination(for: AppScreen.self) { screen in
-            destinationView(for: screen)
-        }
+        // ✅ REMOVED: The .navigationDestination modifier should NOT be here.
+        // It belongs on the NavigationStack in AppRootView (handled by AppRootDestinationView).
+        // .navigationDestination(for: AppScreen.self) { screen in
+        //     destinationView(for: screen)
+        // }
     }
 
 
@@ -221,17 +230,20 @@ struct ViewReviewforIsland: View {
                 if filteredReviews.isEmpty {
                     NoReviewsView(
                         selectedIsland: $selectedIslandInternal,
-                        path: $navigationPath
+                        path: $navigationPath // This correctly pushes to the shared path
                     )
                 } else {
                     ReviewList(
                         filteredReviews: filteredReviews,
                         selectedSortType: $selectedSortType
+                        // If ReviewList itself contains NavigationLinks that push AppScreen values,
+                        // it might need the navigationPath binding as well.
+                        // For now, assuming FullReviewView is pushed directly by destination:
                     )
 
                     AddMyOwnReviewView(
                         island: island,
-                        path: $navigationPath
+                        path: $navigationPath // This correctly pushes to the shared path
                     )
                 }
             } else {
@@ -242,6 +254,7 @@ struct ViewReviewforIsland: View {
         .padding()
     }
 
+    /*
     private func destinationView(for screen: AppScreen) -> some View {
         switch screen {
         case .review(let islandIDString):
@@ -304,9 +317,12 @@ struct ViewReviewforIsland: View {
              .addNewGym, .updateExistingGyms, .addOrEditScheduleOpenMat, .faqDisclaimer:
             return AnyView(Text("Navigation to \(screen.id) is not handled in ViewReviewforIsland."))
 
+        case .editExistingIsland(_):
+            <#code#>
         }
     }
 
+     */
 
     private func handleOnAppear() {
         os_log("ViewReviewforIsland onAppear - island: %@", log: logger, type: .info, selectedIslandInternal?.islandName ?? "nil")
@@ -344,15 +360,13 @@ struct ViewReviewforIsland: View {
         @Binding var selectedIsland: PirateIsland?
         @Binding var path: NavigationPath
 
-        // Make sure this matches your top-level environment object type
-        @EnvironmentObject var enterZipCodeViewModel: AllEnteredLocationsViewModel // Changed to AllEnteredLocationsViewModel
+        @EnvironmentObject var enterZipCodeViewModel: EnterZipCodeViewModel // Assuming correct type
         @EnvironmentObject var authViewModel: AuthViewModel
 
         var body: some View {
             Button {
                 if let island = selectedIsland {
-                    os_log("Tapped 'No reviews available' button, appending AppScreen.review to path", log: logger, type: .info)
-                    // FIX: Pass the objectID's URI string, not the PirateIsland object
+                    os_log("Tapped 'No reviews available' button, appending AppScreen.review to path", log: logger, type: .info, island.islandName ?? "nil")
                     path.append(AppScreen.review(island.objectID.uriRepresentation().absoluteString))
                 }
             } label: {
@@ -366,16 +380,13 @@ struct ViewReviewforIsland: View {
     }
 
     private struct AddMyOwnReviewView: View {
-        // The `island` property now needs to be `PirateIsland` itself for its content.
-        // However, when pushing to AppScreen, you'll use its ID.
-        let island: PirateIsland // This is correct if you need the actual object here
+        let island: PirateIsland
         @Binding var path: NavigationPath
 
         var body: some View {
             VStack {
                 Button {
                     os_log("✅ AddMyOwnReviewView: Tapped button to navigate to review screen for island: %@", log: logger, type: .info, island.islandName ?? "nil")
-                    // Fix: Pass the objectID URI string, not the PirateIsland object
                     path.append(AppScreen.review(island.objectID.uriRepresentation().absoluteString))
                 } label: {
                     Text("Add My Own Review!")
@@ -387,6 +398,7 @@ struct ViewReviewforIsland: View {
             }
         }
     }
+
 
     private func loadReviews() async {
         guard let island = selectedIslandInternal else {
@@ -454,6 +466,9 @@ struct ReviewList: View {
             if !filteredReviews.isEmpty {
                 LazyVStack(alignment: .leading, spacing: 12) {
                     ForEach(filteredReviews, id: \.reviewID) { review in
+                        // This NavigationLink uses the older 'destination:' syntax.
+                        // For full NavigationStack integration, it should push an AppScreen value.
+                        // Keeping it as is for now, but note for future refactoring.
                         NavigationLink(destination: FullReviewView(review: review)) {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text(review.review)
@@ -474,14 +489,14 @@ struct ReviewList: View {
                                 }
                             }
                             .padding()
-                            .background(Color(.systemGray6))
+                            .background(Color(.systemGray6)) // Use system color for background
                             .cornerRadius(10)
                             .shadow(radius: 3)
                         }
-                        .buttonStyle(PlainButtonStyle())
+                        .buttonStyle(PlainButtonStyle()) // Remove default button styling
                     }
                 }
-                .padding()
+                .padding() // This padding will create a margin around the LazyVStack
             } else {
                 Text("No reviews available.")
             }
@@ -489,7 +504,9 @@ struct ReviewList: View {
     }
 }
 
-// MARK: - SortSection
+
+
+// MARK: - SortSection (No changes needed)
 
 struct SortSection: View {
     @Binding var selectedSortType: SortType
@@ -513,7 +530,8 @@ struct SortSection: View {
     }
 }
 
-// MARK: - FullReviewView
+
+// MARK: - FullReviewView (No changes needed)
 
 struct FullReviewView: View {
     var review: Review

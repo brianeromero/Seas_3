@@ -208,12 +208,11 @@ struct GymMatReviewView: View {
     @State private var cachedIsland: PirateIsland?
     // @State private var hasInitialized = false // REMOVED - Unused, you can safely delete this line
 
-    @Environment(\.dismiss) private var dismiss // Use this instead of presentationMode
+    @Environment(\.dismiss) var dismiss // ✅ Correct way to use @Environment(\.dismiss)
 
     @EnvironmentObject var authViewModel: AuthViewModel
     @EnvironmentObject var enterZipCodeViewModel: EnterZipCodeViewModel
     @Environment(\.managedObjectContext) private var viewContext
-    // @Environment(\.presentationMode) private var presentationMode // REMOVED - Deprecated, use @Environment(\.dismiss)
 
     @FetchRequest(
         entity: PirateIsland.entity(),

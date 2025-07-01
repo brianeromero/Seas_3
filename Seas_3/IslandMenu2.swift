@@ -22,7 +22,7 @@ struct IslandMenu2: View {
 
     // MARK: - Environment Variables
     @Environment(\.managedObjectContext) private var viewContext
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.dismiss) var dismiss // ✅ Correct way to use @Environment(\.dismiss)
     @EnvironmentObject var authViewModel: AuthViewModel
     @EnvironmentObject var allEnteredLocationsViewModel: AllEnteredLocationsViewModel
 

@@ -8,16 +8,15 @@ import Foundation
 import SwiftUI
 
 struct SavedConfirmationView: View {
-    @Environment(\.presentationMode) var presentationMode
-    
+    @Environment(\.dismiss) var dismiss // ✅ Correct way to use @Environment(\.dismiss)
+
     var body: some View {
         VStack {
             Text("Data Saved Successfully!")
                 .font(.headline)
                 .padding()
             Button(action: {
-                presentationMode.wrappedValue.dismiss()
-            }) {
+                dismiss()            }) {
                 Text("OK")
                     .font(.title2)
                     .padding()

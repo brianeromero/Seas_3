@@ -121,19 +121,48 @@ struct IslandListItem: View {
     }
 }
 
+
+
 struct IslandList: View {
     let islands: [PirateIsland]
     @Binding var selectedIsland: PirateIsland? // This is the source of the value
     @Binding var searchText: String
-    let navigationDestination: NavigationDestination
+    let navigationDestination: NavigationDestination // Keep this if other parts of your app use it
     let title: String
-    let enterZipCodeViewModel: EnterZipCodeViewModel
-    let authViewModel: AuthViewModel
-    let onIslandChange: (PirateIsland?) -> Void
-    @State private var showNavigationDestination = false
     
-    // Add NavigationPath state here to pass to ViewReviewforIsland
-    @State private var navigationPath = NavigationPath()
+    // ✅ Change these to @EnvironmentObject as they are shared app-wide
+    @EnvironmentObject var enterZipCodeViewModel: EnterZipCodeViewModel
+    @EnvironmentObject var authViewModel: AuthViewModel
+    @EnvironmentObject var pirateIslandViewModel: PirateIslandViewModel // Needed for EditExistingIsland
+    @EnvironmentObject var profileViewModel: ProfileViewModel // Needed for EditExistingIsland
+
+    let onIslandChange: (PirateIsland?) -> Void
+    
+    // ✅ NEW: Receive navigationPath as a Binding from the parent view
+    @Binding var navigationPath: NavigationPath // <--- CRUCIAL CHANGE!
+
+    // ✅ REMOVED: @State private var showNavigationDestination = false
+    // ✅ REMOVED: @State private var navigationPath = NavigationPath() // This was creating a separate path
+
+    // ✅ Custom initializer to accept all bindings and regular properties
+    // Remove explicit view model parameters from init as they are now @EnvironmentObject
+    init(
+        islands: [PirateIsland],
+        selectedIsland: Binding<PirateIsland?>,
+        searchText: Binding<String>,
+        navigationDestination: NavigationDestination,
+        title: String,
+        onIslandChange: @escaping (PirateIsland?) -> Void,
+        navigationPath: Binding<NavigationPath> // Receive navigationPath here
+    ) {
+        self.islands = islands
+        self._selectedIsland = selectedIsland
+        self._searchText = searchText
+        self.navigationDestination = navigationDestination
+        self.title = title
+        self.onIslandChange = onIslandChange
+        self._navigationPath = navigationPath // Initialize the binding
+    }
 
     var filteredIslands: [PirateIsland] {
         if searchText.isEmpty {
@@ -147,51 +176,33 @@ struct IslandList: View {
     }
 
     var body: some View {
-        List {
-            ForEach(filteredIslands, id: \.self) { island in
-                Button(action: {
-                    selectedIsland = island
-                    onIslandChange(selectedIsland)
-                    showNavigationDestination = true
-                }) {
-                    IslandListItem(island: island, selectedIsland: $selectedIsland)
-                }
-            }
-        }
-        .navigationTitle(title)
-        .navigationDestination(isPresented: $showNavigationDestination) {
-            switch self.navigationDestination {
-            case .editExistingIsland:
-                if let island = selectedIsland {
-                    EditExistingIsland(
-                        island: island,
-                        islandViewModel: PirateIslandViewModel(
-                            persistenceController: PersistenceController.shared
-                        ),
-                        profileViewModel: ProfileViewModel(
-                            viewContext: PersistenceController.shared.container.viewContext,
-                            authViewModel: authViewModel
-                        )
-                    )
-                } else {
-                    EmptyView()
-                }
-                
-            case .viewReviewForIsland:
-                // Pass the navigationPath binding here
-                ViewReviewforIsland(
-                    showReview: .constant(true),
-                    selectedIsland: selectedIsland!,
-                    navigationPath: $navigationPath
-                )
+        VStack(alignment: .leading, spacing: 0) { // ✅ spacing: 0 for no space between elements
+            // The title is now part of this view's layout, not the parent's navigationTitle.
+            Text(title)
+                .font(.title2)
+                .bold()
+                .padding(.horizontal, 16) // Padding for title
+                .padding(.bottom, 8) // Spacing below title
 
-            case .review:
-                GymMatReviewView(
-                    localSelectedIsland: $selectedIsland,
-                    //onIslandChange: onIslandChange
-                )
+            List {
+                ForEach(filteredIslands, id: \.objectID) { island in // ✅ Use .objectID for stable identity
+                    // ✅ Replaced Button with NavigationLink(value: ...)
+                    NavigationLink(value: AppScreen.editExistingIsland(island.objectID.uriRepresentation().absoluteString)) {
+                        IslandListItem(island: island, selectedIsland: $selectedIsland)
+                            // Apply styling to the row content itself
+                            .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0)) // ✅ CRITICAL: Removes row padding
+                            .listRowBackground(Color(.systemBackground)) // ✅ CRITICAL: Dynamic background for row
+                    }
+                    .buttonStyle(PlainButtonStyle()) // Ensures the whole row is tappable and removes default blue tint
+                }
             }
+            .listStyle(.plain) // ✅ CRITICAL: Flat list style
+            .background(Color(.systemBackground)) // ✅ CRITICAL: List background matches system theme
+            .padding(.horizontal, 0) // ✅ CRITICAL: No horizontal padding on the List itself
+            .ignoresSafeArea(.all, edges: .horizontal) // ✅ CRITICAL: Extends list content to screen edges
         }
+        // ✅ REMOVED: .navigationTitle(title) // This should be on the parent view that contains this list (e.g., EditExistingIslandListContent)
+        // ✅ REMOVED: .navigationDestination(isPresented: ...) // This is now handled by AppRootView's .navigationDestination(for:)
     }
 }
 

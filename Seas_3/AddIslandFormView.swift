@@ -13,8 +13,8 @@ import Foundation
 struct AddIslandFormView: View {
     // MARK: - Environment Variables
     @Environment(\.managedObjectContext) private var viewContext
-    @Environment(\.presentationMode) private var presentationMode
-    
+    @Environment(\.dismiss) var dismiss // ✅ Correct way to use @Environment(\.dismiss)
+
     
     // MARK: - Observed Objects
     @ObservedObject var islandViewModel: PirateIslandViewModel
@@ -192,7 +192,7 @@ struct AddIslandFormView: View {
 
     private var cancelButton: some View {
         Button("Cancel") {
-            presentationMode.wrappedValue.dismiss()
+            dismiss()
         }
         .padding()
     }

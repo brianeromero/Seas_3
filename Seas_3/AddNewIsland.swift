@@ -15,8 +15,8 @@ import os
 public struct AddNewIsland: View {
     // Environment Variables
     @Environment(\.managedObjectContext) private var viewContext
-    @Environment(\.presentationMode) private var presentationMode
-    
+    @Environment(\.dismiss) var dismiss // ✅ Correct way to use @Environment(\.dismiss)
+
     // ✅ Change to @EnvironmentObject for shared view models
     @EnvironmentObject var islandViewModel: PirateIslandViewModel
     @EnvironmentObject var profileViewModel: ProfileViewModel
@@ -172,7 +172,7 @@ public struct AddNewIsland: View {
         Button("Cancel") {
             os_log("Cancel button clicked", log: OSLog.default, type: .info)
             clearFields()
-            presentationMode.wrappedValue.dismiss()
+            dismiss()
         }
     }
 
