@@ -95,17 +95,13 @@ struct EditExistingIslandListContent: View {
         .navigationTitle("Edit Gyms") // Set the navigation title for this screen
         .onAppear {
             viewModel.updateFilteredIslands(with: islands)
-            createNewPirateIslandIfNeeded()
         }
     }
     
-    private func createNewPirateIslandIfNeeded() {
-        _ = PirateIsland(context: viewContext)
-    }
 }
 
 // MARK: - IslandListRowContent (No changes, as it was already set up for dynamic colors and padding)
-struct IslandListRowContent: View {
+struct IslandListRowContenot: View {
     let island: PirateIsland
 
     var body: some View {
@@ -139,42 +135,40 @@ class EditExistingIslandListViewModel: ObservableObject {
     private var debounceTimer: Timer?
 
     func updateFilteredIslands(with pirateIslands: FetchedResults<PirateIsland>) {
-        if searchQuery.isEmpty {
-            filteredIslands = Array(pirateIslands)
-            showNoMatchAlert = false
-            isLoading = false
-            return
-        }
-
+        // Invalidate existing timer and set a new one
         debounceTimer?.invalidate()
         debounceTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { [weak self] _ in
-            self?.performFiltering(with: pirateIslands)
-        }
-    }
+            // Ensure self is still valid
+            guard let self = self else { return }
 
-    private func performFiltering(with pirateIslands: FetchedResults<PirateIsland>) {
-        DispatchQueue.main.async {
-            self.isLoading = true
-        }
+            // All filtering operations are now on the main thread
+            DispatchQueue.main.async { // This ensures the UI updates and the filtering happens on the main thread.
+                self.isLoading = true
+                let lowercasedQuery = self.searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
 
-        DispatchQueue.global(qos: .userInitiated).async {
-            let lowercasedQuery = self.searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-            let filtered = pirateIslands.filter { island in
-                let properties = [
-                    island.islandName,
-                    island.islandLocation,
-                    island.gymWebsite?.absoluteString,
-                    String(island.latitude),
-                    String(island.longitude)
-                ]
-                return properties.compactMap { $0?.lowercased() }.contains { $0.contains(lowercasedQuery) }
-            }
+                if lowercasedQuery.isEmpty {
+                    self.filteredIslands = Array(pirateIslands)
+                    self.showNoMatchAlert = false
+                    self.isLoading = false
+                    return
+                }
 
-            DispatchQueue.main.async {
+                let filtered = pirateIslands.filter { island in
+                    let properties = [
+                        island.islandName,
+                        island.islandLocation,
+                        island.gymWebsite?.absoluteString,
+                        String(island.latitude),
+                        String(island.longitude)
+                    ]
+                    return properties.compactMap { $0?.lowercased() }.contains { $0.contains(lowercasedQuery) }
+                }
+
                 self.filteredIslands = filtered
                 self.showNoMatchAlert = !self.searchQuery.isEmpty && self.filteredIslands.isEmpty
                 self.isLoading = false
             }
         }
     }
+
 }
