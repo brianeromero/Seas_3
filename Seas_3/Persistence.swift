@@ -100,8 +100,22 @@ class PersistenceController: ObservableObject {
     }
 
     func saveContext() async throws {
-        if viewContext.hasChanges {
-            try viewContext.save()
+        // Ensure that any operation on viewContext (including checking hasChanges and saving)
+        // is performed on the viewContext's designated queue.
+        // For the main viewContext, this means the main thread.
+        try await viewContext.perform {
+            if self.viewContext.hasChanges { // Use self to refer to viewContext inside the closure
+                do {
+                    try self.viewContext.save()
+                } catch {
+                    // It's good practice to log or handle the error more gracefully here
+                    // rather than just re-throwing in some cases.
+                    print("Error saving viewContext: \(error)")
+                    // Optionally, roll back changes if the save fails
+                    self.viewContext.rollback()
+                    throw error // Re-throw the error for the caller to handle
+                }
+            }
         }
     }
 

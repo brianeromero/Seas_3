@@ -91,12 +91,14 @@ class AuthViewModel: ObservableObject {
     static var shared: AuthViewModel {
         get {
             if _shared == nil {
+                // Ensure AppDelegate.shared.authenticationState is correctly initialized if used
+                // For direct instantiation, you might pass a default context and AuthenticationState
+                // If this is truly a singleton, ensure its initialization is robust.
                 _shared = AuthViewModel(authenticationState: AppDelegate.shared.authenticationState)
             }
             return _shared!
         }
     }
-
 
     @Published var usernameOrEmail: String = ""
     @Published var password: String = ""
@@ -119,10 +121,10 @@ class AuthViewModel: ObservableObject {
     private let emailManager: UnifiedEmailManager
     private let logger = os.Logger(subsystem: "com.seas3.app", category: "AuthViewModel")
 
-
     public var authenticationState: AuthenticationState
 
     var authStateHandle: AuthStateDidChangeListenerHandle?
+
 
     // Add a cancellables set to store Combine subscriptions
     private var cancellables = Set<AnyCancellable>() // Ensure this is present and initialized
@@ -218,6 +220,7 @@ class AuthViewModel: ObservableObject {
         }
     }
 
+
     func userAlreadyExists() async -> Bool {
         // Check if the user exists in Core Data first
         let fetchRequest: NSFetchRequest<UserInfo> = UserInfo.fetchRequest()
@@ -274,19 +277,6 @@ class AuthViewModel: ObservableObject {
         self.formState = FormState() // Reset formState as well
     }
 
-/*    // Add this method to AuthViewModel
-    func logoutUser() async throws {
-        do {
-            try auth.signOut()
-            await MainActor.run {
-                userSession = nil
-                currentUser = nil
-            }
-        } catch {
-            throw AuthError.firebaseError(error)
-        }
-    }
- */
 
     // Ensure fetchUserByEmail is async
     func fetchUserByEmail(_ email: String) async -> Result<UserInfo?, Error> {
@@ -305,7 +295,7 @@ class AuthViewModel: ObservableObject {
             return .failure(error)
         }
     }
-
+    
     // Modify fetchUserByUsername
     private func fetchUserByUsername(_ username: String) async -> Result<UserInfo?, Error> {
         let firestore = Firestore.firestore()
@@ -330,11 +320,100 @@ class AuthViewModel: ObservableObject {
             return .failure(error)
         }
     }
-
+    
     private func updateUser(_ user: UserInfo, with userName: String, name: String) throws {
         user.userName = userName
         user.name = name
         try context.save()
+    }
+    
+    
+    public func fetchUserName(forUserID userID: String) async -> String? {
+        let db = Firestore.firestore()
+        let userRef = db.collection("users").document(userID) // Assuming document ID is the userID
+
+        do {
+            let snapshot = try await userRef.getDocument()
+            if let data = snapshot.data() {
+                // Try to get 'userName' first
+                if let userName = data["userName"] as? String {
+                    self.logger.info("Fetched userName '\(userName, privacy: .public)' for userID: \(userID, privacy: .public)")
+                    return userName
+                }
+                // If 'userName' is not found, fall back to 'name'
+                else if let name = data["name"] as? String {
+                    self.logger.warning("No 'userName' field found, falling back to 'name': '\(name, privacy: .public)' for userID: \(userID, privacy: .public)")
+                    return name
+                }
+                // If neither 'userName' nor 'name' is found
+                else {
+                    self.logger.warning("Neither 'userName' nor 'name' field found for userID: \(userID, privacy: .public)")
+                    return nil
+                }
+            } else {
+                self.logger.warning("No document data found for userID: \(userID, privacy: .public)")
+                return nil // No document data
+            }
+        } catch {
+            self.logger.error("Error fetching user display name for userID \(userID, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            return nil // Error occurred during fetch
+        }
+    }
+
+    
+    public func fetchUserName(forUserName queriedUserName: String) async -> String? {
+        let db = Firestore.firestore()
+        let usersCollection = db.collection("users")
+
+        do {
+            // Query the 'users' collection where the 'userName' field matches the queriedUserName
+            // IMPORTANT: You MUST have a single-field index on 'userName' in your Firestore console for this to be efficient.
+            let querySnapshot = try await usersCollection
+                                        .whereField("userName", isEqualTo: queriedUserName)
+                                        .getDocuments()
+
+            if let document = querySnapshot.documents.first {
+                let data = document.data()
+                if let userName = data["userName"] as? String {
+                    self.logger.info("Fetched userName '\(userName, privacy: .public)' for query: \(queriedUserName, privacy: .public)")
+                    return userName
+                } else if let name = data["name"] as? String {
+                    self.logger.warning("Document found for userName \(queriedUserName, privacy: .public), but no 'userName' field. Falling back to 'name': '\(name, privacy: .public)'.")
+                    return name
+                } else {
+                    self.logger.warning("Document found for userName query \(queriedUserName, privacy: .public), but neither 'userName' nor 'name' field exists.")
+                    return nil
+                }
+            } else {
+                self.logger.warning("No user document found with userName matching: \(queriedUserName, privacy: .public)")
+                return nil
+            }
+        } catch {
+            self.logger.error("Error fetching user by userName \(queriedUserName, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
+    }
+
+    
+    // In AuthViewModel.swift
+    public func fetchUserDisplayName(forUserID userID: String) async -> String? {
+        let db = Firestore.firestore()
+        let userRef = db.collection("users").document(userID)
+
+        do {
+            let snapshot = try await userRef.getDocument()
+            if let data = snapshot.data() {
+                if let userName = data["userName"] as? String {
+                    return userName
+                } else if let name = data["name"] as? String {
+                    return name
+                }
+            }
+            return nil
+        } catch {
+            self.logger.error("Error fetching display name for user ID \(userID, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
     }
 
     private func createFirestoreDocument(
@@ -384,6 +463,7 @@ class AuthViewModel: ObservableObject {
         }
     }
     
+    
 ///PART2
     // New method to add user to Core Data with password parameter
     private func addUserToCoreData(
@@ -419,7 +499,7 @@ class AuthViewModel: ObservableObject {
         
         // Assign the raw Data directly to the Core Data properties (no Base64 conversion needed)
         newUser.passwordHash = hashedPassword.hash  // Store the hash as Data
-        newUser.salt = hashedPassword.salt          // Store the salt as Data
+        newUser.salt = hashedPassword.salt           // Store the salt as Data
         newUser.iterations = Int64(hashedPassword.iterations)  // Store iterations as Int64
         
         // Save to Core Data
@@ -431,7 +511,6 @@ class AuthViewModel: ObservableObject {
             throw error // Rethrow or handle error accordingly
         }
     }
-
 
     // Handle email verification response
     func handleEmailVerificationResponse() async {
@@ -482,7 +561,7 @@ class AuthViewModel: ObservableObject {
         }
 
         let firestore = Firestore.firestore()
-        let userRef = firestore.collection("users").document(email)
+        let userRef = firestore.collection("users").document(email) // Assuming email is the document ID for verification status
         try await userRef.updateData(["isVerified": isVerified])
     }
 
@@ -681,13 +760,14 @@ class AuthViewModel: ObservableObject {
     private func fetchUser(_ usernameOrEmail: String) async throws -> UserInfo? {
         if ValidationUtility.validateEmail(usernameOrEmail) != nil {
             // Fetch user by email or username using UserFetcher
+            // Note: Passing nil for context here might be an issue if UserFetcher needs it.
+            // Ensure UserFetcher is correctly initialized or passed the context.
             return try await userFetcher.fetchUser(usernameOrEmail: usernameOrEmail, context: nil as NSManagedObjectContext?)
         } else {
             // Fetch user by username using UserFetcher (pass nil for Firestore)
             return try await userFetcher.fetchUser(usernameOrEmail: usernameOrEmail, context: nil as NSManagedObjectContext?)
         }
     }
-    
     
     // Fetch user by username from Firebase
     private func fetchUserByUsername(_ username: String) async throws -> UserInfo? {
@@ -896,10 +976,10 @@ extension User {
         User(
             email: data["email"] as? String ?? "",
             userName: data["userName"] as? String ?? "",
-            name: data["name"] as? String ?? "",
-            passwordHash: Data(),          // leave empty if not stored on Firestore
-            salt: Data(),                  // leave empty if not stored on Firestore
-            iterations: 0,                 // default 0 or something meaningful
+            name: data["name"] as? String ?? "N/A", // Correctly extract 'name'
+            passwordHash: Data(),           // leave empty if not stored on Firestore
+            salt: Data(),                   // leave empty if not stored on Firestore
+            iterations: 0,                  // default 0 or something meaningful
             isVerified: data["isVerified"] as? Bool ?? false,
             belt: data["belt"] as? String,
             verificationToken: nil,

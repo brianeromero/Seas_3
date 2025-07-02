@@ -265,15 +265,13 @@ public class PirateIslandViewModel: ObservableObject {
         }
     }
     
-    func updatePirateIsland(island: PirateIsland, islandDetails: IslandDetails, lastModifiedByUserId: String) async throws {
-        island.islandName = islandDetails.islandName
-        island.islandLocation = islandDetails.fullAddress
-        island.country = islandDetails.country
-        island.lastModifiedByUserId = lastModifiedByUserId
-        island.lastModifiedTimestamp = Date()
-        island.gymWebsite = islandDetails.gymWebsiteURL
-        
-        try await persistenceController.saveContext()
+    // THIS IS THE ONLY updatePirateIsland FUNCTION THAT SHOULD BE IN THIS CLASS
+    // It calls the FirestoreManager to update Firestore.
+    func updatePirateIsland(id: String, data: [String: Any]) async throws {
+        if FirestoreManager.shared.disabled { return } // Use FirestoreManager's disabled flag
+        print("Updating pirate island with id: \(id)")
+        try await FirestoreManager.shared.updateDocument(in: .pirateIslands, id: id, data: data)
+        print("Pirate island updated successfully")
     }
 }
 

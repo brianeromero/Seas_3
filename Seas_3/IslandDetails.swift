@@ -16,13 +16,13 @@ public class IslandDetails: ObservableObject, Equatable {
     @Published var state: String = "" { didSet { validateForm() } }
     @Published var postalCode: String = "" { didSet { validateForm() } }
     @Published var requiredAddressFields: [AddressFieldType] = []
-        
+            
     @Published var selectedCountry: Country? {
         didSet {
             updateRequiredAddressFields()
         }
     }
-        
+            
     @Published var gymWebsite: String = "" { didSet { validateForm() } }
     @Published var gymWebsiteURL: URL?
 
@@ -59,7 +59,9 @@ public class IslandDetails: ObservableObject, Equatable {
     @Published var multilineAddress: String = ""
     @Published var additionalInfo: String = ""
 
-    
+    // ADD THIS NEW PROPERTY:
+    @Published var islandID: UUID? // This is crucial for linking to an existing PirateIsland
+
     // MARK: - Computed Properties
     var islandLocation: String {
         let locationComponents = requiredAddressFields.compactMap { field -> String? in
@@ -109,7 +111,8 @@ public class IslandDetails: ObservableObject, Equatable {
          additionalInfo: String = "",
          requiredAddressFields: [AddressFieldType] = [],
          gymWebsite: String = "",
-         gymWebsiteURL: URL? = nil) {
+         gymWebsiteURL: URL? = nil,
+         islandID: UUID? = nil) { // ADD THIS PARAMETER TO THE INITIALIZER
         self.islandName = islandName
         self.street = street
         self.city = city
@@ -124,6 +127,7 @@ public class IslandDetails: ObservableObject, Equatable {
         self.requiredAddressFields = requiredAddressFields
         self.gymWebsite = gymWebsite
         self.gymWebsiteURL = gymWebsiteURL
+        self.islandID = islandID // ASSIGN THE NEW PROPERTY
         validateForm()
     }
     
@@ -200,7 +204,8 @@ public class IslandDetails: ObservableObject, Equatable {
         lhs.province == rhs.province &&  // Added province
         lhs.region == rhs.region &&      // Added region
         lhs.island == rhs.island &&
-        lhs.gymWebsite == rhs.gymWebsite // Added gymWebsite
+        lhs.gymWebsite == rhs.gymWebsite && // Added gymWebsite
+        lhs.islandID == rhs.islandID // ADD THIS FOR EQUATABLE
     }
 
 }
@@ -210,6 +215,7 @@ extension IslandDetails: CustomStringConvertible {
     public var description: String {
         return """
         IslandDetails:
+        - ID: \(islandID?.uuidString ?? "nil")
         - Name: \(islandName)
         - Street: \(street)
         - City: \(city)

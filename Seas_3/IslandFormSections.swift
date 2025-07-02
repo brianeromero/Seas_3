@@ -114,7 +114,7 @@ struct IslandFormSections: View {
                 selectedCountry: $selectedCountry,
                 isPickerPresented: $isPickerPresented
             )
-            .onChange(of: selectedCountry) { newCountry in
+                .onChange(of: selectedCountry) { oldCountry, newCountry in // Use the new signature
                 if let countryCode = newCountry?.cca2 {
                     // Normalize the country code
                     let normalizedCountryCode = countryCode.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
@@ -138,7 +138,7 @@ struct IslandFormSections: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Gym Name")
             TextField("Enter Gym Name", text: $islandDetails.islandName)
-                .onChange(of: islandDetails.islandName) { newValue in
+                .onChange(of: islandDetails.islandName) { oldName, newValue in // Use the new signature
                     print("Gym Name Updated: \(newValue)")
                     validateFields() // Validation based on the updated value
                 }
@@ -226,7 +226,10 @@ struct IslandFormSections: View {
             Text("Instagram/Facebook/Website")
                 .font(.headline)
             TextField("Enter Instagram/Facebook/Website", text: $islandDetails.gymWebsite)
-                .onChange(of: islandDetails.gymWebsite) { processWebsiteURL($0) }
+                // Fix 3: Update onChange syntax
+                .onChange(of: islandDetails.gymWebsite) { oldWebsite, newWebsite in // Use the new signature
+                    processWebsiteURL(newWebsite)
+                }
                 .textFieldStyle(RoundedBorderTextFieldStyle())
         }
     }
@@ -621,33 +624,84 @@ struct IslandFormSections: View {
         return "\(field.rawValue.capitalized) is required for \(country)."
     }
     
+
     func updateIslandLocation() async {
         Logger.logCreatedByIdEvent(createdByUserId: profileViewModel.name, fileName: "IslandFormSections", functionName: "updateIslandLocation")
 
+        // Ensure you have the UUID string of the island to update
+        // CORRECTED: Access the wrappedValue of islandDetails, then safely unwrap islandID
+        guard let islandID = islandDetails.islandID?.uuidString else {
+            self.errorMessage = "Island ID is missing for update."
+            self.showError = true
+            return
+        }
+
         do {
-            // Ensure that all required fields are populated before making the update
-            let islandDetails = IslandDetails(
-                islandName: islandDetails.islandName,
-                street: islandDetails.street,
-                city: islandDetails.city,
-                state: islandDetails.state,
-                postalCode: islandDetails.postalCode,
-                gymWebsite: islandDetails.gymWebsite,
-                gymWebsiteURL: islandDetails.gymWebsiteURL
-            )
+            // Create a dictionary with all the data you want to update in Firestore.
+            // The keys in this dictionary should match your Firestore document field names.
+            var dataToUpdate: [String: Any] = [
+                "name": islandDetails.islandName,
+                "location": islandDetails.fullAddress, // Assuming fullAddress is correctly compiled
+                "country": selectedCountry?.name.common ?? "Unknown", // Ensure country is included
+                "lastModifiedByUserId": profileViewModel.name,
+                "lastModifiedTimestamp": Date(), // Always update the timestamp on modification
+                // CORRECTED: Provide default values for optional Doubles
+                "latitude": islandDetails.latitude ?? 0.0,
+                "longitude": islandDetails.longitude ?? 0.0
+            ]
+
+            // Conditionally add gymWebsite to avoid issues if it's empty or invalid
+            // CORRECTED: Check if the non-optional string is empty
+            if !islandDetails.gymWebsite.isEmpty {
+                let urlString = islandDetails.gymWebsite.hasPrefix("http")
+                    ? islandDetails.gymWebsite
+                    : "https://\(islandDetails.gymWebsite)"
+                dataToUpdate["gymWebsite"] = urlString
+            } else {
+                dataToUpdate["gymWebsite"] = NSNull() // Explicitly set to null in Firestore if empty
+            }
+
+            // Add all other relevant address fields from islandDetails to the dictionary
+            // Make sure these keys match your Firestore document structure
+            dataToUpdate["street"] = islandDetails.street
+            dataToUpdate["city"] = islandDetails.city
+            dataToUpdate["state"] = islandDetails.state
+            dataToUpdate["postalCode"] = islandDetails.postalCode
+            dataToUpdate["province"] = islandDetails.province
+            dataToUpdate["neighborhood"] = islandDetails.neighborhood
+            dataToUpdate["complement"] = islandDetails.complement
+            dataToUpdate["apartment"] = islandDetails.apartment
+            dataToUpdate["region"] = islandDetails.region
+            dataToUpdate["county"] = islandDetails.county
+            dataToUpdate["governorate"] = islandDetails.governorate
+            dataToUpdate["additionalInfo"] = islandDetails.additionalInfo
+            dataToUpdate["department"] = islandDetails.department
+            dataToUpdate["parish"] = islandDetails.parish
+            dataToUpdate["district"] = islandDetails.district
+            dataToUpdate["entity"] = islandDetails.entity
+            dataToUpdate["municipality"] = islandDetails.municipality
+            dataToUpdate["division"] = islandDetails.division
+            dataToUpdate["emirate"] = islandDetails.emirate
+            dataToUpdate["zone"] = islandDetails.zone
+            dataToUpdate["block"] = islandDetails.block
+            dataToUpdate["island"] = islandDetails.island
             
-            // Update the PirateIsland with the new IslandDetails
+            // This is the updated call:
+            // It now takes the island's ID as a String and a dictionary of data to update.
             try await viewModel.updatePirateIsland(
-                island: PirateIsland(),
-                islandDetails: islandDetails,
-                lastModifiedByUserId: profileViewModel.name
+                id: islandID,
+                data: dataToUpdate
             )
+
+            // Show success message or handle success state
+            self.successMessage = "Island location updated successfully!"
+            self.showToast = true
+
         } catch {
             self.errorMessage = "Error updating island location: \(error.localizedDescription)"
             self.showError = true
         }
     }
-
     
     func setError(_ message: String) {
         errorMessage = message

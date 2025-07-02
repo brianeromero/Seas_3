@@ -10,6 +10,8 @@ import CoreData
 import Combine
 import FirebaseFirestore
 import os
+import OSLog // Ensure OSLog is imported for os_log
+
 
 public struct EditExistingIsland: View {
     // MARK: - Environment Variables
@@ -20,22 +22,27 @@ public struct EditExistingIsland: View {
     @ObservedObject var island: PirateIsland // The Core Data object
     @EnvironmentObject var pirateIslandViewModel: PirateIslandViewModel
     @EnvironmentObject var profileViewModel: ProfileViewModel
-    @EnvironmentObject var authViewModel: AuthViewModel
+    @EnvironmentObject var authViewModel: AuthViewModel // Keep this
 
-    @StateObject var islandDetails = IslandDetails() // Holds form data
+    @StateObject var islandDetails = IslandDetails()
     @StateObject private var countryService = CountryService()
     @State private var isCountryPickerPresented = false
 
     // MARK: - State Variables
-    // These are now minimal, as form data is managed by islandDetails
-    @State private var isSaveEnabled: Bool = true
     @State private var showAlert = false
     @State private var alertMessage = ""
     @State private var showToast: Bool = false
     @State private var toastMessage: String = ""
 
+    @State private var originalIslandName: String = ""
+    @State private var originalMultilineAddress: String = ""
+    @State private var originalSelectedCountryCCA2: String? = nil
+    @State private var originalGymWebsite: String = ""
+
+    @State private var createdByName: String = "Loading..."
+    @State private var lastModifiedByName: String = "Loading..."
+
     // MARK: - Initialization
-    // Initial values for islandDetails are set in .onAppear
     init(island: PirateIsland) {
         _island = ObservedObject(wrappedValue: island)
     }
@@ -46,34 +53,30 @@ public struct EditExistingIsland: View {
             Section(header: Text("Gym Details")) {
                 TextField("Gym Name", text: $islandDetails.islandName)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .onChange(of: islandDetails.islandName) { _, _ in validateForm() }
-
-                if countryService.isLoading {
-                    ProgressView("Loading countries...")
-                        .progressViewStyle(CircularProgressViewStyle())
-                        .padding()
-                } else if !countryService.countries.isEmpty {
-                    UnifiedCountryPickerView(
-                        countryService: countryService,
-                        selectedCountry: $islandDetails.selectedCountry,
-                        isPickerPresented: $isCountryPickerPresented
-                    )
-                    .onChange(of: islandDetails.selectedCountry) { _, _ in
-                        // Country selection now only triggers form validation
-                        validateForm()
-                    }
-                } else {
-                    Text("No countries found.")
-                }
             }
 
+            // If you want to remove the country picker, uncomment this block
+            /*
+            if countryService.isLoading {
+                ProgressView("Loading countries...")
+                    .progressViewStyle(CircularProgressViewStyle())
+                    .padding()
+            } else if !countryService.countries.isEmpty {
+                UnifiedCountryPickerView(
+                    countryService: countryService,
+                    selectedCountry: $islandDetails.selectedCountry,
+                    isPickerPresented: $isCountryPickerPresented
+                )
+            } else {
+                Text("No countries found.")
+            }
+            */
+
             Section(header: Text("Address")) {
-                // Changed from TextField to TextEditor for multi-line input
                 TextEditor(text: $islandDetails.multilineAddress)
-                    .frame(minHeight: 100) // Give it a reasonable minimum height
-                    .border(Color.gray.opacity(0.5), width: 1) // Add a border for visual clarity
-                    .cornerRadius(5) // Rounded corners for consistency
-                    .onChange(of: islandDetails.multilineAddress) { _, _ in validateForm() }
+                    .frame(minHeight: 100)
+                    .border(Color.gray.opacity(0.5), width: 1)
+                    .cornerRadius(5)
             }
 
             Section(header: Text("Website (optional)")) {
@@ -85,20 +88,24 @@ public struct EditExistingIsland: View {
                             alertMessage = "Invalid website URL"
                             showAlert = true
                         }
-                        validateForm()
                     }
             }
+
             Section(header: Text("Entered By")) {
-                Text(profileViewModel.name)
+                Text(createdByName)
+                    .foregroundColor(.primary)
+            }
+
+            Section(header: Text("Last Modified By")) {
+                Text(lastModifiedByName)
                     .foregroundColor(.primary)
             }
 
             VStack {
                 Button("Save") {
                     os_log("Save button clicked", log: OSLog.default, type: .info)
-                    Task { saveIsland() }
+                    Task { await saveIsland() }
                 }
-                .disabled(!isSaveEnabled)
             }
             Spacer()
             VStack {
@@ -115,14 +122,17 @@ public struct EditExistingIsland: View {
         }
         .onAppear {
             os_log("EditExistingIsland Appeared", log: OSLog.default, type: .info)
+
             // Initialize islandDetails from the Core Data island object
             islandDetails.islandName = island.islandName ?? ""
             islandDetails.multilineAddress = island.islandLocation ?? ""
             islandDetails.latitude = island.latitude
             islandDetails.longitude = island.longitude
             islandDetails.gymWebsite = island.gymWebsite?.absoluteString ?? ""
+            islandDetails.islandID = island.islandID // <--- ADD THIS LINE
 
-            // Set the selected country in islandDetails if available from Core Data
+
+            // If you removed the country picker, remove this block
             if let countryCode = island.country,
                let country = countryService.countries.first(where: { $0.cca2 == countryCode }) {
                 islandDetails.selectedCountry = country
@@ -130,97 +140,206 @@ public struct EditExistingIsland: View {
                 islandDetails.selectedCountry = nil
             }
 
+            // Store original values for change detection
+            originalIslandName = islandDetails.islandName
+            originalMultilineAddress = islandDetails.multilineAddress
+            // If you removed the country picker, remove this line:
+            originalSelectedCountryCCA2 = islandDetails.selectedCountry?.cca2
+            originalGymWebsite = islandDetails.gymWebsite
+
             Task {
                 await countryService.fetchCountries()
-                validateForm() // Validate form after countries are fetched and initial data is set
+
+                if let createdByUserName = island.createdByUserId {
+                    os_log("Attempting to fetch name for createdByUserName: %{public}@", log: OSLog.default, type: .info, createdByUserName)
+                    let name = await authViewModel.fetchUserName(forUserName: createdByUserName)
+                    // No need for DispatchQueue.main.async here, as the Task is already on the main actor by default for UI updates
+                    self.createdByName = name ?? "Unknown Creator"
+                    os_log("Created By Name set to: %{public}@", log: OSLog.default, type: .info, self.createdByName)
+                } else {
+                    self.createdByName = "N/A (No creator ID/UserName)"
+                    os_log("Created By User ID is nil, setting name to N/A", log: OSLog.default, type: .info)
+                }
+
+                if let currentUser = authViewModel.currentUser {
+                    // No need for DispatchQueue.main.async here
+                    self.lastModifiedByName = currentUser.userName
+                    os_log("Last Modified By Name set to current user's username: %{public}@", log: OSLog.default, type: .info, self.lastModifiedByName)
+                } else {
+                    self.lastModifiedByName = "Not Logged In"
+                    os_log("Current user is nil, setting Last Modified By to 'Not Logged In'", log: OSLog.default, type: .info)
+                }
             }
         }
     }
 
     // MARK: - Helper Methods
 
-    // Simplified validation logic
-    private func validateForm() {
-        print("validateForm() called: islandName = \(islandDetails.islandName)")
+    private func hasChanges() -> Bool {
+        let currentIslandName = islandDetails.islandName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let currentMultilineAddress = islandDetails.multilineAddress.trimmingCharacters(in: .whitespacesAndNewlines)
+        let currentGymWebsite = islandDetails.gymWebsite.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        let isIslandNameNonEmpty = !islandDetails.islandName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        let isLocationNonEmpty = !islandDetails.multilineAddress.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        let isCountrySelected = islandDetails.selectedCountry != nil
-        let isWebsiteValid = islandDetails.gymWebsite.isEmpty || validateURL(islandDetails.gymWebsite)
+        let originalName = originalIslandName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let originalAddress = originalMultilineAddress.trimmingCharacters(in: .whitespacesAndNewlines)
+        let originalWebsite = originalGymWebsite.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        isSaveEnabled = isIslandNameNonEmpty && isLocationNonEmpty && isCountrySelected && isWebsiteValid
-
-        if !isSaveEnabled {
-            toastMessage = "Please fill in all required fields (Gym Name, Address, Country) and ensure website is valid (if entered)."
-            showToast = true
+        if currentIslandName != originalName {
+            os_log("Change detected: Island Name", log: OSLog.default, type: .info)
+            return true
         }
-        print("isSaveEnabled: \(isSaveEnabled)")
+        if currentMultilineAddress != originalAddress {
+            os_log("Change detected: Address", log: OSLog.default, type: .info)
+            return true
+        }
+        // If you removed the country picker, remove this block
+        if islandDetails.selectedCountry?.cca2 != originalSelectedCountryCCA2 {
+            os_log("Change detected: Country", log: OSLog.default, type: .info)
+            return true
+        }
+        if currentGymWebsite != originalWebsite {
+            os_log("Change detected: Website", log: OSLog.default, type: .info)
+            return true
+        }
+
+        return false
     }
 
-    // Corrected URL validation logic
     private func validateURL(_ urlString: String) -> Bool {
-        // Attempt to create a URL from the string as-is and check if it can be opened
         if let url = URL(string: urlString), UIApplication.shared.canOpenURL(url) {
             return true
         }
-        // If that fails, try prepending "https://" and check again
         if !urlString.hasPrefix("http://") && !urlString.hasPrefix("https://") {
             if let urlWithHTTPS = URL(string: "https://" + urlString), UIApplication.shared.canOpenURL(urlWithHTTPS) {
                 return true
             }
         }
-        // If neither attempt works, or the string is empty/malformed, it's invalid
         return false
     }
 
-    // Simplified save logic
-    private func saveIsland() {
-        guard let currentUserId = authViewModel.currentUserID else {
-            showAlert = true
-            alertMessage = "User not logged in. Please log in to save."
+    private func saveIsland() async {
+        os_log("saveIsland() called.", log: OSLog.default, type: .info)
+
+        guard hasChanges() else {
+            await MainActor.run {
+                showAlert = true
+                alertMessage = "No changes detected. Please make a change to one of the fields to save."
+            }
+            os_log("No changes detected.", log: OSLog.default, type: .info)
             return
         }
 
-        Task {
-            do {
-                island.islandName = islandDetails.islandName
-                // Directly assign the multilineAddress to islandLocation Core Data property
-                island.islandLocation = islandDetails.multilineAddress
+        let isIslandNameNonEmpty = !islandDetails.islandName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let isLocationNonEmpty = !islandDetails.multilineAddress.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
 
-                island.latitude = islandDetails.latitude ?? 0.0
-                island.longitude = islandDetails.longitude ?? 0.0
+        guard isIslandNameNonEmpty && isLocationNonEmpty else {
+            await MainActor.run {
+                showAlert = true
+                alertMessage = "Please fill in all required fields (Gym Name, Address)."
+            }
+            os_log("Validation failed: required fields missing.", log: OSLog.default, type: .error)
+            return
+        }
 
-                // Assign the country code from the selected Country object
-                island.country = islandDetails.selectedCountry?.cca2
+        if !islandDetails.gymWebsite.isEmpty && !validateURL(islandDetails.gymWebsite) {
+            await MainActor.run {
+                showAlert = true
+                alertMessage = "Invalid website URL. Please correct it or leave it empty."
+            }
+            os_log("Validation failed: invalid website URL.", log: OSLog.default, type: .error)
+            return
+        }
 
-                // Handle gymWebsite URL conversion
-                if let url = URL(string: islandDetails.gymWebsite.hasPrefix("http") ? islandDetails.gymWebsite : "https://\(islandDetails.gymWebsite)") {
-                    island.gymWebsite = url
+        guard let currentUserId = authViewModel.currentUser?.userID else {
+            await MainActor.run {
+                showAlert = true
+                alertMessage = "User not logged in. Please log in to save."
+            }
+            os_log("Current user ID is nil.", log: OSLog.default, type: .error)
+            return
+        }
+        os_log("Current User ID: %{public}@", log: OSLog.default, type: .info, currentUserId)
+
+        // Capture values needed for updates outside the Core Data perform block
+        let newIslandName = islandDetails.islandName
+        let newIslandLocation = islandDetails.multilineAddress
+        let newLatitude = islandDetails.latitude ?? 0.0
+        let newLongitude = islandDetails.longitude ?? 0.0
+        let newCountryCCA2 = islandDetails.selectedCountry?.cca2
+        let newGymWebsite = islandDetails.gymWebsite
+
+        do {
+            // 1️⃣ Update Core Data model on its designated queue (main queue for viewContext)
+            try await viewContext.perform {
+                island.islandName = newIslandName
+                island.islandLocation = newIslandLocation
+                island.latitude = newLatitude
+                island.longitude = newLongitude
+                island.country = newCountryCCA2
+                island.lastModifiedByUserId = currentUserId // Update last modified user
+                island.lastModifiedTimestamp = Date() // Update timestamp
+
+                if !newGymWebsite.isEmpty {
+                    let urlString = newGymWebsite.hasPrefix("http")
+                        ? newGymWebsite
+                        : "https://\(newGymWebsite)"
+                    // Safely create URL
+                    if let url = URL(string: urlString) {
+                        island.gymWebsite = url
+                    } else {
+                        os_log("Warning: Could not create URL from string: %{public}@", log: OSLog.default, type: .error, urlString)
+                        island.gymWebsite = nil // Set to nil if URL creation fails
+                    }
                 } else {
-                    island.gymWebsite = nil
+                    island.gymWebsite = nil // Clear the website if empty
                 }
 
-                island.lastModifiedByUserId = currentUserId
-                island.lastModifiedTimestamp = Date()
+                // Save the context after modifications
+                try self.viewContext.save()
+            }
 
-                try await pirateIslandViewModel.updatePirateIsland(
-                    island: island,
-                    islandDetails: islandDetails,
-                    lastModifiedByUserId: currentUserId
-                )
+            // 2️⃣ Prepare data for Firestore update
+            if let islandID = island.islandID?.uuidString {
+                var dataToUpdate: [String: Any] = [
+                    "islandName": newIslandName,
+                    "islandLocation": newIslandLocation,
+                    "latitude": newLatitude,
+                    "longitude": newLongitude,
+                    "country": newCountryCCA2 ?? NSNull(), // Use NSNull for nil if Firestore expects it
+                    "lastModifiedByUserId": currentUserId,
+                    "lastModifiedTimestamp": Timestamp(date: Date()) // Firestore Timestamp
+                ]
 
-                showAlert = true
-                alertMessage = "Gym Updated Successfully!"
+                if !newGymWebsite.isEmpty {
+                    let urlString = newGymWebsite.hasPrefix("http")
+                        ? newGymWebsite
+                        : "https://\(newGymWebsite)"
+                    dataToUpdate["gymWebsite"] = urlString
+                } else {
+                    dataToUpdate["gymWebsite"] = NSNull() // Clear website in Firestore
+                }
+
+                // 3️⃣ Call ViewModel to update Firestore
+                try await pirateIslandViewModel.updatePirateIsland(id: islandID, data: dataToUpdate)
+            }
+
+            // 4️⃣ Update UI on MainActor
+            await MainActor.run {
+                toastMessage = "Gym saved successfully!"
+                showToast = true
                 dismiss()
-            } catch {
+            }
+            os_log("Island saved successfully.", log: OSLog.default, type: .info)
+
+        } catch {
+            os_log("Error saving island: %@", log: OSLog.default, type: .error, error.localizedDescription)
+            await MainActor.run {
                 showAlert = true
-                alertMessage = "Error saving gym: \(error.localizedDescription)"
-                os_log("Error saving gym: %{public}@", type: .error, error.localizedDescription)
+                alertMessage = "Failed to save gym: \(error.localizedDescription)"
             }
         }
     }
 
-    // Simplified clear fields logic
     private func clearFields() {
         islandDetails.islandName = ""
         islandDetails.multilineAddress = ""
@@ -228,6 +347,5 @@ public struct EditExistingIsland: View {
         islandDetails.gymWebsite = ""
         islandDetails.latitude = 0.0
         islandDetails.longitude = 0.0
-        validateForm()
     }
 }
