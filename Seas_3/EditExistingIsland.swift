@@ -41,6 +41,7 @@ public struct EditExistingIsland: View {
 
     @State private var createdByName: String = "Loading..."
     @State private var lastModifiedByName: String = "Loading..."
+    @State private var displayedCountryName: String = "" // State to hold the displayed country name
 
     // MARK: - Initialization
     init(island: PirateIsland) {
@@ -55,22 +56,11 @@ public struct EditExistingIsland: View {
                     .textFieldStyle(RoundedBorderTextFieldStyle())
             }
 
-            // If you want to remove the country picker, uncomment this block
-            /*
-            if countryService.isLoading {
-                ProgressView("Loading countries...")
-                    .progressViewStyle(CircularProgressViewStyle())
-                    .padding()
-            } else if !countryService.countries.isEmpty {
-                UnifiedCountryPickerView(
-                    countryService: countryService,
-                    selectedCountry: $islandDetails.selectedCountry,
-                    isPickerPresented: $isCountryPickerPresented
-                )
-            } else {
-                Text("No countries found.")
+            // Display the Country
+            Section(header: Text("Country")) {
+                Text(displayedCountryName)
+                    .foregroundColor(.primary)
             }
-            */
 
             Section(header: Text("Address")) {
                 TextEditor(text: $islandDetails.multilineAddress)
@@ -129,45 +119,74 @@ public struct EditExistingIsland: View {
             islandDetails.latitude = island.latitude
             islandDetails.longitude = island.longitude
             islandDetails.gymWebsite = island.gymWebsite?.absoluteString ?? ""
-            islandDetails.islandID = island.islandID // <--- ADD THIS LINE
+            islandDetails.islandID = island.islandID
 
+            // Initialize the displayedCountryName directly from the island object
+            displayedCountryName = island.country ?? "Unknown"
 
-            // If you removed the country picker, remove this block
-            if let countryCode = island.country,
-               let country = countryService.countries.first(where: { $0.cca2 == countryCode }) {
-                islandDetails.selectedCountry = country
-            } else {
-                islandDetails.selectedCountry = nil
-            }
-
-            // Store original values for change detection
-            originalIslandName = islandDetails.islandName
-            originalMultilineAddress = islandDetails.multilineAddress
-            // If you removed the country picker, remove this line:
-            originalSelectedCountryCCA2 = islandDetails.selectedCountry?.cca2
-            originalGymWebsite = islandDetails.gymWebsite
+            // --- ADDED LOGGING FOR INITIAL DISPLAY VALUES ---
+            os_log("Initial Display Values:", log: OSLog.default, type: .info)
+            os_log("  islandDetails.islandName: %{public}@", log: OSLog.default, type: .info, islandDetails.islandName)
+            os_log("  islandDetails.multilineAddress: %{public}@", log: OSLog.default, type: .info, islandDetails.multilineAddress)
+            os_log("  islandDetails.gymWebsite: %{public}@", log: OSLog.default, type: .info, islandDetails.gymWebsite)
+            os_log("  displayedCountryName: %{public}@", log: OSLog.default, type: .info, displayedCountryName)
+            os_log("  island.createdByUserId (raw): %{public}@", log: OSLog.default, type: .info, island.createdByUserId ?? "nil")
+            // --- END ADDED LOGGING ---
 
             Task {
                 await countryService.fetchCountries()
 
-                if let createdByUserName = island.createdByUserId {
-                    os_log("Attempting to fetch name for createdByUserName: %{public}@", log: OSLog.default, type: .info, createdByUserName)
-                    let name = await authViewModel.fetchUserName(forUserName: createdByUserName)
-                    // No need for DispatchQueue.main.async here, as the Task is already on the main actor by default for UI updates
-                    self.createdByName = name ?? "Unknown Creator"
-                    os_log("Created By Name set to: %{public}@", log: OSLog.default, type: .info, self.createdByName)
+                if let countryCode = island.country,
+                   let country = countryService.countries.first(where: { $0.cca2 == countryCode }) {
+                    islandDetails.selectedCountry = country
                 } else {
-                    self.createdByName = "N/A (No creator ID/UserName)"
-                    os_log("Created By User ID is nil, setting name to N/A", log: OSLog.default, type: .info)
+                    islandDetails.selectedCountry = nil
                 }
 
-                if let currentUser = authViewModel.currentUser {
-                    // No need for DispatchQueue.main.async here
-                    self.lastModifiedByName = currentUser.userName
-                    os_log("Last Modified By Name set to current user's username: %{public}@", log: OSLog.default, type: .info, self.lastModifiedByName)
+                // Store original values for change detection
+                originalIslandName = islandDetails.islandName
+                originalMultilineAddress = islandDetails.multilineAddress
+                originalSelectedCountryCCA2 = islandDetails.selectedCountry?.cca2
+                originalGymWebsite = islandDetails.gymWebsite
+
+                // --- MODIFIED LOGIC FOR "Entered By" ---
+                if let createdByValue = island.createdByUserId {
+                    os_log("Attempting to resolve 'Entered By' for value: %{public}@", log: OSLog.default, type: .info, createdByValue)
+
+                    var resolvedName: String?
+
+                    // 1. Try to fetch by User ID (UID) first
+                    os_log("Trying to fetch by User ID (UID)...", log: OSLog.default, type: .info)
+                    resolvedName = await authViewModel.fetchUserName(forUserID: createdByValue)
+
+                    // 2. If fetching by User ID failed, try to fetch by User Name
+                    if resolvedName == nil {
+                        os_log("Fetching by User ID failed. Trying to fetch by User Name...", log: OSLog.default, type: .info)
+                        resolvedName = await authViewModel.fetchUserName(forUserName: createdByValue)
+                    }
+
+                    await MainActor.run {
+                        self.createdByName = resolvedName ?? "Unknown Creator"
+                        os_log("Created By Name set to: %{public}@", log: OSLog.default, type: .info, self.createdByName)
+                    }
                 } else {
-                    self.lastModifiedByName = "Not Logged In"
-                    os_log("Current user is nil, setting Last Modified By to 'Not Logged In'", log: OSLog.default, type: .info)
+                    await MainActor.run {
+                        self.createdByName = "N/A (No creator ID/UserName)"
+                        os_log("Created By User ID is nil, setting name to N/A", log: OSLog.default, type: .info)
+                    }
+                }
+                // --- END MODIFIED LOGIC ---
+
+                if let currentUser = authViewModel.currentUser {
+                    await MainActor.run {
+                        self.lastModifiedByName = currentUser.userName
+                        os_log("Last Modified By Name set to current user's username: %{public}@", log: OSLog.default, type: .info, self.lastModifiedByName)
+                    }
+                } else {
+                    await MainActor.run {
+                        self.lastModifiedByName = "Not Logged In"
+                        os_log("Current user is nil, setting Last Modified By to 'Not Logged In'", log: OSLog.default, type: .info)
+                    }
                 }
             }
         }

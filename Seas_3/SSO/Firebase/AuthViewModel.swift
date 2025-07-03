@@ -365,15 +365,16 @@ class AuthViewModel: ObservableObject {
         let db = Firestore.firestore()
         let usersCollection = db.collection("users")
 
+        self.logger.info("AuthViewModel: Querying for userName: \(queriedUserName, privacy: .public)") // Add this line
+
         do {
-            // Query the 'users' collection where the 'userName' field matches the queriedUserName
-            // IMPORTANT: You MUST have a single-field index on 'userName' in your Firestore console for this to be efficient.
             let querySnapshot = try await usersCollection
                                         .whereField("userName", isEqualTo: queriedUserName)
                                         .getDocuments()
 
             if let document = querySnapshot.documents.first {
                 let data = document.data()
+                self.logger.info("AuthViewModel: Found document data: \(data, privacy: .public)") // Add this line
                 if let userName = data["userName"] as? String {
                     self.logger.info("Fetched userName '\(userName, privacy: .public)' for query: \(queriedUserName, privacy: .public)")
                     return userName
