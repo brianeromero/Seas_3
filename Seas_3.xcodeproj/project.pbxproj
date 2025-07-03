@@ -45,7 +45,6 @@
 		0C07B0D32C2D033700D0BFB2 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0D22C2D033700D0BFB2 /* AppState.swift */; };
 		0C1635512C35D686008FC297 /* ClassScheduleRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1635502C35D686008FC297 /* ClassScheduleRow.swift */; };
 		0C1635522C35D6E2008FC297 /* AddOpenMatFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0952C2CFF5A00D0BFB2 /* AddOpenMatFormView.swift */; };
-		0C1635542C3613A2008FC297 /* ToastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1635532C3613A2008FC297 /* ToastView.swift */; };
 		0C1635562C361CBB008FC297 /* OpenMats (by Day of Week).swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1635552C361CBB008FC297 /* OpenMats (by Day of Week).swift */; };
 		0C1893D12C7D18F0007BFADB /* ReviewUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1893D02C7D18F0007BFADB /* ReviewUtils.swift */; };
 		0C1893D32C7F95FB007BFADB /* ViewReviewforIsland.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1893D22C7F95FB007BFADB /* ViewReviewforIsland.swift */; };
@@ -199,7 +198,6 @@
 		0C07B0CA2C2D022D00D0BFB2 /* MF_little_trans .png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "MF_little_trans .png"; sourceTree = "<group>"; };
 		0C07B0D22C2D033700D0BFB2 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		0C1635502C35D686008FC297 /* ClassScheduleRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClassScheduleRow.swift; sourceTree = "<group>"; };
-		0C1635532C3613A2008FC297 /* ToastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastView.swift; sourceTree = "<group>"; };
 		0C1635552C361CBB008FC297 /* OpenMats (by Day of Week).swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OpenMats (by Day of Week).swift"; sourceTree = "<group>"; };
 		0C1893D02C7D18F0007BFADB /* ReviewUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewUtils.swift; sourceTree = "<group>"; };
 		0C1893D22C7F95FB007BFADB /* ViewReviewforIsland.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewReviewforIsland.swift; sourceTree = "<group>"; };
@@ -410,6 +408,11 @@
 		0CA111932DFA13D8006944A3 /* HELPERS */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = HELPERS;
+			sourceTree = "<group>";
+		};
+		0CC0A24A2E170C0A00964BBC /* Toast */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Toast;
 			sourceTree = "<group>";
 		};
 		0CEF69CF2CAF995600C2614C /* SSO */ = {
@@ -626,6 +629,7 @@
 		0CF13E432C2A326700D714C0 /* Seas_3 */ = {
 			isa = PBXGroup;
 			children = (
+				0CC0A24A2E170C0A00964BBC /* Toast */,
 				0CA111932DFA13D8006944A3 /* HELPERS */,
 				0C882BFA2CE666B600E03B02 /* IDFA Analytrics */,
 				0C882BF52CE6598600E03B02 /* International Changer */,
@@ -674,7 +678,6 @@
 				0C07B0D22C2D033700D0BFB2 /* AppState.swift */,
 				0C07B0C22C2D020C00D0BFB2 /* AppDelegate.swift */,
 				0C8817742C3371B7008FE469 /* MapDetails.swift */,
-				0C1635532C3613A2008FC297 /* ToastView.swift */,
 			);
 			path = Seas_3;
 			sourceTree = "<group>";
@@ -759,6 +762,7 @@
 				0C882BFA2CE666B600E03B02 /* IDFA Analytrics */,
 				0C8E21722CCDAD0B0093CEB3 /* AdminView */,
 				0CA111932DFA13D8006944A3 /* HELPERS */,
+				0CC0A24A2E170C0A00964BBC /* Toast */,
 			);
 			name = Seas_3;
 			productName = Seas_3;
@@ -1068,7 +1072,6 @@
 				0C07B0832C2CFE5000D0BFB2 /* GeocodingUtility.swift in Sources */,
 				0CEC327E2C41A45300F0747F /* pIslandScheduleView.swift in Sources */,
 				0C07B0BB2C2D018D00D0BFB2 /* Disclaimer.swift in Sources */,
-				0C1635542C3613A2008FC297 /* ToastView.swift in Sources */,
 				0C33DC152CC09E7C002C4835 /* PrivacyPolicy.swift in Sources */,
 				0C07B0B92C2D017500D0BFB2 /* AboutUs.swift in Sources */,
 				0C6F7BDC2C7931E600072237 /* GymMatReviewSelect.swift in Sources */,

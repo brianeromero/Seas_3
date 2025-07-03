@@ -95,6 +95,13 @@ struct AppRootView: View {
     @State private var navigationPath = NavigationPath()
 
     @State private var showInitialSplash = true
+    
+    
+    // --- NEW: Global Toast State Variables ---
+    @State private var globalShowToast: Bool = false
+    @State private var globalToastMessage: String = ""
+    @State private var globalToastType: ToastView.ToastType = .success
+    // --- END NEW ---
 
     var body: some View {
         NavigationStack(path: $navigationPath) {
@@ -136,14 +143,21 @@ struct AppRootView: View {
                 }
             }
             .navigationDestination(for: AppScreen.self) { screen in
-                AppRootDestinationView(screen: screen, navigationPath: $navigationPath)
-                    .environmentObject(authenticationState)
-                    .environmentObject(authViewModel)
-                    .environmentObject(pirateIslandViewModel)
-                    .environmentObject(profileViewModel)
-                    .environmentObject(allEnteredLocationsViewModel)
-                    .environmentObject(appDayOfWeekViewModel) // Inject here as well!
-                    .environmentObject(enterZipCodeViewModel) // Ensure this is also injected
+                // ✅ CRITICAL: Pass the global toast bindings down to AppRootDestinationView
+                AppRootDestinationView(
+                    screen: screen,
+                    navigationPath: $navigationPath,
+                    globalShowToast: $globalShowToast,        // Pass binding
+                    globalToastMessage: $globalToastMessage,  // Pass binding
+                    globalToastType: $globalToastType         // Pass binding
+                )
+                .environmentObject(authenticationState)
+                .environmentObject(authViewModel)
+                .environmentObject(pirateIslandViewModel)
+                .environmentObject(profileViewModel)
+                .environmentObject(allEnteredLocationsViewModel)
+                .environmentObject(appDayOfWeekViewModel) // Inject here as well!
+                .environmentObject(enterZipCodeViewModel) // Ensure this is also injected
             }
         }
         .onChange(of: authenticationState.isAuthenticated) { oldValue, newValue in
@@ -156,6 +170,13 @@ struct AppRootView: View {
         .onChange(of: navigationPath) { oldPath, newPath in
             print("⚠️ [AppRootView] navigationPath changed from \(oldPath) to \(newPath)")
         }
+        // --- NEW: Apply Toast Modifier to the AppRootView ---
+        .showToast(
+            isPresenting: $globalShowToast,
+            message: globalToastMessage,
+            type: globalToastType
+        )
+        // --- END NEW ---
     }
 }
 
@@ -174,8 +195,19 @@ struct AppRootDestinationView: View {
 
     @Environment(\.managedObjectContext) private var viewContext
     
+    // --- NEW: Bindings to receive toast state from AppRootView ---
+    @Binding var globalShowToast: Bool
+    @Binding var globalToastMessage: String
+    @Binding var globalToastType: ToastView.ToastType
+    // --- END NEW ---
+    
+    
     // MARK: - New State for AddNewIsland
     @State private var islandDetails = IslandDetails() // Initialize with default values
+    
+    // MARK: - New State for EditExistingIsland success toast
+    @State private var showEditSuccessToast: Bool = false
+    @State private var editSuccessToastMessage: String = ""
 
 
     var body: some View {
@@ -279,21 +311,25 @@ struct AppRootDestinationView: View {
 
         case .updateExistingGyms:
             // ✅ CRITICAL: Pass the navigationPath binding here
-            EditExistingIslandList(navigationPath: $navigationPath) // <--- THIS IS THE LINE TO UPDATE
-                .onAppear {
-                    print("🧭 Navigating to screen: .updateExistingGyms (EditExistingIslandList)")
-                }
+            EditExistingIslandList(
+                navigationPath: $navigationPath,
+                showGlobalToast: $globalShowToast,       // <-- Add this
+                globalToastMessage: $globalToastMessage, // <-- Add this
+                globalToastType: $globalToastType        // <-- Add this
+            )
+            .onAppear {
+                print("🧭 Navigating to screen: .updateExistingGyms (EditExistingIslandList)")
+            }
 
         case .editExistingIsland(let islandIDString):
             if let objectID = viewContext.persistentStoreCoordinator?.managedObjectID(forURIRepresentation: URL(string: islandIDString)!) {
                 if let island = try? viewContext.existingObject(with: objectID) as? PirateIsland {
-                    // ✅ Assuming EditExistingIsland now uses @EnvironmentObject for these
+                    // ✅ CRITICAL: Pass the global toast bindings from AppRootView
                     EditExistingIsland(
-                        island: island
-                        // REMOVED explicit passing of islandViewModel, profileViewModel, authViewModel
-                        // as they should be injected via environment if needed.
-                        // If EditExistingIsland *still* requires these as direct parameters,
-                        // you will need to add them back here and to EditExistingIsland's init.
+                        island: island,
+                        showSuccessToast: $globalShowToast,       // Pass the global binding
+                        successToastMessage: $globalToastMessage, // Pass the global binding
+                        successToastType: $globalToastType        // Pass the global binding
                     )
                     .onAppear {
                         print("🧭 Navigating to screen: .editExistingIsland -> \(island.islandName ?? "Unknown")")

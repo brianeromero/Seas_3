@@ -33,8 +33,10 @@ struct AddNewMatTimeSection: View {
     @ObservedObject var viewModel: AppDayOfWeekViewModel
     @State private var showRestrictionsTooltip = false
     @State private var isLoading = false
-    @State private var showToast = false
+    @State private var showToast = false // This controls the visibility of the toast via the modifier
     @State private var toastMessage = ""
+    @State private var toastType: ToastView.ToastType = .custom // New: To control the type of toast
+
     
     // FIX 1: Add @Environment for viewContext
     @Environment(\.managedObjectContext) private var viewContext
@@ -132,34 +134,27 @@ struct AddNewMatTimeSection: View {
                     .disabled(isAddNewMatTimeDisabled)
                 }
             }
-            .onChange(of: selectedDay) { _ in
+            // MARK: - onChange DEP-17 Fix
+            .onChange(of: selectedDay) { oldValue, newValue in // Updated signature
                 handleSelectedDayChange()
             }
-            .onChange(of: viewModel.selectedAppDayOfWeek) { newValue in
+            // MARK: - onChange DEP-17 Fix
+            .onChange(of: viewModel.selectedAppDayOfWeek) { oldValue, newValue in // Updated signature
                 print("Selected AppDayOfWeek changed to: \(String(describing: newValue?.day))")
             }
             .alert(isPresented: $showAlert) {
                 Alert(title: Text(alertTitle), message: Text(alertMessage))
             }
-            .onChange(of: showToast) { newValue in
-                if newValue {
-                    print("ToastView appeared with message: \(toastMessage)")
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                        withAnimation {
-                            showToast = false
-                            print("ToastView dismissed")
-                        }
-                    }
-                }
-            }
+            // Removed the old onChange(of: showToast) block.
+            // The ToastModifier handles the timer internally.
             .onAppear {
                 if let existing = matTime {
                     populateFieldsFromMatTime(existing)
                 }
             }
-            
-            ToastView(showToast: $showToast, message: toastMessage)
         }
+        // MARK: - Apply the new .showToast modifier here
+        .showToast(isPresenting: $showToast, message: toastMessage, type: toastType)
     }
     
     func handleSelectedDayChange() {

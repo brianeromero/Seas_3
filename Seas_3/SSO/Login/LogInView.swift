@@ -65,7 +65,7 @@ struct LoginForm: View {
                     .font(.headline)
                 TextField("Username or Email", text: $usernameOrEmail)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .onChange(of: usernameOrEmail) { newValue in
+                    .onChange(of: usernameOrEmail) { oldValue, newValue in // Changed to two parameters
                         isSignInEnabled = !newValue.isEmpty && !password.isEmpty
                     }
 
@@ -94,7 +94,7 @@ struct LoginForm: View {
                     }
                     .buttonStyle(BorderlessButtonStyle())
                 }
-                .onChange(of: password) { newValue in
+                .onChange(of: password) { oldValue, newValue in // Changed to two parameters
                     isSignInEnabled = !usernameOrEmail.isEmpty && !newValue.isEmpty
                 }
             }
@@ -235,7 +235,7 @@ public struct LoginView: View {
     @State private var isSignInEnabled: Bool = false
     @Binding private var isLoggedIn: Bool
     @State private var showToastMessage: String = ""
-    @State private var isToastShown: Bool = false
+    @State private var isToastShown: Bool = false // This will now be controlled by the .showToast modifier
     @State private var navigateToCreateAccount = false
     @StateObject private var profileViewModel: ProfileViewModel
 
@@ -246,12 +246,12 @@ public struct LoginView: View {
         isSelected: Binding<LoginViewSelection>,
         navigateToAdminMenu: Binding<Bool>,
         isLoggedIn: Binding<Bool>,
-        navigationPath: Binding<NavigationPath> // <-- Add this
+        navigationPath: Binding<NavigationPath>
     ) {
         _isSelected = isSelected
         _navigateToAdminMenu = navigateToAdminMenu
         _isLoggedIn = isLoggedIn
-        _navigationPath = navigationPath // <-- Fixes the compile error
+        _navigationPath = navigationPath
         _islandViewModel = StateObject(wrappedValue: islandViewModel)
         _profileViewModel = StateObject(wrappedValue: profileViewModel)
     }
@@ -259,68 +259,45 @@ public struct LoginView: View {
 
     public var body: some View {
         ZStack {
-            // Directly embed the content, removing the 'navigationContent' private var
-            // and its encapsulating NavigationStack
             VStack(spacing: 20) {
-                // Since `MapsToAdminMenu` is a Binding<Bool>, it acts as a destination
-                // for NavigationLink. This can be used for programmatic navigation.
-                // However, a simple NavigationLink to EmptyView here might be unnecessary
-                // if the NavigationStack path in AppRootView is used for routing.
-                // I'm going to remove this specific NavigationLink for now,
-                // assuming any actual navigation happens via buttons/actions.
-                // If you *need* programmatic navigation from LoginView *to* AdminMenu
-                // as a specific path value, you'd define a `NavigationLink(value: someEnumValue)`
-                // and push that value onto the parent's `navigationPath`.
-                // For simplicity, let's assume `AdminLoginView` is the direct destination
-                // from a NavigationLink.
-
-                // The original 'navigationLinks' now might be better handled directly
-                // or if it was for programmatic navigation, that should be tied
-                // to AppRootView's navigationPath.
-                // I'm commenting out the `navigationLinks` private var and integrating
-                // its logical flow directly or via other means.
-                // If `MapsToAdminMenu` was meant to be used for a NavigationLink value,
-                // it needs to be an identifiable type that `NavigationStack` can push.
-                // Since you have a direct NavigationLink to `AdminLoginView` in LoginForm,
-                // this `navigationLinks` in LoginView is likely redundant.
-
-                mainContent // This is the actual content that was inside the removed NavigationStack
+                mainContent
             }
             .alert(isPresented: $showAlert) {
                 Alert(title: Text("Error"), message: Text(errorMessage), dismissButton: .default(Text("OK")))
             }
             .padding()
-            .onChange(of: showMainContent) { newValue in
+            .onChange(of: showMainContent) { oldValue, newValue in // Corrected onChange signature for iOS 17+
                 isLoggedIn = newValue
             }
-
-            toastContent // This remains as is
         }
-        .setupListeners(showToastMessage: $showToastMessage, isToastShown: $isToastShown, isLoggedIn: authenticationState.isAuthenticated)
+        // !!! Apply the .showToast modifier directly here instead of using toastContent private var !!!
+        .showToast(
+            isPresenting: $isToastShown,
+            message: showToastMessage,
+            type: .success // You might want to pass different types based on context (e.g., .error for login failure)
+        )
+        // Keep your notification listener if you're using it to trigger the toast
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name.showToast)) { notification in
+             // guard authenticationState.isAuthenticated else { return } // Optional logic: only show toast if user is authenticated
+             if let message = notification.userInfo?["message"] as? String {
+                 showToastMessage = message
+                 isToastShown = true // This will now trigger the .showToast modifier
+                 // The toast modifier itself handles the timer and setting isToastShown back to false
+             }
+         }
         .onAppear {
             print("Login screen loaded (LoginView)")
         }
         .onDisappear {
-            isToastShown = false
-            showToastMessage = ""
+            // No need to reset showToastMessage or isToastShown here,
+            // as the .showToast modifier handles dismissal.
+            // You might keep it if you have other specific cleanup needs.
             print("Login screen has finished loading (LoginView)")
         }
     }
 
-    // Removed: private var navigationContent: some View { ... }
-
-    private var toastContent: some View {
-        Group {
-            if isToastShown {
-                ToastView(showToast: $isToastShown, message: showToastMessage)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .zIndex(1)
-            }
-        }
-    }
-
-    // Removed: private var navigationLinks: some View { ... }
-    // If you need programmatic push to AdminMenu, consider using AppRootView's NavigationPath.
+    // Removed the toastContent private var entirely as it's replaced by the modifier.
+    // private var toastContent: some View { ... }
 
     private var mainContent: some View {
         VStack {
@@ -375,7 +352,6 @@ public struct LoginView: View {
             }
         }
         .background(
-            // This NavigationLink will now push onto the AppRootView's NavigationStack
             NavigationLink(destination: CreateAccountView(
                 islandViewModel: islandViewModel,
                 isUserProfileActive: $isUserProfileActive,
@@ -394,24 +370,7 @@ extension Notification.Name {
     static let showToast = Notification.Name("ShowToast")
 }
 
-// Modifier for Notification Listeners (You have two, likely keep the one with isLoggedIn and DispatchQueue)
-// I'm keeping the one with `isLoggedIn` and `DispatchQueue.main.asyncAfter` as it seems more complete.
-/*
-extension View {
-    func setupListeners(showToastMessage: Binding<String>, isToastShown: Binding<Bool>) -> some View {
-        self.onReceive(NotificationCenter.default.publisher(for: .showToast)) { notification in
-            print("ShowToast notification triggered.")
-            if let message = notification.userInfo?["message"] as? String {
-                print("Toast requested with message: \(message)")
-                showToastMessage.wrappedValue = message
-                isToastShown.wrappedValue = true
-            } else {
-                print("No message found in notification. Skipping toast.")
-            }
-        }
-    }
-}
-*/
+
 extension View {
     func setupListeners(showToastMessage: Binding<String>, isToastShown: Binding<Bool>, isLoggedIn: Bool = false) -> some View {
         self.onReceive(NotificationCenter.default.publisher(for: Notification.Name.showToast)) { notification in
@@ -425,25 +384,5 @@ extension View {
                 }
             }
         }
-    }
-}
-
-struct LoginView_Previews: PreviewProvider {
-    @State static var navigationPath = NavigationPath()
-
-    static var previews: some View {
-        LoginView(
-            islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.shared),
-            profileViewModel: ProfileViewModel(
-                viewContext: PersistenceController.shared.container.viewContext,
-                authViewModel: AuthViewModel.shared
-            ),
-            isSelected: .constant(.login),
-            navigateToAdminMenu: .constant(false),
-            isLoggedIn: .constant(false),
-            navigationPath: $navigationPath // Pass binding here
-        )
-        .environmentObject(AuthenticationState(hashPassword: HashPassword()))
-        .environment(\.managedObjectContext, PersistenceController.shared.container.viewContext)
     }
 }

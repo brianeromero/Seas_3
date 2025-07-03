@@ -8,21 +8,42 @@
 import Foundation
 import SwiftUI
 import CoreData
+import os
+import OSLog // Ensure OSLog is imported for os_log
+
+
 
 // MARK: - EditExistingIslandList (Wrapper View)
 struct EditExistingIslandList: View {
     @StateObject private var persistenceController = PersistenceController.shared
     @State private var selectedIsland: PirateIsland? = nil
-    
+
     @EnvironmentObject private var authViewModel: AuthViewModel
     @Binding var navigationPath: NavigationPath
+
+    // Receive toast bindings from parent (AppRootDestinationView)
+    @Binding var showGlobalToast: Bool
+    @Binding var globalToastMessage: String
+    @Binding var globalToastType: ToastView.ToastType
+
+    // Update init to accept new bindings (if you had a custom init, otherwise Swift provides it)
+    init(navigationPath: Binding<NavigationPath>, showGlobalToast: Binding<Bool>, globalToastMessage: Binding<String>, globalToastType: Binding<ToastView.ToastType>) {
+        _navigationPath = navigationPath
+        _showGlobalToast = showGlobalToast
+        _globalToastMessage = globalToastMessage
+        _globalToastType = globalToastType
+    }
 
     var body: some View {
         EditExistingIslandListContent(
             viewContext: persistenceController.viewContext,
             selectedIsland: $selectedIsland,
-            navigationPath: $navigationPath
+            navigationPath: $navigationPath,
+            showSuccessToast: $showGlobalToast,      // Pass global binding down
+            successToastMessage: $globalToastMessage, // Pass global binding down
+            successToastType: $globalToastType        // Pass global binding down
         )
+        // No .showToast modifier here; it's on AppRootView
     }
 }
 
@@ -34,40 +55,46 @@ struct EditExistingIslandListContent: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @EnvironmentObject var enterZipCodeViewModel: EnterZipCodeViewModel
 
+    // This ViewModel is responsible for filtering and holding the filtered data
     @StateObject private var viewModel = EditExistingIslandListViewModel()
 
+    // Fetch all islands; the filtering happens in the ViewModel
     @FetchRequest(
         entity: PirateIsland.entity(),
         sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.createdTimestamp, ascending: true)]
     )
     private var islands: FetchedResults<PirateIsland>
-    
-    @State private var showEdit: Bool = false
+
+    // Bindings for the global toast message
+    @Binding var showSuccessToast: Bool
+    @Binding var successToastMessage: String
+    @Binding var successToastType: ToastView.ToastType
 
     @Binding var navigationPath: NavigationPath
 
-    init(viewContext: NSManagedObjectContext, selectedIsland: Binding<PirateIsland?>, navigationPath: Binding<NavigationPath>) {
+    // Convenience property to observe changes to the fetched results' object IDs
+    private var islandObjectIDs: [NSManagedObjectID] {
+        islands.map { $0.objectID }
+    }
+    // Custom initializer to accept all bindings
+    init(viewContext: NSManagedObjectContext, selectedIsland: Binding<PirateIsland?>, navigationPath: Binding<NavigationPath>, showSuccessToast: Binding<Bool>, successToastMessage: Binding<String>, successToastType: Binding<ToastView.ToastType>) {
         self.viewContext = viewContext
         self._selectedIsland = selectedIsland
         self._navigationPath = navigationPath
+        self._showSuccessToast = showSuccessToast
+        self._successToastMessage = successToastMessage
+        self._successToastType = successToastType
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // "Search by..." text
-            Text("Search by: gym name, postal code, or address/location") // Updated text to match image
-                .font(.subheadline) // Smaller font, as in the "Select Gym to Review" image
-                .foregroundColor(.secondary) // Gray/light gray color
-                .padding(.horizontal, 16) // Inset padding
-                .padding(.top, 8)
-                .padding(.bottom, 4)
-            
             SearchBar(text: $viewModel.searchQuery)
-                .onChange(of: viewModel.searchQuery) { _, _ in
+                .onChange(of: viewModel.searchQuery) { oldValue, newValue in
+                    // When search query changes, update the filtered list
                     viewModel.updateFilteredIslands(with: islands)
                 }
-                .padding(.horizontal, 16) // Inset padding for search bar
-            
+                .padding(.horizontal, 16)
+
             if viewModel.isLoading {
                 ProgressView("Searching...")
                     .padding()
@@ -79,53 +106,49 @@ struct EditExistingIslandListContent: View {
                     .frame(maxWidth: .infinity, alignment: .center)
                 Spacer()
             } else {
-                // The IslandList component itself will now handle the List and NavigationLinks
                 IslandList(
+                    // Pass the filtered list from the ViewModel
                     islands: viewModel.searchQuery.isEmpty ? Array(islands) : viewModel.filteredIslands,
                     selectedIsland: $selectedIsland,
                     searchText: $viewModel.searchQuery,
-                    navigationDestination: .editExistingIsland, // Still passing this for IslandList's internal logic
-                    title: "Edit Gyms", // Title for IslandList (which it now displays)
-                    onIslandChange: { _ in },
-                    navigationPath: $navigationPath // Pass navigationPath
+                    navigationDestination: .editExistingIsland,
+                    title: "Edit Gyms",
+                    onIslandChange: { _ in }, // You might want to remove this if not needed
+                    navigationPath: $navigationPath,
+                    showSuccessToast: $showSuccessToast,        // Pass global binding down
+                    successToastMessage: $successToastMessage,  // Pass global binding down
+                    successToastType: $successToastType         // Pass global binding down
                 )
             }
         }
-        .background(Color(.systemBackground)) // Overall view background
-        .navigationTitle("Edit Gyms") // Set the navigation title for this screen
+        .background(Color(.systemBackground))
+        .navigationTitle("Edit Gyms")
         .onAppear {
+            // ✅ CRITICAL: Force a re-filter when this view appears.
+            // This ensures the list is up-to-date even if a Core Data notification
+            // was missed or delayed during navigation transitions.
+            os_log("EditExistingIslandListContent: View appeared. Forcing filter update.", log: OSLog.default, type: .info)
+            viewModel.forceUpdateFilteredIslands(with: islands)
+        }
+        // ✅ Keep these onChange and onReceive to react to live Core Data changes
+        .onChange(of: islands.count) {
+            os_log("EditExistingIslandListContent: islands count changed, re-filtering.", log: OSLog.default, type: .info)
             viewModel.updateFilteredIslands(with: islands)
         }
-    }
-    
-}
-
-// MARK: - IslandListRowContent (No changes, as it was already set up for dynamic colors and padding)
-struct IslandListRowContenot: View {
-    let island: PirateIsland
-
-    var body: some View {
-        HStack {
-            VStack(alignment: .leading) {
-                Text(island.islandName ?? "Unknown Gym")
-                    .font(.headline)
-                    .foregroundColor(.primary) // Adapts to Light/Dark Mode
-                
-                Text(island.islandLocation ?? "")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary) // Adapts to Light/Dark Mode
-            }
-            Spacer()
+        .onChange(of: islandObjectIDs) {
+            os_log("EditExistingIslandListContent: islands objectIDs changed, re-filtering.", log: OSLog.default, type: .info)
+            viewModel.updateFilteredIslands(with: islands)
         }
-        .padding(.vertical, 8)
-        .padding(.horizontal, 16) // This creates the internal padding for text
-        .background(Color(.systemBackground)) // Row content background
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name.NSManagedObjectContextDidSave)) { _ in
+            os_log("EditExistingIslandListContent: NSManagedObjectContextDidSave notification received, forcing immediate re-filter.", log: OSLog.default, type: .info)
+            viewModel.forceUpdateFilteredIslands(with: islands)
+        }
+        // No .showToast modifier here; it's on AppRootView
     }
 }
 
 
-// MARK: - Create EditExistingIslandListViewModel
-// MARK: - EditExistingIslandListViewModel (No changes needed)
+// MARK: - EditExistingIslandListViewModel
 class EditExistingIslandListViewModel: ObservableObject {
     @Published var searchQuery: String = ""
     @Published var filteredIslands: [PirateIsland] = []
@@ -134,41 +157,54 @@ class EditExistingIslandListViewModel: ObservableObject {
 
     private var debounceTimer: Timer?
 
+    // Existing debounced update function (good for search bar input)
     func updateFilteredIslands(with pirateIslands: FetchedResults<PirateIsland>) {
         // Invalidate existing timer and set a new one
         debounceTimer?.invalidate()
         debounceTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { [weak self] _ in
-            // Ensure self is still valid
             guard let self = self else { return }
-
             // All filtering operations are now on the main thread
-            DispatchQueue.main.async { // This ensures the UI updates and the filtering happens on the main thread.
-                self.isLoading = true
-                let lowercasedQuery = self.searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-
-                if lowercasedQuery.isEmpty {
-                    self.filteredIslands = Array(pirateIslands)
-                    self.showNoMatchAlert = false
-                    self.isLoading = false
-                    return
-                }
-
-                let filtered = pirateIslands.filter { island in
-                    let properties = [
-                        island.islandName,
-                        island.islandLocation,
-                        island.gymWebsite?.absoluteString,
-                        String(island.latitude),
-                        String(island.longitude)
-                    ]
-                    return properties.compactMap { $0?.lowercased() }.contains { $0.contains(lowercasedQuery) }
-                }
-
-                self.filteredIslands = filtered
-                self.showNoMatchAlert = !self.searchQuery.isEmpty && self.filteredIslands.isEmpty
-                self.isLoading = false
+            DispatchQueue.main.async {
+                self.performFiltering(with: pirateIslands)
             }
         }
     }
 
+    // NEW: Function to force an immediate update (for Core Data save notifications)
+    func forceUpdateFilteredIslands(with pirateIslands: FetchedResults<PirateIsland>) {
+        debounceTimer?.invalidate() // Invalidate any pending debounce, as we want immediate action
+        DispatchQueue.main.async {
+            self.performFiltering(with: pirateIslands)
+        }
+    }
+
+    // Helper method to consolidate filtering logic to avoid code duplication
+    private func performFiltering(with pirateIslands: FetchedResults<PirateIsland>) {
+        os_log("ViewModel: performFiltering called. Query: '%{public}s'", log: OSLog.default, type: .info, searchQuery)
+        self.isLoading = true
+        let lowercasedQuery = self.searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+
+        if lowercasedQuery.isEmpty {
+            self.filteredIslands = Array(pirateIslands)
+            self.showNoMatchAlert = false
+            self.isLoading = false
+            return
+        }
+
+        let filtered = pirateIslands.filter { island in
+            let properties = [
+                island.islandName,
+                island.islandLocation,
+                island.gymWebsite?.absoluteString,
+                String(island.latitude),
+                String(island.longitude)
+            ]
+            return properties.compactMap { $0?.lowercased() }.contains { $0.contains(lowercasedQuery) }
+        }
+
+        self.filteredIslands = filtered
+        self.showNoMatchAlert = !self.searchQuery.isEmpty && self.filteredIslands.isEmpty
+        os_log("ViewModel: Filtering complete. Result count: %d. Is Loading: %{public}@", log: OSLog.default, type: .info, filtered.count, isLoading.description)
+        self.isLoading = false
+    }
 }

@@ -31,8 +31,10 @@ public struct EditExistingIsland: View {
     // MARK: - State Variables
     @State private var showAlert = false
     @State private var alertMessage = ""
-    @State private var showToast: Bool = false
-    @State private var toastMessage: String = ""
+    @Binding var showSuccessToast: Bool
+    @Binding var successToastMessage: String
+    @Binding var successToastType: ToastView.ToastType // <<< NEW: Add this binding
+
 
     @State private var originalIslandName: String = ""
     @State private var originalMultilineAddress: String = ""
@@ -43,9 +45,12 @@ public struct EditExistingIsland: View {
     @State private var lastModifiedByName: String = "Loading..."
     @State private var displayedCountryName: String = "" // State to hold the displayed country name
 
-    // MARK: - Initialization
-    init(island: PirateIsland) {
+    // MARK: - Initialization (Update init to include new bindings)
+    init(island: PirateIsland, showSuccessToast: Binding<Bool>, successToastMessage: Binding<String>, successToastType: Binding<ToastView.ToastType>) { // <<< NEW: Update init
         _island = ObservedObject(wrappedValue: island)
+        _showSuccessToast = showSuccessToast
+        _successToastMessage = successToastMessage
+        _successToastType = successToastType // <<< NEW: Initialize the new binding
     }
 
     // MARK: - Body
@@ -122,22 +127,24 @@ public struct EditExistingIsland: View {
             islandDetails.islandID = island.islandID
 
             // Initialize the displayedCountryName directly from the island object
-            displayedCountryName = island.country ?? "Unknown"
+            // FIX for empty country: Check if string is empty after trimming
+            displayedCountryName = island.country?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false ? island.country! : "Unknown"
 
             // --- ADDED LOGGING FOR INITIAL DISPLAY VALUES ---
             os_log("Initial Display Values:", log: OSLog.default, type: .info)
             os_log("  islandDetails.islandName: %{public}@", log: OSLog.default, type: .info, islandDetails.islandName)
             os_log("  islandDetails.multilineAddress: %{public}@", log: OSLog.default, type: .info, islandDetails.multilineAddress)
             os_log("  islandDetails.gymWebsite: %{public}@", log: OSLog.default, type: .info, islandDetails.gymWebsite)
-            os_log("  displayedCountryName: %{public}@", log: OSLog.default, type: .info, displayedCountryName)
-            os_log("  island.createdByUserId (raw): %{public}@", log: OSLog.default, type: .info, island.createdByUserId ?? "nil")
+            os_log("  island.country (raw from Core Data): %{public}@", log: OSLog.default, type: .info, island.country ?? "nil")
+            os_log("  displayedCountryName (after processing): %{public}@", log: OSLog.default, type: .info, displayedCountryName)
+            os_log("  island.createdByUserId (raw from Core Data): %{public}@", log: OSLog.default, type: .info, island.createdByUserId ?? "nil")
             // --- END ADDED LOGGING ---
 
             Task {
                 await countryService.fetchCountries()
 
                 if let countryCode = island.country,
-                   let country = countryService.countries.first(where: { $0.cca2 == countryCode }) {
+                    let country = countryService.countries.first(where: { $0.cca2 == countryCode }) {
                     islandDetails.selectedCountry = country
                 } else {
                     islandDetails.selectedCountry = nil
@@ -156,12 +163,14 @@ public struct EditExistingIsland: View {
                     var resolvedName: String?
 
                     // 1. Try to fetch by User ID (UID) first
-                    os_log("Trying to fetch by User ID (UID)...", log: OSLog.default, type: .info)
+                    // This assumes createdByValue *might* be a UID.
+                    os_log("Trying to fetch by User ID (UID): %{public}@", log: OSLog.default, type: .info, createdByValue)
                     resolvedName = await authViewModel.fetchUserName(forUserID: createdByValue)
 
                     // 2. If fetching by User ID failed, try to fetch by User Name
+                    // This assumes createdByValue *might* be a username.
                     if resolvedName == nil {
-                        os_log("Fetching by User ID failed. Trying to fetch by User Name...", log: OSLog.default, type: .info)
+                        os_log("Fetching by User ID failed for %{public}%. Trying to fetch by User Name...", log: OSLog.default, type: .info, createdByValue)
                         resolvedName = await authViewModel.fetchUserName(forUserName: createdByValue)
                     }
 
@@ -255,6 +264,11 @@ public struct EditExistingIsland: View {
             await MainActor.run {
                 showAlert = true
                 alertMessage = "Please fill in all required fields (Gym Name, Address)."
+                // <<< NEW: Also set toast if you want it for validation errors
+                self.successToastMessage = "Please fill in all required fields (Gym Name, Address)."
+                self.successToastType = .error
+                self.showSuccessToast = true
+                // <<< END NEW
             }
             os_log("Validation failed: required fields missing.", log: OSLog.default, type: .error)
             return
@@ -264,6 +278,11 @@ public struct EditExistingIsland: View {
             await MainActor.run {
                 showAlert = true
                 alertMessage = "Invalid website URL. Please correct it or leave it empty."
+                // <<< NEW: Also set toast if you want it for validation errors
+                self.successToastMessage = "Invalid website URL. Please correct it or leave it empty."
+                self.successToastType = .error
+                self.showSuccessToast = true
+                // <<< END NEW
             }
             os_log("Validation failed: invalid website URL.", log: OSLog.default, type: .error)
             return
@@ -273,6 +292,11 @@ public struct EditExistingIsland: View {
             await MainActor.run {
                 showAlert = true
                 alertMessage = "User not logged in. Please log in to save."
+                // <<< NEW: Also set toast if you want it for validation errors
+                self.successToastMessage = "User not logged in. Please log in to save."
+                self.successToastType = .error
+                self.showSuccessToast = true
+                // <<< END NEW
             }
             os_log("Current user ID is nil.", log: OSLog.default, type: .error)
             return
@@ -342,19 +366,25 @@ public struct EditExistingIsland: View {
                 try await pirateIslandViewModel.updatePirateIsland(id: islandID, data: dataToUpdate)
             }
 
-            // 4️⃣ Update UI on MainActor
+            // 4️⃣ Update UI on MainActor - THIS IS THE CRITICAL PART FOR THE TOAST
             await MainActor.run {
-                toastMessage = "Gym saved successfully!"
-                showToast = true
-                dismiss()
+                self.successToastMessage = "Update saved successfully!" // Set the binding value
+                self.successToastType = .success // <<< NEW: Set the type for success
+                self.showSuccessToast = true                          // Set the binding flag
+                dismiss() // Then dismiss the current view
             }
-            os_log("Island saved successfully.", log: OSLog.default, type: .info)
+            os_log("Update saved successfully.", log: OSLog.default, type: .info)
 
         } catch {
             os_log("Error saving island: %@", log: OSLog.default, type: .error, error.localizedDescription)
             await MainActor.run {
                 showAlert = true
-                alertMessage = "Failed to save gym: \(error.localizedDescription)"
+                alertMessage = "Failed to save Update: \(error.localizedDescription)"
+                self.successToastMessage = "Failed to save gym: \(error.localizedDescription)" // Set toast message for error
+                self.successToastType = .error // <<< NEW: Set the type for error
+                self.showSuccessToast = true // Show toast for error too
+                // If you show an alert for errors, you might not want a toast simultaneously.
+                // Decide which UX you prefer for errors. If you show the alert, maybe don't show the toast.
             }
         }
     }

@@ -106,15 +106,15 @@ class IslandListViewModel: ObservableObject {
 }
 
 struct IslandListItem: View {
-    let island: PirateIsland
+    @ObservedObject var island: PirateIsland // <-- CHANGE THIS!
     @Binding var selectedIsland: PirateIsland?
 
     var body: some View {
         os_log("Rendering IslandListItem for %@", log: logger, island.islandName ?? "Unknown")
         return VStack(alignment: .leading) {
-            Text(island.islandName ?? "Unknown Gym")
+            Text(island.islandName ?? "Unknown Gym") // Now this Text view will re-render
                 .font(.headline)
-            Text(island.islandLocation ?? "")
+            Text(island.islandLocation ?? "")       // when island.islandLocation changes
                 .font(.subheadline)
                 .lineLimit(nil)
         }
@@ -125,9 +125,9 @@ struct IslandListItem: View {
 
 struct IslandList: View {
     let islands: [PirateIsland]
-    @Binding var selectedIsland: PirateIsland? // This is the source of the value
+    @Binding var selectedIsland: PirateIsland?
     @Binding var searchText: String
-    let navigationDestination: NavigationDestination // Keep this if other parts of your app use it
+    let navigationDestination: NavigationDestination
     let title: String
     
     // ✅ Change these to @EnvironmentObject as they are shared app-wide
@@ -141,11 +141,11 @@ struct IslandList: View {
     // ✅ NEW: Receive navigationPath as a Binding from the parent view
     @Binding var navigationPath: NavigationPath // <--- CRUCIAL CHANGE!
 
-    // ✅ REMOVED: @State private var showNavigationDestination = false
-    // ✅ REMOVED: @State private var navigationPath = NavigationPath() // This was creating a separate path
+    // !!! NEW: Bindings to control the toast from the parent view (EditExistingIslandListContent) !!!
+    @Binding var showSuccessToast: Bool
+    @Binding var successToastMessage: String
+    @Binding var successToastType: ToastView.ToastType // <<< NEW: Add this binding
 
-    // ✅ Custom initializer to accept all bindings and regular properties
-    // Remove explicit view model parameters from init as they are now @EnvironmentObject
     init(
         islands: [PirateIsland],
         selectedIsland: Binding<PirateIsland?>,
@@ -153,7 +153,11 @@ struct IslandList: View {
         navigationDestination: NavigationDestination,
         title: String,
         onIslandChange: @escaping (PirateIsland?) -> Void,
-        navigationPath: Binding<NavigationPath> // Receive navigationPath here
+        navigationPath: Binding<NavigationPath>, // Receive navigationPath here
+        // !!! NEW: Add the new toast bindings to the initializer !!!
+        showSuccessToast: Binding<Bool>,
+        successToastMessage: Binding<String>,
+        successToastType: Binding<ToastView.ToastType> // <<< NEW: Add the new toast binding
     ) {
         self.islands = islands
         self._selectedIsland = selectedIsland
@@ -162,6 +166,9 @@ struct IslandList: View {
         self.title = title
         self.onIslandChange = onIslandChange
         self._navigationPath = navigationPath // Initialize the binding
+        self._showSuccessToast = showSuccessToast // Initialize the new toast binding
+        self._successToastMessage = successToastMessage // Initialize the new toast binding
+        self._successToastType = successToastType // <<< NEW: Initialize the new toast binding
     }
 
     var filteredIslands: [PirateIsland] {
@@ -196,6 +203,7 @@ struct IslandList: View {
                     .buttonStyle(PlainButtonStyle()) // Ensures the whole row is tappable and removes default blue tint
                 }
             }
+
             .listStyle(.plain) // ✅ CRITICAL: Flat list style
             .background(Color(.systemBackground)) // ✅ CRITICAL: List background matches system theme
             .padding(.horizontal, 0) // ✅ CRITICAL: No horizontal padding on the List itself

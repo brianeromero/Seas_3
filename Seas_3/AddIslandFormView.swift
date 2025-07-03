@@ -27,14 +27,11 @@ struct AddIslandFormView: View {
     @State private var isSaveEnabled = false
     @State private var showAlert = false
     @State private var alertMessage = ""
-    @State private var showToast = false
-    @State private var toastMessage = ""
+    @State private var showToast = false // This will now control your custom toast
+    @State private var toastMessage = "" // This will provide the message for your custom toast
     @State private var isGeocoding = false
     @State private var error: String?
     @State private var requiredFields: [AddressFieldType] = []
-    
-
-
 
     // MARK: - Initialization
     init(
@@ -65,8 +62,14 @@ struct AddIslandFormView: View {
             .alert(isPresented: $showAlert) {
                 Alert(title: Text("Error"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
             }
-            .onAppear(perform: validateForm)
-            .overlay(toastOverlay)
+            .onAppear(perform: validateForm) // Assuming validateForm exists and updates isSaveEnabled
+            // !!! Replaced .overlay(toastOverlay) with the new .showToast modifier !!!
+            .showToast(
+                isPresenting: $showToast,
+                message: toastMessage,
+                type: .success // Or .custom, .error, .info based on the scenario
+                // You can also add duration: and alignment: here if you want to override defaults
+            )
         }
     }
     
@@ -164,23 +167,21 @@ struct AddIslandFormView: View {
         Section(header: Text("Instagram/Facebook/Website")) {
             TextField("Gym Website8910", text: $islandDetails.gymWebsite)
                 .keyboardType(.URL)
-            // Updated onChange signature for iOS 17 and later
-            .onChange(of: islandDetails.gymWebsite) { newValue in
-                if !newValue.isEmpty {
-                    if ValidationUtility.validateURL(newValue) == nil {
-                        islandDetails.gymWebsiteURL = URL(string: newValue)
+                // Corrected onChange signature for iOS 17+
+                .onChange(of: islandDetails.gymWebsite) { oldValue, newValue in // <--- CHANGE IS HERE
+                    if !newValue.isEmpty {
+                        if ValidationUtility.validateURL(newValue) == nil {
+                            islandDetails.gymWebsiteURL = URL(string: newValue)
+                        } else {
+                            showAlert = true
+                            alertMessage = "Invalid website URL."
+                        }
                     } else {
-                        showAlert = true
-                        alertMessage = "Invalid website URL."
+                        islandDetails.gymWebsiteURL = nil
                     }
-                } else {
-                    islandDetails.gymWebsiteURL = nil
                 }
-            }
-
         }
     }
-
 
     private var saveButton: some View {
         Button("Save") {
@@ -197,21 +198,6 @@ struct AddIslandFormView: View {
         .padding()
     }
 
-    private var toastOverlay: some View {
-        Group {
-            if showToast {
-                withAnimation {
-                    ToastView(showToast: $showToast, message: toastMessage)
-                        .transition(.move(edge: .bottom))
-                        .onAppear {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                showToast = false
-                            }
-                        }
-                }
-            }
-        }
-    }
     
     // MARK: - Private Methods
     private func saveIsland() {

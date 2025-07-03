@@ -38,6 +38,13 @@ struct IslandMenu: View {
     let profileViewModel: ProfileViewModel
     @State private var showToastMessage: String = ""
     @State private var isToastShown: Bool = false
+    
+    // ADD THESE BINDINGS:
+    @Binding var showGlobalToast: Bool
+    @Binding var globalToastMessage: String
+    @Binding var globalToastType: ToastView.ToastType
+
+    
 
     // MARK: - Centralized ViewModel/Repository Instantiations
     private let appDayOfWeekRepository: AppDayOfWeekRepository
@@ -48,15 +55,23 @@ struct IslandMenu: View {
     let menuLeadingPadding: CGFloat = 50 + 0.5 * 10
 
     // MARK: - Initialization
-    // Removed isLoggedIn and authViewModel from init parameters
-    init(profileViewModel: ProfileViewModel) {
+    init(
+        profileViewModel: ProfileViewModel,
+        // Add the new binding parameters here
+        showGlobalToast: Binding<Bool>,
+        globalToastMessage: Binding<String>,
+        globalToastType: Binding<ToastView.ToastType>
+    ) {
         os_log("User logged in", log: IslandMenulogger)
         os_log("Initializing IslandMenu", log: IslandMenulogger)
 
-        // self.authViewModel = authViewModel // REMOVED - now an @EnvironmentObject
-
-        // self._isLoggedIn = isLoggedIn // REMOVED - not needed as a binding anymore
         self.profileViewModel = profileViewModel
+
+        // Initialize the new bindings
+        _showGlobalToast = showGlobalToast
+        _globalToastMessage = globalToastMessage
+        _globalToastType = globalToastType
+
 
         let sharedPersistenceController = PersistenceController.shared
         self.appDayOfWeekRepository = AppDayOfWeekRepository(persistenceController: sharedPersistenceController)
@@ -266,7 +281,12 @@ struct IslandMenu: View {
 
         case .updateExistingGyms:
             return AnyView(
-                EditExistingIslandList(navigationPath: $navigationPath) // <-- ADDED navigationPath here
+                EditExistingIslandList(
+                    navigationPath: $navigationPath, // Already there
+                    showGlobalToast: $showGlobalToast,       // <-- ADD THIS
+                    globalToastMessage: $globalToastMessage, // <-- ADD THIS
+                    globalToastType: $globalToastType        // <-- ADD THIS
+                )
                 .onAppear {
                     let userID = authViewModel.currentUserID ?? "Unknown"
                     let timestamp = "\(Date())"
