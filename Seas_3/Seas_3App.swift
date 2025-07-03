@@ -147,7 +147,7 @@ struct AppRootView: View {
                 AppRootDestinationView(
                     screen: screen,
                     navigationPath: $navigationPath,
-                    globalShowToast: $globalShowToast,        // Pass binding
+                    globalShowToast: $globalShowToast,       // Pass binding
                     globalToastMessage: $globalToastMessage,  // Pass binding
                     globalToastType: $globalToastType         // Pass binding
                 )
@@ -170,15 +170,53 @@ struct AppRootView: View {
         .onChange(of: navigationPath) { oldPath, newPath in
             print("⚠️ [AppRootView] navigationPath changed from \(oldPath) to \(newPath)")
         }
+        
         // --- NEW: Apply Toast Modifier to the AppRootView ---
-        .showToast(
-            isPresenting: $globalShowToast,
-            message: globalToastMessage,
-            type: globalToastType
-        )
+        // This is incorrect. Instead of a custom modifier, we'll use an .overlay
+        // and .onReceive directly to manage the toast state.
+        // Remove the .showToast() modifier.
         // --- END NEW ---
+
+        // ✅ ADD THIS: The .overlay to display the ToastView
+        .overlay(
+            Group {
+                if globalShowToast {
+                    ToastView(message: globalToastMessage, type: globalToastType)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                        .animation(.easeInOut(duration: 0.3), value: globalShowToast) // Adjust duration for animation
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top) // Positions toast at the top
+            .ignoresSafeArea(.all, edges: .all) // Allows toast to go over safe area if needed
+        )
+        // ✅ ADD THIS: The .onReceive listener for the toast notification
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("ShowToast"))) { notification in
+            if let userInfo = notification.userInfo,
+               let message = userInfo["message"] as? String,
+               let typeString = userInfo["type"] as? String,
+               let type = ToastView.ToastType(rawValue: typeString) {
+
+                self.globalToastMessage = message
+                self.globalToastType = type
+                self.globalShowToast = true
+
+                // Auto-hide the toast after a few seconds
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3) { // Adjust duration as needed
+                    withAnimation {
+                        self.globalShowToast = false
+                    }
+                }
+            }
+        }
     }
 }
+
+
+// Your AppRootDestinationView code remains mostly the same,
+// as you're already passing the global toast bindings to it.
+// Just ensure any child views that trigger a local toast *instead* of the global one
+// use their own @State for that local toast, or if they intend to trigger the global,
+// they would use the NotificationCenter to post it.
 
 struct AppRootDestinationView: View {
     let screen: AppScreen
@@ -206,8 +244,9 @@ struct AppRootDestinationView: View {
     @State private var islandDetails = IslandDetails() // Initialize with default values
     
     // MARK: - New State for EditExistingIsland success toast
-    @State private var showEditSuccessToast: Bool = false
-    @State private var editSuccessToastMessage: String = ""
+    // You can remove these if you are exclusively using the global toast now
+    // @State private var showEditSuccessToast: Bool = false
+    // @State private var editSuccessToastMessage: String = ""
 
 
     var body: some View {
@@ -300,8 +339,8 @@ struct AppRootDestinationView: View {
             // AddNewIsland should declare them as @EnvironmentObject and receive them automatically.
             AddNewIsland(
                 // islandViewModel: pirateIslandViewModel, // REMOVED
-                // profileViewModel: profileViewModel,     // REMOVED
-                // authViewModel: authViewModel,           // REMOVED
+                // profileViewModel: profileViewModel,      // REMOVED
+                // authViewModel: authViewModel,            // REMOVED
                 navigationPath: $navigationPath,
                 islandDetails: $islandDetails // This is a @Binding and needs to be passed explicitly
             )
@@ -313,7 +352,7 @@ struct AppRootDestinationView: View {
             // ✅ CRITICAL: Pass the navigationPath binding here
             EditExistingIslandList(
                 navigationPath: $navigationPath,
-                showGlobalToast: $globalShowToast,       // <-- Add this
+                showGlobalToast: $globalShowToast,      // <-- Add this
                 globalToastMessage: $globalToastMessage, // <-- Add this
                 globalToastType: $globalToastType        // <-- Add this
             )
@@ -349,7 +388,6 @@ struct AppRootDestinationView: View {
         }
     }
 }
-
 
 
 // Optional: Extension for injecting PersistenceController via Environment

@@ -82,75 +82,92 @@ class FirestoreSyncManager {
     }
 
     private func checkLocalRecordsAndCreateFirestoreRecordsIfNecessary(collectionName: String, querySnapshot: QuerySnapshot?) async {
-        print("Checking local records for collection: \(collectionName)")
-        
+        print("🚀 [SyncManager] Initiating record check for collection: \(collectionName)")
+
         guard let querySnapshot = querySnapshot else {
-            print("Error: Query snapshot is nil for collection \(collectionName)")
+            print("❌ [SyncManager] Error: Query snapshot is nil for collection \(collectionName). Cannot proceed with record checking.")
             return
         }
-        
-        print("Query snapshot received for collection: \(collectionName)")
-        
-        let firestoreRecords = querySnapshot.documents.compactMap { $0.documentID }
-        print("Firestore records for \(collectionName): \(firestoreRecords)")
-        
-        if let localRecords = try? await PersistenceController.shared.fetchLocalRecords(forCollection: collectionName) {
-            print("Local records for \(collectionName): \(localRecords)")
-            
-            
-            
-            // Query records using both hyphenated and non-hyphenated IDs
-            var localRecordsNotInFirestore: [String] = []
-            for record in localRecords {
-                let recordId = record
-                let nonHyphenatedId = recordId.replacingOccurrences(of: "-", with: "")
-                let query = Firestore.firestore().collection(collectionName).whereField("id", in: [recordId, nonHyphenatedId])
-                do {
-                    let querySnapshot = try await query.getDocuments()
-                    if querySnapshot.documents.isEmpty {
-                        localRecordsNotInFirestore.append(record)
-                    }
-                } catch {
-                    print("Error querying records: \(error)")
-                }
-            }
-            
-            print("Local records not in Firestore for \(collectionName):")
-            for record in localRecordsNotInFirestore {
-                print("Record ID: \(record) (contains hyphens: \(record.contains("-")))")
-            }
-            
-            let localRecordsWithoutHyphens = Set(localRecords.map { $0.replacingOccurrences(of: "-", with: "") })
-            _ = firestoreRecords.map { $0.replacingOccurrences(of: "-", with: "") }
-            let firestoreRecordsNotInLocal = firestoreRecords.filter { !localRecordsWithoutHyphens.contains($0.replacingOccurrences(of: "-", with: "")) }
-            
-            
-            await syncRecords(localRecords: localRecords, firestoreRecords: firestoreRecords, collectionName: collectionName)
 
-            if !localRecordsNotInFirestore.isEmpty || !firestoreRecordsNotInLocal.isEmpty {
-                print("Records are out of sync for collection: \(collectionName)")
-                
-                // Log before posting to notification center
-                print("Posting ShowToast notification for collection: \(collectionName) with message: You need to sync your records.")
-                
-                // Introduce a small delay before posting the notification
-                DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
-                    NotificationCenter.default.post(name: Notification.Name("ShowToast"), object: nil, userInfo: ["message": "You need to sync your records."])
+        print("✅ [SyncManager] Query snapshot successfully received for collection: \(collectionName)")
+
+        let firestoreRecords = querySnapshot.documents.compactMap { $0.documentID }
+        print("📊 [SyncManager] Firestore records for \(collectionName) (count: \(firestoreRecords.count)): \(firestoreRecords.prefix(5))\(firestoreRecords.count > 5 ? "... (and \(firestoreRecords.count - 5) more)" : "")") // Log a subset for brevity
+
+        do {
+            if let localRecords = try await PersistenceController.shared.fetchLocalRecords(forCollection: collectionName) {
+                print("💾 [SyncManager] Local records for \(collectionName) (count: \(localRecords.count)): \(localRecords.prefix(5))\(localRecords.count > 5 ? "... (and \(localRecords.count - 5) more)" : "")")
+
+                var localRecordsNotInFirestore: [String] = []
+                for record in localRecords {
+                    let recordId = record
+                    let nonHyphenatedId = recordId.replacingOccurrences(of: "-", with: "")
+                    let query = Firestore.firestore().collection(collectionName).whereField("id", in: [recordId, nonHyphenatedId])
+                    do {
+                        let querySnapshot = try await query.getDocuments()
+                        if querySnapshot.documents.isEmpty {
+                            localRecordsNotInFirestore.append(record)
+                        }
+                    } catch {
+                        print("⚠️ [SyncManager] Error querying Firestore for local record \(record): \(error.localizedDescription)")
+                    }
+                }
+
+                print("🔍 [SyncManager] Local records not found in Firestore for \(collectionName) (count: \(localRecordsNotInFirestore.count)): \(localRecordsNotInFirestore.prefix(5))\(localRecordsNotInFirestore.count > 5 ? "... (and \(localRecordsNotInFirestore.count - 5) more)" : "")")
+
+                let localRecordsWithoutHyphens = Set(localRecords.map { $0.replacingOccurrences(of: "-", with: "") })
+                let firestoreRecordsNotInLocal = firestoreRecords.filter { !localRecordsWithoutHyphens.contains($0.replacingOccurrences(of: "-", with: "")) }
+                print("🔍 [SyncManager] Firestore records not found locally for \(collectionName) (count: \(firestoreRecordsNotInLocal.count)): \(firestoreRecordsNotInLocal.prefix(5))\(firestoreRecordsNotInLocal.count > 5 ? "... (and \(firestoreRecordsNotInLocal.count - 5) more)" : "")")
+
+                await syncRecords(localRecords: localRecords, firestoreRecords: firestoreRecords, collectionName: collectionName)
+                print("🔄 [SyncManager] `syncRecords` function completed for collection: \(collectionName)")
+
+                if !localRecordsNotInFirestore.isEmpty || !firestoreRecordsNotInLocal.isEmpty {
+                    print("🚨 [SyncManager] Records are out of sync for collection: \(collectionName). Initiating 'You need to sync your records' toast.")
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+                        NotificationCenter.default.post(name: Notification.Name("ShowToast"), object: nil, userInfo: [
+                            "message": "You need to sync your records.",
+                            "type": ToastView.ToastType.error.rawValue
+                        ])
+                        print("📧 [SyncManager] Posted 'ShowToast' notification (error type) for \(collectionName).")
+                    }
+                } else {
+                    print("🎉 [SyncManager] Records are in sync for collection: \(collectionName). Initiating 'Records have been synced successfully' toast.")
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+                        NotificationCenter.default.post(name: Notification.Name("ShowToast"), object: nil, userInfo: [
+                            "message": "Records have been synced successfully.",
+                            "type": ToastView.ToastType.success.rawValue
+                        ])
+                        print("📧 [SyncManager] Posted 'ShowToast' notification (success type) for \(collectionName).")
+                    }
                 }
             } else {
-                print("Records are in sync for collection: \(collectionName)")
-                
-                // Post a new notification when syncing is completed
+                print("⚠️ [SyncManager] No local records found for collection: \(collectionName) (or error fetching them). Proceeding to sync from Firestore.")
+                await syncRecords(localRecords: [], firestoreRecords: firestoreRecords, collectionName: collectionName)
+                print("🔄 [SyncManager] `syncRecords` function completed for collection: \(collectionName) (no local records case).")
+
+                // Consider if you want a toast here too, e.g., "No local data, pulling from cloud."
                 DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
-                    NotificationCenter.default.post(name: Notification.Name("ShowToast"), object: nil, userInfo: ["message": "Records have been synced successfully."])
+                    NotificationCenter.default.post(name: Notification.Name("ShowToast"), object: nil, userInfo: [
+                        "message": "Local data initialized from cloud.",
+                        "type": ToastView.ToastType.info.rawValue
+                    ])
+                    print("📧 [SyncManager] Posted 'ShowToast' notification (info type - local init) for \(collectionName).")
                 }
             }
-        } else {
-            print("No local records found for collection: \(collectionName)")
-            await syncRecords(localRecords: [], firestoreRecords: firestoreRecords, collectionName: collectionName)
+        } catch {
+            print("❌ [SyncManager] Critical error during local record fetch for \(collectionName): \(error.localizedDescription)")
+            // You might want to post an error toast here as well, as this is a failure to even check local records.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+                NotificationCenter.default.post(name: Notification.Name("ShowToast"), object: nil, userInfo: [
+                    "message": "Error accessing local data: \(error.localizedDescription)",
+                    "type": ToastView.ToastType.error.rawValue
+                ])
+                print("📧 [SyncManager] Posted 'ShowToast' notification (critical error type) for \(collectionName).")
+            }
         }
-        
-        print("Finished checking local records for collection: \(collectionName)")
+
+        print("🏁 [SyncManager] Finished checking local records for collection: \(collectionName)")
     }
 
     private func uploadLocalRecordsToFirestore(collectionName: String, records: [String]) async {
@@ -271,9 +288,25 @@ class FirestoreSyncManager {
     private func downloadFirestoreRecordsToLocal(collectionName: String, records: [String]) async {
         print("Downloading Firestore records to local Core Data for collection: \(collectionName)")
 
+        // Optional: Toast at the very start of the download process for a collection
+        // This could be useful if a collection has many records and takes time
+        if !records.isEmpty {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { // Small delay to not interfere with other immediate toasts
+                NotificationCenter.default.post(name: Notification.Name("ShowToast"), object: nil, userInfo: [
+                    "message": "Downloading \(records.count) \(collectionName) from cloud...",
+                    "type": ToastView.ToastType.info.rawValue
+                ])
+                print("📧 [SyncManager] Posted 'ShowToast' notification (info type - downloading start) for \(collectionName).")
+            }
+        }
+
+
         let context = PersistenceController.shared.container.newBackgroundContext()
         let db = Firestore.firestore()
         let collectionRef = db.collection(collectionName)
+
+        var downloadedCount = 0
+        var errorCount = 0
 
         for record in records {
             let docRef = collectionRef.document(record)
@@ -282,15 +315,16 @@ class FirestoreSyncManager {
                 let docSnapshot = try await docRef.getDocument()
 
                 guard docSnapshot.exists else {
-                    print("Firestore document does not exist for record: \(record)")
+                    print("❌ Firestore document does not exist for record: \(record). Skipping download.")
+                    errorCount += 1
                     continue
                 }
 
-                // Add this line to log the raw Firestore data
                 print("🔵 Firestore data for \(collectionName) record \(record): \(docSnapshot.data() ?? [:])")
 
                 await context.perform { [self] in
                     var managedObject: NSManagedObject? = nil
+                    var isNewRecord = false // To track if a new record was created
 
                     switch collectionName {
                     case "pirateIslands":
@@ -298,6 +332,7 @@ class FirestoreSyncManager {
                         if pirateIsland == nil {
                             pirateIsland = PirateIsland(context: context)
                             pirateIsland?.islandID = UUID(uuidString: record)
+                            isNewRecord = true
                             print("🟡 Creating new PirateIsland with ID: \(record)")
                         } else {
                             print("🟢 Updating existing PirateIsland with ID: \(record)")
@@ -323,6 +358,7 @@ class FirestoreSyncManager {
                         if review == nil {
                             review = Review(context: context)
                             review?.reviewID = UUID(uuidString: record)!
+                            isNewRecord = true
                             print("🟡 Creating new Review with ID: \(record)")
                         } else {
                             print("🟢 Updating existing Review with ID: \(record)")
@@ -352,10 +388,11 @@ class FirestoreSyncManager {
                             matTime = MatTime(context: context)
                             if let uuid = UUID(uuidString: record) {
                                 matTime?.id = uuid
+                                isNewRecord = true
                                 print("🟡 Creating new MatTime with ID: \(record)")
                             } else {
                                 print("❌ Error: Invalid UUID string for MatTime ID: \(record). Skipping creation.")
-                                return
+                                // Do not return here, just skip managedObject = mt
                             }
                         } else {
                             print("🟢 Updating existing MatTime with ID: \(record)")
@@ -373,7 +410,6 @@ class FirestoreSyncManager {
                             mt.kids = docSnapshot.get("kids") as? Bool ?? false
                             mt.createdTimestamp = (docSnapshot.get("createdTimestamp") as? Timestamp)?.dateValue()
 
-                            // Link MatTime to AppDayOfWeek using Firestore DocumentReference
                             if let appDayOfWeekRef = docSnapshot.get("appDayOfWeek") as? DocumentReference {
                                 let appDayOfWeekID = appDayOfWeekRef.documentID
                                 if let appDayOfWeek = fetchAppDayOfWeekByID(appDayOfWeekID, in: context) {
@@ -388,12 +424,12 @@ class FirestoreSyncManager {
                             managedObject = mt
                         }
 
-
                     case "AppDayOfWeek":
                         var appDayOfWeek = fetchAppDayOfWeekByID(record, in: context)
                         if appDayOfWeek == nil {
                             appDayOfWeek = AppDayOfWeek(context: context)
                             appDayOfWeek?.appDayOfWeekID = record
+                            isNewRecord = true
                             print("🟡 Creating new AppDayOfWeek with ID: \(record)")
                         } else {
                             print("🟢 Updating existing AppDayOfWeek with ID: \(record)")
@@ -440,16 +476,21 @@ class FirestoreSyncManager {
                         }
 
                     default:
-                        print("Unknown collection: \(collectionName)")
-                        return
+                        print("Unknown collection: \(collectionName). Skipping record \(record).")
+                        errorCount += 1
+                        return // Exit perform block for this record
                     }
 
                     if let obj = managedObject {
                         do {
                             try obj.validateForInsert()
                             try obj.validateForUpdate()
+                            try context.save()
+                            print("✅ Synced \(collectionName) record \(record) to Core Data.")
+                            downloadedCount += 1 // Increment success count
                         } catch let validationError as NSError {
                             print("❌ CORE DATA VALIDATION ERROR for \(collectionName) record \(record): \(validationError.localizedDescription)")
+                            errorCount += 1 // Increment error count
                             if let detailedErrors = validationError.userInfo[NSDetailedErrorsKey] as? [NSError] {
                                 for detailedError in detailedErrors {
                                     print("    - Detailed Error: \(detailedError.localizedDescription)")
@@ -461,35 +502,52 @@ class FirestoreSyncManager {
                                     }
                                 }
                             }
-                            return
+                            context.rollback() // Rollback changes for this record
+                        } catch {
+                            print("❌ Error saving \(collectionName) record \(record) to Core Data: \(error.localizedDescription)")
+                            errorCount += 1 // Increment error count
+                            let nsError = error as NSError
+                            print("    - Core Data Error Code: \(nsError.code)")
+                            print("    - Core Data User Info: \(nsError.userInfo)")
+                            context.rollback() // Rollback changes for this record
                         }
+                    } else {
+                        print("⚠️ No managed object created/found for \(collectionName) record \(record). Skipping save.")
+                        errorCount += 1
                     }
-
-                    do {
-                        try context.save()
-                        print("✅ Synced \(collectionName) record \(record) to Core Data.")
-                    } catch {
-                        print("❌ Error syncing \(collectionName) record \(record): \(error.localizedDescription)")
-                        let nsError = error as NSError
-                        print("    - Core Data Error Code: \(nsError.code)")
-                        print("    - Core Data User Info: \(nsError.userInfo)")
-
-                        if let detailedErrors = nsError.userInfo[NSDetailedErrorsKey] as? [NSError] {
-                            for detailedError in detailedErrors {
-                                print("    - Detailed Error: \(detailedError.localizedDescription)")
-                                if let key = detailedError.userInfo["NSValidationErrorKey"] {
-                                    print("      Attribute/Relationship Key: \(key)")
-                                }
-                                if let value = detailedError.userInfo["NSValidationErrorValue"] {
-                                    print("      Invalid Value: \(value)")
-                                }
-                            }
-                        }
-                        context.rollback()
-                    }
-                }
+                } // end await context.perform
             } catch {
                 print("❌ Error fetching Firestore document for \(collectionName) record \(record): \(error.localizedDescription)")
+                errorCount += 1
+            }
+        } // end for record in records
+
+        // Final toast for the download operation
+        if !records.isEmpty { // Only show if there were records to attempt to download
+            if errorCount == 0 {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    NotificationCenter.default.post(name: Notification.Name("ShowToast"), object: nil, userInfo: [
+                        "message": "Successfully downloaded \(downloadedCount) \(collectionName) records.",
+                        "type": ToastView.ToastType.success.rawValue
+                    ])
+                    print("📧 [SyncManager] Posted 'ShowToast' notification (success type - download complete) for \(collectionName).")
+                }
+            } else if downloadedCount > 0 {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    NotificationCenter.default.post(name: Notification.Name("ShowToast"), object: nil, userInfo: [
+                        "message": "Downloaded \(downloadedCount) \(collectionName) records, \(errorCount) failed.",
+                        "type": ToastView.ToastType.info.rawValue // Info or error depending on severity
+                    ])
+                    print("📧 [SyncManager] Posted 'ShowToast' notification (info type - partial download) for \(collectionName).")
+                }
+            } else {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    NotificationCenter.default.post(name: Notification.Name("ShowToast"), object: nil, userInfo: [
+                        "message": "Failed to download any \(collectionName) records. Check logs.",
+                        "type": ToastView.ToastType.error.rawValue
+                    ])
+                    print("📧 [SyncManager] Posted 'ShowToast' notification (error type - download failed) for \(collectionName).")
+                }
             }
         }
     }

@@ -7,11 +7,12 @@
 
 import SwiftUI
 
-struct ToastView: View { // Renamed from CustomToastView for consistency with your existing file name
+struct ToastView: View {
     let message: String
-    var type: ToastType // Added type for customization
+    var type: ToastType
 
-    enum ToastType {
+    // MARK: - ToastType Enum
+    enum ToastType: String { // <--- ADDED : String HERE
         case success
         case error
         case info
@@ -45,6 +46,7 @@ struct ToastView: View { // Renamed from CustomToastView for consistency with yo
             }
         }
     }
+
 
     var body: some View {
         HStack(spacing: 10) {
