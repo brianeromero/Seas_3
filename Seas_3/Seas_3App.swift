@@ -85,23 +85,19 @@ struct AppRootView: View {
     @EnvironmentObject var profileViewModel: ProfileViewModel
     @EnvironmentObject var allEnteredLocationsViewModel: AllEnteredLocationsViewModel
     @EnvironmentObject var appDayOfWeekViewModel: AppDayOfWeekViewModel
-    
-    // ✅ ADD THIS LINE: To make enterZipCodeViewModel available in this view's hierarchy
     @EnvironmentObject var enterZipCodeViewModel: EnterZipCodeViewModel
 
     @Binding var selectedTabIndex: LoginViewSelection
     @ObservedObject var appState: AppState
 
     @State private var navigationPath = NavigationPath()
-
     @State private var showInitialSplash = true
     
-    
-    // --- NEW: Global Toast State Variables ---
+    // --- Global Toast State Variables ---
     @State private var globalShowToast: Bool = false
     @State private var globalToastMessage: String = ""
     @State private var globalToastType: ToastView.ToastType = .success
-    // --- END NEW ---
+    // --- END Global Toast State Variables ---
 
     var body: some View {
         NavigationStack(path: $navigationPath) {
@@ -143,21 +139,21 @@ struct AppRootView: View {
                 }
             }
             .navigationDestination(for: AppScreen.self) { screen in
-                // ✅ CRITICAL: Pass the global toast bindings down to AppRootDestinationView
                 AppRootDestinationView(
                     screen: screen,
                     navigationPath: $navigationPath,
-                    globalShowToast: $globalShowToast,       // Pass binding
-                    globalToastMessage: $globalToastMessage,  // Pass binding
-                    globalToastType: $globalToastType         // Pass binding
+                    // Pass bindings down
+                    globalShowToast: $globalShowToast,
+                    globalToastMessage: $globalToastMessage,
+                    globalToastType: $globalToastType
                 )
                 .environmentObject(authenticationState)
                 .environmentObject(authViewModel)
                 .environmentObject(pirateIslandViewModel)
                 .environmentObject(profileViewModel)
                 .environmentObject(allEnteredLocationsViewModel)
-                .environmentObject(appDayOfWeekViewModel) // Inject here as well!
-                .environmentObject(enterZipCodeViewModel) // Ensure this is also injected
+                .environmentObject(appDayOfWeekViewModel)
+                .environmentObject(enterZipCodeViewModel)
             }
         }
         .onChange(of: authenticationState.isAuthenticated) { oldValue, newValue in
@@ -170,26 +166,7 @@ struct AppRootView: View {
         .onChange(of: navigationPath) { oldPath, newPath in
             print("⚠️ [AppRootView] navigationPath changed from \(oldPath) to \(newPath)")
         }
-        
-        // --- NEW: Apply Toast Modifier to the AppRootView ---
-        // This is incorrect. Instead of a custom modifier, we'll use an .overlay
-        // and .onReceive directly to manage the toast state.
-        // Remove the .showToast() modifier.
-        // --- END NEW ---
-
-        // ✅ ADD THIS: The .overlay to display the ToastView
-        .overlay(
-            Group {
-                if globalShowToast {
-                    ToastView(message: globalToastMessage, type: globalToastType)
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                        .animation(.easeInOut(duration: 0.3), value: globalShowToast) // Adjust duration for animation
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top) // Positions toast at the top
-            .ignoresSafeArea(.all, edges: .all) // Allows toast to go over safe area if needed
-        )
-        // ✅ ADD THIS: The .onReceive listener for the toast notification
+        // ✅ This is where the toast *listener* and *display logic* should live
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("ShowToast"))) { notification in
             if let userInfo = notification.userInfo,
                let message = userInfo["message"] as? String,
@@ -208,6 +185,27 @@ struct AppRootView: View {
                 }
             }
         }
+        // ✅ NOW, use the .overlay with your ToastView and position it here
+        .overlay(
+            Group {
+                if globalShowToast {
+                    ToastView(message: globalToastMessage, type: globalToastType)
+                        .transition(.move(edge: .top).combined(with: .opacity)) // Or .opacity, or scale
+                        .animation(.easeInOut(duration: 0.3), value: globalShowToast)
+                        // This is where you control the position in AppRootView
+                        // For 3/4 way down, you'll need to estimate the Y offset.
+                        // A good starting point is to align to .top and push it down.
+                        .offset(y: UIScreen.main.bounds.height * 0.3) // Example: Pushes it down 30% of screen height
+                                                                   // Adjust multiplier (0.3) for desired height.
+                                                                   // Or for 3/4 way down, it would be around 0.75 - height of toast itself.
+                                                                   // Let's try 0.75 and then adjust slightly up.
+                        // A more robust approach might involve GeometryReader to get precise height.
+                }
+            }
+            // The alignment for the overlay itself. We want the ToastView to be aligned within the overlay frame.
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top) // Keep the frame, but offset the content inside
+            .ignoresSafeArea(.all, edges: .all) // Allow toast to go over safe area
+        )
     }
 }
 
