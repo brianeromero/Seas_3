@@ -14,9 +14,9 @@ struct ProfileView: View {
     @StateObject var profileViewModel: ProfileViewModel
     @ObservedObject var authViewModel: AuthViewModel // Keep this for calling signOut()
     @Binding var selectedTabIndex: LoginViewSelection
-    @Binding var navigationPath: NavigationPath // <-- ADD THIS LINE
+    @Binding var navigationPath: NavigationPath
 
-    let setupGlobalErrorHandler: () -> Void // Dummy closure for preview
+    let setupGlobalErrorHandler: () -> Void
 
     private let beltOptions = ["", "White", "Blue", "Purple", "Brown", "Black"]
     @State private var isEditing = false
@@ -24,14 +24,13 @@ struct ProfileView: View {
     @State private var originalUserName: String = ""
     @State private var originalName: String = ""
     @State private var originalBelt: String = ""
-    @State private var showMainContent = false // Keep this state
+    @State private var showMainContent = false
     @State private var navigateToAdminMenu = false
     @StateObject private var pirateIslandViewModel = PirateIslandViewModel(persistenceController: PersistenceController.shared)
     @State private var showValidationAlert = false
     @State private var validationAlertMessage = ""
     @State private var showSaveAlert = false
     @State private var saveAlertMessage = ""
-    // Changed to String? for validation messages
     @State private var errorMessages: [ValidationType: String?] = [:]
     @FocusState private var focusedField: Field?
 
@@ -44,9 +43,7 @@ struct ProfileView: View {
     }
 
     var body: some View {
-        // REMOVE THE NavigationStack HERE
         VStack {
-            // Add `&& showMainContent` to the condition
             if profileViewModel.isProfileLoaded && showMainContent {
                 VStack {
                     Rectangle()
@@ -58,10 +55,8 @@ struct ProfileView: View {
                                 .fontWeight(.bold)
                                 .foregroundColor(.primary)
                         )
-
                     Form {
                         Section(header: Text("Account Information")) {
-                            // Email
                             VStack(alignment: .leading, spacing: 4) {
                                 HStack {
                                     Text("Email:")
@@ -79,8 +74,6 @@ struct ProfileView: View {
                                         .font(.footnote)
                                 }
                             }
-
-                            // Username
                             VStack(alignment: .leading, spacing: 4) {
                                 HStack {
                                     Text("Username:")
@@ -98,8 +91,6 @@ struct ProfileView: View {
                                         .font(.footnote)
                                 }
                             }
-
-                            // Name
                             VStack(alignment: .leading, spacing: 4) {
                                 HStack {
                                     Text("Name:")
@@ -118,8 +109,6 @@ struct ProfileView: View {
                                 }
                             }
                         }
-
-                        // Belt Selection
                         Section(header: HStack {
                             Text("Belt")
                             Text("(Optional)")
@@ -146,12 +135,9 @@ struct ProfileView: View {
                             .disabled(!isEditing)
                         }
                     }
-
-                    // Sign Out Button
                     Button(action: {
                         Task {
                             do {
-                                // Replace the old signOut() call with the new function
                                 try await authViewModel.logoutAndClearPath(path: $navigationPath)
                             } catch {
                                 print("Error signing out from ProfileView: \(error.localizedDescription)")
@@ -172,11 +158,12 @@ struct ProfileView: View {
                     .padding(.top, 20)
                 }
             } else {
+                // Show loading indicator when profile is not loaded
                 ProgressView("Loading profile...")
                     .foregroundColor(.primary)
             }
         }
-        .navigationTitle("Profile") // Keep navigationTitle here
+        .navigationTitle("Profile")
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 if isEditing {
@@ -192,20 +179,32 @@ struct ProfileView: View {
             ToolbarItem(placement: .navigationBarLeading) {
                 if isEditing {
                     Button("Cancel") {
-                        cancelEditing() // Call cancelEditing to revert changes
-                        isEditing.toggle() // Then toggle editing mode
+                        cancelEditing()
+                        isEditing.toggle()
                     }
                 }
             }
         }
+        // This onAppear should handle the initial load
         .onAppear {
             Task {
-                // Small delay to allow the view hierarchy to settle, then load profile
-                try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
                 await profileViewModel.loadProfile()
-                // Set original values once the profile is loaded
-                startEditing() // Initialize original values
-                showMainContent = true // Set to true after content is loaded and ready
+                startEditing()
+                showMainContent = true
+            }
+        }
+        // This onChange handles a state change in authViewModel
+        .onChange(of: authViewModel.userIsLoggedIn) {
+            if authViewModel.userIsLoggedIn {
+                Task {
+                    showMainContent = false
+                    await profileViewModel.loadProfile()
+                    startEditing()
+                    showMainContent = true
+                }
+            } else {
+                showMainContent = false
+                profileViewModel.resetProfile()
             }
         }
         .alert(isPresented: $showSaveAlert) {
@@ -215,19 +214,17 @@ struct ProfileView: View {
             Alert(title: Text("Validation Error"), message: Text(validationAlertMessage), dismissButton: .default(Text("OK")))
         }
     }
+    
 
     // MARK: - Helper Functions
-
     private func navigateToLoginPage() {
         profileViewModel.resetProfile()
     }
 
     private func toggleEdit() {
         if isEditing {
-            // If currently editing, and we toggle, it means we're cancelling
             cancelEditing()
         } else {
-            // If not editing, and we toggle, it means we're starting to edit
             startEditing()
         }
         isEditing.toggle()
@@ -245,42 +242,41 @@ struct ProfileView: View {
         profileViewModel.userName = originalUserName
         profileViewModel.name = originalName
         profileViewModel.belt = originalBelt
-        errorMessages = [:] // Clear validation errors on cancel
+        errorMessages = [:]
     }
 
     private func saveChanges() {
-        guard authViewModel.currentUser != nil else {
-            saveAlertMessage = "User not authenticated. Please log in first."
-            showSaveAlert = true
-            return
-        }
+         guard authViewModel.currentUser != nil else {
+             saveAlertMessage = "User not authenticated. Please log in first."
+             showSaveAlert = true
+             return
+         }
 
-        validateField(.email)
-        validateField(.userName)
-        validateField(.name)
+         validateField(.email)
+         validateField(.userName)
+         validateField(.name)
 
-        // Check if there are any *non-nil* error messages
-        let hasErrors = errorMessages.values.contains { $0 != nil }
+         let hasErrors = errorMessages.values.contains { $0 != nil }
 
-        if hasErrors {
-            validationAlertMessage = "Please fix the validation errors before saving."
-            showValidationAlert = true
-            return
-        }
+         if hasErrors {
+             validationAlertMessage = "Please fix the validation errors before saving."
+             showValidationAlert = true
+             return
+         }
 
-        Task {
-            do {
-                try await profileViewModel.updateProfile()
-                saveAlertMessage = "Profile saved successfully!"
-                showSaveAlert = true
-                isEditing = false
-                errorMessages = [:] // Clear validation errors on successful save
-            } catch {
-                saveAlertMessage = "Failed to save profile: \(error.localizedDescription)"
-                showSaveAlert = true
-            }
-        }
-    }
+         Task {
+             do {
+                 try await profileViewModel.updateProfile()
+                 saveAlertMessage = "Profile saved successfully!"
+                 showSaveAlert = true
+                 isEditing = false
+                 errorMessages = [:]
+             } catch {
+                 saveAlertMessage = "Failed to save profile: \(error.localizedDescription)"
+                 showSaveAlert = true
+             }
+         }
+     }
 
     private func validateField(_ fieldType: ValidationType) {
         switch fieldType {
@@ -291,8 +287,6 @@ struct ProfileView: View {
         case .name:
             errorMessages[.name] = profileViewModel.validateName(profileViewModel.name)
         case .password:
-            // Assuming you have logic for password changes elsewhere,
-            // or pass the correct password field for validation if it's new/confirm
             errorMessages[.password] = profileViewModel.validatePassword(profileViewModel.newPassword)
         }
     }

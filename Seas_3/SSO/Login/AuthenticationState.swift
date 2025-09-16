@@ -217,13 +217,13 @@ public class AuthenticationState: ObservableObject {
                 return
             }
 
-            try await createOrUpdateGoogleUserInFirestore(
+            try await createGoogleUserIfNeeded(
                 userID: firebaseUser.uid,
-                email: firebaseUser.email ?? user.profile?.email ?? "N/A", // Use firebaseUser's email
-                userName: firebaseUser.displayName ?? user.profile?.name ?? "N/A", // Use firebaseUser's name
-                name: firebaseUser.displayName ?? user.profile?.name ?? "N/A",
-                belt: nil
+                email: firebaseUser.email ?? user.profile?.email ?? "N/A",
+                userName: firebaseUser.displayName ?? user.profile?.name ?? "N/A",
+                name: firebaseUser.displayName ?? user.profile?.name ?? "N/A"
             )
+
             print("✅ Firestore user document created/updated for Google user")
 
             // updateSocialUser should now set socialUser, but NOT isAuthenticated/isLoggedIn
@@ -242,6 +242,36 @@ public class AuthenticationState: ObservableObject {
             handleSignInError(error, message: "Google Sign-In failed: \(error.localizedDescription)")
         }
     }
+    
+    private func createGoogleUserIfNeeded(
+        userID: String,
+        email: String,
+        userName: String,
+        name: String
+    ) async throws {
+        let userRef = Firestore.firestore().collection("users").document(userID)
+        let docSnapshot = try await userRef.getDocument()
+
+        if !docSnapshot.exists {
+            let userData: [String: Any] = [
+                "email": email,
+                "userName": userName,
+                "name": name,
+                "userID": userID,
+                "belt": "",             // leave empty on first login
+                "isVerified": true,
+                "createdAt": Timestamp(),
+                "lastLogin": Timestamp()
+            ]
+            try await userRef.setData(userData, merge: false)
+            print("✅ Created new Google user in Firestore")
+        } else {
+            // Only update lastLogin (don’t touch profile fields)
+            try await userRef.setData(["lastLogin": Timestamp()], merge: true)
+            print("🔄 Updated lastLogin for Google user in Firestore")
+        }
+    }
+
     
     private func linkOrSignInWithGoogleCredential(idToken: String, accessToken: String) async throws {
         let credential = GoogleAuthProvider.credential(withIDToken: idToken, accessToken: accessToken)
