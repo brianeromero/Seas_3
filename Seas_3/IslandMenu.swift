@@ -359,19 +359,20 @@ struct IslandMenu: View {
         case .addOrEditScheduleOpenMat:
             return AnyView(
                 DaysOfWeekFormView(
-                    viewModel: appDayOfWeekViewModel,
+                    appDayOfWeekViewModel: appDayOfWeekViewModel,
                     selectedIsland: $selectedIsland,
                     selectedMatTime: .constant(nil),
                     showReview: .constant(false)
+
                 )
                 .onAppear {
                     let userID = authViewModel.currentUserID ?? "Unknown"
                     let timestamp = "\(Date())"
                     os_log("DaysOfWeekFormView Appeared. User: %@. Time: %@",
-                            log: IslandMenulogger,
-                            type: .info,
-                            userID,
-                            timestamp
+                           log: IslandMenulogger,
+                           type: .info,
+                           userID,
+                           timestamp
                     )
                 }
             )

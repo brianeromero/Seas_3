@@ -17,7 +17,7 @@ enum AppScreen: Hashable, Identifiable, Codable {
     case selectGymForReview
     case searchReviews
 
-    // ✅ Add these new cases to support the full IslandMenu2 menu:
+    // Existing App-level screens
     case profile
     case allLocations
     case currentLocation
@@ -25,11 +25,15 @@ enum AppScreen: Hashable, Identifiable, Codable {
     case dayOfWeek
     case addNewGym
     case updateExistingGyms
-    // ✅ THIS IS THE CRITICAL NEW CASE YOU MUST ADD/VERIFY
-    case editExistingIsland(String) // String will be the objectID.uriRepresentation().absoluteString
+    case editExistingIsland(String)
     case addOrEditScheduleOpenMat
     case faqDisclaimer
 
+    // New sub-screens for FAQ/Disclaimer
+    case aboutus
+    case disclaimer
+    case faq
+    
     var id: String {
         switch self {
         case .review(let id): return "review-\(id)"
@@ -43,18 +47,25 @@ enum AppScreen: Hashable, Identifiable, Codable {
         case .dayOfWeek: return "dayOfWeek"
         case .addNewGym: return "addNewGym"
         case .updateExistingGyms: return "updateExistingGyms"
-        // ✅ VERIFY THIS ID CASE IS PRESENT for editExistingIsland
         case .editExistingIsland(let id): return "editExistingIsland-\(id)"
         case .addOrEditScheduleOpenMat: return "addOrEditScheduleOpenMat"
         case .faqDisclaimer: return "faqDisclaimer"
+        
+        // New ID cases
+        case .aboutus: return "aboutus"
+        case .disclaimer: return "disclaimer"
+        case .faq: return "faq"
         }
     }
 
     private enum CodingKeys: String, CodingKey {
         case review, viewAllReviews, selectGymForReview, searchReviews
         case profile, allLocations, currentLocation, postalCode, dayOfWeek
-        case addNewGym, updateExistingGyms, editExistingIsland // ✅ VERIFY THIS IS IN CODINGKEYS
+        case addNewGym, updateExistingGyms, editExistingIsland
         case addOrEditScheduleOpenMat, faqDisclaimer
+        
+        // New CodingKeys
+        case aboutus, disclaimer, faq
     }
 
     init(from decoder: Decoder) throws {
@@ -81,12 +92,18 @@ enum AppScreen: Hashable, Identifiable, Codable {
             self = .addNewGym
         } else if container.contains(.updateExistingGyms) {
             self = .updateExistingGyms
-        } else if let id = try container.decodeIfPresent(String.self, forKey: .editExistingIsland) { // ✅ VERIFY DECODING FOR NEW CASE
+        } else if let id = try container.decodeIfPresent(String.self, forKey: .editExistingIsland) {
             self = .editExistingIsland(id)
         } else if container.contains(.addOrEditScheduleOpenMat) {
             self = .addOrEditScheduleOpenMat
         } else if container.contains(.faqDisclaimer) {
             self = .faqDisclaimer
+        } else if container.contains(.aboutus) {
+            self = .aboutus
+        } else if container.contains(.disclaimer) {
+            self = .disclaimer
+        } else if container.contains(.faq) {
+            self = .faq
         } else {
             throw DecodingError.dataCorruptedError(forKey: .review, in: container, debugDescription: "Unknown AppScreen case")
         }
@@ -117,12 +134,20 @@ enum AppScreen: Hashable, Identifiable, Codable {
             try container.encodeNil(forKey: .addNewGym)
         case .updateExistingGyms:
             try container.encodeNil(forKey: .updateExistingGyms)
-        case .editExistingIsland(let id): // ✅ VERIFY ENCODING FOR NEW CASE
+        case .editExistingIsland(let id):
             try container.encode(id, forKey: .editExistingIsland)
         case .addOrEditScheduleOpenMat:
             try container.encodeNil(forKey: .addOrEditScheduleOpenMat)
         case .faqDisclaimer:
             try container.encodeNil(forKey: .faqDisclaimer)
+        
+        // New encode cases
+        case .aboutus:
+            try container.encodeNil(forKey: .aboutus)
+        case .disclaimer:
+            try container.encodeNil(forKey: .disclaimer)
+        case .faq:
+            try container.encodeNil(forKey: .faq)
         }
     }
 }

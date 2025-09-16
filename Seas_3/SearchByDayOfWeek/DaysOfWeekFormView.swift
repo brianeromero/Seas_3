@@ -17,185 +17,125 @@ extension Binding where Value == String? {
     }
 }
 
+
+// MARK: - DaysOfWeekFormView
 struct DaysOfWeekFormView: View {
-    @ObservedObject var viewModel: AppDayOfWeekViewModel
+    @ObservedObject var appDayOfWeekViewModel: AppDayOfWeekViewModel // Keep this for its other functions if needed
+
+    // ✅ StateObject for the new search ViewModel
+    @StateObject private var viewModel: DaysOfWeekFormViewModel
+
     @Binding var selectedIsland: PirateIsland?
     @Binding var selectedMatTime: MatTime?
-    @Binding var showReview: Bool
-    @State private var searchQuery: String = ""
-    @State private var filteredIslands: [PirateIsland] = []
-    @State private var showNoMatchAlert: Bool = false
+    @Binding var showReview: Bool // This might not be needed in this particular view, depends on your flow
+
     @Environment(\.managedObjectContext) private var viewContext
-    @State private var isSelected = false
-    @State private var navigationSelectedIsland: PirateIsland?
-    @State private var selectedDay: DayOfWeek? = nil
-    @State private var selectedMatTimes: [MatTime] = []
+    @State private var isSelected = false // Review if this is still needed
+    @State private var navigationSelectedIsland: PirateIsland? // Review if this is still needed
+    @State private var selectedDay: DayOfWeek? = nil // Review if this is still needed
+    @State private var selectedMatTimes: [MatTime] = [] // Review if this is still needed
 
-
-    init(viewModel: AppDayOfWeekViewModel, selectedIsland: Binding<PirateIsland?>, selectedMatTime: Binding<MatTime?>, showReview: Binding<Bool>) {
-        self.viewModel = viewModel
-        self._selectedIsland = selectedIsland
-        self._selectedMatTime = selectedMatTime
-        self._showReview = showReview
-    }
-
+    // ✅ Correct placement for @FetchRequest
     @FetchRequest(
         entity: PirateIsland.entity(),
         sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.islandName, ascending: true)]
-    ) private var islands: FetchedResults<PirateIsland>
+    )
+    private var islands: FetchedResults<PirateIsland> // Assign the FetchRequest to a property
+
+
+    // Convenience property to observe changes to the fetched results' object IDs
+    private var islandObjectIDs: [NSManagedObjectID] {
+        islands.map { $0.objectID }
+    }
+
+    // Custom initializer to pass initial islands to the ViewModel
+    init(appDayOfWeekViewModel: AppDayOfWeekViewModel, selectedIsland: Binding<PirateIsland?>, selectedMatTime: Binding<MatTime?>, showReview: Binding<Bool>) {
+        self.appDayOfWeekViewModel = appDayOfWeekViewModel
+        self._selectedIsland = selectedIsland
+        self._selectedMatTime = selectedMatTime
+        self._showReview = showReview
+
+        // Initialize the StateObject viewModel with an empty array.
+        // The actual data will be loaded and filtered in .onAppear once 'islands' is ready.
+        _viewModel = StateObject(wrappedValue: DaysOfWeekFormViewModel(initialIslands: []))
+    }
 
     var body: some View {
-        NavigationView {
-            Form {
-                searchSection
-                islandList
-            }
-            .navigationTitle("Gym Schedules")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Text("Select Gym to View/Add Schedule")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
+        VStack(alignment: .leading, spacing: 0) {
+            // ✅ Search Bar
+            SearchBar(text: $viewModel.searchQuery)
+                .onChange(of: viewModel.searchQuery) { // SwiftUI 5.9+ provides newValue implicitly
+                    // Trigger the ViewModel's update method, passing the FetchRequest results
+                    viewModel.updateFilteredIslands(with: islands)
                 }
-            }
-            .onAppear {
-                updateFilteredIslands()
-            }
-            .onChange(of: navigationSelectedIsland) { newSelection in
-                if let selected = newSelection {
-                    selectedIsland = selected
+                .padding(.horizontal, 16)
+
+            // ✅ Conditional display for loading, no results, or the list
+            if viewModel.isLoading {
+                ProgressView("Searching...")
+                    .padding()
+            } else if viewModel.filteredIslands.isEmpty && !viewModel.searchQuery.isEmpty {
+                Spacer()
+                Text("No gyms match your search criteria.")
+                    .foregroundColor(.secondary)
+                    .font(.subheadline)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                Spacer()
+            } else {
+                List {
+                    ForEach(viewModel.filteredIslands, id: \.self) { island in
+                        NavigationLink(
+                            destination: ScheduleFormView(
+                                islands: Array(islands),
+                                // *** CHANGE THIS LINE ***
+                                selectedIsland: .constant(island), // Pass the specific island that was tapped
+                                // Make sure ScheduleFormView's selectedIsland is still a @Binding
+                                // If ScheduleFormView should *not* allow changing the island via picker,
+                                // then in ScheduleFormView, 'selectedIsland' should become a 'let' property.
+                                // If ScheduleFormView *should* allow changing it, this becomes more complex.
+                                // Let's assume for now, ScheduleFormView's IslandSection Picker is meant to allow changing.
+                                // So, the ScheduleFormView's @Binding will *then* update its parent.
+
+                                viewModel: appDayOfWeekViewModel,
+                                matTimes: .constant([])
+                            )
+                        ) {
+                            VStack(alignment: .leading) {
+                                Text(island.islandName ?? "Unknown Gym")
+                                    .font(.headline)
+                                Text(island.islandLocation ?? "")
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
                 }
+                .listStyle(PlainListStyle())
             }
         }
-    }
-
-    var searchSection: some View {
-        Section(header: Text("Search by: gym name, zip code, or address/location")
-                            .font(.headline)
-                            .foregroundColor(.gray)) {
-            SearchBar(text: $searchQuery)
-                .onChange(of: searchQuery) { _ in
-                    updateFilteredIslands()
-                }
-        }
-    }
-
-    var islandList: some View {
-        List(filteredIslands, id: \.self) { island in
-            NavigationLink(
-                destination: ScheduleFormView(
-                    islands: filteredIslands,
-                    selectedIsland: $selectedIsland,
-                    viewModel: viewModel,
-                    matTimes: $selectedMatTimes
-                ),
-                tag: island,
-                selection: $navigationSelectedIsland
-            ) {
-                VStack(alignment: .leading) {
-                    Text(island.islandName ?? "Unknown Gym")
-                        .font(.headline)
-                    Text(island.islandLocation ?? "")
-                        .foregroundColor(.secondary)
-                }
+        .navigationTitle("Gym Schedules")
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Text("Select Gym to View/Add Schedule")
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
             }
         }
-        .frame(minHeight: 400, maxHeight: .infinity)
-        .listStyle(PlainListStyle())
-        .alert(isPresented: $showNoMatchAlert) {
-            Alert(
-                title: Text("No Match Found"),
-                message: Text("No gyms match your search criteria."),
-                dismissButton: .default(Text("OK"))
-            )
+        .onAppear {
+            // ✅ Force an initial update when the view appears.
+            // This is where `islands` (from @FetchRequest) becomes available and triggers the initial load.
+            viewModel.forceUpdateFilteredIslands(with: islands)
         }
-    }
-
-    private func updateFilteredIslands() {
-        let lowercasedQuery = searchQuery.lowercased()
-        filteredIslands = filterIslands(query: lowercasedQuery)
-        showNoMatchAlert = filteredIslands.isEmpty && !searchQuery.isEmpty
-    }
-
-    private func filterIslands(query: String) -> [PirateIsland] {
-        if query.isEmpty {
-            return Array(islands)
+        // ✅ Add onChange and onReceive for Core Data updates
+        // These observe changes in the FetchRequest and Core Data context,
+        // then trigger the ViewModel to re-filter.
+        .onChange(of: islands.count) { // React to changes in the total count of fetched islands
+            viewModel.updateFilteredIslands(with: islands)
         }
-
-        let islandNamePredicate = NSPredicate(format: "islandName CONTAINS[c] %@", query)
-        let islandLocationPredicate = NSPredicate(format: "islandLocation CONTAINS[c] %@", query)
-        let gymWebsitePredicate = NSPredicate(format: "gymWebsite.absoluteString CONTAINS[c] %@", query)
-
-        let compoundPredicate = NSCompoundPredicate(orPredicateWithSubpredicates: [islandNamePredicate, islandLocationPredicate, gymWebsitePredicate])
-
-        return islands.filter { compoundPredicate.evaluate(with: $0) }
-    }
-}
-
-// Custom Debounce Function
-extension DaysOfWeekFormView {
-    func debounce(_ interval: TimeInterval, action: @escaping () -> Void) {
-        Timer.scheduledTimer(withTimeInterval: interval, repeats: false) { _ in
-            action()
+        .onChange(of: islandObjectIDs) { // React to changes in individual island object IDs (more precise for updates/deletes)
+            viewModel.updateFilteredIslands(with: islands)
         }
-    }
-}
-
-
-
-class MockAppDayOfWeekRepository: AppDayOfWeekRepository {
-    override init(persistenceController: PersistenceController) {
-        super.init(persistenceController: persistenceController)
-    }
-
-    override func getViewContext() -> NSManagedObjectContext {
-        return PersistenceController.shared.viewContext
-    }
-}
-
-class MockEnterZipCodeViewModel: EnterZipCodeViewModel {
-    init() {
-        super.init(repository: MockAppDayOfWeekRepository(persistenceController: PersistenceController.shared), persistenceController: PersistenceController.shared)
-    }
-}
-
-struct DaysOfWeekFormView_Previews: PreviewProvider {
-    static func createMockIsland(in context: NSManagedObjectContext) -> PirateIsland {
-        let mockIsland = PirateIsland(context: context)
-        mockIsland.islandName = "Mock Gym"
-        mockIsland.islandLocation = "Mock Location"
-        mockIsland.latitude = 0.0
-        mockIsland.longitude = 0.0
-        mockIsland.gymWebsite = URL(string: "https://www.example.com")
-        return mockIsland
-    }
-
-    static var previews: some View {
-        let context = PersistenceController.shared.viewContext
-        let mockIsland = createMockIsland(in: context)
-
-        let mockRepository = MockAppDayOfWeekRepository(persistenceController: PersistenceController.shared)
-        let viewModel = AppDayOfWeekViewModel(
-            selectedIsland: mockIsland,
-            repository: mockRepository,
-            enterZipCodeViewModel: MockEnterZipCodeViewModel()
-        )
-
-        let selectedIsland = Binding<PirateIsland?>(
-            get: { mockIsland },
-            set: { _ in }
-        )
-        let selectedMatTime = Binding<MatTime?>(
-            get: { nil },
-            set: { _ in }
-        )
-        let showReview = Binding<Bool>(
-            get: { false },
-            set: { _ in }
-        )
-
-        return DaysOfWeekFormView(viewModel: viewModel, selectedIsland: selectedIsland, selectedMatTime: selectedMatTime, showReview: showReview)
-            .environment(\.managedObjectContext, context)
-            .previewDisplayName("DaysOfWeekFormView")
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name.NSManagedObjectContextDidSave)) { _ in
+            viewModel.forceUpdateFilteredIslands(with: islands)
+        }
     }
 }

@@ -17,36 +17,26 @@ struct Seas_3App: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     @State private var selectedTabIndex: LoginViewSelection = .login
-
-    // MARK: - Instantiate AllEnteredLocationsViewModel here
     @StateObject var allEnteredLocationsViewModel: AllEnteredLocationsViewModel
-    
-    // ✅ Add AppDayOfWeekViewModel here
     @StateObject var appDayOfWeekViewModel: AppDayOfWeekViewModel
-    
     @StateObject var enterZipCodeViewModel: EnterZipCodeViewModel
 
-
-    // Use an initializer to set up your @StateObject
     init() {
         _allEnteredLocationsViewModel = StateObject(wrappedValue: AllEnteredLocationsViewModel(
             dataManager: PirateIslandDataManager(viewContext: PersistenceController.shared.container.viewContext)
         ))
-
         _appDayOfWeekViewModel = StateObject(wrappedValue: AppDayOfWeekViewModel(
-            selectedIsland: nil, // This 'nil' is for AppDayOfWeekViewModel's own 'selectedIsland' parameter
-            repository: AppDayOfWeekRepository(persistenceController: PersistenceController.shared),
+            selectedIsland: nil,
+            repository: AppDayOfWeekRepository.shared,
             enterZipCodeViewModel: EnterZipCodeViewModel(
                 repository: AppDayOfWeekRepository.shared,
                 persistenceController: PersistenceController.shared
             )
         ))
-
         _enterZipCodeViewModel = StateObject(wrappedValue: EnterZipCodeViewModel(
             repository: AppDayOfWeekRepository.shared,
             persistenceController: PersistenceController.shared
         ))
-
         setupGlobalErrorHandler()
     }
     
@@ -56,14 +46,13 @@ struct Seas_3App: App {
                 selectedTabIndex: $selectedTabIndex,
                 appState: appDelegate.appState
             )
-            // 👇 Inject all necessary view models into environment
             .environmentObject(appDelegate.authenticationState)
             .environmentObject(AuthViewModel.shared)
             .environmentObject(appDelegate.pirateIslandViewModel)
             .environmentObject(appDelegate.profileViewModel!)
             .environmentObject(allEnteredLocationsViewModel)
-            .environmentObject(appDayOfWeekViewModel) // ✅ Inject here so it’s available app-wide
-            .environmentObject(enterZipCodeViewModel) // Ensure this is also injected at the root
+            .environmentObject(appDayOfWeekViewModel)
+            .environmentObject(enterZipCodeViewModel)
             .environment(\.managedObjectContext, appDelegate.persistenceController.container.viewContext)
         }
     }
@@ -77,6 +66,7 @@ struct Seas_3App: App {
         }
     }
 }
+
 
 struct AppRootView: View {
     @EnvironmentObject var authenticationState: AuthenticationState
@@ -100,6 +90,8 @@ struct AppRootView: View {
     // --- END Global Toast State Variables ---
 
     var body: some View {
+        // The fix is here. The .navigationDestination modifier is moved
+        // from the Group to the NavigationStack.
         NavigationStack(path: $navigationPath) {
             Group {
                 if showInitialSplash {
@@ -114,7 +106,6 @@ struct AppRootView: View {
                         }
                 } else if authenticationState.isAuthenticated {
                     DebugPrintView("AppRootView: AuthenticationState.isAuthenticated is TRUE. Displaying Authenticated Content.")
-
                     if authenticationState.navigateToAdminMenu {
                         AdminMenu()
                             .onAppear { print("AppRootView: AdminMenu has appeared.") }
@@ -142,7 +133,6 @@ struct AppRootView: View {
                 AppRootDestinationView(
                     screen: screen,
                     navigationPath: $navigationPath,
-                    // Pass bindings down
                     globalShowToast: $globalShowToast,
                     globalToastMessage: $globalToastMessage,
                     globalToastType: $globalToastType
@@ -166,49 +156,37 @@ struct AppRootView: View {
         .onChange(of: navigationPath) { oldPath, newPath in
             print("⚠️ [AppRootView] navigationPath changed from \(oldPath) to \(newPath)")
         }
-        // ✅ This is where the toast *listener* and *display logic* should live
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("ShowToast"))) { notification in
             if let userInfo = notification.userInfo,
-               let message = userInfo["message"] as? String,
-               let typeString = userInfo["type"] as? String,
-               let type = ToastView.ToastType(rawValue: typeString) {
+                let message = userInfo["message"] as? String,
+                let typeString = userInfo["type"] as? String,
+                let type = ToastView.ToastType(rawValue: typeString) {
 
                 self.globalToastMessage = message
                 self.globalToastType = type
                 self.globalShowToast = true
 
-                // Auto-hide the toast after a few seconds
-                DispatchQueue.main.asyncAfter(deadline: .now() + 3) { // Adjust duration as needed
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                     withAnimation {
                         self.globalShowToast = false
                     }
                 }
             }
         }
-        // ✅ NOW, use the .overlay with your ToastView and position it here
         .overlay(
             Group {
                 if globalShowToast {
                     ToastView(message: globalToastMessage, type: globalToastType)
-                        .transition(.move(edge: .top).combined(with: .opacity)) // Or .opacity, or scale
+                        .transition(.move(edge: .top).combined(with: .opacity))
                         .animation(.easeInOut(duration: 0.3), value: globalShowToast)
-                        // This is where you control the position in AppRootView
-                        // For 3/4 way down, you'll need to estimate the Y offset.
-                        // A good starting point is to align to .top and push it down.
-                        .offset(y: UIScreen.main.bounds.height * 0.3) // Example: Pushes it down 30% of screen height
-                                                                   // Adjust multiplier (0.3) for desired height.
-                                                                   // Or for 3/4 way down, it would be around 0.75 - height of toast itself.
-                                                                   // Let's try 0.75 and then adjust slightly up.
-                        // A more robust approach might involve GeometryReader to get precise height.
+                        .offset(y: UIScreen.main.bounds.height * 0.3)
                 }
             }
-            // The alignment for the overlay itself. We want the ToastView to be aligned within the overlay frame.
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top) // Keep the frame, but offset the content inside
-            .ignoresSafeArea(.all, edges: .all) // Allow toast to go over safe area
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .ignoresSafeArea(.all, edges: .all)
         )
     }
 }
-
 
 // Your AppRootDestinationView code remains mostly the same,
 // as you're already passing the global toast bindings to it.
@@ -262,7 +240,7 @@ struct AppRootDestinationView: View {
             } else {
                 Text("Error: Invalid Island ID for review.")
             }
-
+            
         case .viewAllReviews(let islandIDString):
             if let objectID = viewContext.persistentStoreCoordinator?.managedObjectID(forURIRepresentation: URL(string: islandIDString)!) {
                 if let island = try? viewContext.existingObject(with: objectID) as? PirateIsland {
@@ -277,13 +255,13 @@ struct AppRootDestinationView: View {
             } else {
                 Text("Error: Invalid Island ID for viewing reviews.")
             }
-
+            
         case .selectGymForReview:
             GymMatReviewSelect(selectedIsland: .constant(nil), navigationPath: $navigationPath)
-
+            
         case .searchReviews:
             ViewReviewSearch(selectedIsland: .constant(nil), titleString: "Search Gym Reviews", navigationPath: $navigationPath)
-
+            
         case .profile:
             ProfileView(
                 profileViewModel: profileViewModel,
@@ -303,7 +281,7 @@ struct AppRootDestinationView: View {
             .onAppear {
                 print("🧭 Navigating to screen: .allLocations")
             }
-
+            
         case .currentLocation:
             ConsolidatedIslandMapView(
                 viewModel: appDayOfWeekViewModel,
@@ -313,7 +291,7 @@ struct AppRootDestinationView: View {
             .onAppear {
                 print("🧭 Navigating to screen: .currentLocation (ConsolidatedIslandMapView)")
             }
-
+            
         case .postalCode:
             // ✅ Replace the placeholder Text with EnterZipCodeView
             EnterZipCodeView(
@@ -324,14 +302,14 @@ struct AppRootDestinationView: View {
             .onAppear {
                 print("🧭 Navigating to screen: .postalCode (EnterZipCodeView)")
             }
-
+            
         case .dayOfWeek:
             // ✅ Direct to DayOfWeekSearchView, now relying on environment objects
             DayOfWeekSearchView() // This is now correct!
                 .onAppear {
                     print("🧭 Navigating to screen: .dayOfWeek (DayOfWeekSearchView)")
                 }
-
+            
         case .addNewGym:
             // ✅ CORRECTED: Remove explicit passing of EnvironmentObjects.
             // AddNewIsland should declare them as @EnvironmentObject and receive them automatically.
@@ -345,7 +323,7 @@ struct AppRootDestinationView: View {
             .onAppear {
                 print("🧭 Navigating to screen: .addNewGym (AddNewIsland)")
             }
-
+            
         case .updateExistingGyms:
             // ✅ CRITICAL: Pass the navigationPath binding here
             EditExistingIslandList(
@@ -357,7 +335,7 @@ struct AppRootDestinationView: View {
             .onAppear {
                 print("🧭 Navigating to screen: .updateExistingGyms (EditExistingIslandList)")
             }
-
+            
         case .editExistingIsland(let islandIDString):
             if let objectID = viewContext.persistentStoreCoordinator?.managedObjectID(forURIRepresentation: URL(string: islandIDString)!) {
                 if let island = try? viewContext.existingObject(with: objectID) as? PirateIsland {
@@ -377,12 +355,41 @@ struct AppRootDestinationView: View {
             } else {
                 Text("Error: Invalid Island ID for editing.")
             }
-
+            
         case .addOrEditScheduleOpenMat:
-            Text("Add or Edit Schedule Open Mat Screen - To be implemented")
-
+            DaysOfWeekFormView(
+                appDayOfWeekViewModel: appDayOfWeekViewModel,
+                selectedIsland: .constant(nil),
+                selectedMatTime: .constant(nil),
+                showReview: .constant(false)
+            )
+            .onAppear {
+                print("🧭 Navigating to screen: .addOrEditScheduleOpenMat (DaysOfWeekFormView)")
+            }
+            
         case .faqDisclaimer:
-            Text("FAQ / Disclaimer Screen - To be implemented")
+            FAQnDisclaimerMenuView()
+                .onAppear {
+                    print("🧭 Navigating to screen: .faqDisclaimer (FAQnDisclaimerMenuView)")
+                }
+        
+        case .aboutus:
+            AboutUsView()
+                .onAppear {
+                    print("🧭 Navigating to screen: .aboutus (AboutUsView)")
+                }
+
+        case .disclaimer:
+            DisclaimerView()
+                .onAppear {
+                    print("🧭 Navigating to screen: .disclaimer (DisclaimerView)")
+                }
+
+        case .faq:
+            FAQView()
+                .onAppear {
+                    print("🧭 Navigating to screen: .faq (FAQView)")
+                }
         }
     }
 }

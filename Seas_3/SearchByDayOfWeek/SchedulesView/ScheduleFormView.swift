@@ -36,7 +36,7 @@ struct ScheduleFormView: View {
     @Environment(\.managedObjectContext) private var viewContext
     var islands: [PirateIsland] // Receive islands from parent view
     @State private var selectedAppDayOfWeek: AppDayOfWeek?
-    @Binding var selectedIsland: PirateIsland? // Binding to the selectedIsland
+    @Binding var selectedIsland: PirateIsland? // This is ScheduleFormView's property
     @ObservedObject var viewModel: AppDayOfWeekViewModel
     @Binding var matTimes: [MatTime]
     @State private var error: String?
@@ -57,18 +57,19 @@ struct ScheduleFormView: View {
         Form {
             IslandSection(
                 islands: islands,
-                selectedIsland: $selectedIsland,
+                selectedIsland: $selectedIsland, // <--- Correctly uses ScheduleFormView's property
                 showReview: $showReview
             )
-            .id(selectedIsland)
+            // REMOVE THIS LINE: .id(selectedIsland)
+            // This line was causing the IslandSection to be re-initialized and lose its selection display.
             .onAppear {
-                print("Selected Island: \(selectedIsland?.islandName ?? "No island selected")")
+                print("ScheduleFormView - Selected Island onAppear: \(selectedIsland?.islandName ?? "No island selected")")
                 Task {
-                    await handleOnAppear()
+                    await handleOnAppear() // This sets selectedIsland if it's nil
                 }
             }
             .onChange(of: selectedIsland) { oldIsland, newIsland in
-                print("Island changed from \(String(describing: oldIsland)) to \(String(describing: newIsland))")
+                print("ScheduleFormView - Island changed from \(oldIsland?.islandName ?? "nil") to \(newIsland?.islandName ?? "nil")")
                 Task {
                     await setupInitialSelection()
                 }
@@ -268,68 +269,3 @@ extension View {
         self.modifier(CornerRadiusStyle(radius: radius, corners: corners))
     }
 }
-
-/*
-// Preview
-struct ScheduleFormView_Previews: PreviewProvider {
-    static var previews: some View {
-        let persistenceController = PersistenceController.preview
-        
-        // Create a sample PirateIsland entity
-        let sampleIsland = PirateIsland(context: persistenceController.container.viewContext)
-        sampleIsland.islandID = UUID()
-        sampleIsland.islandName = "Black Pearl Academy"
-        sampleIsland.islandLocation = "Tortuga"
-        
-        // Create an AppDayOfWeek entity linked to the PirateIsland for Monday
-        let mondaySchedule = AppDayOfWeek(context: persistenceController.container.viewContext)
-        mondaySchedule.day = "Monday"
-        mondaySchedule.pIsland = sampleIsland
-
-        // Create two MatTime entities linked to the AppDayOfWeek for Monday
-        let morningMatTime = MatTime(context: persistenceController.container.viewContext)
-        morningMatTime.time = "10:00 AM"
-        morningMatTime.gi = true
-        morningMatTime.noGi = false
-        morningMatTime.openMat = false
-        morningMatTime.restrictions = false
-        morningMatTime.goodForBeginners = true
-        morningMatTime.kids = false
-        morningMatTime.appDayOfWeek = mondaySchedule
-
-        let noonMatTime = MatTime(context: persistenceController.container.viewContext)
-        noonMatTime.time = "12:00 PM"
-        noonMatTime.gi = false
-        noonMatTime.noGi = true
-        noonMatTime.openMat = true
-        noonMatTime.restrictions = false
-        noonMatTime.goodForBeginners = false
-        noonMatTime.kids = true
-        noonMatTime.appDayOfWeek = mondaySchedule
-
-        // Create a ViewModel instance with the mock repository and zip code view model
-        let mockRepository = AppDayOfWeekRepository(persistenceController: persistenceController)
-        let mockEnterZipCodeViewModel = EnterZipCodeViewModel(repository: mockRepository, persistenceController: persistenceController)
-        let viewModel = AppDayOfWeekViewModel(
-            selectedIsland: sampleIsland,
-            repository: mockRepository,
-            enterZipCodeViewModel: mockEnterZipCodeViewModel
-        )
-        
-        // Initialize viewModel's properties for preview
-        viewModel.selectedDay = DayOfWeek.monday
-        viewModel.matTimesForDay = [
-            DayOfWeek.monday: [morningMatTime, noonMatTime]
-        ]
-
-        // Create ScheduleFormView with mock data and bindings
-        return ScheduleFormView(
-            islands: [sampleIsland],
-            selectedIsland: .constant(sampleIsland),
-            viewModel: viewModel,
-            matTimes: .constant([morningMatTime, noonMatTime])
-        )
-        .previewDisplayName("Schedule Form View with Sample Data")
-    }
-}
-*/

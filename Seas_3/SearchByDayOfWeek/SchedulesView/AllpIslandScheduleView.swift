@@ -45,10 +45,10 @@ struct AllpIslandScheduleView: View {
         }
         .sheet(isPresented: $showAddMatTimeForm) {
             DaysOfWeekFormView(
-                viewModel: viewModel,
-                selectedIsland: $viewModel.selectedIsland,
+                appDayOfWeekViewModel: viewModel, // Pass your existing AppDayOfWeekViewModel instance
+                selectedIsland: $viewModel.selectedIsland, // Assuming selectedIsland is part of AppDayOfWeekViewModel
                 selectedMatTime: $selectedMatTime,
-                showReview: .constant(false) // Added missing argument
+                showReview: .constant(false)
             )
         }
         .onAppear {

@@ -26,70 +26,56 @@ class FAQnDisclaimerMenu: ObservableObject {
     @Published var selectedPath = NavigationPath() // Use NavigationPath
 }
 
+
 struct FAQnDisclaimerMenuView: View {
-    // @StateObject is generally preferred for owned objects within a view's lifecycle
-    // Use @StateObject here to ensure the menu object is only created once for this view
-    @StateObject var menu = FAQnDisclaimerMenu()
+    // You no longer need a separate NavigationStack here,
+    // so you don't need a local navigation path or an ObservableObject.
     
     let standardIconSize: CGFloat = 70
     let iconTrailingSpacing: CGFloat = 10
 
     var body: some View {
-        NavigationStack(path: $menu.selectedPath) {
-            VStack(alignment: .leading) {
-                List {
-                    // Refactored NavigationLink content for clarity and potential stability
-                    // The label for NavigationLink should define its appearance,
-                    // the 'value' handles the actual navigation.
-                    NavigationLink(value: FAQnDisclaimerMenu.MenuItem.aboutus) {
-                        MenuItemRow(
-                            imageName: "MF_little",
-                            text: "About Us",
-                            standardIconSize: standardIconSize,
-                            iconTrailingSpacing: iconTrailingSpacing
-                        )
-                    }
-                    
-                    NavigationLink(value: FAQnDisclaimerMenu.MenuItem.disclaimer) {
-                        MenuItemRow(
-                            imageName: "disclaimer_logo",
-                            text: "Disclaimer",
-                            standardIconSize: standardIconSize,
-                            iconTrailingSpacing: iconTrailingSpacing
-                        )
-                    }
-                    
-                    NavigationLink(value: FAQnDisclaimerMenu.MenuItem.faq) {
-                        MenuItemRow(
-                            imageName: "faq",
-                            text: "FAQ",
-                            standardIconSize: standardIconSize,
-                            iconTrailingSpacing: iconTrailingSpacing
-                        )
-                    }
+        // REMOVE the NavigationStack from here.
+        // It's already in your AppRootView.
+        VStack(alignment: .leading) {
+            List {
+                // These NavigationLinks will now push values to the parent NavigationStack's path.
+                NavigationLink(value: AppScreen.aboutus) {
+                    MenuItemRow(
+                        imageName: "MF_little",
+                        text: "About Us",
+                        standardIconSize: standardIconSize,
+                        iconTrailingSpacing: iconTrailingSpacing
+                    )
                 }
-                .listStyle(InsetGroupedListStyle())
-                .frame(maxWidth: .infinity, alignment: .leading)
                 
-                Spacer()
-            }
-            .padding(.horizontal)
-            .navigationTitle("FAQ & Disclaimer")
-            // Define navigation destinations using navigationDestination(for:)
-            .navigationDestination(for: FAQnDisclaimerMenu.MenuItem.self) { item in
-                switch item {
-                case .aboutus:
-                    AboutUsView()
-                        .onAppear { os_log("AboutUsView Appeared", log: FAQnDisclaimerLogger) }
-                case .disclaimer:
-                    DisclaimerView()
-                        .onAppear { os_log("DisclaimerView Appeared", log: FAQnDisclaimerLogger) }
-                case .faq:
-                    FAQView()
-                        .onAppear { os_log("FAQView Appeared", log: FAQnDisclaimerLogger) }
+                NavigationLink(value: AppScreen.disclaimer) {
+                    MenuItemRow(
+                        imageName: "disclaimer_logo",
+                        text: "Disclaimer",
+                        standardIconSize: standardIconSize,
+                        iconTrailingSpacing: iconTrailingSpacing
+                    )
+                }
+                
+                NavigationLink(value: AppScreen.faq) {
+                    MenuItemRow(
+                        imageName: "faq",
+                        text: "FAQ",
+                        standardIconSize: standardIconSize,
+                        iconTrailingSpacing: iconTrailingSpacing
+                    )
                 }
             }
+            .listStyle(InsetGroupedListStyle())
+            .frame(maxWidth: .infinity, alignment: .leading)
+            
+            Spacer()
         }
+        .padding(.horizontal)
+        .navigationTitle("FAQ & Disclaimer")
+        // REMOVE the .navigationDestination modifier.
+        // It should only exist on your top-level NavigationStack.
     }
 }
 
@@ -114,6 +100,7 @@ struct MenuItemRow: View {
         .frame(height: standardIconSize + (iconTrailingSpacing * 2)) // Consistent row height
     }
 }
+
 
 struct FAQnDisclaimerMenuView_Previews: PreviewProvider {
     static var previews: some View {
