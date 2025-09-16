@@ -14,6 +14,8 @@ struct ProfileView: View {
     @StateObject var profileViewModel: ProfileViewModel
     @ObservedObject var authViewModel: AuthViewModel // Keep this for calling signOut()
     @Binding var selectedTabIndex: LoginViewSelection
+    @Binding var navigationPath: NavigationPath // <-- ADD THIS LINE
+
     let setupGlobalErrorHandler: () -> Void // Dummy closure for preview
 
     private let beltOptions = ["", "White", "Blue", "Purple", "Brown", "Black"]
@@ -149,7 +151,8 @@ struct ProfileView: View {
                     Button(action: {
                         Task {
                             do {
-                                try await authViewModel.signOut()
+                                // Replace the old signOut() call with the new function
+                                try await authViewModel.logoutAndClearPath(path: $navigationPath)
                             } catch {
                                 print("Error signing out from ProfileView: \(error.localizedDescription)")
                                 saveAlertMessage = "Failed to sign out: \(error.localizedDescription)"

@@ -146,13 +146,15 @@ struct AppRootView: View {
                 .environmentObject(enterZipCodeViewModel)
             }
         }
-        .onChange(of: authenticationState.isAuthenticated) { oldValue, newValue in
+/*       .onChange(of: authenticationState.isAuthenticated) { oldValue, newValue in
             print("AppRootView onChange: authenticationState.isAuthenticated changed from \(oldValue) to \(newValue)")
             if !newValue {
                 navigationPath = NavigationPath()
                 print("DEBUG: AppRootView - Navigation path cleared (due to unauthenticated state).")
             }
         }
+ 
+ */
         .onChange(of: navigationPath) { oldPath, newPath in
             print("⚠️ [AppRootView] navigationPath changed from \(oldPath) to \(newPath)")
         }
@@ -267,6 +269,7 @@ struct AppRootDestinationView: View {
                 profileViewModel: profileViewModel,
                 authViewModel: authViewModel,
                 selectedTabIndex: .constant(.login),
+                navigationPath: $navigationPath,
                 setupGlobalErrorHandler: { }
             )
             .onAppear {

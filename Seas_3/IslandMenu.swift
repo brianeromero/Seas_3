@@ -210,6 +210,7 @@ struct IslandMenu: View {
             profileViewModel: profileViewModel,
             authViewModel: authViewModel, // authViewModel is now @EnvironmentObject, so this is correct
             selectedTabIndex: .constant(LoginViewSelection.login),
+            navigationPath: $navigationPath,
             setupGlobalErrorHandler: {}
         )
         .onAppear { // Log when ProfileView appears

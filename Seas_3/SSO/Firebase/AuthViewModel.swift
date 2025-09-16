@@ -4,12 +4,13 @@
 // Created by Brian Romero on 10/22/24.
 
 import Foundation
+import SwiftUI // Add this line
 import FirebaseCore
 import FirebaseFirestore
 import FirebaseAppCheck
 @preconcurrency import FirebaseAuth
 import CryptoSwift
-import CoreData
+@preconcurrency import CoreData
 import Combine
 import os
 import os.log
@@ -970,6 +971,28 @@ class AuthViewModel: ObservableObject {
             return nil
         }
     }
+    
+    
+    /// New method to perform a full logout and explicitly clear the navigation path.
+    /// This should be called from your UI's logout button action.
+    func logoutAndClearPath(path: Binding<NavigationPath>) async throws {
+        do {
+            // Perform the Firebase and Google sign-out logic
+            // This is a call to another async function `signOut()`
+            try await signOut()
+
+            // Explicitly reset the navigation path on the main thread
+            await MainActor.run {
+                path.wrappedValue = NavigationPath()
+                print("AuthViewModel: Explicitly cleared navigation path on logout.")
+            }
+        } catch {
+            print("AuthViewModel: Error during logout: \(error.localizedDescription)")
+            throw error // Re-throw the error so the UI can handle it
+        }
+    }
+    
+    
 }
 
 extension User {
