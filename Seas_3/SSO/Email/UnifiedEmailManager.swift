@@ -131,10 +131,10 @@ class UnifiedEmailManager {
             
             Congratulations! Your account has been successfully verified.
             
-            Welcome to MF_inder or Mat Finder as we wish to be known! You're now ready to navigate Jiu-Jitsu gyms and open mats near you and all over. Be sure to share your favorite gyms and training schedules with friends!
+            Welcome to Mat_Finder as we wish to be known! You're now ready to navigate Jiu-Jitsu gyms and open mats near you and all over. Be sure to share your favorite gyms and training schedules with friends!
             
-            About MF_inder:
-            MF_inder is a passion project created by a BJJ purple belt to help practitioners find training opportunities while traveling.
+            About Mat_Finder:
+            Mat_Finder is a passion project created by a BJJ purple belt to help practitioners find training opportunities while traveling.
             
             Our Mission:
             Provide a free, community-driven platform for BJJ enthusiasts to share and discover open mats and gyms worldwide.
@@ -142,9 +142,9 @@ class UnifiedEmailManager {
             Get Involved:
             Report bugs, share feedback, or suggest features at: mfinder.bjj@gmail.com
             
-            Thank you for joining the MF_inder community!
+            Thank you for joining the Mat_Finder community!
             Best regards,
-            MF_inder Team
+            Mat_Finder Team
             """
             let success = await sendCustomEmail(to: email, subject: subject, content: content)
             return success

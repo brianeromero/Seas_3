@@ -18,30 +18,30 @@ struct FAQItem: Identifiable {
 struct FAQView: View {
     // FAQ items are already defined
     var faqItems: [FAQItem] = [
-        FAQItem(question: "What is MF_inder (Mat_Finder)?",
-                answer: "MF_inder is a mobile application designed for Brazilian Jiu Jitsu (BJJ) practitioners to find gyms and open mat opportunities near their location or any specified area."),
-        FAQItem(question: "How does MF_inder work?",
+        FAQItem(question: "What is Mat_Finder?",
+                answer: "Mat_Finder is a mobile application designed for Brazilian Jiu Jitsu (BJJ) practitioners to find gyms and open mat opportunities near their location or any specified area."),
+        FAQItem(question: "How does Mat_Finder work?",
                 answer: "Users can search for BJJ gyms and open mats based on their current location or specified area. They can also add new gyms or open mat information to the app."),
-        FAQItem(question: "Is MF_inder free to use?",
-                answer: "Yes, MF_inder is currently free to use without any advertisements."),
-        FAQItem(question: "Is my personal information secure on MF_inder?",
+        FAQItem(question: "Is Mat_Finder free to use?",
+                answer: "Yes, Mat_Finder is currently free to use without any advertisements."),
+        FAQItem(question: "Is my personal information secure on Mat_Finder?",
                 answer: "We take user privacy seriously. Your personal information is encrypted and stored securely. We do not share your information with third parties without your consent."),
-        FAQItem(question: "How can I add a new gym or open mat to MF_inder?",
+        FAQItem(question: "How can I add a new gym or open mat to Mat_Finder?",
                 answer: "You can add new gyms or open mats by navigating to the 'Add Location' option in the app menu and providing accurate details about the location and schedule."),
         FAQItem(question: "Can I edit or delete information I've submitted?",
                 answer: "Yes, you can edit or delete information you've submitted by accessing the 'Manage Locations' section in the app."),
         FAQItem(question: "Why do you need my location information?",
-                answer: "MF_inder uses your location to provide accurate results for nearby BJJ gyms and open mats. Your location data is not stored permanently."),
-        FAQItem(question: "How often is the information on MF_inder updated?",
+                answer: "Mat_Finder uses your location to provide accurate results for nearby BJJ gyms and open mats. Your location data is not stored permanently."),
+        FAQItem(question: "How often is the information on Mat_Finder updated?",
                 answer: "We encourage users to update information regularly. New submissions and edits are processed promptly."),
-        FAQItem(question: "Is MF_inder available on Android?",
-                answer: "Currently, MF_inder is available only on iOS. We are working on an Android version."),
+        FAQItem(question: "Is Mat_Finder available on Android?",
+                answer: "Currently, Mat_Finder is available only on iOS. We are working on an Android version."),
         
         // Modified FAQ items to handle the email as a link
         FAQItem(question: "How can I report inaccurate information or issues with the app?",
                 answer: "Please report any issues or inaccuracies by contacting our support team at **EMAIL_LINK**."), // Use a placeholder
-        FAQItem(question: "Will MF_inder have advertisements in the future?",
-                answer: "While MF_inder is currently ad-free, we may introduce advertisements in the future to support the app's development and maintenance costs."),
+        FAQItem(question: "Will Mat_Finder have advertisements in the future?",
+                answer: "While Mat_Finder is currently ad-free, we may introduce advertisements in the future to support the app's development and maintenance costs."),
         FAQItem(question: "How can I contact support if I have more questions?",
                 answer: "For further assistance or questions, please email us at **EMAIL_LINK**. We are here to help!") // Use a placeholder
     ]

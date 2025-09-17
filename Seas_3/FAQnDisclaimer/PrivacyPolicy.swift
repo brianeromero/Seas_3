@@ -13,7 +13,7 @@ struct PrivacyPolicyView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                Text("MF_inder Privacy Policy")
+                Text("Mat_Finder Privacy Policy")
                     .font(.largeTitle)
                     .fontWeight(.bold)
                     .padding(.bottom, 10)
@@ -27,7 +27,7 @@ struct PrivacyPolicyView: View {
                     .fontWeight(.semibold)
                 
                 Text("""
-                    MF_inder ("we," "us," or "our") is committed to protecting the privacy of our users ("you" or "your"). This Privacy Policy explains what information we collect, how we use it, and under what circumstances we may disclose it.
+                    Mat_Finder ("we," "us," or "our") is committed to protecting the privacy of our users ("you" or "your"). This Privacy Policy explains what information we collect, how we use it, and under what circumstances we may disclose it.
                     """)
                     .padding(.bottom, 10)
                 
@@ -47,7 +47,7 @@ struct PrivacyPolicyView: View {
 
                 Text("""
                     We use your information for the following purposes:
-                    - **To provide and improve MF_inder:** We may use your location (if shared) to show nearby BJJ gyms and open mats. Your email may be used for communication purposes.
+                    - **To provide and improve Mat_Finder:** We may use your location (if shared) to show nearby BJJ gyms and open mats. Your email may be used for communication purposes.
                     - **To personalize your experience:** We may tailor your search results based on your location history (if enabled).
                     - **To send important information:** Your email address may be used to send service updates or security notices.
                     """)
@@ -57,7 +57,7 @@ struct PrivacyPolicyView: View {
                     .fontWeight(.semibold)
 
                 Text("""
-                    We do not share personal information with third parties without your consent, except for non-personal information shared with service providers to help us operate MF_inder. We may disclose information if required by law or to protect the rights of others.
+                    We do not share personal information with third parties without your consent, except for non-personal information shared with service providers to help us operate Mat_Finder. We may disclose information if required by law or to protect the rights of others.
                     """)
                 
                 Text("Data Retention")
@@ -73,7 +73,7 @@ struct PrivacyPolicyView: View {
                     .fontWeight(.semibold)
 
                 Text("""
-                    We take reasonable steps to protect your information from unauthorized access, disclosure, alteration, or destruction. Passwords are securely hashed using industry-standard methods and are not stored in plain text. We do not store or retain plain-text passwords, and they are not visible to any developer or anyone at MF_inder. However, no internet transmission or electronic storage is completely secure.
+                    We take reasonable steps to protect your information from unauthorized access, disclosure, alteration, or destruction. Passwords are securely hashed using industry-standard methods and are not stored in plain text. We do not store or retain plain-text passwords, and they are not visible to any developer or anyone at Mat_Finder. However, no internet transmission or electronic storage is completely secure.
                     """)
                 
                 Text("Your Choices")
@@ -103,7 +103,7 @@ struct PrivacyPolicyView: View {
                     .fontWeight(.semibold)
 
                 Text("""
-                    MF_inder is not intended for children under 13. If you believe your child has provided us with personal information, please contact us and we will delete it.
+                    Mat_Finder is not intended for children under 13. If you believe your child has provided us with personal information, please contact us and we will delete it.
                     """)
                 
                 Text("Changes to this Privacy Policy")

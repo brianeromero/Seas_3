@@ -30,18 +30,21 @@ struct AboutUsView: View {
                             .multilineTextAlignment(.leading)
                     },
                     label: {
-                        Text("WELCOME TO MF_iNDER")
+                        Text("WELCOME TO MAT_FiNDER")
                             .font(.title3)
                             .foregroundColor(.primary)
                             .bold()
                             .padding(.top, 10)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 )
                 
                 DisclosureGroup(
                     content: {
                         Text("""
-                            MF_inder is my passion project, developed over the past year with the Brazilian Jiu Jitsu practitioner in mind. Me? I’m a BJJ purple belt with nine years of training out of Orange County, CA. By profession, I work as a Software Implementation Product Owner and Business Analyst. While I usually handle the business side of developing system applications, this is my first attempt at developing an app ex nihilo. Despite my lack of coding experience, my frequent work travels and years of training led me to develop this app out of both need and curiosity. I often wondered if there was a gym near my hotel with an open mat and whether I should pack my Gi or NoGi garb. Too often, I found myself in places with no BJJ gym relatively close by or having my search findings return vague “grappling” options at the “Martial Arts” dojo down the street. This led me to create MF_inder.
+                            Mat_Finder is my passion project, developed over the past year with the Brazilian Jiu Jitsu practitioner in mind. Me? I’m a BJJ purple belt with nine years of training out of Orange County, CA. By profession, I work as a Software Implementation Product Owner and Business Analyst. While I usually handle the business side of developing system applications, this is my first attempt at developing an app ex nihilo. Despite my lack of coding experience, my frequent work travels and years of training led me to develop this app out of both need and curiosity. I often wondered if there was a gym near my hotel with an open mat and whether I should pack my Gi or NoGi garb. Too often, I found myself in places with no BJJ gym relatively close by or having my search findings return vague “grappling” options at the “Martial Arts” dojo down the street. This led me to create Mat_F_inder.
                             """)
                             .font(.body)
                             .padding(.horizontal)
@@ -53,13 +56,16 @@ struct AboutUsView: View {
                             .foregroundColor(.primary)
                             .bold()
                             .padding(.top, 10)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 )
                 
                 DisclosureGroup(
                     content: {
                         Text("""
-                            You are a BJJ practitioner who loves training and traveling. You enjoy attending different open mats, or you love your gym and want to see your open mats expand beyond the same 5-10 regulars. You are being asked to pilot this app: add gyms, add open mat times, and overall, help test MF_inder for user experience (UX). Your feedback on bugs and any related issues is crucial.
+                            You are a BJJ practitioner who loves training and traveling. You enjoy attending different open mats, or you love your gym and want to see your open mats expand beyond the same 5-10 regulars. You are being asked to pilot this app: add gyms, add open mat times, and overall, help test Mat_Finder for user experience (UX). Your feedback on bugs and any related issues is crucial.
                             """)
                             .font(.body)
                             .padding(.horizontal)
@@ -71,6 +77,9 @@ struct AboutUsView: View {
                             .foregroundColor(.primary)
                             .bold()
                             .padding(.top, 10)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 )
                 
@@ -89,6 +98,9 @@ struct AboutUsView: View {
                             .foregroundColor(.primary)
                             .bold()
                             .padding(.top, 10)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 )
                 
@@ -102,11 +114,14 @@ struct AboutUsView: View {
                             .multilineTextAlignment(.leading)
                     },
                     label: {
-                        Text("WHY ONLY iOS? GOT SOMETHING AGAINST ANDROID? ")
+                        Text("WHY ONLY iOS? GOT SOMETHING AGAINST ANDROID?")
                             .font(.title3)
                             .foregroundColor(.primary)
                             .bold()
                             .padding(.top, 10)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 )
                 
@@ -116,7 +131,7 @@ struct AboutUsView: View {
                             For now, the app is completely free and ad-free. Currently, it’s a service I want to offer to the BJJ community. Eventually, the app will have ads and other monetization features (it would be nice to be compensated for my effort, and hosting an app or related data on the app stores isn’t free for me).
 
                             Thank you for reading this.
-                            MF_inder
+                            Mat_Finder
                             """)
                             .font(.body)
                             .padding(.horizontal)
@@ -128,7 +143,9 @@ struct AboutUsView: View {
                             .foregroundColor(.primary)
                             .bold()
                             .padding(.top, 10)
-                            .multilineTextAlignment(.leading) // Align text left
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 )
                 

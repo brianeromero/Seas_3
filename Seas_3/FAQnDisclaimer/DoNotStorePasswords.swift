@@ -9,7 +9,7 @@ import SwiftUI
 struct DoNotStorePasswords: View {
     var body: some View {
         VStack(spacing: 20) {
-            Text("MF_inder does not store passwords.")
+            Text("Mat_Finder does not store passwords.")
                 .font(.headline)
                 .multilineTextAlignment(.center)
             

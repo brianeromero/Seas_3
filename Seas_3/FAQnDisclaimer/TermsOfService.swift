@@ -13,7 +13,7 @@ struct ApplicationOfServiceView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                Text("MF_inder Application of Service")
+                Text("Mat_Finder Application of Service")
                     .font(.largeTitle)
                     .fontWeight(.bold)
                     .padding(.bottom, 10)
@@ -27,7 +27,7 @@ struct ApplicationOfServiceView: View {
                     .fontWeight(.semibold)
 
                 Text("""
-                    By using MF_inder, you agree to these terms. If you do not agree, please do not use the app.
+                    By using Mat_Finder, you agree to these terms. If you do not agree, please do not use the app.
                     """)
 
                 Text("2. Use of the App")
@@ -35,7 +35,7 @@ struct ApplicationOfServiceView: View {
                     .fontWeight(.semibold)
 
                 Text("""
-                    MF_inder is designed to help Brazilian Jiu-Jitsu practitioners find gyms and open mats. You may use the app for personal, non-commercial purposes only.
+                    Mat_Finder is designed to help Brazilian Jiu-Jitsu practitioners find gyms and open mats. You may use the app for personal, non-commercial purposes only.
                     """)
 
                 Text("3. User Responsibilities")
@@ -52,7 +52,7 @@ struct ApplicationOfServiceView: View {
                     .fontWeight(.semibold)
 
                 Text("""
-                    When you submit gym or open mat information to MF_inder, you grant us a non-exclusive license to use, edit, and display this content within the app. You retain ownership of your content.
+                    When you submit gym or open mat information to Mat_Finder, you grant us a non-exclusive license to use, edit, and display this content within the app. You retain ownership of your content.
                     """)
 
                 Text("5. Location and Personal Data")
@@ -60,7 +60,7 @@ struct ApplicationOfServiceView: View {
                     .fontWeight(.semibold)
 
                 Text("""
-                    MF_inder may use your location to provide nearby results. Location data is not stored permanently. Your personal information is encrypted and stored securely.
+                    Mat_Finder may use your location to provide nearby results. Location data is not stored permanently. Your personal information is encrypted and stored securely.
                     """)
 
                 Text("6. Passwords and Security")
@@ -68,7 +68,7 @@ struct ApplicationOfServiceView: View {
                     .fontWeight(.semibold)
 
                 Text("""
-                    Passwords are hashed using secure industry-standard methods and are not stored in plain text. No developer or staff member at MF_inder has access to your passwords.
+                    Passwords are hashed using secure industry-standard methods and are not stored in plain text. No developer or staff member at Mat_Finder has access to your passwords.
                     """)
 
                 Text("7. Limitation of Liability")
@@ -76,7 +76,7 @@ struct ApplicationOfServiceView: View {
                     .fontWeight(.semibold)
 
                 Text("""
-                    MF_inder is provided "as is," and we make no warranties or representations about its accuracy or functionality. We are not liable for any losses or damages related to the use of the app.
+                    Mat_Finder is provided "as is," and we make no warranties or representations about its accuracy or functionality. We are not liable for any losses or damages related to the use of the app.
                     """)
 
                 Text("8. Termination")
@@ -84,7 +84,7 @@ struct ApplicationOfServiceView: View {
                     .fontWeight(.semibold)
 
                 Text("""
-                    We reserve the right to terminate your access to MF_inder at any time if you violate these terms or for other reasons.
+                    We reserve the right to terminate your access to Mat_Finder at any time if you violate these terms or for other reasons.
                     """)
 
                 Text("9. Changes to Terms")
