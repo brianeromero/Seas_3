@@ -293,78 +293,6 @@
 		F4FC15B999D5C53DF8C84223 /* Pods-Seas_3.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Seas_3.release.xcconfig"; path = "Target Support Files/Pods-Seas_3/Pods-Seas_3.release.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		0C2EE2AB2C9DCA7E0029432F /* Exceptions for "Modal" folder in "Seas_3" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				IslandModalContainer.swift,
-				IslandModalView.swift,
-				Tooltip.swift,
-			);
-			target = 0CF13E402C2A326700D714C0 /* Seas_3 */;
-		};
-		0C66E6102C88DB9700BCD2DE /* Exceptions for "MapUtilities" folder in "Seas_3" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				CalloutView.swift,
-				MapUtils.swift,
-				RadiusPicker.swift,
-			);
-			target = 0CF13E402C2A326700D714C0 /* Seas_3 */;
-		};
-		0CF7993C2CAFAED000F2F018 /* Exceptions for "SSO" folder in "Seas_3" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				AdMob/AdMobBannerAdd.swift,
-				AdMob/BannerView.swift,
-				AdMob/GoogleAdsHelper.swift,
-				DealingWErrors/AlertModifier.swift,
-				DealingWErrors/ConfigLoader.swift,
-				DealingWErrors/CustomAuthorizationService.swift,
-				DealingWErrors/EmailVerificationHandler.swift,
-				DealingWErrors/ErrorReporting.swift,
-				DealingWErrors/FacebookHelper.swift,
-				DealingWErrors/IDFAHelper.swift,
-				DealingWErrors/Logger.swift,
-				DealingWErrors/NetworkMonitor.swift,
-				DealingWErrors/URLProtocol.swift,
-				Email/AccountCreation/AccountAuthView.swift,
-				Email/AccountCreation/AuthenticationHelper.swift,
-				Email/AccountCreation/CreateAccountView.swift,
-				Email/AccountCreation/FormFieldViews.swift,
-				Email/AccountCreation/FormState.swift,
-				Email/AccountCreation/UserInformationView.swift,
-				Email/AccountCreation/ValidationUtility.swift,
-				Email/EmailService.swift,
-				Email/EmailUtility.swift,
-				Email/ForgotYourPassword.swift,
-				Email/hashPassword.swift,
-				Email/ReverificationView.swift,
-				Email/SendGridEmailService.swift,
-				Email/UnifiedEmailManager.swift,
-				Firebase/AuthViewModel.swift,
-				Firebase/EmailSignOn.swift,
-				Firebase/FirestoreManager.swift,
-				Firebase/FirestoreSyncManager.swift,
-				Firebase/HashedPassword.swift,
-				Firebase/User.swift,
-				Login/AppConfig.swift,
-				Login/AuthenticationManager.swift,
-				Login/AuthenticationState.swift,
-				Login/ButtonStyle.swift,
-				Login/FacebookSignInButtonWrapper.swift,
-				Login/GoogleSignInButtonWrapper.swift,
-				Login/LogInView.swift,
-				Login/LoginViewModel.swift,
-				Login/MFBACKGROUND.swift,
-				"Login/Modal for EmailPassyPrompt/PromptForEmailPasswordView.swift",
-				Login/UserFetcher.swift,
-				Login/UserProfileViewModel.swift,
-			);
-			target = 0CF13E402C2A326700D714C0 /* Seas_3 */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		0C21FF472DA58B2C00E49039 /* AddNewMatTimeHelp */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
@@ -373,9 +301,6 @@
 		};
 		0C2EE2AA2C9DCA700029432F /* Modal */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				0C2EE2AB2C9DCA7E0029432F /* Exceptions for "Modal" folder in "Seas_3" target */,
-			);
 			path = Modal;
 			sourceTree = "<group>";
 		};
@@ -386,9 +311,6 @@
 		};
 		0C66E60F2C88DB8C00BCD2DE /* MapUtilities */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				0C66E6102C88DB9700BCD2DE /* Exceptions for "MapUtilities" folder in "Seas_3" target */,
-			);
 			path = MapUtilities;
 			sourceTree = "<group>";
 		};
@@ -419,9 +341,6 @@
 		};
 		0CEF69CF2CAF995600C2614C /* SSO */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				0CF7993C2CAFAED000F2F018 /* Exceptions for "SSO" folder in "Seas_3" target */,
-			);
 			path = SSO;
 			sourceTree = "<group>";
 		};
