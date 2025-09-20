@@ -6,6 +6,24 @@
       parallelizeBuildables = "YES"
       buildImplicitDependencies = "YES"
       buildArchitectures = "Automatic">
+      <PreActions>
+         <ExecutionAction
+            ActionType = "Xcode.IDEStandardExecutionActionsCore.ExecutionActionType.ShellScriptAction">
+            <ActionContent
+               title = "Run Script"
+               scriptText = "#!/bin/sh&#10;set -e&#10;&#10;if ! gem list -i cocoapods &gt; /dev/null 2&gt;&amp;1; then&#10;  gem install cocoapods --no-document&#10;fi&#10;&#10;cd &quot;$XCODE_WORKSPACE_PATH&quot;&#10;pod install --repo-update&#10;">
+               <EnvironmentBuildable>
+                  <BuildableReference
+                     BuildableIdentifier = "primary"
+                     BlueprintIdentifier = "0CF13E402C2A326700D714C0"
+                     BuildableName = "Seas_3.app"
+                     BlueprintName = "Seas_3"
+                     ReferencedContainer = "container:Seas_3.xcodeproj">
+                  </BuildableReference>
+               </EnvironmentBuildable>
+            </ActionContent>
+         </ExecutionAction>
+      </PreActions>
       <BuildActionEntries>
          <BuildActionEntry
             buildForTesting = "YES"

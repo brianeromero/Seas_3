@@ -28,7 +28,11 @@ DerivedData/
 *.pbxuser
 *.xcscheme
 *.xcscmblueprint
-*.xcodeproj/xcshareddata/
+
+# Ignore Xcode project files except project.pbxproj and shared schemes
+*.xcodeproj
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/xcschemes/
 
 # CocoaPods
 Pods/
