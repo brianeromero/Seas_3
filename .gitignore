@@ -33,7 +33,14 @@ DerivedData/
 # CocoaPods
 Pods/
 *.podspec
-# NOTE: Podfile and Podfile.lock should be committed for Xcode Cloud
+# Keep Podfile and Podfile.lock tracked (needed for Xcode Cloud)
+!Podfile
+!Podfile.lock
+
+# Swift Package Manager
+# Keep workspace-level Package.resolved tracked (needed for Xcode Cloud)
+# Example: Seas_3.xcworkspace/xcshareddata/swiftpm/Package.resolved
+PackageResolved.swift
 
 # Logs
 *.log
@@ -45,11 +52,6 @@ Pods/
 
 # Node modules
 node_modules/
-
-# Swift Package Manager
-PackageResolved.swift
-# NOTE: commit workspace-level Package.resolved for Xcode Cloud
-# (example: Seas_3.xcworkspace/xcshareddata/swiftpm/Package.resolved)
 
 # Editor-specific files
 .vscode/
