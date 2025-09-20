@@ -51,7 +51,6 @@ node_modules/
 
 # Package resolved files
 PackageResolved.swift
-Package.resolved
 
 # Editor-specific files
 .vscode/
