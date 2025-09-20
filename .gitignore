@@ -21,8 +21,6 @@ database.rules.json
 .DS_Store
 .build/
 xcuserdata/
-*.xcodeproj
-!*.xcodeproj/project.pbxproj
 *.swiftmodules/
 *.xcarchive
 XcodeLogs/
@@ -33,10 +31,9 @@ DerivedData/
 *.xcodeproj/xcshareddata/
 
 # CocoaPods
-Podfile
-Podfile.lock
 Pods/
 *.podspec
+# NOTE: Podfile and Podfile.lock should be committed for Xcode Cloud
 
 # Logs
 *.log
@@ -49,8 +46,10 @@ Pods/
 # Node modules
 node_modules/
 
-# Package resolved files
+# Swift Package Manager
 PackageResolved.swift
+# NOTE: commit workspace-level Package.resolved for Xcode Cloud
+# (example: Seas_3.xcworkspace/xcshareddata/swiftpm/Package.resolved)
 
 # Editor-specific files
 .vscode/
