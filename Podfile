@@ -11,8 +11,7 @@ target 'Seas_3' do
   pod 'FirebaseAppCheck'
   pod 'FirebaseMessaging', '~> 10.0'
   pod 'FirebaseFunctions', '~> 10.0'
-pod 'FirebaseCrashlytics', '~> 10.0'
-
+  pod 'FirebaseCrashlytics', '~> 10.0'
 
   # ✅ Google Sign-In (Core + SwiftUI Button)
   pod 'GoogleSignIn'         # Required for authentication logic
@@ -55,24 +54,5 @@ post_install do |installer|
     end
   end
 
-  # 🩹 Patch incorrect function calls in GDTCORClock.m
-  clock_file = 'Pods/GoogleDataTransport/GoogleDataTransport/GDTCORLibrary/GDTCORClock.m'
-  if File.exist?(clock_file)
-    text = File.read(clock_file)
-    text.gsub!(/\bKernelBootTimeInNanoseconds\s*\(\s*void\s*\)/, 'KernelBootTimeInNanoseconds()')
-    text.gsub!(/\bUptimeInNanoseconds\s*\(\s*void\s*\)/, 'UptimeInNanoseconds()')
-    File.write(clock_file, text)
-  end
 
-  # 🩹 Patch incorrect template usage in gRPC-Core's basic_seq.h
-  grpc_file = 'Pods/gRPC-Core/src/core/lib/promise/detail/basic_seq.h'
-  if File.exist?(grpc_file)
-    contents = File.read(grpc_file)
-    contents.gsub!(
-      /Traits::template CallSeqFactory<[^>]+>\(/,
-      'Traits::CallSeqFactory('
-    )
-    File.write(grpc_file, contents)
-    puts "✅ Fixed CallSeqFactory template misuse in #{grpc_file}"
-  end
 end
