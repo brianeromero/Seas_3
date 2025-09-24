@@ -747,9 +747,10 @@
 			buildPhases = (
 				02116D2070EF78940F328176 /* [CP] Check Pods Manifest.lock */,
 				0C35F9E92E7DFC9F001BC2AD /* ShellScript */,
-				0C0D4FE22CC979C100A9E8FD /* ShellScript */,
+				0C4C7D502E84587C00932193 /* ShellScript */,
 				0CF13E3D2C2A326700D714C0 /* Sources */,
 				0CF13E3E2C2A326700D714C0 /* Frameworks */,
+				0C0D4FE22CC979C100A9E8FD /* ShellScript */,
 				0CD930AA2C33D4100051E923 /* Resources */,
 				0FFCF67255AB552255ED0F3A /* [CP] Embed Pods Frameworks */,
 				4AF65B07E7153EADD9D14CA7 /* [CP] Copy Pods Resources */,
@@ -948,6 +949,24 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "\"${SRCROOT}/ci_scripts/ci_post_clone.sh\"\n";
+		};
+		0C4C7D502E84587C00932193 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${XCODE_WORKSPACE_DIR}/ci_scripts/prebuild_pods.sh\"\n";
 		};
 		0FFCF67255AB552255ED0F3A /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;

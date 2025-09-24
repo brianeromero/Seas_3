@@ -1,18 +1,13 @@
 #!/bin/bash
 set -e
 
-echo "🏗️ Prebuild: CocoaPods install (skipped if handled by Xcode Cloud)"
+echo "🏗️ Prebuild: CocoaPods install"
 
 # Navigate to the repo root
 cd "$XCODE_WORKSPACE_DIR" || exit 1
 
-# Only install Pods if they do NOT exist
-if [ ! -d "Pods" ]; then
-  echo "📦 Pods folder not found — installing..."
-  rm -rf ~/Library/Caches/CocoaPods
-  pod install --repo-update
-else
-  echo "📦 Pods folder exists — skipping install (Xcode Cloud should handle it)"
-fi
+# Install Pods every time (to make sure Target Support Files exist)
+rm -rf ~/Library/Caches/CocoaPods
+pod install --repo-update
 
 echo "✅ Prebuild complete"
