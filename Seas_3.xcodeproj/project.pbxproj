@@ -367,8 +367,6 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		0C21FF472DA58B2C00E49039 /* AddNewMatTimeHelp */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = AddNewMatTimeHelp;
 			sourceTree = "<group>";
 		};
@@ -382,8 +380,6 @@
 		};
 		0C343B6E2CD937EC00468E89 /* UserProfile */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = UserProfile;
 			sourceTree = "<group>";
 		};
@@ -397,36 +393,26 @@
 		};
 		0C882BF52CE6598600E03B02 /* International Changer */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = "International Changer";
 			sourceTree = "<group>";
 		};
 		0C882BFA2CE666B600E03B02 /* IDFA Analytrics */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = "IDFA Analytrics";
 			sourceTree = "<group>";
 		};
 		0C8E21722CCDAD0B0093CEB3 /* AdminView */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = AdminView;
 			sourceTree = "<group>";
 		};
 		0CA111932DFA13D8006944A3 /* HELPERS */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = HELPERS;
 			sourceTree = "<group>";
 		};
 		0CC0A24A2E170C0A00964BBC /* Toast */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = Toast;
 			sourceTree = "<group>";
 		};
@@ -943,7 +929,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 1;
 			shellPath = "/bin/sh\n";
-			shellScript = "${BUILD_DIR%Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/upload-symbols\n";
+			shellScript = "\"${SRCROOT}/Pods/FirebaseCrashlytics/upload-symbols\"\n";
 		};
 		0C35F9E92E7DFC9F001BC2AD /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -971,9 +957,13 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-Seas_3/Pods-Seas_3-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
+			inputPaths = (
+			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-Seas_3/Pods-Seas_3-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -988,9 +978,13 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-Seas_3/Pods-Seas_3-resources-${CONFIGURATION}-input-files.xcfilelist",
 			);
+			inputPaths = (
+			);
 			name = "[CP] Copy Pods Resources";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-Seas_3/Pods-Seas_3-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
