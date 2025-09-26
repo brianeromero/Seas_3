@@ -239,7 +239,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
     }
 
     private func configureGoogleAds() {
-        let adsInstance = GADMobileAds.sharedInstance()
+        let adsInstance = MobileAds.shared
 
         // Optional: disable publisher first party ID if needed
         adsInstance.requestConfiguration.setPublisherFirstPartyIDEnabled(false)

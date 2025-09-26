@@ -10,23 +10,27 @@ import UIKit
 import GoogleMobileAds
 import SwiftUI
 
-
-struct BannerView: UIViewRepresentable {
-func makeUIView(context: Context) -> GADBannerView {
-    let bannerView = GADBannerView(adSize: GADAdSizeBanner)
-    bannerView.adUnitID = "ca-app-pub-7376161442418831/2240344124"
-    bannerView.rootViewController = context.coordinator.viewController // Fix
-    bannerView.load(GADRequest())
-    return bannerView
-}
-
-func updateUIView(_ uiView: GADBannerView, context: Context) {}
-
-func makeCoordinator() -> Coordinator {
-    Coordinator()
-}
-
-class Coordinator: NSObject {
-    let viewController = UIViewController()
-}
+struct BannerView: UIViewControllerRepresentable {
+    
+    func makeUIViewController(context: Context) -> UIViewController {
+        // Use the explicit name to avoid the naming conflict
+        let bannerView = GoogleMobileAds.BannerView(adSize: AdSizeBanner)
+        
+        bannerView.adUnitID = "ca-app-pub-7376161442418831/2240344124"
+        bannerView.rootViewController = context.coordinator.viewController
+        
+        bannerView.load(Request())
+        
+        return context.coordinator.viewController
+    }
+    
+    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+    
+    class Coordinator: NSObject {
+        let viewController = UIViewController()
+    }
 }

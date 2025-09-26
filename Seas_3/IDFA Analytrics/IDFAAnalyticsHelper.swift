@@ -25,8 +25,8 @@ class IDFAAnalyticsHelper {
         guard let idfa = IDFAHelper.getIdfa() else { return }
 
         // Pass IDFA to AdMob as a test device
-        GADMobileAds.sharedInstance().requestConfiguration.testDeviceIdentifiers = [idfa]
-
+        MobileAds.shared.requestConfiguration.testDeviceIdentifiers = [idfa]
+        
         // Save to Firestore
         try await Firestore.firestore().collection("advertising").document("targeted_ads").setData([
             "idfa": idfa
