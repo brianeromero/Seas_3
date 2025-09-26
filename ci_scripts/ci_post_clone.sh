@@ -1,37 +1,40 @@
 #!/bin/sh
-# Fail the build if any command fails
-set -euo pipefail
+# Set -e is good, but -u (unset variables fail) can cause problems. Let's loosen slightly.
+set -eo pipefail
 
-# ----------------------------------------------------
-# 1. COCOAPODS INSTALL (REQUIRED FOR XCODE CLOUD)
-# ----------------------------------------------------
-echo "📦 Starting pod install to generate configuration files..."
+echo "--- STARTING COCOAPODS AND PATCH SCRIPT ---"
 
-# Find the directory containing the Podfile
-# We assume the Podfile is either in the repository root or immediately below it.
-PODFILE_DIR=$(find "${CI_PRIMARY_REPO_PATH}" -name "Podfile" -exec dirname {} \;)
+# --- 1. COCOAPODS INSTALL ---
+# CI_PRIMARY_REPO_PATH is the root of the cloned repository on Xcode Cloud.
+REPO_ROOT="${CI_PRIMARY_REPO_PATH}"
 
-if [ -z "$PODFILE_DIR" ]; then
-    echo "❌ Error: Podfile not found in the repository. Check path."
+# Navigate directly to the Podfile location (assuming the Podfile is in the repository root)
+echo "Navigating to repository root: $REPO_ROOT"
+cd "$REPO_ROOT" || { echo "❌ Failed to change directory to $REPO_ROOT"; exit 1; }
+
+# Important: Clear the local cache to prevent stale repo/dependency issues
+echo "Clearing CocoaPods local cache to ensure a fresh install."
+rm -rf "$HOME/Library/Caches/CocoaPods"
+rm -rf "Pods"
+rm -f "Podfile.lock"
+
+# Execute pod install with --repo-update to get the latest specs,
+# --clean-install to ensure a fresh, non-incremental build,
+# and --no-ansi to avoid terminal formatting issues.
+echo "Running /usr/bin/xcrun pod install --repo-update --clean-install --no-ansi"
+/usr/bin/xcrun pod install --repo-update --clean-install --no-ansi
+
+if [ $? -ne 0 ]; then
+    echo "❌ CRITICAL ERROR: 'pod install' failed. Check the log above for dependency resolution errors."
     exit 1
 fi
 
-# Navigate to the directory containing the Podfile
-echo "Navigating to Podfile directory: $PODFILE_DIR"
-cd "$PODFILE_DIR"
+echo "✅ Pod install complete. Dependencies are in the 'Pods' folder."
 
-# Execute pod install using the standard Xcode Cloud path
-# We use xcrun to ensure the correct environment and --clean-install for safety
-/usr/bin/xcrun pod install --repo-update --clean-install
+# --- 2. GRPC PATCHING LOGIC ---
+echo "--- Starting gRPC Patching ---"
 
-echo "✅ Pod install complete."
-# ----------------------------------------------------
-
-
-# ----------------------------------------------------
-# 2. GRPC PATCHING LOGIC
-# ----------------------------------------------------
-# Files to patch (relative to the Podfile directory, which is now the current working directory)
+# Files to patch (relative to the current working directory, which is the REPO_ROOT)
 FILES=(
   "Pods/gRPC-Core/src/core/lib/promise/detail/basic_seq.h"
   "Pods/gRPC-C++/src/core/lib/promise/detail/basic_seq.h"
@@ -40,16 +43,14 @@ FILES=(
 for FILE in "${FILES[@]}"; do
   echo "🔧 Attempting to patch $FILE..."
 
+  # Check if the file exists after pod install
   if [ ! -f "$FILE" ]; then
-    echo "⚠️ File not found: $FILE — skipping (this is expected if pod install failed)."
+    echo "⚠️ Patch target file not found after pod install: $FILE — skipping."
     continue
   fi
 
   # Ensure file is writable (this is critical after pod install)
-  if [ ! -w "$FILE" ]; then
-    echo "🔒 $FILE not writable. Fixing permissions..."
-    chmod u+w "$FILE"
-  fi
+  chmod u+w "$FILE"
 
   # Create a backup first
   cp "$FILE" "$FILE.bak"
@@ -59,11 +60,14 @@ for FILE in "${FILES[@]}"; do
 
   # Verify the change
   if grep -q "Traits::CallSeqFactory" "$FILE"; then
-    echo "✅ Patched $FILE successfully (backup at $FILE.bak)"
+    echo "✅ Patched $FILE successfully."
   else
-    echo "⚠️ Patch did not apply correctly — inspect $FILE and $FILE.bak"
+    echo "⚠️ Patch did not apply correctly to $FILE."
+    # Do not exit here; let the rest of the script/build run if possible
   fi
 
 done
 
-echo "🎉 Patch process completed."
+echo "🎉 Script completed successfully."
+
+exit 0
