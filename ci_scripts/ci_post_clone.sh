@@ -7,10 +7,11 @@ echo "--- STARTING COCOAPODS AND PATCH SCRIPT ---"
 # --- 1. COCOAPODS INSTALL ---
 # CI_PRIMARY_REPO_PATH is the root of the cloned repository on Xcode Cloud.
 REPO_ROOT="${CI_PRIMARY_REPO_PATH}"
+PROJECT_DIR="${REPO_ROOT}/Seas_3" # <--- This is the crucial line for navigation
 
-# Navigate directly to the Podfile location (assuming the Podfile is in the repository root)
-echo "Navigating to repository root: $REPO_ROOT"
-cd "$REPO_ROOT" || { echo "❌ Failed to change directory to $REPO_ROOT"; exit 1; }
+# Navigate directly to the Podfile location
+echo "Navigating to Podfile directory: $PROJECT_DIR"
+cd "$PROJECT_DIR" || { echo "❌ Failed to change directory to $PROJECT_DIR"; exit 2; }
 
 # Important: Clear the local cache to prevent stale repo/dependency issues
 echo "Clearing CocoaPods local cache to ensure a fresh install."
