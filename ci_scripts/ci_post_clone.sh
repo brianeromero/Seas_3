@@ -5,9 +5,13 @@ set -eo pipefail
 echo "--- STARTING COCOAPODS AND PATCH SCRIPT ---"
 
 # --- 1. COCOAPODS INSTALL ---
-# CI_PRIMARY_REPO_PATH is the root of the cloned repository on Xcode Cloud.
-REPO_ROOT="${CI_PRIMARY_REPO_PATH}"
-PROJECT_DIR="${REPO_ROOT}/Seas_3" # <--- This is the crucial line for navigation
+# CI_WORKSPACE is the absolute path to the root of the entire cloned repository environment.
+# We explicitly use it to ensure the path is absolute and correct.
+REPO_ROOT="${CI_WORKSPACE}"
+
+# Construct the correct absolute path to the project directory
+# We assume the Podfile is inside a folder named 'Seas_3' relative to the workspace root.
+PROJECT_DIR="${REPO_ROOT}/Seas_3" # <--- THIS IS THE KEY CHANGE (using CI_WORKSPACE)
 
 # Navigate directly to the Podfile location
 echo "Navigating to Podfile directory: $PROJECT_DIR"
@@ -26,8 +30,8 @@ echo "Running /usr/bin/xcrun pod install --repo-update --clean-install --no-ansi
 /usr/bin/xcrun pod install --repo-update --clean-install --no-ansi
 
 if [ $? -ne 0 ]; then
-    echo "❌ CRITICAL ERROR: 'pod install' failed. Check the log above for dependency resolution errors."
-    exit 1
+    echo "❌ CRITICAL ERROR: 'pod install' failed. Check the log above for dependency resolution errors."
+    exit 1
 fi
 
 echo "✅ Pod install complete. Dependencies are in the 'Pods' folder."
@@ -35,7 +39,7 @@ echo "✅ Pod install complete. Dependencies are in the 'Pods' folder."
 # --- 2. GRPC PATCHING LOGIC ---
 echo "--- Starting gRPC Patching ---"
 
-# Files to patch (relative to the current working directory, which is the REPO_ROOT)
+# Files to patch (paths are relative to the current working directory, which is now the Seas_3 folder)
 FILES=(
   "Pods/gRPC-Core/src/core/lib/promise/detail/basic_seq.h"
   "Pods/gRPC-C++/src/core/lib/promise/detail/basic_seq.h"
