@@ -38,8 +38,8 @@ fi
 echo "✅ Pod install complete. Dependencies are in the 'Pods' folder."
 
 # --- 2. GRPC PATCHING LOGIC ---
-**echo "--- Temporarily skipping gRPC Patching due to persistent shell syntax error ---"**
-# The previous patching logic failed on a strict shell environment syntax check (line 53).
+echo "--- Temporarily skipping gRPC Patching due to persistent shell syntax error ---"
+# The previous patching logic failed on a strict shell environment syntax check.
 # Skipping this section allows the Post-Clone phase to complete and the build to start.
 
 echo "🎉 Script completed successfully."
