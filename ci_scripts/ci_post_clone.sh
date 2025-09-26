@@ -1,6 +1,27 @@
 #!/bin/sh
 set -euo pipefail
 
+# ----------------------------------------------------
+# 1. COCOAPODS INSTALL (REQUIRED FOR XCODE CLOUD)
+# This step generates the missing .xcconfig and .xcfilelist files.
+# ----------------------------------------------------
+echo "📦 Running pod install to generate configuration files..."
+
+# Navigate to the directory containing the Podfile (assuming it's in the repo root)
+# CI_PRIMARY_REPO_PATH is the standard environment variable for the repo root.
+cd "${CI_PRIMARY_REPO_PATH}"
+
+# Execute pod install using the standard Xcode Cloud path
+/usr/bin/xcrun pod install --repo-update
+
+echo "✅ Pod install complete."
+# ----------------------------------------------------
+
+
+# Files to patch (relative to project root)
+FILES=(
+# ... (rest of your original patching script)
+
 # Files to patch (relative to project root)
 FILES=(
   "Pods/gRPC-Core/src/core/lib/promise/detail/basic_seq.h"
