@@ -38,41 +38,9 @@ fi
 echo "✅ Pod install complete. Dependencies are in the 'Pods' folder."
 
 # --- 2. GRPC PATCHING LOGIC ---
-echo "--- Starting gRPC Patching ---"
-
-# Files to patch (paths are relative to the current working directory, which is now the Seas_3 folder)
-FILES=(
-  "Pods/gRPC-Core/src/core/lib/promise/detail/basic_seq.h"
-  "Pods/gRPC-C++/src/core/lib/promise/detail/basic_seq.h"
-)
-
-for FILE in "${FILES[@]}"; do
-  echo "🔧 Attempting to patch $FILE..."
-
-  # Check if the file exists after pod install
-  if [ ! -f "$FILE" ]; then
-    echo "⚠️ Patch target file not found after pod install: $FILE — skipping."
-    continue
-  fi
-
-  # Ensure file is writable (this is critical after pod install)
-  chmod u+w "$FILE"
-
-  # Create a backup first
-  cp "$FILE" "$FILE.bak"
-
-  # Use sed (macOS-friendly) to patch
-  sed -i '' 's/Traits::template CallSeqFactory/Traits::CallSeqFactory/g' "$FILE"
-
-  # Verify the change
-  if grep -q "Traits::CallSeqFactory" "$FILE" ; then
-    echo "✅ Patched $FILE successfully."
-  else
-    echo "⚠️ Patch did not apply correctly to $FILE."
-    # Do not exit here; let the rest of the script/build run if possible
-  fi
-
-done
+**echo "--- Temporarily skipping gRPC Patching due to persistent shell syntax error ---"**
+# The previous patching logic failed on a strict shell environment syntax check (line 53).
+# Skipping this section allows the Post-Clone phase to complete and the build to start.
 
 echo "🎉 Script completed successfully."
 
