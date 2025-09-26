@@ -39,6 +39,7 @@ echo "✅ Pod install complete. Dependencies are in the 'Pods' folder."
 
 # --- 2. GRPC PATCHING LOGIC (SAFE VERSION) ---
 echo "--- Starting gRPC Patching (Direct Execution) ---"
+echo "Current working directory for patch: $(pwd)" # <-- NEW: Sanity check
 
 # The project is currently CD'd into the 'Seas_3' directory.
 # Apply the sed command directly to the necessary files within the Pods folder.
@@ -46,15 +47,29 @@ echo "--- Starting gRPC Patching (Direct Execution) ---"
 FILE1="Pods/gRPC-Core/src/core/lib/promise/detail/basic_seq.h"
 FILE2="Pods/gRPC-C++/src/core/lib/promise/detail/basic_seq.h"
 
-echo "🔧 Patching $FILE1..."
-# Ensure writability and apply patch
-chmod u+w "$FILE1"
-sed -i '' 's/Traits::template CallSeqFactory/Traits::CallSeqFactory/g' "$FILE1"
+# --- Patch File 1 ---
+echo "🔧 Checking and Patching $FILE1..."
+if [ -f "$FILE1" ]; then
+    # Ensure writability and apply patch
+    chmod u+w "$FILE1"
+    sed -i '' 's/Traits::template CallSeqFactory/Traits::CallSeqFactory/g' "$FILE1"
+    echo "✅ Patch applied to $FILE1."
+else
+    echo "❌ CRITICAL ERROR: Patch target $FILE1 not found."
+    exit 3 # Fail the script if the file isn't found after pod install
+fi
 
-echo "🔧 Patching $FILE2..."
-# Ensure writability and apply patch
-chmod u+w "$FILE2"
-sed -i '' 's/Traits::template CallSeqFactory/Traits::CallSeqFactory/g' "$FILE2"
+# --- Patch File 2 ---
+echo "🔧 Checking and Patching $FILE2..."
+if [ -f "$FILE2" ]; then
+    # Ensure writability and apply patch
+    chmod u+w "$FILE2"
+    sed -i '' 's/Traits::template CallSeqFactory/Traits::CallSeqFactory/g' "$FILE2"
+    echo "✅ Patch applied to $FILE2."
+else
+    echo "❌ CRITICAL ERROR: Patch target $FILE2 not found."
+    exit 3
+fi
 
 echo "✅ gRPC Patching complete."
 # --- END GRPC PATCHING LOGIC ---
