@@ -1,21 +1,22 @@
 #!/bin/sh
-# Set -e is good, but -u (unset variables fail) can cause problems. Let's loosen slightly.
 set -eo pipefail
 
 echo "--- STARTING COCOAPODS AND PATCH SCRIPT ---"
 
 # --- 1. COCOAPODS INSTALL ---
-# CI_WORKSPACE is the absolute path to the root of the entire cloned repository environment.
-# We explicitly use it to ensure the path is absolute and correct.
-REPO_ROOT="${CI_WORKSPACE}"
+# Use the directory of the currently executing script ($0) to find the repo root
+# The repository root is one level up from the 'ci_scripts' folder
+REPO_ROOT=$(dirname "$0")/..
 
-# Construct the correct absolute path to the project directory
-# We assume the Podfile is inside a folder named 'Seas_3' relative to the workspace root.
-PROJECT_DIR="${REPO_ROOT}/Seas_3" # <--- THIS IS THE KEY CHANGE (using CI_WORKSPACE)
+# Navigate to the repository root first
+echo "Navigating to repository root: $REPO_ROOT"
+cd "$REPO_ROOT" || { echo "❌ Failed to change directory to repository root: $REPO_ROOT"; exit 2; }
+REPO_ROOT=$(pwd) # Get the absolute, canonical path
 
-# Navigate directly to the Podfile location
+# Now construct and navigate into the project folder
+PROJECT_DIR="${REPO_ROOT}/Seas_3"
 echo "Navigating to Podfile directory: $PROJECT_DIR"
-cd "$PROJECT_DIR" || { echo "❌ Failed to change directory to $PROJECT_DIR"; exit 2; }
+cd "$PROJECT_DIR" || { echo "❌ Failed to change directory to project directory: $PROJECT_DIR"; exit 2; }
 
 # Important: Clear the local cache to prevent stale repo/dependency issues
 echo "Clearing CocoaPods local cache to ensure a fresh install."
