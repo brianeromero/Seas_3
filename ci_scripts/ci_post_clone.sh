@@ -65,7 +65,7 @@ for FILE in "${FILES[@]}"; do
   sed -i '' 's/Traits::template CallSeqFactory/Traits::CallSeqFactory/g' "$FILE"
 
   # Verify the change
-  if grep -q "Traits::CallSeqFactory" "$FILE"; then
+  if grep -q "Traits::CallSeqFactory" "$FILE" ; then
     echo "✅ Patched $FILE successfully."
   else
     echo "⚠️ Patch did not apply correctly to $FILE."
