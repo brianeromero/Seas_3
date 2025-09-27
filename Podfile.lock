@@ -1228,31 +1228,6 @@ PODS:
     - FBSDKShareKit/Share (= 5.15.1)
   - FBSDKShareKit/Share (5.15.1):
     - FBSDKCoreKit (~> 5.0)
-  - Firebase/Analytics (12.3.0):
-    - Firebase/Core
-  - Firebase/AppCheck (12.3.0):
-    - Firebase/CoreOnly
-    - FirebaseAppCheck (~> 12.3.0)
-  - Firebase/Auth (12.3.0):
-    - Firebase/CoreOnly
-    - FirebaseAuth (~> 12.3.0)
-  - Firebase/Core (12.3.0):
-    - Firebase/CoreOnly
-    - FirebaseAnalytics (~> 12.3.0)
-  - Firebase/CoreOnly (12.3.0):
-    - FirebaseCore (~> 12.3.0)
-  - Firebase/Crashlytics (12.3.0):
-    - Firebase/CoreOnly
-    - FirebaseCrashlytics (~> 12.3.0)
-  - Firebase/Firestore (12.3.0):
-    - Firebase/CoreOnly
-    - FirebaseFirestore (~> 12.3.0)
-  - Firebase/Functions (12.3.0):
-    - Firebase/CoreOnly
-    - FirebaseFunctions (~> 12.3.0)
-  - Firebase/Messaging (12.3.0):
-    - Firebase/CoreOnly
-    - FirebaseMessaging (~> 12.3.0)
   - FirebaseAnalytics (12.3.0):
     - FirebaseAnalytics/Default (= 12.3.0)
     - FirebaseCore (~> 12.3.0)
@@ -1537,13 +1512,14 @@ DEPENDENCIES:
   - FacebookCore
   - FacebookLogin
   - FacebookShare
-  - Firebase/Analytics
-  - Firebase/AppCheck
-  - Firebase/Auth
-  - Firebase/Crashlytics
-  - Firebase/Firestore
-  - Firebase/Functions
-  - Firebase/Messaging
+  - FirebaseAnalytics
+  - FirebaseAppCheck
+  - FirebaseAppCheckInterop
+  - FirebaseAuth
+  - FirebaseCrashlytics
+  - FirebaseFirestore
+  - FirebaseFunctions
+  - FirebaseMessaging
   - Google-Mobile-Ads-SDK
   - GoogleSignIn
   - GoogleSignInSwift
@@ -1560,7 +1536,6 @@ SPEC REPOS:
     - FBSDKCoreKit
     - FBSDKLoginKit
     - FBSDKShareKit
-    - Firebase
     - FirebaseAnalytics
     - FirebaseAppCheck
     - FirebaseAppCheckInterop
@@ -1608,7 +1583,6 @@ SPEC CHECKSUMS:
   FBSDKCoreKit: 1d5acf7c9d7a2f92bb1a242dc60cae5b7adb91df
   FBSDKLoginKit: f1ea8026a58b52d30c9f2e6a58ca7d813619fb83
   FBSDKShareKit: 259737eab3cc807087374553abdf588b3096ba55
-  Firebase: f5439b235721ceeef14ca1f327c0da8e4e8556b5
   FirebaseAnalytics: fefb765365c6d3a4f2cb9d2c99dcf595124d41ae
   FirebaseAppCheck: 6eb6a1c5eff6e709e3e199d27df2ae92895f1524
   FirebaseAppCheckInterop: 3a8527abb8bb89fb1bd2bd3d1d7b463c0ceb0cbf
@@ -1645,6 +1619,6 @@ SPEC CHECKSUMS:
   PromisesSwift: 9d77319bbe72ebf6d872900551f7eeba9bce2851
   RecaptchaInterop: 11e0b637842dfb48308d242afc3f448062325aba
 
-PODFILE CHECKSUM: d85ee58ccf4d83a2887044d062b30b9c7ad8b763
+PODFILE CHECKSUM: 590265115faeeee25e5c29333b46b22690f93fd8
 
 COCOAPODS: 1.16.2
