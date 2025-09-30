@@ -746,14 +746,14 @@
 			buildConfigurationList = 0CF13E6A2C2A326A00D714C0 /* Build configuration list for PBXNativeTarget "Seas_3" */;
 			buildPhases = (
 				D8AA710B432C6B40CB121EF5 /* [CP] Check Pods Manifest.lock */,
-				0C35F9E92E7DFC9F001BC2AD /* ShellScript */,
-				0C4C7D502E84587C00932193 /* ShellScript */,
 				0CF13E3D2C2A326700D714C0 /* Sources */,
 				0CF13E3E2C2A326700D714C0 /* Frameworks */,
-				0C0D4FE22CC979C100A9E8FD /* ShellScript */,
+				0CACC8832E8C55D900569435 /* Generate GoogleService-Info.plist
+ */,
 				0CD930AA2C33D4100051E923 /* Resources */,
 				90E4D8E8D9EDAA8870AC555C /* [CP] Embed Pods Frameworks */,
 				D7C80019F2D54E17C6F37898 /* [CP] Copy Pods Resources */,
+				0C0D4FE22CC979C100A9E8FD /* ShellScript */,
 			);
 			buildRules = (
 			);
@@ -910,7 +910,8 @@
 			shellPath = "/bin/sh\n";
 			shellScript = "\"${SRCROOT}/Pods/FirebaseCrashlytics/upload-symbols\"\n";
 		};
-		0C35F9E92E7DFC9F001BC2AD /* ShellScript */ = {
+		0CACC8832E8C55D900569435 /* Generate GoogleService-Info.plist
+ */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -920,33 +921,14 @@
 			);
 			inputPaths = (
 			);
+			name = "Generate GoogleService-Info.plist\n";
 			outputFileListPaths = (
 			);
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "
-";
-		};
-		0C4C7D502E84587C00932193 /* ShellScript */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "
-";
+			shellScript = "#!/bin/bash\n\n# Print only non-secret variables for debug\necho \"BUNDLE_ID=$BUNDLE_ID\"\necho \"PROJECT_ID=$PROJECT_ID\"\n\n# Make sure required env variables exist (will exit if any missing)\n: \"${GOOGLE_APP_ID:?Environment variable GOOGLE_APP_ID not set}\"\n: \"${GOOGLE_API_KEY:?Environment variable GOOGLE_API_KEY not set}\"\n: \"${GOOGLE_CLIENT_ID:?Environment variable GOOGLE_CLIENT_ID not set}\"\n: \"${BUNDLE_ID:?Environment variable BUNDLE_ID not set}\"\n: \"${PROJECT_ID:?Environment variable PROJECT_ID not set}\"\n: \"${STORAGE_BUCKET:?Environment variable STORAGE_BUCKET not set}\"\n: \"${GCM_SENDER_ID:?Environment variable GCM_SENDER_ID not set}\"\n: \"${DATABASE_URL:?Environment variable DATABASE_URL not set}\"\n: \"${ADMOB_APP_ID:?Environment variable ADMOB_APP_ID not set}\"\n\n# Make sure the directory exists\nPLIST_DIR=\"${SRCROOT}/Seas_3\"\nmkdir -p \"$PLIST_DIR\"\n\nPLIST_PATH=\"${PLIST_DIR}/GoogleService-Info.plist\"\n\ncat > \"$PLIST_PATH\" <<EOL\n<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \n \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n    <key>GOOGLE_APP_ID</key>\n    <string>${GOOGLE_APP_ID}</string>\n    <key>API_KEY</key>\n    <string>${GOOGLE_API_KEY}</string>\n    <key>CLIENT_ID</key>\n    <string>${GOOGLE_CLIENT_ID}</string>\n    <key>BUNDLE_ID</key>\n    <string>${BUNDLE_ID}</string>\n    <key>PROJECT_ID</key>\n    <string>${PROJECT_ID}</string>\n    <key>STORAGE_BUCKET</key>\n    <string>${STORAGE_BUCKET}</string>\n    <key>GCM_SENDER_ID</key>\n    <string>${GCM_SENDER_ID}</string>\n    <key>DATABASE_URL</key>\n    <string>${DATABASE_URL}</string>\n    <key>GADApplicationIdentifier</key>\n    <string>${ADMOB_APP_ID}</string>\n</dict>\n</plist>\nEOL\n\necho \"✅ Generated GoogleService-Info.plist at $PLIST_PATH\"\n";
 		};
 		90E4D8E8D9EDAA8870AC555C /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -1288,11 +1270,14 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 21844FC7FACFA5A783CE9B46 /* Pods-Seas_3.debug.xcconfig */;
 			buildSettings = {
+				ADMOB_APP_ID = "ca-app-pub-7376161442418831~2252904765";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				BUNDLE_ID = "MF-inder.Seas-3";
 				CODE_SIGN_ENTITLEMENTS = Seas_3/Seas_3.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DATABASE_URL = "https://smart-abacus-425519-r7-default-rtdb.firebaseio.com";
 				DEVELOPMENT_ASSET_PATHS = "\"Seas_3/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -1349,7 +1334,11 @@
 					"$(PROJECT_DIR)/Pods",
 					"\"${PODS_XCFRAMEWORKS_BUILD_DIR}/GoogleUserMessagingPlatform\"",
 				);
+				GCM_SENDER_ID = 1086614683073;
 				GENERATE_INFOPLIST_FILE = YES;
+				GOOGLE_API_KEY = "AIzaSyDeTJJAiTX-roB_FKKwBDB9iKGZsljbZEw";
+				GOOGLE_APP_ID = "1:1086614683073:ios:448b27608c6b396fe6c340";
+				GOOGLE_CLIENT_ID = "1086614683073-m41ig0e8akp55q680tinnau88khlk364.apps.googleusercontent.com\n";
 				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Mat_Finder;
 				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "This app requires access to your location even when the app is in the background.";
@@ -1368,8 +1357,6 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0.0;
-				NEW_SETTING = "";
-				NEW_SETTING1 = "";
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"\"-ObjC -lc++ -lsqlite3 -lstdc++ -lz\"",
@@ -1380,6 +1367,8 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "MF-inder.Seas-3";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROJECT_ID = "smart-abacus-425519-r7";
+				STORAGE_BUCKET = "smart-abacus-425519-r7.appspot.com";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -1390,11 +1379,14 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 2D25C9EDD0203CBC294A90DE /* Pods-Seas_3.release.xcconfig */;
 			buildSettings = {
+				ADMOB_APP_ID = "ca-app-pub-7376161442418831~2252904765";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				BUNDLE_ID = "MF-inder.Seas-3";
 				CODE_SIGN_ENTITLEMENTS = Seas_3/Seas_3.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DATABASE_URL = "https://smart-abacus-425519-r7-default-rtdb.firebaseio.com";
 				DEVELOPMENT_ASSET_PATHS = "\"Seas_3/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -1451,7 +1443,11 @@
 					"$(PROJECT_DIR)/Pods",
 					"\"${PODS_XCFRAMEWORKS_BUILD_DIR}/GoogleUserMessagingPlatform\"",
 				);
+				GCM_SENDER_ID = 1086614683073;
 				GENERATE_INFOPLIST_FILE = YES;
+				GOOGLE_API_KEY = "AIzaSyDeTJJAiTX-roB_FKKwBDB9iKGZsljbZEw";
+				GOOGLE_APP_ID = "1:1086614683073:ios:448b27608c6b396fe6c340";
+				GOOGLE_CLIENT_ID = "1086614683073-m41ig0e8akp55q680tinnau88khlk364.apps.googleusercontent.com\n";
 				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Mat_Finder;
 				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "This app requires access to your location even when the app is in the background.";
@@ -1469,8 +1465,6 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0.0;
-				NEW_SETTING = "";
-				NEW_SETTING1 = "";
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"\"-ObjC -lc++ -lsqlite3 -lstdc++ -lz\"",
@@ -1481,6 +1475,8 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "MF-inder.Seas-3";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROJECT_ID = "smart-abacus-425519-r7";
+				STORAGE_BUCKET = "smart-abacus-425519-r7.appspot.com";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";

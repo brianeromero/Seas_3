@@ -345,6 +345,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
     }
 }
 
+
 private extension AppDelegate {
 
     private func configureFirebaseIfNeeded() {
@@ -355,24 +356,31 @@ private extension AppDelegate {
             return
         }
 
-        
-/*
+        // ------------------------------
         // App Check configuration
+        // ------------------------------
         #if targetEnvironment(simulator)
-        // Running in iOS Simulator → always Debug provider
         AppCheck.setAppCheckProviderFactory(AppCheckDebugProviderFactory())
-        #else
-            #if DEBUG
-            // Real device, Debug build → Debug provider
-            AppCheck.setAppCheckProviderFactory(AppCheckDebugProviderFactory())
-            #else
-            // Real device, Release build (like Xcode Cloud) → App Attest
-        AppCheck.setAppCheckProviderFactory(AppAttestProviderFactory())
-            #endif
-        #endif
- 
- */
+        print("ℹ️ App Check: Using Debug Provider (Simulator)")
 
+        #elseif DEBUG
+        AppCheck.setAppCheckProviderFactory(AppCheckDebugProviderFactory())
+        print("ℹ️ App Check: Using Debug Provider (Debug build)")
+
+        #else
+        // ✅ Production builds
+        if #available(iOS 11.0, *) {
+            // DeviceCheck is more broadly supported
+            AppCheck.setAppCheckProviderFactory(DeviceCheckProviderFactory())
+            print("ℹ️ App Check: Using DeviceCheck (Production)")
+        } else {
+            print("⚠️ DeviceCheck not available on this iOS version")
+        }
+        #endif
+
+        // ------------------------------
+        // Firebase initialization
+        // ------------------------------
         FirebaseApp.configure()
         print("✅ Firebase configured.")
 
@@ -380,32 +388,48 @@ private extension AppDelegate {
         NotificationCenter.default.post(name: .firebaseConfigured, object: nil)
 
         configureMessaging()
+
+        // ------------------------------
+        // Debug: log Firebase plist values
+        // ------------------------------
+        #if DEBUG
+        if let app = FirebaseApp.app() {
+            let options = app.options
+            print("🔍 GOOGLE_APP_ID: \(options.googleAppID)")                 // non-optional
+            print("🔍 CLIENT_ID: \(options.clientID ?? "nil")")               // optional
+            print("🔍 API_KEY: \(options.apiKey ?? "nil")")                   // optional
+            print("🔍 PROJECT_ID: \(options.projectID ?? "nil")")             // optional
+            print("🔍 STORAGE_BUCKET: \(options.storageBucket ?? "nil")")     // optional
+            print("🔍 DATABASE_URL: \(options.databaseURL ?? "nil")")         // optional
+            print("🔍 GCM_SENDER_ID: \(options.gcmSenderID)")                 // non-optional
+        }
+        #endif
+
     }
-    
+
     func configureMessaging() {
         Messaging.messaging().delegate = self
         Messaging.messaging().isAutoInitEnabled = true
     }
 
-    
     func configureApplicationAppearance() {
         UINavigationBar.appearance().tintColor = .systemOrange
         UITabBar.appearance().tintColor = .systemOrange
     }
-    
+
     func configureAppConfigValues() {
         guard let config = ConfigLoader.loadConfigValues() else {
             print("❌ Could not load configuration values.")
             return
         }
-        
+
         sendgridApiKey = config.SENDGRID_API_KEY
         googleApiKey = config.GoogleApiKey
         googleAppID = config.GoogleAppID
         deviceCheckKeyID = config.DeviceCheckKeyID
         deviceCheckTeamID = config.DeviceCheckTeamID
         googleClientID = FirebaseApp.app()?.options.clientID
-        
+
         appConfig.googleClientID = googleClientID ?? ""
         appConfig.googleApiKey = googleApiKey ?? ""
         appConfig.googleAppID = googleAppID ?? ""
@@ -413,22 +437,22 @@ private extension AppDelegate {
         appConfig.deviceCheckKeyID = deviceCheckKeyID ?? ""
         appConfig.deviceCheckTeamID = deviceCheckTeamID ?? ""
     }
-    
+
     func configureGoogleSignIn() {
         guard let clientID = FirebaseApp.app()?.options.clientID else {
             print("❌ Could not get clientID from Firebase options.")
             return
         }
-        
+
         let config = GIDConfiguration(clientID: clientID)
         GIDSignIn.sharedInstance.configuration = config
-        
+
         print("✅ Google Sign-In configured with client ID: \(clientID)")
     }
-    
+
     func configureNotifications(for application: UIApplication) {
         UNUserNotificationCenter.current().delegate = self
-        
+
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
             if let error = error {
                 print("❌ Notification error: \(error.localizedDescription)")
