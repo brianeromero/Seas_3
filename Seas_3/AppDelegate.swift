@@ -156,9 +156,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
             }
         }
 
+        // ✅ Debug: confirm Info.plist contains Google Ads key
+        print("GADApplicationIdentifier: \(Bundle.main.object(forInfoDictionaryKey: "GADApplicationIdentifier") ?? "❌ missing")")
+
         return true
     }
-
 
 
     func applicationWillTerminate(_ application: UIApplication) {
@@ -343,7 +345,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
     }
 }
 
-
 private extension AppDelegate {
 
     private func configureFirebaseIfNeeded() {
@@ -354,11 +355,23 @@ private extension AppDelegate {
             return
         }
 
-        #if DEBUG
+        
+/*
+        // App Check configuration
+        #if targetEnvironment(simulator)
+        // Running in iOS Simulator → always Debug provider
         AppCheck.setAppCheckProviderFactory(AppCheckDebugProviderFactory())
         #else
-        AppCheck.setAppCheckProviderFactory(AppCheckDeviceCheckProviderFactory())
+            #if DEBUG
+            // Real device, Debug build → Debug provider
+            AppCheck.setAppCheckProviderFactory(AppCheckDebugProviderFactory())
+            #else
+            // Real device, Release build (like Xcode Cloud) → App Attest
+        AppCheck.setAppCheckProviderFactory(AppAttestProviderFactory())
+            #endif
         #endif
+ 
+ */
 
         FirebaseApp.configure()
         print("✅ Firebase configured.")
@@ -366,13 +379,14 @@ private extension AppDelegate {
         isFirebaseConfigured = true
         NotificationCenter.default.post(name: .firebaseConfigured, object: nil)
 
-        configureMessaging() // Keep this here as it's part of Firebase setup
+        configureMessaging()
     }
-
+    
     func configureMessaging() {
         Messaging.messaging().delegate = self
         Messaging.messaging().isAutoInitEnabled = true
     }
+
     
     func configureApplicationAppearance() {
         UINavigationBar.appearance().tintColor = .systemOrange

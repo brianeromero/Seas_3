@@ -1,106 +1,94 @@
 #!/bin/sh
 set -eo pipefail
 
-echo "--- STARTING COCOAPODS AND PATCH SCRIPT ---"
+# Ensure PATH is correct inside Xcode/CI
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 
-# --- 1. COCOAPODS INSTALL ---
-# Use the directory of the currently executing script ($0) to find the repo root
-# The repository root is one level up from the 'ci_scripts' folder
-REPO_ROOT=$(dirname "$0")/..
+echo "--- STARTING COCOAPODS AND PATCH SCRIPT (UNIFIED) ---"
 
-# Navigate to the repository root first
-echo "Navigating to repository root: $REPO_ROOT"
-cd "$REPO_ROOT" || { echo "❌ Failed to change directory to repository root: $REPO_ROOT"; exit 2; }
-REPO_ROOT=$(pwd) # Get the absolute, canonical path
+# Track actions for summary
+PATCHED_FILES=()
+SKIPPED_FILES=()
 
-# Now construct and navigate into the project folder
-PROJECT_DIR="${REPO_ROOT}/Seas_3"
-echo "Navigating to Podfile directory: $PROJECT_DIR"
-cd "$PROJECT_DIR" || { echo "❌ Failed to change directory to project directory: $PROJECT_DIR"; exit 2; }
-
-# Important: Clear the local cache to prevent stale repo/dependency issues
-echo "Clearing CocoaPods local cache to ensure a fresh install."
-rm -rf "$HOME/Library/Caches/CocoaPods"
-rm -rf "Pods"
-rm -f "Podfile.lock"
-
-# Execute pod install with --repo-update to get the latest specs,
-# --clean-install to ensure a fresh, non-incremental build,
-# and --no-ansi to avoid terminal formatting issues.
-echo "Running /usr/bin/xcrun pod install --repo-update --clean-install --no-ansi"
-/usr/bin/xcrun pod install --repo-update --clean-install --no-ansi
-
-if [ $? -ne 0 ]; then
-    echo "❌ CRITICAL ERROR: 'pod install' failed. Check the log above for dependency resolution errors."
-    exit 1
+# --- 0. DETECT MODE ---
+# Default: fast (local dev). If CI=true or FORCE_CLEAN=true → clean mode.
+CLEAN_MODE=false
+if [ "$CI" = "true" ] || [ "$FORCE_CLEAN" = "true" ]; then
+  CLEAN_MODE=true
 fi
 
-echo "✅ Pod install complete. Dependencies are in the 'Pods' folder."
+# --- 1. NAVIGATE TO PROJECT DIR ---
+REPO_ROOT=$(cd "$(dirname "$0")/.." && pwd)
+cd "$REPO_ROOT/Seas_3" || { echo "❌ Failed to cd into project dir"; exit 2; }
 
-# --- 2. GRPC PATCHING LOGIC (SAFE VERSION) ---
-echo "--- Starting gRPC Patching (Direct Execution) ---"
-echo "Current working directory for patch: $(pwd)"
-echo "Repository root: $REPO_ROOT" # <-- Added sanity check for root
-
-# Check if Pods were created in the current directory (Seas_3) or the repository root.
-# Construct absolute paths relative to the repository root for robustness.
-
-# Assume Pods are at the REPO_ROOT (one level up from where we are now)
-# NOTE: If this path is still wrong, we'll try the old relative path next.
-FILE1="${REPO_ROOT}/Pods/gRPC-Core/src/core/lib/promise/detail/basic_seq.h"
-FILE2="${REPO_ROOT}/Pods/gRPC-C++/src/core/lib/promise/detail/basic_seq.h"
-
-# --- Patch File 1 ---
-echo "🔧 Checking and Patching $FILE1..."
-if [ -f "$FILE1" ]; then
-    # Ensure writability and apply patch
-    chmod u+w "$FILE1"
-    sed -i '' 's/Traits::template CallSeqFactory/Traits::CallSeqFactory/g' "$FILE1"
-    echo "✅ Patch applied to $FILE1."
+# --- 2. CLEAN OR FAST INSTALL ---
+if [ "$CLEAN_MODE" = true ]; then
+  echo "🧹 Running in CLEAN mode (CI or FORCE_CLEAN)"
+  rm -rf "$HOME/Library/Caches/CocoaPods"
+  rm -rf "Pods"
+  rm -f "Podfile.lock"
+  echo "Running pod install (clean install)"
+  pod install --repo-update --clean-install --no-ansi
 else
-    echo "❌ CRITICAL ERROR: Patch target $FILE1 not found at REPO_ROOT/Pods. Trying relative path..."
-
-    # Fallback to the original relative path (just in case the path is wrong)
-    FILE1_REL="Pods/gRPC-Core/src/core/lib/promise/detail/basic_seq.h"
-    if [ -f "$FILE1_REL" ]; then
-        chmod u+w "$FILE1_REL"
-        sed -i '' 's/Traits::template CallSeqFactory/Traits::CallSeqFactory/g' "$FILE1_REL"
-        echo "✅ Patch applied using relative path."
-    else
-        echo "❌ CRITICAL ERROR: Could not find $FILE1 or $FILE1_REL. Cannot proceed."
-        exit 3
-    fi
+  echo "⚡ Running in FAST mode (local dev, cached Pods)"
+  pod install --repo-update --no-ansi
 fi
 
-# --- Patch File 2 ---
-echo "🔧 Checking and Patching $FILE2..."
-# Using the new absolute path for the second file
-FILE2="${REPO_ROOT}/Pods/gRPC-C++/src/core/lib/promise/detail/basic_seq.h"
+echo "✅ Pod install complete."
 
-if [ -f "$FILE2" ]; then
-    # Ensure writability and apply patch
-    chmod u+w "$FILE2"
-    sed -i '' 's/Traits::template CallSeqFactory/Traits::CallSeqFactory/g' "$FILE2"
-    echo "✅ Patch applied to $FILE2."
+# --- 3. GRPC PATCHING ---
+FILE1="Pods/gRPC-Core/src/core/lib/promise/detail/basic_seq.h"
+FILE2="Pods/gRPC-C++/src/core/lib/promise/detail/basic_seq.h"
+
+for FILE in "$FILE1" "$FILE2"; do
+    echo "🔧 Checking and patching $FILE..."
+    if [ -f "$FILE" ]; then
+        chmod u+w "$FILE"
+        sed -i '' 's/Traits::template CallSeqFactory/Traits::CallSeqFactory/g' "$FILE"
+        PATCHED_FILES+=("$FILE")
+        echo "✅ Patch applied to $FILE"
+    else
+        SKIPPED_FILES+=("$FILE")
+        echo "⚠️ File $FILE not found (skipping)."
+    fi
+done
+
+# --- 4. SUMMARY ---
+echo ""
+echo "================== SUMMARY =================="
+if [ "$CLEAN_MODE" = true ]; then
+  echo "Mode: 🧹 CLEAN (fresh Pods install)"
 else
-    echo "❌ CRITICAL ERROR: Patch target $FILE2 not found at REPO_ROOT/Pods. Trying relative path..."
-    
-    # Fallback to the original relative path
-    FILE2_REL="Pods/gRPC-C++/src/core/lib/promise/detail/basic_seq.h"
-    if [ -f "$FILE2_REL" ]; then
-        chmod u+w "$FILE2_REL"
-        sed -i '' 's/Traits::template CallSeqFactory/Traits::CallSeqFactory/g' "$FILE2_REL"
-        echo "✅ Patch applied using relative path."
-    else
-        echo "❌ CRITICAL ERROR: Could not find $FILE2 or $FILE2_REL. Cannot proceed."
-        exit 3
-    fi
+  echo "Mode: ⚡ FAST (cached Pods)"
 fi
 
+# Show Podfile.lock checksum (useful for debugging state)
+if [ -f "Podfile.lock" ]; then
+  LOCKSUM=$(shasum Podfile.lock | awk '{print $1}')
+  echo "Podfile.lock checksum: $LOCKSUM"
+else
+  echo "Podfile.lock not found."
+fi
 
-echo "✅ gRPC Patching complete."
-# --- END GRPC PATCHING LOGIC ---
+# Show patched files
+if [ ${#PATCHED_FILES[@]} -gt 0 ]; then
+  echo "Patched files:"
+  for f in "${PATCHED_FILES[@]}"; do
+    echo "  ✅ $f"
+  done
+else
+  echo "No files patched."
+fi
 
+# Show skipped files
+if [ ${#SKIPPED_FILES[@]} -gt 0 ]; then
+  echo "Skipped files (not found):"
+  for f in "${SKIPPED_FILES[@]}"; do
+    echo "  ⚠️ $f"
+  done
+fi
+
+echo "============================================="
 echo "🎉 Script completed successfully."
-
+echo ""
 exit 0

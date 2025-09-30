@@ -32,11 +32,18 @@ target 'Seas_3' do
   # ✅ AppAuth
   pod 'AppAuth'
 end
-
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     target.build_configurations.each do |config|
+      # Keep your existing iOS deployment target
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '18.0' 
+
+      # --- LevelDB fixes (C++ standards for cstdint) ---
+      if target.name == 'leveldb-library'
+        # ✅ Use libc++ and C++17 to resolve 'cstdint' not found error
+        config.build_settings['CLANG_CXX_LIBRARY'] = 'libc++'
+        config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
+      end
     end
   end
 end
