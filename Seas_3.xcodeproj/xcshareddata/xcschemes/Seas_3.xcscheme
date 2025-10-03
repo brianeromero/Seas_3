@@ -154,6 +154,56 @@
             value = "6C1EA631-AC76-4A61-901D-FB3DDF83C62C"
             isEnabled = "YES">
          </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "GOOGLE_APP_ID"
+            value = "1:1086614683073:ios:448b27608c6b396fe6c340"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "API_KEY"
+            value = "AIzaSyDeTJJAiTX-roB_FKKwBDB9iKGZsljbZEw"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "CLIENT_ID"
+            value = "1086614683073-m41ig0e8akp55q680tinnau88khlk364.apps.googleusercontent.com"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "BUNDLE_ID"
+            value = "MF-inder.Seas-3"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "PROJECT_ID"
+            value = "smart-abacus-425519-r7"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "STORAGE_BUCKET"
+            value = "smart-abacus-425519-r7.appspot.com"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "GCM_SENDER_ID"
+            value = "1086614683073"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "DATABASE_URL"
+            value = "https://smart-abacus-425519-r7-default-rtdb.firebaseio.com"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "GADApplicationIdentifier"
+            value = "ca-app-pub-7376161442418831~2252904765"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "ADMOB_APP_ID"
+            value = "ca-app-pub-7376161442418831~2252904765"
+            isEnabled = "YES">
+         </EnvironmentVariable>
       </EnvironmentVariables>
       <LocationScenarioReference
          identifier = "com.apple.dt.IDEFoundation.CurrentLocationScenarioIdentifier"
