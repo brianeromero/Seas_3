@@ -1345,7 +1345,7 @@
 				GOOGLE_API_KEY = "AIzaSyDeTJJAiTX-roB_FKKwBDB9iKGZsljbZEw";
 				GOOGLE_APP_ID = "1:1086614683073:ios:448b27608c6b396fe6c340";
 				GOOGLE_CLIENT_ID = "1086614683073-m41ig0e8akp55q680tinnau88khlk364.apps.googleusercontent.com\n";
-				INFOPLIST_FILE = Info.plist;
+				INFOPLIST_FILE = "$(SRCROOT)/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = Mat_Finder;
 				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "This app requires access to your location even when the app is in the background.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We need your location to provide personalized services.";
@@ -1454,7 +1454,7 @@
 				GOOGLE_API_KEY = "AIzaSyDeTJJAiTX-roB_FKKwBDB9iKGZsljbZEw";
 				GOOGLE_APP_ID = "1:1086614683073:ios:448b27608c6b396fe6c340";
 				GOOGLE_CLIENT_ID = "1086614683073-m41ig0e8akp55q680tinnau88khlk364.apps.googleusercontent.com\n";
-				INFOPLIST_FILE = Info.plist;
+				INFOPLIST_FILE = "$(SRCROOT)/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = Mat_Finder;
 				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "This app requires access to your location even when the app is in the background.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We need your location to provide personalized services.";
