@@ -128,7 +128,7 @@
 		0CF13E7D2C2A36B500D714C0 /* UserInfo+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E772C2A36B500D714C0 /* UserInfo+CoreDataClass.swift */; };
 		0CF13E7E2C2A36B500D714C0 /* UserInfo+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E782C2A36B500D714C0 /* UserInfo+CoreDataProperties.swift */; };
 		0CF3FD902E0061B3002AA79B /* IslandMenu2.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF3FD8F2E0061B3002AA79B /* IslandMenu2.swift */; };
-		F6212EA6FF9ADEE2C619396B /* Pods_Seas_3.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4D286B3A5EEEBEC4AE9C7464 /* Pods_Seas_3.framework */; };
+		CFD131ACFEA4602A771DDEC6 /* Pods_Seas_3.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 859A2749C867C4B534B32707 /* Pods_Seas_3.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -284,9 +284,9 @@
 		0CF13E782C2A36B500D714C0 /* UserInfo+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UserInfo+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		0CF247E92CB470D2008B02AA /* Seas_3.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Seas_3.entitlements; sourceTree = "<group>"; };
 		0CF3FD8F2E0061B3002AA79B /* IslandMenu2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandMenu2.swift; sourceTree = "<group>"; };
-		1C4FE462797093726C189253 /* Pods-Seas_3.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Seas_3.debug.xcconfig"; path = "Target Support Files/Pods-Seas_3/Pods-Seas_3.debug.xcconfig"; sourceTree = "<group>"; };
-		4D286B3A5EEEBEC4AE9C7464 /* Pods_Seas_3.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Seas_3.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		8E9FD44FA7DCB814C29D8A1A /* Pods-Seas_3.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Seas_3.release.xcconfig"; path = "Target Support Files/Pods-Seas_3/Pods-Seas_3.release.xcconfig"; sourceTree = "<group>"; };
+		143DA2042926CE0435B54733 /* Pods-Seas_3.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Seas_3.debug.xcconfig"; path = "Target Support Files/Pods-Seas_3/Pods-Seas_3.debug.xcconfig"; sourceTree = "<group>"; };
+		30B017CEEA1A058423CEF3F4 /* Pods-Seas_3.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Seas_3.release.xcconfig"; path = "Target Support Files/Pods-Seas_3/Pods-Seas_3.release.xcconfig"; sourceTree = "<group>"; };
+		859A2749C867C4B534B32707 /* Pods_Seas_3.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Seas_3.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -363,6 +363,8 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		0C21FF472DA58B2C00E49039 /* AddNewMatTimeHelp */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = AddNewMatTimeHelp;
 			sourceTree = "<group>";
 		};
@@ -376,6 +378,8 @@
 		};
 		0C343B6E2CD937EC00468E89 /* UserProfile */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = UserProfile;
 			sourceTree = "<group>";
 		};
@@ -389,26 +393,36 @@
 		};
 		0C882BF52CE6598600E03B02 /* International Changer */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = "International Changer";
 			sourceTree = "<group>";
 		};
 		0C882BFA2CE666B600E03B02 /* IDFA Analytrics */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = "IDFA Analytrics";
 			sourceTree = "<group>";
 		};
 		0C8E21722CCDAD0B0093CEB3 /* AdminView */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = AdminView;
 			sourceTree = "<group>";
 		};
 		0CA111932DFA13D8006944A3 /* HELPERS */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = HELPERS;
 			sourceTree = "<group>";
 		};
 		0CC0A24A2E170C0A00964BBC /* Toast */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = Toast;
 			sourceTree = "<group>";
 		};
@@ -428,7 +442,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0CBA130A2CC19BC700A74C2A /* CryptoSwift in Frameworks */,
-				F6212EA6FF9ADEE2C619396B /* Pods_Seas_3.framework in Frameworks */,
+				CFD131ACFEA4602A771DDEC6 /* Pods_Seas_3.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -551,7 +565,7 @@
 				0C4A7B4E2CC0D507008CE1EA /* CoreLocation.framework */,
 				0C4A7B4C2CC0D443008CE1EA /* AdSupport.framework */,
 				0C4A7B4A2CC0D43A008CE1EA /* iAd.framework */,
-				4D286B3A5EEEBEC4AE9C7464 /* Pods_Seas_3.framework */,
+				859A2749C867C4B534B32707 /* Pods_Seas_3.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -718,8 +732,8 @@
 		6D1A526F36280797C748FAFD /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				1C4FE462797093726C189253 /* Pods-Seas_3.debug.xcconfig */,
-				8E9FD44FA7DCB814C29D8A1A /* Pods-Seas_3.release.xcconfig */,
+				143DA2042926CE0435B54733 /* Pods-Seas_3.debug.xcconfig */,
+				30B017CEEA1A058423CEF3F4 /* Pods-Seas_3.release.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
@@ -731,7 +745,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 0CF13E6A2C2A326A00D714C0 /* Build configuration list for PBXNativeTarget "Seas_3" */;
 			buildPhases = (
-				9EB2640FE632F4B6C313EAAA /* [CP] Check Pods Manifest.lock */,
+				8F8CB4FE60AC8D025F003A47 /* [CP] Check Pods Manifest.lock */,
 				0CACC8832E8C55D900569435 /* Generate GoogleService-Info.plist
  */,
 				0C12D25C2E8DAF6700795DCA /* Generate Config.plist */,
@@ -739,8 +753,8 @@
 				0CF13E3E2C2A326700D714C0 /* Frameworks */,
 				0CD930AA2C33D4100051E923 /* Resources */,
 				0C0D4FE22CC979C100A9E8FD /* ShellScript */,
-				B24C3C8D00357F1CF5F43228 /* [CP] Embed Pods Frameworks */,
-				D10993C52F2C97003912AA4F /* [CP] Copy Pods Resources */,
+				D9884ECAF8E54FB405CA0D59 /* [CP] Embed Pods Frameworks */,
+				DEFCBE1342F7BEC33BB7956E /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -936,7 +950,7 @@
 			shellPath = /bin/sh;
 			shellScript = "#!/bin/bash\nset -euo pipefail\nset -x\n\necho \"TARGET_BUILD_DIR: $TARGET_BUILD_DIR\"\necho \"UNLOCALIZED_RESOURCES_FOLDER_PATH: $UNLOCALIZED_RESOURCES_FOLDER_PATH\"\n\n# Debug: print Google env variables\necho \"GOOGLE_APP_ID: $GOOGLE_APP_ID\"\necho \"GOOGLE_API_KEY: $GOOGLE_API_KEY\"\necho \"GOOGLE_CLIENT_ID: $GOOGLE_CLIENT_ID\"\n\n# Required env variables\nrequired_vars=(\n  GOOGLE_APP_ID\n  GOOGLE_API_KEY\n  GOOGLE_CLIENT_ID\n  BUNDLE_ID\n  PROJECT_ID\n  STORAGE_BUCKET\n  GCM_SENDER_ID\n  DATABASE_URL\n  ADMOB_APP_ID\n)\n\n# Ensure all required env vars are present\nfor var in \"${required_vars[@]}\"; do\n  if [ -z \"${!var:-}\" ]; then\n    echo \"❌ ERROR: $var not set\"\n    exit 1\n  else\n    echo \"$var: ${!var}\"\n  fi\ndone\n\n# Strip trailing newlines from Google env vars\nGOOGLE_CLIENT_ID=$(echo \"$GOOGLE_CLIENT_ID\" | tr -d '\\n')\nGOOGLE_APP_ID=$(echo \"$GOOGLE_APP_ID\" | tr -d '\\n')\nGOOGLE_API_KEY=$(echo \"$GOOGLE_API_KEY\" | tr -d '\\n')\n\n# Generate plist dynamically in the bundle folder\nPLIST_DIR=\"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}\"\nPLIST_PATH=\"${PLIST_DIR}/GoogleService-Info.plist\"\necho \"GoogleService-Info.plist path: $PLIST_PATH\"\nmkdir -p \"$PLIST_DIR\"\n\ncat > \"$PLIST_PATH\" <<EOL\n<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \n \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n    <key>GOOGLE_APP_ID</key>\n    <string>${GOOGLE_APP_ID}</string>\n    <key>API_KEY</key>\n    <string>${GOOGLE_API_KEY}</string>\n    <key>CLIENT_ID</key>\n    <string>${GOOGLE_CLIENT_ID}</string>\n    <key>BUNDLE_ID</key>\n    <string>${BUNDLE_ID}</string>\n    <key>PROJECT_ID</key>\n    <string>${PROJECT_ID}</string>\n    <key>STORAGE_BUCKET</key>\n    <string>${STORAGE_BUCKET}</string>\n    <key>GCM_SENDER_ID</key>\n    <string>${GCM_SENDER_ID}</string>\n    <key>DATABASE_URL</key>\n    <string>${DATABASE_URL}</string>\n    <key>ADMOB_APP_ID</key>\n    <string>${ADMOB_APP_ID}</string>\n</dict>\n</plist>\nEOL\n\necho \"✅ Generated GoogleService-Info.plist at $PLIST_PATH\"\n";
 		};
-		9EB2640FE632F4B6C313EAAA /* [CP] Check Pods Manifest.lock */ = {
+		8F8CB4FE60AC8D025F003A47 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -958,7 +972,7 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		B24C3C8D00357F1CF5F43228 /* [CP] Embed Pods Frameworks */ = {
+		D9884ECAF8E54FB405CA0D59 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -966,20 +980,16 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-Seas_3/Pods-Seas_3-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
-			inputPaths = (
-			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-Seas_3/Pods-Seas_3-frameworks-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Seas_3/Pods-Seas_3-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		D10993C52F2C97003912AA4F /* [CP] Copy Pods Resources */ = {
+		DEFCBE1342F7BEC33BB7956E /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -987,13 +997,9 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-Seas_3/Pods-Seas_3-resources-${CONFIGURATION}-input-files.xcfilelist",
 			);
-			inputPaths = (
-			);
 			name = "[CP] Copy Pods Resources";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-Seas_3/Pods-Seas_3-resources-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -1274,7 +1280,7 @@
 		};
 		0CF13E6B2C2A326A00D714C0 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 1C4FE462797093726C189253 /* Pods-Seas_3.debug.xcconfig */;
+			baseConfigurationReference = 143DA2042926CE0435B54733 /* Pods-Seas_3.debug.xcconfig */;
 			buildSettings = {
 				ADMOB_APP_ID = "ca-app-pub-7376161442418831~2252904765";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -1384,7 +1390,7 @@
 		};
 		0CF13E6C2C2A326A00D714C0 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 8E9FD44FA7DCB814C29D8A1A /* Pods-Seas_3.release.xcconfig */;
+			baseConfigurationReference = 30B017CEEA1A058423CEF3F4 /* Pods-Seas_3.release.xcconfig */;
 			buildSettings = {
 				ADMOB_APP_ID = "ca-app-pub-7376161442418831~2252904765";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
