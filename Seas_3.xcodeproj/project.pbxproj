@@ -731,6 +731,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 0CF13E6A2C2A326A00D714C0 /* Build configuration list for PBXNativeTarget "Seas_3" */;
 			buildPhases = (
+				0CCE8CD02E943F12009F291F /* ci_post_clone.sh */,
 				C2A61E5542B5F6773E4A1FD4 /* [CP] Check Pods Manifest.lock */,
 				0CACC8832E8C55D900569435 /* Generate GoogleService-Info.plist
  */,
@@ -935,6 +936,24 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "#!/bin/bash\nset -euo pipefail\nset -x\n\necho \"TARGET_BUILD_DIR: $TARGET_BUILD_DIR\"\necho \"UNLOCALIZED_RESOURCES_FOLDER_PATH: $UNLOCALIZED_RESOURCES_FOLDER_PATH\"\n\n# Debug: print Google env variables\necho \"GOOGLE_APP_ID: $GOOGLE_APP_ID\"\necho \"GOOGLE_API_KEY: $GOOGLE_API_KEY\"\necho \"GOOGLE_CLIENT_ID: $GOOGLE_CLIENT_ID\"\n\n# Required env variables\nrequired_vars=(\n  GOOGLE_APP_ID\n  GOOGLE_API_KEY\n  GOOGLE_CLIENT_ID\n  BUNDLE_ID\n  PROJECT_ID\n  STORAGE_BUCKET\n  GCM_SENDER_ID\n  DATABASE_URL\n  ADMOB_APP_ID\n)\n\n# Ensure all required env vars are present\nfor var in \"${required_vars[@]}\"; do\n  if [ -z \"${!var:-}\" ]; then\n    echo \"❌ ERROR: $var not set\"\n    exit 1\n  else\n    echo \"$var: ${!var}\"\n  fi\ndone\n\n# Strip trailing newlines from Google env vars\nGOOGLE_CLIENT_ID=$(echo \"$GOOGLE_CLIENT_ID\" | tr -d '\\n')\nGOOGLE_APP_ID=$(echo \"$GOOGLE_APP_ID\" | tr -d '\\n')\nGOOGLE_API_KEY=$(echo \"$GOOGLE_API_KEY\" | tr -d '\\n')\n\n# Generate plist dynamically in the bundle folder\nPLIST_DIR=\"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}\"\nPLIST_PATH=\"${PLIST_DIR}/GoogleService-Info.plist\"\necho \"GoogleService-Info.plist path: $PLIST_PATH\"\nmkdir -p \"$PLIST_DIR\"\n\ncat > \"$PLIST_PATH\" <<EOL\n<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \n \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n    <key>GOOGLE_APP_ID</key>\n    <string>${GOOGLE_APP_ID}</string>\n    <key>API_KEY</key>\n    <string>${GOOGLE_API_KEY}</string>\n    <key>CLIENT_ID</key>\n    <string>${GOOGLE_CLIENT_ID}</string>\n    <key>BUNDLE_ID</key>\n    <string>${BUNDLE_ID}</string>\n    <key>PROJECT_ID</key>\n    <string>${PROJECT_ID}</string>\n    <key>STORAGE_BUCKET</key>\n    <string>${STORAGE_BUCKET}</string>\n    <key>GCM_SENDER_ID</key>\n    <string>${GCM_SENDER_ID}</string>\n    <key>DATABASE_URL</key>\n    <string>${DATABASE_URL}</string>\n    <key>ADMOB_APP_ID</key>\n    <string>${ADMOB_APP_ID}</string>\n</dict>\n</plist>\nEOL\n\necho \"✅ Generated GoogleService-Info.plist at $PLIST_PATH\"\n";
+		};
+		0CCE8CD02E943F12009F291F /* ci_post_clone.sh */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = ci_post_clone.sh;
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "#!/bin/bash\nset -euo pipefail\nset -x\n\necho \"🏗️ Starting CocoaPods install for Xcode Cloud...\"\n\n# Ensure pod command is available\nexport PATH=\"/opt/homebrew/lib/ruby/gems/3.4.0/bin:/opt/homebrew/bin:/usr/local/bin:$PATH\"\n\n# Navigate to workspace root\nROOT=\"${XCODE_WORKSPACE_DIR:-${SRCROOT:-$(pwd)}}\"\ncd \"$ROOT\" || { echo \"❌ Failed to cd into $ROOT\"; exit 1; }\n\n# Clean CocoaPods cache to ensure reproducible builds\necho \"🧹 Cleaning CocoaPods cache...\"\nrm -rf ~/Library/Caches/CocoaPods\n\n# Install pods fresh\necho \"📦 Installing pods...\"\npod install --repo-update --clean-install --verbose\n\necho \"✅ CocoaPods install completed successfully\"\n";
 		};
 		5DC8ADBC69C3873ABB5D4E97 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
