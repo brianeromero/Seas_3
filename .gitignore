@@ -1,5 +1,5 @@
 # Sensitive files
-Info.plist
+#Info.plist
 GoogleService-Info.plist
 GoogleService-Info-Debug.plist
 GoogleService-Info-Release.plist
