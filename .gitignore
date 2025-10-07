@@ -80,3 +80,4 @@ git-filter-repo/
 .gitattributes
 .gitmodules
 firebase-ios-sdk/
+.DS_Store
