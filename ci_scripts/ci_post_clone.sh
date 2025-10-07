@@ -2,21 +2,15 @@
 set -euo pipefail
 set -x
 
-echo "🏗️ Starting CocoaPods install for Xcode Cloud..."
+echo "🏗️ Post-clone setup for Xcode Cloud..."
 
-# Ensure pod command is available
-export PATH="/opt/homebrew/lib/ruby/gems/3.4.0/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
+# Ensure 'pod' is in PATH for any future scripts/tools
+export PATH="/usr/local/bin:/opt/homebrew/bin:/opt/homebrew/lib/ruby/gems/3.4.0/bin:$PATH"
 
 # Navigate to workspace root
 ROOT="${XCODE_WORKSPACE_DIR:-${SRCROOT:-$(pwd)}}"
 cd "$ROOT" || { echo "❌ Failed to cd into $ROOT"; exit 1; }
 
-# Clean CocoaPods cache to ensure reproducible builds
-echo "🧹 Cleaning CocoaPods cache..."
-rm -rf ~/Library/Caches/CocoaPods
+echo "✅ Post-clone environment setup complete"
 
-# Install pods fresh
-echo "📦 Installing pods..."
-pod install --repo-update --clean-install --verbose
-
-echo "✅ CocoaPods install completed successfully"
+# Note: CocoaPods install is handled in ci_pre_xcodebuild.sh to avoid duplication
