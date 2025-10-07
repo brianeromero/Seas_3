@@ -738,7 +738,7 @@
 				0CF13E3D2C2A326700D714C0 /* Sources */,
 				0CF13E3E2C2A326700D714C0 /* Frameworks */,
 				0CD930AA2C33D4100051E923 /* Resources */,
-				0C0D4FE22CC979C100A9E8FD /* ShellScript */,
+				0C0D4FE22CC979C100A9E8FD /* Run Scriptsss */,
 				F9E4311B5C664B789B9BF73F /* [CP] Embed Pods Frameworks */,
 				7621C5B9A1145D7F288A5EF1 /* [CP] Copy Pods Resources */,
 			);
@@ -877,8 +877,9 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		0C0D4FE22CC979C100A9E8FD /* ShellScript */ = {
+		0C0D4FE22CC979C100A9E8FD /* Run Scriptsss */ = {
 			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
 			buildActionMask = 8;
 			dependencyFile = "$(DERIVED_FILES_DIR)/$(INPUT_FILE_PATH).d";
 			files = (
@@ -887,6 +888,7 @@
 			);
 			inputPaths = (
 			);
+			name = "Run Scriptsss";
 			outputFileListPaths = (
 			);
 			outputPaths = (
