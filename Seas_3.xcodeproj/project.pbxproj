@@ -880,7 +880,6 @@
 		0C0D4FE22CC979C100A9E8FD /* Run Scriptsss */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 8;
-			dependencyFile = "$(DERIVED_FILES_DIR)/$(INPUT_FILE_PATH).d";
 			files = (
 			);
 			inputFileListPaths = (
