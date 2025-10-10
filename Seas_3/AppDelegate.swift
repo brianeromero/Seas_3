@@ -36,11 +36,6 @@ import os.log // Assuming you're using os_log
 // AdServices
 import AdServices
 
-extension NSNotification.Name {
-    static let signInLinkReceived = NSNotification.Name("signInLinkReceived")
-    static let fcmTokenReceived = NSNotification.Name("FCMTokenReceived")
-}
-
 
 class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUserNotificationCenterDelegate {
 
@@ -463,8 +458,4 @@ private extension AppDelegate {
             }
         }
     }
-}
-
-extension Notification.Name {
-    static let firebaseConfigured = Notification.Name("firebaseConfigured")
 }

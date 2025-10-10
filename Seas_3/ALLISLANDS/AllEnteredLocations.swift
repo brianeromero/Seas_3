@@ -78,24 +78,31 @@ struct AllEnteredLocations: View {
                 }
             }
         }
-        .navigationTitle("All Gyms") // This title will be picked up by the parent NavigationStack
+        
+        .navigationTitle("All Gyms")
         .onAppear {
             // Ensure data is fetched if it hasn't been loaded yet or if there was a previous error
             if !viewModel.isDataLoaded && viewModel.errorMessage == nil {
+                print("📍 AllEnteredLocations: Initial fetchPirateIslands triggered.")
                 viewModel.fetchPirateIslands()
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .didSyncPirateIslands)) { _ in
+            print("📦 AllEnteredLocations: Firestore sync completed. Re-fetching Core Data gyms...")
+            viewModel.fetchPirateIslands()
         }
         .sheet(isPresented: $showModal) {
             IslandModalContainer(
                 selectedIsland: $selectedIsland,
-                viewModel: appDayOfWeekViewModel, // This is the internally managed one
+                viewModel: appDayOfWeekViewModel,
                 selectedDay: $selectedDay,
                 showModal: $showModal,
-                enterZipCodeViewModel: enterZipCodeViewModel, // This is the internally managed one
+                enterZipCodeViewModel: enterZipCodeViewModel,
                 selectedAppDayOfWeek: $selectedAppDayOfWeek,
-                navigationPath: $navigationPath // Pass the binding down to the modal
+                navigationPath: $navigationPath
             )
         }
+
     }
 
     private func handleIslandTap(island: PirateIsland?) {

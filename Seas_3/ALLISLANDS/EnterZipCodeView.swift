@@ -76,9 +76,11 @@ struct EnterZipCodeView: View {
                     }
                 }
             }
+            .frame(maxWidth: .infinity) // ✅ Make the VStack stretch full width
             .padding()
             .navigationTitle("Enter Location")
         }
+        .navigationViewStyle(StackNavigationViewStyle()) // ✅ Add this line
         .sheet(isPresented: $showModal) {
             IslandModalContainer(
                 selectedIsland: $selectedIsland,

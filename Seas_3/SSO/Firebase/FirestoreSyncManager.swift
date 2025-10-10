@@ -84,6 +84,19 @@ class FirestoreSyncManager {
     private func checkLocalRecordsAndCreateFirestoreRecordsIfNecessary(collectionName: String, querySnapshot: QuerySnapshot?) async {
         print("🚀 [SyncManager] Initiating record check for collection: \(collectionName)")
 
+        // ✅ Step 1: Check for network connection before doing anything
+        guard NetworkMonitor.shared.isConnected else {
+            print("⚠️ [SyncManager] No network connection detected. Skipping Firestore sync for \(collectionName).")
+            DispatchQueue.main.async {
+                NotificationCenter.default.post(name: Notification.Name("ShowToast"), object: nil, userInfo: [
+                    "message": "No internet connection. Sync postponed until you're back online.",
+                    "type": ToastView.ToastType.info.rawValue
+                ])
+            }
+            return
+        }
+
+        // ✅ Step 2: Continue if querySnapshot is valid
         guard let querySnapshot = querySnapshot else {
             print("❌ [SyncManager] Error: Query snapshot is nil for collection \(collectionName). Cannot proceed with record checking.")
             return
@@ -92,7 +105,7 @@ class FirestoreSyncManager {
         print("✅ [SyncManager] Query snapshot successfully received for collection: \(collectionName)")
 
         let firestoreRecords = querySnapshot.documents.compactMap { $0.documentID }
-        print("📊 [SyncManager] Firestore records for \(collectionName) (count: \(firestoreRecords.count)): \(firestoreRecords.prefix(5))\(firestoreRecords.count > 5 ? "... (and \(firestoreRecords.count - 5) more)" : "")") // Log a subset for brevity
+        print("📊 [SyncManager] Firestore records for \(collectionName) (count: \(firestoreRecords.count)): \(firestoreRecords.prefix(5))\(firestoreRecords.count > 5 ? "... (and \(firestoreRecords.count - 5) more)" : "")")
 
         do {
             if let localRecords = try await PersistenceController.shared.fetchLocalRecords(forCollection: collectionName) {
@@ -146,7 +159,6 @@ class FirestoreSyncManager {
                 await syncRecords(localRecords: [], firestoreRecords: firestoreRecords, collectionName: collectionName)
                 print("🔄 [SyncManager] `syncRecords` function completed for collection: \(collectionName) (no local records case).")
 
-                // Consider if you want a toast here too, e.g., "No local data, pulling from cloud."
                 DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
                     NotificationCenter.default.post(name: Notification.Name("ShowToast"), object: nil, userInfo: [
                         "message": "Local data initialized from cloud.",
@@ -157,7 +169,6 @@ class FirestoreSyncManager {
             }
         } catch {
             print("❌ [SyncManager] Critical error during local record fetch for \(collectionName): \(error.localizedDescription)")
-            // You might want to post an error toast here as well, as this is a failure to even check local records.
             DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
                 NotificationCenter.default.post(name: Notification.Name("ShowToast"), object: nil, userInfo: [
                     "message": "Error accessing local data: \(error.localizedDescription)",
@@ -169,6 +180,7 @@ class FirestoreSyncManager {
 
         print("🏁 [SyncManager] Finished checking local records for collection: \(collectionName)")
     }
+
 
     private func uploadLocalRecordsToFirestore(collectionName: String, records: [String]) async {
         // Get a reference to the Firestore collection

@@ -25,6 +25,3 @@ class NetworkMonitor {
     }
 }
 
-extension Notification.Name {
-    static let networkStatusChanged = Notification.Name("networkStatusChanged")
-}

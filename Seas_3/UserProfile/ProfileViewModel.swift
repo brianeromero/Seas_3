@@ -23,21 +23,21 @@ enum ProfileError: Error, LocalizedError {
     }
 }
 
-@MainActor // Add this attribute to your ProfileViewModel class
+@MainActor
 public class ProfileViewModel: ObservableObject {
-    @Published var email: String = ""
-    @Published var userName: String = ""
-    @Published var name: String = ""
-    @Published var belt: String = ""
-    @Published var newPassword: String = ""
-    @Published var confirmPassword: String = ""
-    @Published var showPasswordChange: Bool = false
-    @Published var password: String = ""
-    @Published var isSignInEnabled: Bool = true
-    @Published var errorMessage: String = ""
-    @Published var isLoggedIn: Bool = false
-    @Published var isProfileLoaded: Bool = false
-    @Published var isVerified: Bool = false
+    @Published var email = ""
+    @Published var userName = ""
+    @Published var name = ""
+    @Published var belt = ""
+    @Published var newPassword = ""
+    @Published var confirmPassword = ""
+    @Published var showPasswordChange = false
+    @Published var password = ""
+    @Published var isSignInEnabled = true
+    @Published var errorMessage = ""
+    @Published var isLoggedIn = false
+    @Published var isProfileLoaded = false
+    @Published var isVerified = false
 
     var isProfileValid: Bool {
         !name.isEmpty && !userName.isEmpty
@@ -46,10 +46,13 @@ public class ProfileViewModel: ObservableObject {
     private var viewContext: NSManagedObjectContext
     private var authViewModel: AuthViewModel
 
-    init(viewContext: NSManagedObjectContext, authViewModel: AuthViewModel = .shared) {
+    @MainActor
+    init(viewContext: NSManagedObjectContext, authViewModel: AuthViewModel? = nil) {
         self.viewContext = viewContext
-        self.authViewModel = authViewModel
+        // Assign the shared instance inside the initializer body
+        self.authViewModel = authViewModel ?? AuthViewModel.shared
     }
+
 
     func loadProfile() async {
         print("📥 loadProfile() called")

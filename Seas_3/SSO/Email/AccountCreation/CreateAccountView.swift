@@ -40,6 +40,7 @@ struct CreateAccountView: View {
     @Binding var isUserProfileActive: Bool
     @Binding var selectedTabIndex: Int
     @State private var shouldNavigateToLogin = false
+    @State private var navigationPath = NavigationPath()
     
     // Form State and Validation
     @State private var formState: FormState = FormState()
@@ -54,13 +55,8 @@ struct CreateAccountView: View {
     @StateObject var profileViewModel: ProfileViewModel
     @ObservedObject var countryService: CountryService
     
-    // Account and Profile Information
-    @State private var belt: String = ""
-    let beltOptions = ["", "White", "Blue", "Purple", "Brown", "Black"]
-    @State private var gymWebsite = ""
-    @State private var gymWebsiteURL: URL?
-    @State private var selectedProtocol = "http://"
-    @State private var province = ""
+    // MARK: - Account & Address Info
+    @State private var islandDetails = IslandDetails()
     @State private var selectedCountry: Country? = Country(name: Country.Name(common: "United States"), cca2: "US", flag: "") {
         didSet {
             islandDetails.selectedCountry = selectedCountry
@@ -68,10 +64,18 @@ struct CreateAccountView: View {
             formState.selectedCountry = selectedCountry
         }
     }
+    
+    // Account and Profile Information
+    @State private var belt: String = ""
+    let beltOptions = ["", "White", "Blue", "Purple", "Brown", "Black"]
+    @State private var gymWebsite = ""
+    @State private var gymWebsiteURL: URL?
+    @State private var selectedProtocol = "http://"
+    @State private var province = ""
+
     @State private var governorate = ""
     @State private var region = ""
     @State private var county = ""
-    @State private var islandDetails = IslandDetails()
     @State private var block: String = ""
     @State private var district: String = ""
     @State private var department: String = ""
@@ -109,7 +113,6 @@ struct CreateAccountView: View {
     @State private var localIsLoggedIn = false
 
     
-    @State private var navigationPath = NavigationPath()
 
     
     let emailManager: UnifiedEmailManager
@@ -121,7 +124,6 @@ struct CreateAccountView: View {
         selectedTabIndex: Binding<Int>,
         countryService: CountryService = .shared,
         emailManager: UnifiedEmailManager = .shared
-        // NO authenticationState PARAMETER HERE
     ) {
         self._islandViewModel = ObservedObject(wrappedValue: islandViewModel)
         self._isUserProfileActive = isUserProfileActive
@@ -177,19 +179,19 @@ struct CreateAccountView: View {
 
 
     var body: some View {
-        NavigationView { // Added NavigationView for potential navigation if not already embedded
+        NavigationStack(path: $navigationPath) { // ✅ Use NavigationStack
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     Text("Create Account")
                         .font(.largeTitle)
                         .fontWeight(.bold)
-                        .foregroundColor(.primary) // Adaptive text color
+                        .foregroundColor(.primary)
                         .padding(.horizontal, 20)
-                    
+
                     if let error = errorMessage {
                         Text(error)
-                            .foregroundColor(.red) // Red for error is generally fine
-                            .padding(.horizontal, 20) // Add padding for consistency
+                            .foregroundColor(.red)
+                            .padding(.horizontal, 20)
                             .padding(.bottom)
                     }
                     

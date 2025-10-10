@@ -30,6 +30,7 @@ enum AuthError: Error, LocalizedError {
     case userAlreadyExists
     case invalidStoredPassword
     case emptyPassword
+    case reauthenticationRequired
 
 
     var errorDescription: String? {
@@ -48,6 +49,8 @@ enum AuthError: Error, LocalizedError {
             return "Email is invalid."
         case .notSignedIn:
             return "User is not signed in."
+        case .reauthenticationRequired:
+            return "You need to log in again before performing this action."
         case .unknownError:
             return "Unknown Error, please reach out to email: \(AppConstants.supportEmail)" // Using the constant from AppConstants
         case .userAlreadyExists:
@@ -86,6 +89,7 @@ enum CoreDataError: Error, LocalizedError {
 }
 
 
+@MainActor
 class AuthViewModel: ObservableObject {
     static var _shared: AuthViewModel?
 
@@ -145,8 +149,7 @@ class AuthViewModel: ObservableObject {
             .store(in: &cancellables)
 
         authStateHandle = auth.addStateDidChangeListener { [weak self] auth, user in
-            // Ensure UI updates (including @Published properties) are on the main actor
-            Task { @MainActor in // <--- Add @MainActor here
+            Task {
                 await self?.updateCurrentUser(user: user)
                 self?.userSession = user
             }
@@ -312,15 +315,15 @@ class AuthViewModel: ObservableObject {
                 let users = try await self.context.perform {
                     try self.context.fetch(request)
                 }
-                // Wrap the result in a Result type
                 return .success(users.first)
             } else {
-                return .failure(NSError(domain: "User not found", code: 404, userInfo: nil))
+                return .failure(NSError(domain: "User not found", code: 404))
             }
         } catch {
             return .failure(error)
         }
     }
+
     
     private func updateUser(_ user: UserInfo, with userName: String, name: String) throws {
         user.userName = userName
@@ -914,26 +917,27 @@ class AuthViewModel: ObservableObject {
     }
 
     
-    func handleUserLogin(firebaseUser: FirebaseAuth.User) {
+    @MainActor
+    func handleUserLogin(firebaseUser: FirebaseAuth.User) async {
         let appUser = createUserObject(from: firebaseUser)
-
         let db = Firestore.firestore()
-        db.collection("users").document(firebaseUser.uid).setData([
-            "name": appUser.name,
-            "userName": appUser.userName,
-            "email": appUser.email,
-            "isVerified": appUser.isVerified,
-            "isBanned": false
-        ], merge: true) { error in
-            if let error = error {
-                // Change from os_log to logger.error
-                self.logger.error("Failed to upload user to Firestore: \(error.localizedDescription, privacy: .public)")
-            } else {
-                // Change from os_log to logger.info
-                self.logger.info("User uploaded to Firestore: \(appUser.name, privacy: .public)")
-            }
+        
+        do {
+            try await db.collection("users").document(firebaseUser.uid).setData([
+                "name": appUser.name,
+                "userName": appUser.userName,
+                "email": appUser.email,
+                "isVerified": appUser.isVerified,
+                "isBanned": false
+            ], merge: true)
+            
+            logger.info("User uploaded to Firestore: \(appUser.name, privacy: .public)")
+        } catch {
+            logger.error("Failed to upload user to Firestore: \(error.localizedDescription, privacy: .public)")
         }
     }
+
+
 
     func getCurrentUser() async -> User? {
         guard let firebaseUser = Auth.auth().currentUser else {
@@ -992,7 +996,76 @@ class AuthViewModel: ObservableObject {
         }
     }
     
-    
+
+    @MainActor
+    func deleteUser(recentPassword: String? = nil, googleIDToken: String? = nil, googleAccessToken: String? = nil) async throws {
+        guard let firebaseUser = Auth.auth().currentUser else {
+            throw AuthError.notSignedIn
+        }
+        
+        let userID = firebaseUser.uid
+        let email = firebaseUser.email ?? ""
+
+        // Step 1: Reauthenticate
+        do {
+            if let password = recentPassword {
+                let credential = EmailAuthProvider.credential(withEmail: email, password: password)
+                try await firebaseUser.reauthenticate(with: credential)
+            } else if let idToken = googleIDToken, let accessToken = googleAccessToken {
+                let credential = GoogleAuthProvider.credential(withIDToken: idToken, accessToken: accessToken)
+                try await firebaseUser.reauthenticate(with: credential)
+            } else {
+                throw AuthError.reauthenticationRequired
+            }
+        } catch {
+            logger.error("Reauthentication failed: \(error.localizedDescription, privacy: .public)")
+            throw error
+        }
+
+        // Step 2: Delete Firestore document
+        let userRef = Firestore.firestore().collection("users").document(userID)
+        do {
+            try await userRef.delete()
+            logger.info("Deleted Firestore user document for UID: \(userID, privacy: .public)")
+        } catch {
+            logger.error("Error deleting Firestore user document: \(error.localizedDescription, privacy: .public)")
+            throw error
+        }
+
+        // Step 3: Delete Firebase Auth user
+        do {
+            try await firebaseUser.delete()
+            logger.info("Deleted Firebase Auth user: \(email, privacy: .public)")
+        } catch {
+            logger.error("Error deleting Firebase Auth user: \(error.localizedDescription, privacy: .public)")
+            throw error
+        }
+
+        // Step 4: Delete Core Data UserInfo
+        let fetchRequest: NSFetchRequest<UserInfo> = UserInfo.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "userID == %@", userID)
+        
+        do {
+            if let userInfo = try context.fetch(fetchRequest).first {
+                context.delete(userInfo)
+                try context.save()
+                logger.info("Deleted Core Data user: \(email, privacy: .public)")
+            }
+        } catch {
+            logger.error("Error deleting Core Data user: \(error.localizedDescription, privacy: .public)")
+            throw error
+        }
+
+        // Step 5: Clear local state
+        self.userSession = nil
+        self.currentUser = nil
+        self.usernameOrEmail = ""
+        self.password = ""
+        self.formState = FormState()
+        self.userIsLoggedIn = false
+    }
+
+
 }
 
 extension User {

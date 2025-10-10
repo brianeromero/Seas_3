@@ -9,6 +9,8 @@ import FirebaseCore
 import FirebaseAuth
 import FirebaseFirestore
 
+
+
 struct ProfileView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @StateObject var profileViewModel: ProfileViewModel
@@ -33,6 +35,10 @@ struct ProfileView: View {
     @State private var saveAlertMessage = ""
     @State private var errorMessages: [ValidationType: String?] = [:]
     @FocusState private var focusedField: Field?
+
+    // MARK: - Delete Account Section
+    @State private var confirmDeleteChecked = false
+    @State private var deleteMessage: String?
 
     enum Field: Hashable {
         case email, username, name
@@ -134,7 +140,57 @@ struct ProfileView: View {
                             }
                             .disabled(!isEditing)
                         }
+
+                        // Delete Account Section: Only visible in Edit mode
+                        if isEditing {
+                            Section {
+                                VStack(alignment: .leading, spacing: 10) {
+                                    Toggle(isOn: $confirmDeleteChecked) {
+                                        Text("I understand this will permanently delete my account.")
+                                            .font(.subheadline)
+                                            .foregroundColor(.primary)
+                                    }
+
+                                    if let deleteMessage = deleteMessage {
+                                        Text(deleteMessage)
+                                            .foregroundColor(.red)
+                                            .font(.footnote)
+                                    }
+
+                                    Button(action: {
+                                        Task {
+                                            if !confirmDeleteChecked {
+                                                deleteMessage = "You must check the box to confirm deletion."
+                                                return
+                                            }
+
+                                            deleteMessage = "Deleting profile..."
+                                            do {
+                                                try await authViewModel.deleteUser()
+                                                // Navigate back to login page
+                                                navigationPath.removeLast(navigationPath.count)
+                                                selectedTabIndex = .login
+                                            } catch {
+                                                deleteMessage = "Failed to delete profile: \(error.localizedDescription)"
+                                            }
+                                        }
+                                    }) {
+                                        Text("Delete Account")
+                                            .font(.headline)
+                                            .padding()
+                                            .frame(maxWidth: .infinity)
+                                            .background(confirmDeleteChecked ? Color.red : Color.gray)
+                                            .foregroundColor(.white)
+                                            .cornerRadius(40)
+                                    }
+                                    .disabled(!confirmDeleteChecked)
+                                }
+                                .padding(.vertical, 10)
+                            }
+                        }
                     }
+
+                    // Existing Sign Out button
                     Button(action: {
                         Task {
                             do {
@@ -214,7 +270,6 @@ struct ProfileView: View {
             Alert(title: Text("Validation Error"), message: Text(validationAlertMessage), dismissButton: .default(Text("OK")))
         }
     }
-    
 
     // MARK: - Helper Functions
     private func navigateToLoginPage() {

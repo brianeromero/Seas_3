@@ -12,9 +12,6 @@ import FirebaseAuth
 import FirebaseFirestore
 
 
-extension Notification.Name {
-    static let contextSaved = Notification.Name("contextSaved")
-}
 
 class PersistenceController: ObservableObject {
     // MARK: - Singleton Instances

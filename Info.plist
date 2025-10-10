@@ -88,6 +88,10 @@
     <key>GoogleMapsAPIKey</key>
     <string>AIzaSyBWtWAZ_WBQKjpsL3QQJH9xk7Ghtj0mtfY</string>
 
+    <!-- Add this line for App Tracking Transparency -->
+    <key>NSUserTrackingUsageDescription</key>
+    <string>This app uses tracking to deliver personalized ads and improve user experience.</string>
+
     <!-- Keychain -->
     <key>KeychainAccessGroups</key>
     <array>

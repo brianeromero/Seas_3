@@ -27,10 +27,50 @@ public enum LoginViewSelection: Int {
     }
 }
 
-enum UserFetchError: Error {
+enum UserFetchError: LocalizedError {
     case userNotFound
     case emailNotFound
+
+    var errorDescription: String? {
+        switch self {
+        case .userNotFound:
+            return "No user found with that username or email."
+        case .emailNotFound:
+            return "The email address provided does not exist in our records."
+        }
+    }
 }
+
+enum AppAuthError: LocalizedError {
+    case firebaseError(CreateAccountError)
+    case userFetchError(UserFetchError)
+    case invalidCredentials
+    case unknown(Error)
+
+    var errorDescription: String? {
+        switch self {
+        case .firebaseError(let error):
+            switch error {
+            case .emailAlreadyInUse:
+                return "This email is already registered."
+            case .userNotFound:
+                return "No account found with that email."
+            case .invalidEmailOrPassword:
+                return "Invalid email or password."
+            default:
+                return "An unknown Firebase error occurred."
+            }
+        case .userFetchError(let error):
+            return error.errorDescription
+        case .invalidCredentials:
+            return "Invalid username or password."
+        case .unknown(let error):
+            return error.localizedDescription
+        }
+    }
+}
+
+
 
 // Login Form View (No changes needed here for NavigationStack removal,
 // but review the signIn logic if it's still directly calling Firebase
@@ -176,24 +216,32 @@ struct LoginForm: View {
 
         do {
             print("Starting sign-in process for \(normalizedUsernameOrEmail)")
-
-            // Crucially, ensure AuthViewModel.shared.signInUser() is indeed handling Firebase Auth
-            // and updating authenticationState
             try await AuthViewModel.shared.signInUser(with: normalizedUsernameOrEmail, password: password)
 
             DispatchQueue.main.async {
-                self.authenticationState.setIsAuthenticated(true)
-                self.isLoggedIn = true
-                self.showMainContent = true // This will be handled by AppRootView's logic
+                authenticationState.setIsAuthenticated(true)
+                isLoggedIn = true
+                showMainContent = true
             }
+
+        } catch let error as AppAuthError {
+            handleAppAuthError(error)
         } catch {
-            print("Error during sign-in: \(error.localizedDescription)")
-            DispatchQueue.main.async {
-                NotificationCenter.default.post(name: .showToast, object: nil, userInfo: ["message": error.localizedDescription])
-                self.errorMessage = error.localizedDescription
-            }
+            handleAppAuthError(.unknown(error))
         }
     }
+
+    @MainActor
+    private func handleAppAuthError(_ error: AppAuthError) {
+        NotificationCenter.default.post(
+            name: .showToast,
+            object: nil,
+            userInfo: ["message": error.localizedDescription]
+        )
+        errorMessage = error.localizedDescription
+    }
+
+
 
     // Remove or internalize these if they are solely for AuthViewModel's use
     // private func signInWithEmail(email: String, password: String) async throws { ... }
@@ -363,11 +411,6 @@ public struct LoginView: View {
             }
         )
     }
-}
-
-// Extension for Notification Name
-extension Notification.Name {
-    static let showToast = Notification.Name("ShowToast")
 }
 
 
