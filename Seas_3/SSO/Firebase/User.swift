@@ -4,6 +4,7 @@
 //
 //  Created by Brian Romero on 10/19/24.
 //
+
 import Foundation
 import CryptoSwift
 import FirebaseFirestore
@@ -81,8 +82,7 @@ public class User: Codable, Identifiable {
         )
     }
 
-    // You might also want a way to create a User from a Firestore document snapshot.
-    // This assumes your Firestore document structure matches your User class properties.
+    // Create a User from a Firestore document snapshot
     convenience init?(fromFirestoreDocument document: DocumentSnapshot) {
         guard let data = document.data() else { return nil }
         guard let email = data["email"] as? String,
@@ -108,6 +108,30 @@ public class User: Codable, Identifiable {
             passwordHash: passwordHash,
             salt: salt,
             iterations: iterations,
+            isVerified: isVerified,
+            belt: belt,
+            verificationToken: verificationToken,
+            userID: userID
+        )
+    }
+
+    // ✅ Convenience initializer for Firestore profile loading (no password data needed)
+    convenience init(
+        email: String,
+        userName: String,
+        name: String,
+        belt: String?,
+        userID: String,
+        isVerified: Bool = false,
+        verificationToken: String? = nil
+    ) {
+        self.init(
+            email: email,
+            userName: userName,
+            name: name,
+            passwordHash: Data(),
+            salt: Data(),
+            iterations: 0,
             isVerified: isVerified,
             belt: belt,
             verificationToken: verificationToken,

@@ -25,6 +25,7 @@ enum ProfileError: Error, LocalizedError {
 
 @MainActor
 public class ProfileViewModel: ObservableObject {
+    // MARK: - Published Properties
     @Published var email = ""
     @Published var userName = ""
     @Published var name = ""
@@ -47,16 +48,17 @@ public class ProfileViewModel: ObservableObject {
     private var viewContext: NSManagedObjectContext
     private var authViewModel: AuthViewModel
 
+    // MARK: - Init
     @MainActor
     init(viewContext: NSManagedObjectContext, authViewModel: AuthViewModel? = nil) {
         self.viewContext = viewContext
-        // Assign the shared instance inside the initializer body
         self.authViewModel = authViewModel ?? AuthViewModel.shared
     }
 
-
+    // MARK: - Load Profile
     func loadProfile() async {
         guard let userId = authViewModel.currentUser?.userID else {
+            print("⚠️ No logged-in user found in AuthViewModel")
             isProfileLoaded = true
             return
         }
@@ -65,69 +67,45 @@ public class ProfileViewModel: ObservableObject {
 
         do {
             let document = try await userRef.getDocument()
-            if document.exists {
-                let context = PersistenceController.shared.container.viewContext
-                let userInfo = UserInfo(fromDocument: document, context: context)
-                self.currentUser = User(from: userInfo) // map to your User struct/class
+            if let data = document.data() {
+                // ✅ Assign values directly to @Published properties
+                self.email = data["email"] as? String ?? ""
+                self.userName = data["userName"] as? String ?? ""
+                self.name = data["name"] as? String ?? ""
+                self.belt = data["belt"] as? String ?? ""
 
-                // ✅ Copy values into editable properties
-                self.email = self.currentUser?.email ?? ""
-                self.userName = self.currentUser?.userName ?? ""
-                self.name = self.currentUser?.name ?? ""
-                self.belt = self.currentUser?.belt ?? ""
+                // ✅ Also update currentUser so it stays in sync
+                self.currentUser = User(
+                    email: self.email,
+                    userName: self.userName,
+                    name: self.name,
+                    belt: self.belt,
+                    userID: userId
+                )
 
-                print("✅ Profile loaded for \(userInfo.email)")
+                print("✅ Profile loaded for \(self.email)")
             } else {
                 print("⚠️ No profile document found in Firestore for userID: \(userId)")
             }
         } catch {
-            print("❌ Error loading profile: \(error)")
+            print("❌ Error loading profile: \(error.localizedDescription)")
         }
 
-        isProfileLoaded = true
+        // ✅ Always mark as loaded (success or fail)
+        self.isProfileLoaded = true
     }
 
-
-
-
+    // MARK: - Update Profile
     func updateProfile() async throws {
-        guard let currentUser = currentUser else {
+        guard let currentUser = authViewModel.currentUser else {
             throw NSError(domain: "User not loaded", code: 401)
         }
 
-        if showPasswordChange {
-            if newPassword != confirmPassword {
-                throw ProfileError.passwordsDoNotMatch
-            }
+        if showPasswordChange && newPassword != confirmPassword {
+            throw ProfileError.passwordsDoNotMatch
         }
 
         let userRef = Firestore.firestore().collection("users").document(currentUser.userID)
-        let data: [String: Any] = [
-            "email": currentUser.email,
-            "userName": currentUser.userName,
-            "name": currentUser.name,
-            "belt": currentUser.belt ?? ""
-        ]
-
-        do {
-            try await userRef.setData(data, merge: true)
-            if showPasswordChange {
-                try await authViewModel.updatePassword(newPassword)
-            }
-        } catch {
-            throw error
-        }
-    }
-
-
-    private func updateFirestoreDocument() async throws {
-        print("📤 updateFirestoreDocument() called")
-
-        guard let userId = authViewModel.currentUser?.userID else {
-            throw NSError(domain: "User not authenticated", code: 401, userInfo: nil)
-        }
-
-        let userRef = Firestore.firestore().collection("users").document(userId)
         let data: [String: Any] = [
             "email": email,
             "userName": userName,
@@ -135,21 +113,34 @@ public class ProfileViewModel: ObservableObject {
             "belt": belt
         ]
 
-        print("📄 Uploading data to Firestore: \(data)")
+        print("📄 Updating Firestore user document for ID \(currentUser.userID)")
 
         do {
             try await userRef.setData(data, merge: true)
-            print("✅ Firestore setData successful for user ID: \(userId)")
-        } catch let error as NSError {
-            print("❌ Firebase error [domain: \(error.domain), code: \(error.code)]: \(error.localizedDescription)")
+            print("✅ Profile updated successfully in Firestore")
+
+            // ✅ Keep in-memory user in sync
+            self.currentUser = User(
+                email: email,
+                userName: userName,
+                name: name,
+                belt: belt,
+                userID: currentUser.userID
+            )
+
+            if showPasswordChange {
+                try await authViewModel.updatePassword(newPassword)
+            }
+        } catch {
+            print("❌ Error updating Firestore: \(error.localizedDescription)")
             throw error
         }
     }
 
-
+    // MARK: - Validation
     func validateProfile() -> Bool {
         print("🔍 Running profile validation...")
-        
+
         let emailError = validateEmail(email)
         let userNameError = validateUserName(userName)
         let nameError = validateName(name)
@@ -174,27 +165,28 @@ public class ProfileViewModel: ObservableObject {
     }
 
     func validateEmail(_ email: String) -> String? {
-        print("🔍 Validating email: \(email)")
-        return ValidationUtility.validateField(email, type: .email)?.rawValue
+        ValidationUtility.validateField(email, type: .email)?.rawValue
     }
 
     func validateUserName(_ userName: String) -> String? {
-        print("🔍 Validating username: \(userName)")
-        return ValidationUtility.validateField(userName, type: .userName)?.rawValue
+        ValidationUtility.validateField(userName, type: .userName)?.rawValue
     }
 
     func validateName(_ name: String) -> String? {
-        print("🔍 Validating name: \(name)")
-        return ValidationUtility.validateField(name, type: .name)?.rawValue
+        ValidationUtility.validateField(name, type: .name)?.rawValue
     }
 
     func validatePassword(_ password: String) -> String? {
-        print("🔍 Validating password: \(password)")
-        return ValidationUtility.validateField(password, type: .password)?.rawValue
+        ValidationUtility.validateField(password, type: .password)?.rawValue
     }
 
+    // MARK: - Reset Helpers
     func resetProfile() {
         print("🔄 Resetting profile fields")
+        clearFields()
+    }
+
+    private func clearFields() {
         email = ""
         userName = ""
         name = ""
