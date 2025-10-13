@@ -38,6 +38,7 @@ public class ProfileViewModel: ObservableObject {
     @Published var isLoggedIn = false
     @Published var isProfileLoaded = false
     @Published var isVerified = false
+    @Published var currentUser: User?
 
     var isProfileValid: Bool {
         !name.isEmpty && !userName.isEmpty
@@ -55,71 +56,62 @@ public class ProfileViewModel: ObservableObject {
 
 
     func loadProfile() async {
-        print("📥 loadProfile() called")
-        print("Current Firebase user: \(Auth.auth().currentUser?.uid ?? "nil")")
-
         guard let userId = authViewModel.currentUser?.userID else {
-            print("❌ No user ID found")
-            isProfileLoaded = true // No need for await MainActor.run, class is already MainActor isolated
+            isProfileLoaded = true
             return
         }
 
-        print("🔎 Loading Firestore profile for user ID: \(userId)")
         let userRef = Firestore.firestore().collection("users").document(userId)
 
         do {
             let document = try await userRef.getDocument()
             if document.exists {
-                let data = document.data()
-                print("✅ Profile document found. Updating fields...")
-                email = data?["email"] as? String ?? ""
-                userName = data?["userName"] as? String ?? ""
-                name = data?["name"] as? String ?? ""
-                belt = data?["belt"] as? String ?? ""
-                isProfileLoaded = true
+                let context = PersistenceController.shared.container.viewContext
+                let userInfo = UserInfo(fromDocument: document, context: context)
+                self.currentUser = User(from: userInfo) // map to your User struct/class
+                print("✅ Profile loaded for \(userInfo.email)")
             } else {
-                print("⚠️ No profile document found")
-                isProfileLoaded = true
+                print("⚠️ No profile document found in Firestore for userID: \(userId)")
             }
         } catch {
-            print("❌ Error loading profile: \(error.localizedDescription)")
-            isProfileLoaded = true
+            print("❌ Error loading profile: \(error)")
         }
+
+        isProfileLoaded = true
     }
 
-    func updateProfile() async throws {
-        print("✏️ updateProfile() called")
 
-        guard let userId = authViewModel.currentUser?.userID else {
-            print("❌ User ID not found in AuthViewModel")
-            throw NSError(domain: "User not authenticated", code: 401, userInfo: nil)
+
+
+    func updateProfile() async throws {
+        guard let currentUser = currentUser else {
+            throw NSError(domain: "User not loaded", code: 401)
         }
 
-        print("🔄 Attempting to update profile for user ID: \(userId)")
-        print("📧 Email: \(email), 👤 Username: \(userName), 🧑 Name: \(name), 🥋 Belt: \(belt)")
-
         if showPasswordChange {
-            print("🔐 Password change requested")
             if newPassword != confirmPassword {
-                print("❌ Passwords do not match: '\(newPassword)' vs '\(confirmPassword)'")
                 throw ProfileError.passwordsDoNotMatch
             }
         }
 
-        do {
-            try await updateFirestoreDocument()
-            print("✅ Firestore document updated successfully")
+        let userRef = Firestore.firestore().collection("users").document(currentUser.userID)
+        let data: [String: Any] = [
+            "email": currentUser.email,
+            "userName": currentUser.userName,
+            "name": currentUser.name,
+            "belt": currentUser.belt ?? ""
+        ]
 
+        do {
+            try await userRef.setData(data, merge: true)
             if showPasswordChange {
-                print("🔄 Attempting to update password...")
                 try await authViewModel.updatePassword(newPassword)
-                print("✅ Password updated successfully")
             }
         } catch {
-            print("❌ Failed to update profile: \(error.localizedDescription)")
             throw error
         }
     }
+
 
     private func updateFirestoreDocument() async throws {
         print("📤 updateFirestoreDocument() called")

@@ -66,13 +66,16 @@ struct ProfileView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 HStack {
                                     Text("Email:")
-                                    TextField("Email", text: $profileViewModel.email)
-                                        .disabled(!isEditing)
-                                        .foregroundColor(isEditing ? .primary : .secondary)
-                                        .focused($focusedField, equals: .email)
-                                        .onChange(of: profileViewModel.email) {
-                                            validateField(.email)
-                                        }
+                                    TextField("Email", text: Binding(
+                                        get: { profileViewModel.currentUser?.email ?? "" },
+                                        set: { profileViewModel.currentUser?.email = $0 }
+                                    ))
+                                    .disabled(!isEditing)
+                                    .foregroundColor(isEditing ? .primary : .secondary)
+                                    .focused($focusedField, equals: .email)
+                                    .onChange(of: profileViewModel.currentUser?.email) { _ in
+                                        validateField(.email)
+                                    }
                                 }
                                 if let errorMessage = errorMessages[.email], errorMessage != nil {
                                     Text(errorMessage!)
@@ -80,16 +83,20 @@ struct ProfileView: View {
                                         .font(.footnote)
                                 }
                             }
+
                             VStack(alignment: .leading, spacing: 4) {
                                 HStack {
                                     Text("Username:")
-                                    TextField("Username", text: $profileViewModel.userName)
-                                        .disabled(!isEditing)
-                                        .foregroundColor(isEditing ? .primary : .secondary)
-                                        .focused($focusedField, equals: .username)
-                                        .onChange(of: profileViewModel.userName) {
-                                            validateField(.userName)
-                                        }
+                                    TextField("Username", text: Binding(
+                                        get: { profileViewModel.currentUser?.userName ?? "" },
+                                        set: { profileViewModel.currentUser?.userName = $0 }
+                                    ))
+                                    .disabled(!isEditing)
+                                    .foregroundColor(isEditing ? .primary : .secondary)
+                                    .focused($focusedField, equals: .username)
+                                    .onChange(of: profileViewModel.currentUser?.userName) { _ in
+                                        validateField(.userName)
+                                    }
                                 }
                                 if let errorMessage = errorMessages[.userName], errorMessage != nil {
                                     Text(errorMessage!)
@@ -97,16 +104,20 @@ struct ProfileView: View {
                                         .font(.footnote)
                                 }
                             }
+
                             VStack(alignment: .leading, spacing: 4) {
                                 HStack {
                                     Text("Name:")
-                                    TextField("Name", text: $profileViewModel.name)
-                                        .disabled(!isEditing)
-                                        .foregroundColor(isEditing ? .primary : .secondary)
-                                        .focused($focusedField, equals: .name)
-                                        .onChange(of: profileViewModel.name) {
-                                            validateField(.name)
-                                        }
+                                    TextField("Name", text: Binding(
+                                        get: { profileViewModel.currentUser?.name ?? "" },
+                                        set: { profileViewModel.currentUser?.name = $0 }
+                                    ))
+                                    .disabled(!isEditing)
+                                    .foregroundColor(isEditing ? .primary : .secondary)
+                                    .focused($focusedField, equals: .name)
+                                    .onChange(of: profileViewModel.currentUser?.name) { _ in
+                                        validateField(.name)
+                                    }
                                 }
                                 if let errorMessage = errorMessages[.name], errorMessage != nil {
                                     Text(errorMessage!)
@@ -115,6 +126,7 @@ struct ProfileView: View {
                                 }
                             }
                         }
+
                         Section(header: HStack {
                             Text("Belt")
                             Text("(Optional)")
@@ -123,22 +135,17 @@ struct ProfileView: View {
                         }) {
                             Menu {
                                 ForEach(beltOptions, id: \.self) { belt in
-                                    Button(action: {
-                                        profileViewModel.belt = belt
-                                    }) {
-                                        Text(belt)
-                                    }
+                                    Button(belt) { profileViewModel.currentUser?.belt = belt }
                                 }
                             } label: {
                                 HStack {
-                                    Text(profileViewModel.belt.isEmpty ? "Not selected" : profileViewModel.belt)
-                                        .foregroundColor(isEditing ? .primary : .secondary)
+                                    Text(profileViewModel.currentUser?.belt ?? "Not selected")
                                     Spacer()
                                     Image(systemName: "chevron.down")
-                                        .foregroundColor(.secondary)
                                 }
                             }
                             .disabled(!isEditing)
+
                         }
 
                         // Delete Account Section: Only visible in Edit mode

@@ -106,7 +106,8 @@ struct AppRootView: View {
                         }
                 } else if authenticationState.isAuthenticated {
                     DebugPrintView("AppRootView: AuthenticationState.isAuthenticated is TRUE. Displaying Authenticated Content.")
-                    if authenticationState.navigateToAdminMenu {
+
+                    if authenticationState.isAdmin || authenticationState.navigateToAdminMenu {
                         AdminMenu()
                             .onAppear { print("AppRootView: AdminMenu has appeared.") }
                     } else {

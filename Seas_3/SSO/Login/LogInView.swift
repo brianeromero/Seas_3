@@ -266,27 +266,25 @@ public struct LoginView: View {
 
     @EnvironmentObject var authenticationState: AuthenticationState
     @Environment(\.managedObjectContext) private var viewContext
+
     @State private var showMainContent: Bool = false
     @State private var errorMessage: String = ""
     @State private var usernameOrEmail: String = ""
     @State private var password: String = ""
     @State private var showAlert = false
-    @State private var alertMessage = ""
     @State private var showDisclaimer = false
     @State private var showAdminLogin = false
     @StateObject private var islandViewModel: PirateIslandViewModel
+    @StateObject private var profileViewModel: ProfileViewModel
     @State private var isUserProfileActive: Bool = false
     @State private var selectedTabIndex: Int = 0
     @Binding private var isSelected: LoginViewSelection
     @Binding private var navigateToAdminMenu: Bool
-    @State private var createAccountLinkActive = false
-    @State private var isSignInEnabled: Bool = false
     @Binding private var isLoggedIn: Bool
+    @State private var isSignInEnabled: Bool = false
     @State private var showToastMessage: String = ""
-    @State private var isToastShown: Bool = false // This will now be controlled by the .showToast modifier
+    @State private var isToastShown: Bool = false
     @State private var navigateToCreateAccount = false
-    @StateObject private var profileViewModel: ProfileViewModel
-
 
     public init(
         islandViewModel: PirateIslandViewModel,
@@ -304,52 +302,41 @@ public struct LoginView: View {
         _profileViewModel = StateObject(wrappedValue: profileViewModel)
     }
 
-
     public var body: some View {
-        ZStack {
-            VStack(spacing: 20) {
-                mainContent
-            }
-            .alert(isPresented: $showAlert) {
-                Alert(title: Text("Error"), message: Text(errorMessage), dismissButton: .default(Text("OK")))
-            }
-            .padding()
-            .onChange(of: showMainContent) { oldValue, newValue in // Corrected onChange signature for iOS 17+
-                isLoggedIn = newValue
-            }
+        VStack(spacing: 20) {
+            mainContent
         }
-        // !!! Apply the .showToast modifier directly here instead of using toastContent private var !!!
+        .padding()
+        .alert(isPresented: $showAlert) {
+            Alert(title: Text("Error"), message: Text(errorMessage), dismissButton: .default(Text("OK")))
+        }
+        .onChange(of: showMainContent) {
+            isLoggedIn = showMainContent
+        }
+
         .showToast(
             isPresenting: $isToastShown,
             message: showToastMessage,
-            type: .success // You might want to pass different types based on context (e.g., .error for login failure)
+            type: .success
         )
-        // Keep your notification listener if you're using it to trigger the toast
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name.showToast)) { notification in
-             // guard authenticationState.isAuthenticated else { return } // Optional logic: only show toast if user is authenticated
-             if let message = notification.userInfo?["message"] as? String {
-                 showToastMessage = message
-                 isToastShown = true // This will now trigger the .showToast modifier
-                 // The toast modifier itself handles the timer and setting isToastShown back to false
-             }
-         }
+            if let message = notification.userInfo?["message"] as? String {
+                showToastMessage = message
+                isToastShown = true
+            }
+        }
         .onAppear {
             print("Login screen loaded (LoginView)")
         }
         .onDisappear {
-            // No need to reset showToastMessage or isToastShown here,
-            // as the .showToast modifier handles dismissal.
-            // You might keep it if you have other specific cleanup needs.
-            print("Login screen has finished loading (LoginView)")
+            print("Login screen finished (LoginView)")
         }
     }
 
-    // Removed the toastContent private var entirely as it's replaced by the modifier.
-    // private var toastContent: some View { ... }
-
     private var mainContent: some View {
         VStack {
-            if isSelected == .createAccount {
+            switch isSelected {
+            case .createAccount:
                 CreateAccountView(
                     islandViewModel: islandViewModel,
                     isUserProfileActive: $isUserProfileActive,
@@ -357,34 +344,34 @@ public struct LoginView: View {
                     selectedTabIndex: $selectedTabIndex,
                     emailManager: UnifiedEmailManager.shared
                 )
-            } else if authenticationState.isAuthenticated {
-                IslandMenu2(
-                    profileViewModel: profileViewModel,
-                    navigationPath: $navigationPath
-                )
-            } else if isSelected == .login {
-                VStack(spacing: 20) {
-                    loginOrCreateAccount
-                    LoginForm(
-                        usernameOrEmail: $usernameOrEmail,
-                        password: $password,
-                        isSignInEnabled: $isSignInEnabled,
-                        errorMessage: $errorMessage,
-                        authenticationState: _authenticationState,
-                        islandViewModel: islandViewModel,
-                        showMainContent: $showMainContent,
-                        isLoggedIn: $isLoggedIn,
-                        navigateToAdminMenu: $navigateToAdminMenu
+            case .login:
+                if authenticationState.isAuthenticated {
+                    IslandMenu2(
+                        profileViewModel: profileViewModel,
+                        navigationPath: $navigationPath
                     )
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    Spacer()
+                } else {
+                    VStack(spacing: 20) {
+                        loginOrCreateAccount
+                        LoginForm(
+                            usernameOrEmail: $usernameOrEmail,
+                            password: $password,
+                            isSignInEnabled: $isSignInEnabled,
+                            errorMessage: $errorMessage,
+                            islandViewModel: islandViewModel,
+                            showMainContent: $showMainContent,
+                            isLoggedIn: $isLoggedIn,
+                            navigateToAdminMenu: $navigateToAdminMenu
+                        )
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        Spacer()
+                    }
                 }
-            } else {
-                EmptyView()
             }
         }
     }
+
 
     private var loginOrCreateAccount: some View {
         HStack(alignment: .center, spacing: 10) {
@@ -399,19 +386,18 @@ public struct LoginView: View {
                     .underline()
             }
         }
-        .background(
-            NavigationLink(destination: CreateAccountView(
+        .navigationDestination(isPresented: $navigateToCreateAccount) {
+            CreateAccountView(
                 islandViewModel: islandViewModel,
                 isUserProfileActive: $isUserProfileActive,
                 persistenceController: PersistenceController.shared,
                 selectedTabIndex: $selectedTabIndex,
                 emailManager: UnifiedEmailManager.shared
-            ), isActive: $navigateToCreateAccount) {
-                EmptyView()
-            }
-        )
+            )
+        }
     }
 }
+
 
 
 extension View {

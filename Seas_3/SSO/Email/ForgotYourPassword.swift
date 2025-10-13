@@ -64,17 +64,20 @@ struct ForgotYourPasswordView: View {
             return
         }
 
-        guard let _ = EmailUtility.fetchUserInfo(byEmail: email) else {
-            message = "Email does not exist in our system. Please create an account."
-            return
-        }
-
-        emailManager?.sendPasswordReset(to: email) { success in
-            DispatchQueue.main.async {
-                if success {
-                    message = "A reset link has been sent to \(email)."
-                } else {
-                    message = "Error sending email. Please try again."
+        Task {
+            if let _ = await EmailUtility.fetchUserInfo(byEmail: email) {
+                emailManager?.sendPasswordReset(to: email) { success in
+                    DispatchQueue.main.async {
+                        if success {
+                            message = "A reset link has been sent to \(email)."
+                        } else {
+                            message = "Error sending email. Please try again."
+                        }
+                    }
+                }
+            } else {
+                DispatchQueue.main.async {
+                    message = "Email does not exist in our system. Please create an account."
                 }
             }
         }

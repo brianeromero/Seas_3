@@ -13,27 +13,39 @@ import FirebaseFirestore
 @objc(UserInfo)
 public class UserInfo: NSManagedObject {
 
-    // Convenience initializer to create a UserInfo object in Core Data
+    // MARK: - Basic Init
     convenience init(context: NSManagedObjectContext) {
-        self.init(entity: UserInfo.entity(), insertInto: context)
-        userID = UUID().uuidString // Assign a unique String for userID
+        guard let entity = NSEntityDescription.entity(forEntityName: "UserInfo", in: context) else {
+            preconditionFailure("⚠️ UserInfo entity not found in Core Data model!")
+        }
+        self.init(entity: entity, insertInto: context)
+        self.userID = UUID().uuidString
     }
-    
-    // New initializer to create a UserInfo object from a Firestore document
+
+    // MARK: - Init from Firestore QueryDocumentSnapshot
     convenience init(fromFirestoreDocument document: QueryDocumentSnapshot, context: NSManagedObjectContext) {
         self.init(context: context)
-        
-        // Map Firestore fields to Core Data attributes
-        self.userID = document.documentID
-        self.email = document.data()["email"] as? String ?? ""
-        self.userName = document.data()["username"] as? String ?? ""
-        self.name = document.data()["name"] as? String ?? "" // ✅ ADD THIS
-        self.passwordHash = document.data()["passwordHash"] as? Data ?? Data()
-        self.salt = document.data()["salt"] as? Data ?? Data()
-        self.iterations = document.data()["iterations"] as? Int64 ?? 1000
-        self.isVerified = document.data()["isVerified"] as? Bool ?? false
-        self.isBanned = document.data()["isBanned"] as? Bool ?? false
-        self.belt = document.data()["belt"] as? String
-        self.verificationToken = document.data()["verificationToken"] as? String
+        mapFirestoreData(document.data(), documentID: document.documentID)
+    }
+
+    // MARK: - Init from Firestore DocumentSnapshot (single doc fetch)
+    convenience init(fromDocument document: DocumentSnapshot, context: NSManagedObjectContext) {
+        self.init(context: context)
+        mapFirestoreData(document.data() ?? [:], documentID: document.documentID)
+    }
+
+    // MARK: - Common Mapping Function
+    private func mapFirestoreData(_ data: [String: Any], documentID: String) {
+        self.userID = documentID
+        self.email = data["email"] as? String ?? ""
+        self.userName = data["username"] as? String ?? ""
+        self.name = data["name"] as? String ?? ""
+        self.passwordHash = data["passwordHash"] as? Data ?? Data()
+        self.salt = data["salt"] as? Data ?? Data()
+        self.iterations = data["iterations"] as? Int64 ?? 1000
+        self.isVerified = data["isVerified"] as? Bool ?? false
+        self.isBanned = data["isBanned"] as? Bool ?? false
+        self.belt = data["belt"] as? String
+        self.verificationToken = data["verificationToken"] as? String
     }
 }

@@ -31,6 +31,8 @@ enum AuthError: Error, LocalizedError {
     case invalidStoredPassword
     case emptyPassword
     case reauthenticationRequired
+    case userNotFound
+
 
 
     var errorDescription: String? {
@@ -59,6 +61,8 @@ enum AuthError: Error, LocalizedError {
             return "Password stored is invalid"
         case .emptyPassword:
             return "Password cannot be empty."
+        case .userNotFound:
+            return "User not found. Please check your email or register a new account."
         }
     }
 }
@@ -96,10 +100,10 @@ class AuthViewModel: ObservableObject {
     static var shared: AuthViewModel {
         get {
             if _shared == nil {
-                // Ensure AppDelegate.shared.authenticationState is correctly initialized if used
-                // For direct instantiation, you might pass a default context and AuthenticationState
-                // If this is truly a singleton, ensure its initialization is robust.
-                _shared = AuthViewModel(authenticationState: AppDelegate.shared.authenticationState)
+                _shared = AuthViewModel(
+                    emailManager: UnifiedEmailManager.shared,
+                    authenticationState: AppDelegate.shared.authenticationState
+                )
             }
             return _shared!
         }
@@ -134,9 +138,12 @@ class AuthViewModel: ObservableObject {
     // Add a cancellables set to store Combine subscriptions
     private var cancellables = Set<AnyCancellable>() // Ensure this is present and initialized
 
-    public init(managedObjectContext: NSManagedObjectContext = PersistenceController.shared.container.viewContext,
-                emailManager: UnifiedEmailManager = .shared,
-                authenticationState: AuthenticationState) {
+    @MainActor
+    public init(
+        managedObjectContext: NSManagedObjectContext = PersistenceController.shared.container.viewContext,
+        emailManager: UnifiedEmailManager,
+        authenticationState: AuthenticationState
+    ) {
         self.context = managedObjectContext
         self.emailManager = emailManager
         self.authenticationState = authenticationState
@@ -155,6 +162,7 @@ class AuthViewModel: ObservableObject {
             }
         }
     }
+
 
 
     // MARK: Create Firebase user with email/password
@@ -189,21 +197,21 @@ class AuthViewModel: ObservableObject {
             let authResult = try await auth.createUser(withEmail: normalizedEmail, password: password)
             
             // Create user in Core Data if not found
-            try await createUserInCoreData(authResult.user.uid, email: normalizedEmail, userName: userName, name: name, belt: belt)
+            try await createUserInCoreData(authResult.user.uid, email: normalizedEmail, userName: userName, name: name, belt: belt, password: password)
             
             // Create Firestore document
             try await createFirestoreDocument(for: authResult.user.uid, email: normalizedEmail, userName: userName, name: name, belt: belt)
 
             // Send verification emails
-            try await sendVerificationEmail(to: normalizedEmail)
-            try await sendCustomVerificationEmail(to: normalizedEmail, userName: userName, password: password)
+            //try await sendVerificationEmail(to: normalizedEmail)
+            //try await sendCustomVerificationEmail(to: normalizedEmail, userName: userName, password: password)
             
         } catch {
             throw AuthError.firebaseError(error)
         }
     }
 
-    func createUserInCoreData(_ userId: String, email: String, userName: String, name: String, belt: String?) async throws {
+    func createUserInCoreData(_ userId: String, email: String, userName: String, name: String, belt: String?, password: String) async throws {
         // Check if the user already exists in Core Data
         let result = await fetchUserByEmail(email)
         
@@ -214,16 +222,21 @@ class AuthViewModel: ObservableObject {
                 try updateUser(existingUser, with: userName, name: name)
             } else {
                 // Add the user to Core Data if not found
-                try addUserToCoreData(with: userId, email: email, userName: userName, name: name, belt: belt, password: password)
+                try await addUserToCoreData(
+                    with: userId,
+                    email: email,
+                    userName: userName,
+                    name: name,
+                    belt: belt,
+                    password: password // ✅ Pass the plain password for hashing
+                )
             }
-            
+
         case .failure(let error):
-            // Handle the error
-            print("Error fetching user: \(error.localizedDescription)")
+            print("❌ Error fetching user: \(error.localizedDescription)")
             throw error
         }
     }
-
 
     func userAlreadyExists() async -> Bool {
         // Check if the user exists in Core Data first
@@ -284,21 +297,20 @@ class AuthViewModel: ObservableObject {
 
     // Ensure fetchUserByEmail is async
     func fetchUserByEmail(_ email: String) async -> Result<UserInfo?, Error> {
-        // Perform your Core Data fetch and return a Result type
         do {
             let fetchRequest: NSFetchRequest<UserInfo> = UserInfo.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "email == %@", email)
             
-            let result = try context.fetch(fetchRequest)
-            if let user = result.first {
-                return .success(user)
-            } else {
-                return .success(nil)
+            let users = try await context.perform {
+                try self.context.fetch(fetchRequest)
             }
+            
+            return .success(users.first)
         } catch {
             return .failure(error)
         }
     }
+
     
     // Modify fetchUserByUsername
     private func fetchUserByUsername(_ username: String) async -> Result<UserInfo?, Error> {
@@ -471,6 +483,7 @@ class AuthViewModel: ObservableObject {
     
 ///PART2
     // New method to add user to Core Data with password parameter
+    // MARK: - Add user to Core Data
     private func addUserToCoreData(
         with userID: String,
         email: String,
@@ -478,44 +491,35 @@ class AuthViewModel: ObservableObject {
         name: String,
         belt: String?,
         password: String
-    ) throws {
-        // Check that password is not empty
+    ) async throws {
         guard !password.isEmpty else {
-            throw AuthError.emptyPassword // You can define this error type accordingly
+            throw AuthError.emptyPassword
         }
-        
-        let hashPassword = HashPassword()
-        let newUser = UserInfo(context: context)
-        newUser.userID = userID
-        newUser.userName = userName
-        newUser.email = email
-        newUser.name = name
-        newUser.isVerified = false
-        
-        // Assign belt or clear it explicitly
-        newUser.belt = belt ?? ""
-        
-        // Hash the password using Scrypt
-        let hashedPassword = try hashPassword.hashPasswordScrypt(password)
-        
-        print("Password: \(password)")
-        print("Salt: \(hashedPassword.salt)")
-        print("Iterations: \(hashedPassword.iterations)")
-        
-        // Assign the raw Data directly to the Core Data properties (no Base64 conversion needed)
-        newUser.passwordHash = hashedPassword.hash  // Store the hash as Data
-        newUser.salt = hashedPassword.salt           // Store the salt as Data
-        newUser.iterations = Int64(hashedPassword.iterations)  // Store iterations as Int64
-        
-        // Save to Core Data
-        do {
+
+        let hasher = HashPassword()
+        let hashedPassword = try hasher.hashPasswordScrypt(password)
+
+        let context = PersistenceController.shared.container.viewContext
+
+        try await context.perform {
+            let newUser = UserInfo(context: context)
+            newUser.userID = userID
+            newUser.email = email
+            newUser.userName = userName
+            newUser.name = name
+            newUser.belt = belt ?? ""
+            newUser.isVerified = false   // ✅ Default value for required field
+
+            newUser.passwordHash = hashedPassword.hash
+            newUser.salt = hashedPassword.salt
+            newUser.iterations = Int64(hashedPassword.iterations)
+
             try context.save()
-            print("User successfully saved to Core Data")
-        } catch {
-            print("Failed to save user to Core Data: \(error)")
-            throw error // Rethrow or handle error accordingly
         }
+
+        print("✅ Added user \(userName) to Core Data with hashed password.")
     }
+
 
     // Handle email verification response
     func handleEmailVerificationResponse() async {
@@ -545,18 +549,30 @@ class AuthViewModel: ObservableObject {
     
     // Update user's verification status in Core Data and Firestore
     func updateVerificationStatus(for email: String, isVerified: Bool) async throws {
-        // Log the current user verification status before updating
         print("User verification status before update: \(self.currentUser?.isVerified ?? false)")
 
         let request = UserInfo.fetchRequest() as NSFetchRequest<UserInfo>
         request.predicate = NSPredicate(format: "email == %@", email)
 
         do {
-            let users = try context.fetch(request)
+            let users = try await context.perform {
+                try self.context.fetch(request)
+            }
             if let user = users.first {
                 user.isVerified = isVerified
                 try context.save()
                 print("User verification status updated for: \(user.email)")
+                
+                // ✅ Use userID for Firestore update
+                guard let userID = user.userID else {
+                    print("UserID is nil, cannot update Firestore")
+                    return
+                }
+
+                let firestore = Firestore.firestore()
+                let userRef = firestore.collection("users").document(userID)
+                try await userRef.updateData(["isVerified": isVerified])
+
             } else {
                 print("User not found in Core Data")
             }
@@ -564,11 +580,8 @@ class AuthViewModel: ObservableObject {
             print("Failed to fetch or save user in Core Data: \(error)")
             throw CoreDataError.saveError
         }
-
-        let firestore = Firestore.firestore()
-        let userRef = firestore.collection("users").document(email) // Assuming email is the document ID for verification status
-        try await userRef.updateData(["isVerified": isVerified])
     }
+
 
     func mapFirebaseUserToSeasUser(firebaseUser: FirebaseAuth.User, userName: String, name: String) async throws -> User {
         let hashPassword = HashPassword()
@@ -618,14 +631,16 @@ class AuthViewModel: ObservableObject {
         }
     }
     
-    func fetchUserByFirebaseUID(firebaseUID: String) -> UserInfo? {
+    func fetchUserByFirebaseUID(firebaseUID: String) async -> UserInfo? {
         print("Fetching user with Firebase UID: \(firebaseUID)")
         
         let request = UserInfo.fetchRequest() as NSFetchRequest<UserInfo>
         request.predicate = NSPredicate(format: "userID == %@", firebaseUID)
         
         do {
-            let users = try context.fetch(request)
+            let users = try await context.perform {
+                try self.context.fetch(request)
+            }
             return users.first
         } catch {
             print("Error fetching user by Firebase UID \(firebaseUID): \(error.localizedDescription)")
@@ -635,53 +650,31 @@ class AuthViewModel: ObservableObject {
 
     // Refactor sign-in method to separate password verification and Firebase authentication
     func signInUser(with identifier: String, password: String) async throws {
-        let hashPassword = HashPassword()
-        print("Signing in user \(identifier)...")
-        
-        // Fetch user from Core Data
-        guard let user = try await fetchUser(identifier) else {
-            print("User not found for identifier: \(identifier)")
-            throw NSError(domain: ErrorDomain.auth.rawValue, code: ErrorCode.userNotFound.rawValue, userInfo: nil)
-        }
-        
-        // Use raw Data directly (no Base64 decode)
-        let storedSalt = user.salt
-        let storedHash = user.passwordHash
-
-        guard !storedSalt.isEmpty, !storedHash.isEmpty else {
-            throw AuthError.invalidStoredPassword
+        // Fetch user metadata from Core Data
+        guard let userInfo = try await fetchUser(identifier) else {
+            throw AuthError.userNotFound
         }
 
-        // Debug the stored salt value
-        print("Stored Salt length: \(storedSalt.count)")
-        
-        let storedHashedPassword = HashedPassword(hash: storedHash, salt: storedSalt, iterations: Int(user.iterations))
+        // Authenticate with Firebase
+        let authResult = try await auth.signIn(withEmail: userInfo.email, password: password)
 
-        // Verify password using SCRYPT
-        guard try hashPassword.verifyPasswordScrypt(password, againstHash: storedHashedPassword) else {
-            throw AuthError.passwordsDoNotMatch
-        }
+        // Update last login timestamp in Firestore
+        let uid = authResult.user.uid
+        try await updateFirestoreLoginTimestamp(for: uid)
 
-        // Proceed with Firebase authentication
-        let authResult = try await auth.signIn(withEmail: user.email, password: password)
-        
-        // Update Firestore last login timestamp
-        try await updateFirestoreLoginTimestamp(for: user.email)
-        
-        // Map Firebase user to local user model
-        let currentUser = try await mapFirebaseUserToSeasUser(firebaseUser: authResult.user, userName: user.userName, name: user.name)
-
-        // Update UI state on main thread
+        // Update UI state
         await MainActor.run {
             userSession = authResult.user
-            self.currentUser = currentUser
+            currentUser = User.fromUserInfo(userInfo) // convert UserInfo -> User
         }
     }
 
-    private func updateFirestoreLoginTimestamp(for email: String) async throws {
-        let userRef = Firestore.firestore().collection("users").document(email)
-        try await userRef.updateData(["lastLogin": Timestamp()])
+
+    private func updateFirestoreLoginTimestamp(for userID: String) async throws {
+        let userRef = Firestore.firestore().collection("users").document(userID)
+        try await userRef.updateData(["lastLogin": Timestamp(date: Date())])
     }
+
     
     // Fetch user by email from Firebase Core Data
     private func fetchUserByEmailFromCoreData(_ email: String) async -> Result<UserInfo?, Error> {
@@ -718,11 +711,13 @@ class AuthViewModel: ObservableObject {
         }
     }
 
-    func logAllUsers() {
+    func logAllUsers() async {
         let request: NSFetchRequest<UserInfo> = UserInfo.fetchRequest()
         
         do {
-            let users = try context.fetch(request)
+            let users = try await context.perform {
+                try self.context.fetch(request)
+            }
             for user in users {
                 print("User: \(user.email)")
             }
@@ -748,17 +743,25 @@ class AuthViewModel: ObservableObject {
     func manuallyVerifyUser(email: String) async throws -> Bool {
         try await updateVerificationStatus(for: email, isVerified: true)
         
-        let firestore = Firestore.firestore()
-        let userRef = firestore.collection("users").document(email)
-        
-        do {
-            try await userRef.setData(["isVerified": true], merge: true)
-            print("Firestore verification status updated for: \(email)")
-            return true
-        } catch {
-            throw error
+        // Get userID from Core Data for consistency
+        let request: NSFetchRequest<UserInfo> = UserInfo.fetchRequest()
+        request.predicate = NSPredicate(format: "email == %@", email)
+        let users = try await context.perform {
+            try self.context.fetch(request)
         }
+
+        guard let user = users.first else {
+            throw AuthError.userNotFound
+        }
+        
+        let firestore = Firestore.firestore()
+        let userRef = firestore.collection("users").document(user.userID)
+        
+        try await userRef.setData(["isVerified": true], merge: true)
+        print("Firestore verification status updated for UID: \(String(describing: user.userID))")
+        return true
     }
+
 
     private let userFetcher = UserFetcher()
     

@@ -98,7 +98,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         configureFirebaseIfNeeded() // This should set `isFirebaseConfigured = true` once done
 
         // ✅ 2. Initialize ViewModels that depend on Firebase *after* Firebase is configured
-        AuthViewModel._shared = AuthViewModel(authenticationState: self.authenticationState)
+        AuthViewModel._shared = AuthViewModel(
+            managedObjectContext: PersistenceController.shared.container.viewContext,
+            emailManager: UnifiedEmailManager.shared,
+            authenticationState: self.authenticationState
+        )
         self.authViewModel = AuthViewModel.shared
 
         self.pirateIslandViewModel = PirateIslandViewModel(persistenceController: PersistenceController.shared)

@@ -69,7 +69,7 @@ struct AccountAuthView: View {
     init(islandViewModel: PirateIslandViewModel,
          isUserProfileActive: Binding<Bool>,
          navigateToAdminMenu: Binding<Bool> = .constant(false),
-         emailManager: UnifiedEmailManager = .shared) {
+         emailManager: UnifiedEmailManager) {
         self._islandViewModel = ObservedObject(wrappedValue: islandViewModel)
         self._isUserProfileActive = isUserProfileActive
         self._navigateToAdminMenu = navigateToAdminMenu

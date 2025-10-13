@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 import CoreData
 
-public struct HashedPassword: Codable {
+public struct HashedPassword: Codable, Sendable {   // 👈 Add Sendable here
     public let hash: Data
     public let salt: Data
     public let iterations: Int

@@ -123,7 +123,8 @@ struct CreateAccountView: View {
         persistenceController: PersistenceController,
         selectedTabIndex: Binding<Int>,
         countryService: CountryService = .shared,
-        emailManager: UnifiedEmailManager = .shared
+        emailManager: UnifiedEmailManager
+
     ) {
         self._islandViewModel = ObservedObject(wrappedValue: islandViewModel)
         self._isUserProfileActive = isUserProfileActive
@@ -446,7 +447,7 @@ struct CreateAccountView: View {
 
                 os_log("Account created successfully. Preparing to send verification emails...", type: .info)
 
-                successMessage = "Account created successfully"
+                successMessage = "Account created successfully. You may now log in."
                 showErrorAlert = true
 
                 logAddressDetails()
@@ -697,7 +698,7 @@ struct CreateAccountView: View {
         os_log("Account created successfully. Preparing to send verification emails456...", type: .info)
 
         sendVerificationEmails()
-        successMessage = "Account created successfully. Check your email for login instructions."
+        successMessage = "Account created successfully."
         showErrorAlert = true
         resetAuthenticationState()
     }
@@ -719,7 +720,9 @@ struct CreateAccountView: View {
                     // Potentially show an alert to the user that this specific email failed
                 }
             }
+            
 
+/*
             // --- Custom verification token email (now correctly handled as async throws) ---
             do {
                 // CRITICAL: Re-evaluate the 'password' parameter for security.
@@ -748,6 +751,11 @@ struct CreateAccountView: View {
                 os_log("Custom verification token email failed: %@", type: .error, error.localizedDescription)
                 // Potentially show an alert to the user
             }
+*/
+            // --- Custom verification token email temporarily disabled ---
+            print("Custom verification token email sending disabled (server-side issue)")
+            os_log("Custom verification token email sending disabled", type: .info)
+
         }
     }
     

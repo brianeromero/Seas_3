@@ -42,6 +42,7 @@ class UserFetcher {
     }
 
     // Fetch from Firestore
+    @MainActor
     private func fetchUserFromFirestore(_ usernameOrEmail: String) async throws -> UserInfo {
         let usersRef = db.collection("users")
 
@@ -50,7 +51,6 @@ class UserFetcher {
             .getDocuments()
 
         if let document = querySnapshot.documents.first {
-            print("Found user in Firestore with email: \(usernameOrEmail)")
             return UserInfo(fromFirestoreDocument: document, context: PersistenceController.shared.viewContext)
         }
 
@@ -59,11 +59,10 @@ class UserFetcher {
             .getDocuments()
 
         if let document = usernameQuerySnapshot.documents.first {
-            print("Found user in Firestore with username: \(usernameOrEmail)")
             return UserInfo(fromFirestoreDocument: document, context: PersistenceController.shared.viewContext)
         }
 
-        print("No user found in Firestore for \(usernameOrEmail)")
         throw UserFetchError.userNotFound
     }
+
 }

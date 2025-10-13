@@ -81,6 +81,7 @@ struct AdminMenu: View {
             .background(Color(uiColor: .systemBackground)) // Ensure the background adapts
             .ignoresSafeArea() // Extend background to safe areas
         }
+        .navigationViewStyle(StackNavigationViewStyle()) // 👈 Add this
     }
     
     @ViewBuilder
