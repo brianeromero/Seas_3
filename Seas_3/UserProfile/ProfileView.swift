@@ -10,10 +10,11 @@ import FirebaseAuth
 import FirebaseFirestore
 
 
+
 struct ProfileView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @StateObject var profileViewModel: ProfileViewModel
-    @ObservedObject var authViewModel: AuthViewModel // Keep this for calling signOut()
+    @ObservedObject var authViewModel: AuthViewModel
     @Binding var selectedTabIndex: LoginViewSelection
     @Binding var navigationPath: NavigationPath
 
@@ -38,6 +39,8 @@ struct ProfileView: View {
     // MARK: - Delete Account Section
     @State private var confirmDeleteChecked = false
     @State private var deleteMessage: String?
+    @State private var deletePassword: String = ""           // password for reauth
+    @State private var showDeletePasswordField: Bool = false // show password field after first click
 
     enum Field: Hashable {
         case email, username, name
@@ -137,7 +140,7 @@ struct ProfileView: View {
                             .disabled(!isEditing)
                         }
 
-                        // Delete Account Section: Only visible in Edit mode
+                        // Delete Account Section
                         if isEditing {
                             Section {
                                 VStack(alignment: .leading, spacing: 10) {
@@ -145,6 +148,11 @@ struct ProfileView: View {
                                         Text("I understand this will permanently delete my account.")
                                             .font(.subheadline)
                                             .foregroundColor(.primary)
+                                    }
+
+                                    if confirmDeleteChecked && showDeletePasswordField {
+                                        SecureField("Enter password to confirm", text: $deletePassword)
+                                            .textFieldStyle(RoundedBorderTextFieldStyle())
                                     }
 
                                     if let deleteMessage = deleteMessage {
@@ -155,14 +163,20 @@ struct ProfileView: View {
 
                                     Button(action: {
                                         Task {
-                                            if !confirmDeleteChecked {
+                                            guard confirmDeleteChecked else {
                                                 deleteMessage = "You must check the box to confirm deletion."
+                                                return
+                                            }
+
+                                            // Show password field on first click
+                                            if !showDeletePasswordField {
+                                                showDeletePasswordField = true
                                                 return
                                             }
 
                                             deleteMessage = "Deleting profile..."
                                             do {
-                                                try await authViewModel.deleteUser()
+                                                try await authViewModel.deleteUser(recentPassword: deletePassword)
                                                 // Navigate back to login page
                                                 navigationPath.removeLast(navigationPath.count)
                                                 selectedTabIndex = .login
@@ -238,7 +252,6 @@ struct ProfileView: View {
                 showMainContent = true
             }
         }
-
         .onChange(of: authViewModel.userIsLoggedIn) { isLoggedIn in
             if isLoggedIn {
                 Task {
@@ -251,7 +264,6 @@ struct ProfileView: View {
                 profileViewModel.resetProfile()
             }
         }
-
         .alert(isPresented: $showSaveAlert) {
             Alert(title: Text("Save Status"), message: Text(saveAlertMessage), dismissButton: .default(Text("OK")))
         }
@@ -267,13 +279,11 @@ struct ProfileView: View {
     }
 
     private func startEditing() {
-        // Copy currentUser data to editable view model properties
         profileViewModel.email = profileViewModel.currentUser?.email ?? ""
         profileViewModel.userName = profileViewModel.currentUser?.userName ?? ""
         profileViewModel.name = profileViewModel.currentUser?.name ?? ""
         profileViewModel.belt = profileViewModel.currentUser?.belt ?? ""
 
-        // Save originals for cancel
         originalEmail = profileViewModel.email
         originalUserName = profileViewModel.userName
         originalName = profileViewModel.name
@@ -306,7 +316,6 @@ struct ProfileView: View {
             return
         }
 
-        // Write updated values back to currentUser
         profileViewModel.currentUser?.email = profileViewModel.email
         profileViewModel.currentUser?.userName = profileViewModel.userName
         profileViewModel.currentUser?.name = profileViewModel.name
