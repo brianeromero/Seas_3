@@ -69,6 +69,13 @@ public class ProfileViewModel: ObservableObject {
                 let context = PersistenceController.shared.container.viewContext
                 let userInfo = UserInfo(fromDocument: document, context: context)
                 self.currentUser = User(from: userInfo) // map to your User struct/class
+
+                // ✅ Copy values into editable properties
+                self.email = self.currentUser?.email ?? ""
+                self.userName = self.currentUser?.userName ?? ""
+                self.name = self.currentUser?.name ?? ""
+                self.belt = self.currentUser?.belt ?? ""
+
                 print("✅ Profile loaded for \(userInfo.email)")
             } else {
                 print("⚠️ No profile document found in Firestore for userID: \(userId)")

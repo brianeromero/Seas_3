@@ -10,7 +10,6 @@ import FirebaseAuth
 import FirebaseFirestore
 
 
-
 struct ProfileView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @StateObject var profileViewModel: ProfileViewModel
@@ -66,16 +65,13 @@ struct ProfileView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 HStack {
                                     Text("Email:")
-                                    TextField("Email", text: Binding(
-                                        get: { profileViewModel.currentUser?.email ?? "" },
-                                        set: { profileViewModel.currentUser?.email = $0 }
-                                    ))
-                                    .disabled(!isEditing)
-                                    .foregroundColor(isEditing ? .primary : .secondary)
-                                    .focused($focusedField, equals: .email)
-                                    .onChange(of: profileViewModel.currentUser?.email) { _ in
-                                        validateField(.email)
-                                    }
+                                    TextField("Email", text: $profileViewModel.email)
+                                        .disabled(!isEditing)
+                                        .foregroundColor(isEditing ? .primary : .secondary)
+                                        .focused($focusedField, equals: .email)
+                                        .onChange(of: profileViewModel.email) { _ in
+                                            validateField(.email)
+                                        }
                                 }
                                 if let errorMessage = errorMessages[.email], errorMessage != nil {
                                     Text(errorMessage!)
@@ -87,16 +83,13 @@ struct ProfileView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 HStack {
                                     Text("Username:")
-                                    TextField("Username", text: Binding(
-                                        get: { profileViewModel.currentUser?.userName ?? "" },
-                                        set: { profileViewModel.currentUser?.userName = $0 }
-                                    ))
-                                    .disabled(!isEditing)
-                                    .foregroundColor(isEditing ? .primary : .secondary)
-                                    .focused($focusedField, equals: .username)
-                                    .onChange(of: profileViewModel.currentUser?.userName) { _ in
-                                        validateField(.userName)
-                                    }
+                                    TextField("Username", text: $profileViewModel.userName)
+                                        .disabled(!isEditing)
+                                        .foregroundColor(isEditing ? .primary : .secondary)
+                                        .focused($focusedField, equals: .username)
+                                        .onChange(of: profileViewModel.userName) { _ in
+                                            validateField(.userName)
+                                        }
                                 }
                                 if let errorMessage = errorMessages[.userName], errorMessage != nil {
                                     Text(errorMessage!)
@@ -108,16 +101,13 @@ struct ProfileView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 HStack {
                                     Text("Name:")
-                                    TextField("Name", text: Binding(
-                                        get: { profileViewModel.currentUser?.name ?? "" },
-                                        set: { profileViewModel.currentUser?.name = $0 }
-                                    ))
-                                    .disabled(!isEditing)
-                                    .foregroundColor(isEditing ? .primary : .secondary)
-                                    .focused($focusedField, equals: .name)
-                                    .onChange(of: profileViewModel.currentUser?.name) { _ in
-                                        validateField(.name)
-                                    }
+                                    TextField("Name", text: $profileViewModel.name)
+                                        .disabled(!isEditing)
+                                        .foregroundColor(isEditing ? .primary : .secondary)
+                                        .focused($focusedField, equals: .name)
+                                        .onChange(of: profileViewModel.name) { _ in
+                                            validateField(.name)
+                                        }
                                 }
                                 if let errorMessage = errorMessages[.name], errorMessage != nil {
                                     Text(errorMessage!)
@@ -135,17 +125,16 @@ struct ProfileView: View {
                         }) {
                             Menu {
                                 ForEach(beltOptions, id: \.self) { belt in
-                                    Button(belt) { profileViewModel.currentUser?.belt = belt }
+                                    Button(belt) { profileViewModel.belt = belt }
                                 }
                             } label: {
                                 HStack {
-                                    Text(profileViewModel.currentUser?.belt ?? "Not selected")
+                                    Text(profileViewModel.belt.isEmpty ? "Not selected" : profileViewModel.belt)
                                     Spacer()
                                     Image(systemName: "chevron.down")
                                 }
                             }
                             .disabled(!isEditing)
-
                         }
 
                         // Delete Account Section: Only visible in Edit mode
@@ -197,7 +186,7 @@ struct ProfileView: View {
                         }
                     }
 
-                    // Existing Sign Out button
+                    // Sign Out button
                     Button(action: {
                         Task {
                             do {
@@ -221,7 +210,6 @@ struct ProfileView: View {
                     .padding(.top, 20)
                 }
             } else {
-                // Show loading indicator when profile is not loaded
                 ProgressView("Loading profile...")
                     .foregroundColor(.primary)
             }
@@ -230,13 +218,9 @@ struct ProfileView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 if isEditing {
-                    Button("Save") {
-                        saveChanges()
-                    }
+                    Button("Save") { saveChanges() }
                 } else {
-                    Button("Edit") {
-                        toggleEdit()
-                    }
+                    Button("Edit") { toggleEdit() }
                 }
             }
             ToolbarItem(placement: .navigationBarLeading) {
@@ -248,21 +232,18 @@ struct ProfileView: View {
                 }
             }
         }
-        // This onAppear should handle the initial load
         .onAppear {
             Task {
                 await profileViewModel.loadProfile()
-                startEditing()
                 showMainContent = true
             }
         }
-        // This onChange handles a state change in authViewModel
-        .onChange(of: authViewModel.userIsLoggedIn) {
-            if authViewModel.userIsLoggedIn {
+
+        .onChange(of: authViewModel.userIsLoggedIn) { isLoggedIn in
+            if isLoggedIn {
                 Task {
                     showMainContent = false
                     await profileViewModel.loadProfile()
-                    startEditing()
                     showMainContent = true
                 }
             } else {
@@ -270,6 +251,7 @@ struct ProfileView: View {
                 profileViewModel.resetProfile()
             }
         }
+
         .alert(isPresented: $showSaveAlert) {
             Alert(title: Text("Save Status"), message: Text(saveAlertMessage), dismissButton: .default(Text("OK")))
         }
@@ -279,20 +261,19 @@ struct ProfileView: View {
     }
 
     // MARK: - Helper Functions
-    private func navigateToLoginPage() {
-        profileViewModel.resetProfile()
-    }
-
     private func toggleEdit() {
-        if isEditing {
-            cancelEditing()
-        } else {
-            startEditing()
-        }
+        if isEditing { cancelEditing() } else { startEditing() }
         isEditing.toggle()
     }
 
     private func startEditing() {
+        // Copy currentUser data to editable view model properties
+        profileViewModel.email = profileViewModel.currentUser?.email ?? ""
+        profileViewModel.userName = profileViewModel.currentUser?.userName ?? ""
+        profileViewModel.name = profileViewModel.currentUser?.name ?? ""
+        profileViewModel.belt = profileViewModel.currentUser?.belt ?? ""
+
+        // Save originals for cancel
         originalEmail = profileViewModel.email
         originalUserName = profileViewModel.userName
         originalName = profileViewModel.name
@@ -308,37 +289,42 @@ struct ProfileView: View {
     }
 
     private func saveChanges() {
-         guard authViewModel.currentUser != nil else {
-             saveAlertMessage = "User not authenticated. Please log in first."
-             showSaveAlert = true
-             return
-         }
+        guard authViewModel.currentUser != nil else {
+            saveAlertMessage = "User not authenticated. Please log in first."
+            showSaveAlert = true
+            return
+        }
 
-         validateField(.email)
-         validateField(.userName)
-         validateField(.name)
+        validateField(.email)
+        validateField(.userName)
+        validateField(.name)
 
-         let hasErrors = errorMessages.values.contains { $0 != nil }
+        let hasErrors = errorMessages.values.contains { $0 != nil }
+        if hasErrors {
+            validationAlertMessage = "Please fix the validation errors before saving."
+            showValidationAlert = true
+            return
+        }
 
-         if hasErrors {
-             validationAlertMessage = "Please fix the validation errors before saving."
-             showValidationAlert = true
-             return
-         }
+        // Write updated values back to currentUser
+        profileViewModel.currentUser?.email = profileViewModel.email
+        profileViewModel.currentUser?.userName = profileViewModel.userName
+        profileViewModel.currentUser?.name = profileViewModel.name
+        profileViewModel.currentUser?.belt = profileViewModel.belt
 
-         Task {
-             do {
-                 try await profileViewModel.updateProfile()
-                 saveAlertMessage = "Profile saved successfully!"
-                 showSaveAlert = true
-                 isEditing = false
-                 errorMessages = [:]
-             } catch {
-                 saveAlertMessage = "Failed to save profile: \(error.localizedDescription)"
-                 showSaveAlert = true
-             }
-         }
-     }
+        Task {
+            do {
+                try await profileViewModel.updateProfile()
+                saveAlertMessage = "Profile saved successfully!"
+                showSaveAlert = true
+                isEditing = false
+                errorMessages = [:]
+            } catch {
+                saveAlertMessage = "Failed to save profile: \(error.localizedDescription)"
+                showSaveAlert = true
+            }
+        }
+    }
 
     private func validateField(_ fieldType: ValidationType) {
         switch fieldType {
