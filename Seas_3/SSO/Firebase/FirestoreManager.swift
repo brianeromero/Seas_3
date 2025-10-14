@@ -402,4 +402,29 @@ public class FirestoreManager {
             completion(error)
         }
     }
+    
+    // MARK: - Delete Review from Firestore
+    func deleteReview(_ review: Review, completion: @escaping (Result<Void, Error>) -> Void) {
+        if disabled {
+            completion(.success(())) // Do nothing if FirestoreManager is disabled
+            return
+        }
+
+        // ✅ Use reviewID (UUID) instead of NSManagedObjectID
+        let reviewIDString = review.reviewID.uuidString
+
+        print("FirestoreManager: Deleting review with id: \(reviewIDString)")
+
+        db.collection(Collection.reviews.rawValue).document(reviewIDString).delete { error in
+            if let error = error {
+                print("FirestoreManager: Failed to delete review: \(error.localizedDescription)")
+                completion(.failure(error))
+            } else {
+                print("FirestoreManager: Review deleted successfully from Firestore")
+                completion(.success(()))
+            }
+        }
+    }
+
+
 }

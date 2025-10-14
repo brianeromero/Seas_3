@@ -99,14 +99,26 @@ struct AllReviewsView: View {
     
     // MARK: - Delete Review
     private func deleteReview(_ review: Review) {
+        // 1️⃣ Capture ID before deleting
+        let reviewIDString = review.reviewID.uuidString
+        
+        // 2️⃣ Delete from Core Data
         viewContext.delete(review)
         do {
             try viewContext.save()
-            allReviews.removeAll { $0 == review }
-            // Optionally also delete from Firestore:
-            // FirestoreManager.shared.deleteReview(review)
+            allReviews.removeAll { $0.objectID == review.objectID }
         } catch {
-            os_log("AllReviewsView: Failed to delete review: %@", log: logger, type: .error, error.localizedDescription)
+            os_log("Failed to delete review from Core Data: %@", type: .error, error.localizedDescription)
+        }
+
+        // 3️⃣ Delete from Firestore (safe to use captured ID)
+        Task {
+            do {
+                try await FirestoreManager.shared.deleteDocument(in: .reviews, id: reviewIDString)
+                print("Review deleted from Firestore successfully")
+            } catch {
+                print("Failed to delete review from Firestore: \(error.localizedDescription)")
+            }
         }
     }
 }
@@ -117,7 +129,7 @@ struct ReviewRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(review.review ?? "")
+            Text(review.review)
                 .font(.body)
                 .lineLimit(2)
             
