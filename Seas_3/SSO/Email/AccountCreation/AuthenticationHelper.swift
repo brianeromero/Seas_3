@@ -50,7 +50,14 @@ class AuthenticationHelper {
 
     // New method for verifying admin credentials
     static func verifyAdminCredentials(username: String, password: String) async -> Bool {
-        // Example logic: Replace with your actual admin credential verification
-        return username == "Admin" && password == "Password"
+        // Dictionary of valid admin credentials
+        let validAdmins: [String: String] = [
+            "Admin": "Password",
+            "brian.counterpointux@gmail.com": "Abcd12345!!!"
+        ]
+        
+        // Check if the provided credentials match any valid admin
+        return validAdmins[username] == password
     }
+
 }
