@@ -8,19 +8,16 @@ enum IslandDestination: String, CaseIterable {
     case schedule = "Schedule"
     case website = "Website"
 }
-
 struct IslandDetailView: View {
     let island: PirateIsland
     @Binding var selectedDestination: IslandDestination?
     @StateObject var viewModel: AllEnteredLocationsViewModel
-    @State private var navigationPath = NavigationPath() // ✅ Add this line
-
+    @State private var navigationPath = NavigationPath()
 
     init(island: PirateIsland, selectedDestination: Binding<IslandDestination?>) {
         self.island = island
         self._selectedDestination = selectedDestination
         
-        // Using PersistenceController.shared for shared access to the context
         let dataManager = PirateIslandDataManager(viewContext: PersistenceController.shared.viewContext)
         _viewModel = StateObject(wrappedValue: AllEnteredLocationsViewModel(dataManager: dataManager))
     }
@@ -32,8 +29,7 @@ struct IslandDetailView: View {
             island: island,
             selectedDestination: $selectedDestination,
             viewModel: viewModel,
-            navigationPath: $navigationPath // ✅ Pass it as a binding
-
+            navigationPath: $navigationPath
         )
         .onAppear(perform: fetchIsland)
     }
@@ -52,11 +48,9 @@ struct IslandDetailView: View {
             print("Fetched \(results.count) Gym objects.")
         } catch {
             print("Failed to fetch Gym: \(error.localizedDescription)")
-            // Handle error or display error message
         }
     }
 }
-
 
 struct IslandDetailContent: View {
     let island: PirateIsland
@@ -68,25 +62,24 @@ struct IslandDetailContent: View {
         repository: AppDayOfWeekRepository(persistenceController: PersistenceController.shared),
         enterZipCodeViewModel: EnterZipCodeViewModel(
             repository: AppDayOfWeekRepository.shared,
-            persistenceController: PersistenceController.shared // Pass PersistenceController.shared here
+            persistenceController: PersistenceController.shared
         )
     )
-    @Binding var navigationPath: NavigationPath // ✅ Add this line
-
+    @Binding var navigationPath: NavigationPath
 
     @Environment(\.managedObjectContext) private var viewContext
 
     var body: some View {
         VStack(alignment: .leading) {
+            // Gym Name
             Text(island.islandName ?? "Unnamed Gym")
                 .font(.headline)
                 .bold()
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.bottom, 10)
 
-            Button(action: {
-                showMapView = true
-            }) {
+            // Location Button
+            Button(action: { showMapView = true }) {
                 Text(island.islandLocation ?? "Unknown Location")
                     .foregroundColor(.blue)
                     .font(.system(size: 16, weight: .light))
@@ -98,22 +91,36 @@ struct IslandDetailContent: View {
                     viewModel: mapViewModel,
                     enterZipCodeViewModel: EnterZipCodeViewModel(
                         repository: AppDayOfWeekRepository.shared,
-                        persistenceController: PersistenceController.shared // Pass PersistenceController.shared here
+                        persistenceController: PersistenceController.shared
                     ),
-                    navigationPath: $navigationPath // ✅ Pass it as a binding
+                    navigationPath: $navigationPath
                 )
             }
-            Text("Entered By: \(island.createdByUserId ?? "Unknown")")
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.bottom, 10)
-                .onChange(of: island.createdByUserId!) { newValue in
-                    Logger.logCreatedByIdEvent(createdByUserId: newValue, fileName: "IslandDetailView", functionName: "body")
-                }
 
+            // Created By
+            if let createdByUserId = island.createdByUserId {
+                Text("Entered By: \(createdByUserId)")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.bottom, 10)
+                    .onChange(of: createdByUserId) { newValue in
+                        Logger.logCreatedByIdEvent(
+                            createdByUserId: newValue,
+                            fileName: "IslandDetailView",
+                            functionName: "body"
+                        )
+                    }
+            } else {
+                Text("Entered By: Unknown")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.bottom, 10)
+            }
+
+            // Added Date
             Text("Added Date: \(formattedDate(island.createdTimestamp) ?? "Unknown")")
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.bottom, 10)
 
+            // Navigation Buttons
             ForEach(IslandDestination.allCases, id: \.self) { destination in
                 if destination == .website {
                     Button(action: {
@@ -139,6 +146,7 @@ struct IslandDetailContent: View {
                     }
                 }
             }
+
             Spacer()
         }
         .padding()
@@ -150,22 +158,3 @@ struct IslandDetailContent: View {
         return DateFormat.mediumDateTime.string(from: date)
     }
 }
-
-/*
-struct IslandDetailView_Previews: PreviewProvider {
-    static var previews: some View {
-        let persistenceController = PersistenceController.preview
-        let context = persistenceController.viewContext
-
-        let island = PirateIsland(context: context)
-        island.islandName = "Example Gym"
-        island.createdByUserId = "John Doe"
-        island.createdTimestamp = Date()
-
-        return NavigationView {
-            IslandDetailView(island: island, selectedDestination: .constant(nil))
-                .environment(\.managedObjectContext, context) // Ensure viewContext is provided
-        }
-    }
-}
-*/
