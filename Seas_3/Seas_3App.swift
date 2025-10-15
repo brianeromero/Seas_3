@@ -90,8 +90,6 @@ struct AppRootView: View {
     // --- END Global Toast State Variables ---
 
     var body: some View {
-        // The fix is here. The .navigationDestination modifier is moved
-        // from the Group to the NavigationStack.
         NavigationStack(path: $navigationPath) {
             Group {
                 if showInitialSplash {
@@ -104,12 +102,14 @@ struct AppRootView: View {
                                 }
                             }
                         }
+
                 } else if authenticationState.isAuthenticated {
                     DebugPrintView("AppRootView: AuthenticationState.isAuthenticated is TRUE. Displaying Authenticated Content.")
 
                     if authenticationState.isAdmin || authenticationState.navigateToAdminMenu {
                         AdminMenu()
                             .onAppear { print("AppRootView: AdminMenu has appeared.") }
+
                     } else {
                         IslandMenu2(
                             profileViewModel: profileViewModel,
@@ -117,6 +117,7 @@ struct AppRootView: View {
                         )
                         .onAppear { print("AppRootView: IslandMenu has appeared.") }
                     }
+
                 } else {
                     DebugPrintView("AppRootView: AuthenticationState.isAuthenticated is FALSE. Displaying LoginView.")
                     LoginView(
@@ -130,6 +131,23 @@ struct AppRootView: View {
                     .onAppear { print("AppRootView: LoginView has appeared.") }
                 }
             }
+
+            // ✅ Modern iOS 16+ navigationDestination (no deprecation)
+            .navigationDestination(isPresented: $authenticationState.navigateToAdminMenu) {
+                AdminMenu()
+                    .environmentObject(authenticationState)
+                    .environmentObject(authViewModel)
+                    .environmentObject(pirateIslandViewModel)
+                    .environmentObject(profileViewModel)
+                    .environmentObject(allEnteredLocationsViewModel)
+                    .environmentObject(appDayOfWeekViewModel)
+                    .environmentObject(enterZipCodeViewModel)
+                    .onAppear {
+                        print("✅ AppRootView: Navigated to AdminMenu via navigateToAdminMenu binding.")
+                    }
+            }
+
+            // Regular AppScreen navigation
             .navigationDestination(for: AppScreen.self) { screen in
                 AppRootDestinationView(
                     screen: screen,
@@ -147,23 +165,14 @@ struct AppRootView: View {
                 .environmentObject(enterZipCodeViewModel)
             }
         }
-/*       .onChange(of: authenticationState.isAuthenticated) { oldValue, newValue in
-            print("AppRootView onChange: authenticationState.isAuthenticated changed from \(oldValue) to \(newValue)")
-            if !newValue {
-                navigationPath = NavigationPath()
-                print("DEBUG: AppRootView - Navigation path cleared (due to unauthenticated state).")
-            }
-        }
- 
- */
         .onChange(of: navigationPath) { oldPath, newPath in
             print("⚠️ [AppRootView] navigationPath changed from \(oldPath) to \(newPath)")
         }
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("ShowToast"))) { notification in
             if let userInfo = notification.userInfo,
-                let message = userInfo["message"] as? String,
-                let typeString = userInfo["type"] as? String,
-                let type = ToastView.ToastType(rawValue: typeString) {
+               let message = userInfo["message"] as? String,
+               let typeString = userInfo["type"] as? String,
+               let type = ToastView.ToastType(rawValue: typeString) {
 
                 self.globalToastMessage = message
                 self.globalToastType = type
@@ -190,6 +199,7 @@ struct AppRootView: View {
         )
     }
 }
+
 
 // Your AppRootDestinationView code remains mostly the same,
 // as you're already passing the global toast bindings to it.
