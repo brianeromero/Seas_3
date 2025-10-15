@@ -273,6 +273,39 @@ public class PirateIslandViewModel: ObservableObject {
         try await FirestoreManager.shared.updateDocument(in: .pirateIslands, id: id, data: data)
         print("Pirate island updated successfully")
     }
+    
+    @MainActor
+    func deletePirateIsland(_ island: PirateIsland) async throws {
+        let context = PersistenceController.shared.viewContext
+
+        guard let islandID = island.islandID?.uuidString else {
+            throw NSError(domain: "PirateIslandViewModel", code: 1, userInfo: [NSLocalizedDescriptionKey: "PirateIsland has no ID"])
+        }
+
+        // 1️⃣ Delete from Firestore
+        do {
+            try await Firestore.firestore()
+                .collection("pirateIslands")
+                .document(islandID)
+                .delete()
+            print("✅ Deleted PirateIsland \(island.islandName ?? "") from Firestore.")
+        } catch {
+            print("❌ Failed to delete PirateIsland from Firestore: \(error.localizedDescription)")
+            throw error
+        }
+
+        // 2️⃣ Delete from Core Data
+        context.delete(island)
+        do {
+            try context.save()
+            print("✅ Deleted PirateIsland \(island.islandName ?? "") from Core Data.")
+        } catch {
+            print("❌ Failed to delete PirateIsland from Core Data: \(error.localizedDescription)")
+            throw error
+        }
+    }
+
+    
 }
 
 extension String {
