@@ -182,6 +182,8 @@ class FirestoreSyncManager {
     }
 
 
+
+    @MainActor
     private func uploadLocalRecordsToFirestore(collectionName: String, records: [String]) async {
         // Get a reference to the Firestore collection
         let db = Firestore.firestore()
@@ -190,6 +192,8 @@ class FirestoreSyncManager {
         // Loop through each local record
         for record in records {
             // Fetch the entire record from Core Data
+            // The underlying fetchLocalRecord is now also protected by @MainActor,
+            // and since this function is @MainActor, this call is safe.
             guard let localRecord = try? await PersistenceController.shared.fetchLocalRecord(forCollection: collectionName, recordId: UUID(uuidString: record) ?? UUID()) else {
                 print("Error fetching local record \(record) from Core Data (FROM APPDELEGATE-uploadLocalRecordsToFirestore)")
                 continue
@@ -198,7 +202,7 @@ class FirestoreSyncManager {
             // Create a dictionary to hold the record's fields
             var recordData: [String: Any] = [:]
 
-            // Populate the dictionary with the record's fields
+            // ⚠️ Core Data property access is now SAFE because the entire function is on the Main Actor
             switch collectionName {
             case "pirateIslands":
                 guard let pirateIsland = localRecord as? PirateIsland else { continue }
@@ -215,8 +219,9 @@ class FirestoreSyncManager {
                     "lastModifiedByUserId": pirateIsland.lastModifiedByUserId ?? "",
                     "lastModifiedTimestamp": pirateIsland.lastModifiedTimestamp ?? Date()
                 ]
-                
+
             case "reviews":
+                // CRASH POINT WAS HERE, when accessing review properties off-thread
                 guard let review = localRecord as? Review else { continue }
                 recordData = [
                     "id": review.reviewID.uuidString,
@@ -227,8 +232,7 @@ class FirestoreSyncManager {
                     "islandID": review.island?.islandID?.uuidString ?? ""
                 ]
 
-                
-                
+
             case "MatTime":
                 guard let matTime = localRecord as? MatTime else { continue }
                 recordData = [
@@ -246,7 +250,7 @@ class FirestoreSyncManager {
                     "appDayOfWeekID": matTime.appDayOfWeek?.appDayOfWeekID ?? "" // Add appDayOfWeekID field
                 ]
 
-                
+
             case "AppDayOfWeek":
                 guard let appDayOfWeek = localRecord as? AppDayOfWeek else { continue }
                 recordData = [
@@ -255,9 +259,8 @@ class FirestoreSyncManager {
                     "name": appDayOfWeek.name ?? "",
                     "createdTimestamp": appDayOfWeek.createdTimestamp ?? Date()
                 ]
-                
-                
-                
+
+
             // Add other collection types as needed
             default:
                 print("Unknown collection name: \(collectionName)")
@@ -267,7 +270,7 @@ class FirestoreSyncManager {
             // Get a reference to the Firestore document
             let docRef = collectionRef.document(record)
 
-            // Upload the record to Firestore
+            // Upload the record to Firestore (Network call is not restricted to main thread)
             do {
                 try await docRef.setData(recordData)
                 print("Uploaded local record \(record) to Firestore")

@@ -69,20 +69,25 @@ class PersistenceController: ObservableObject {
     private init(inMemory: Bool = false) {
         self.firestoreManager = FirestoreManager.shared
         container = NSPersistentContainer(name: "Seas_3") // Use your actual data model name
-
+        
         if inMemory {
             container.persistentStoreDescriptions.first?.url = URL(fileURLWithPath: "/dev/null")
             // Ensure FirestoreManager can be truly "disabled" or mocked
             FirestoreManager.shared.disabled = true
         }
-
+        
         container.loadPersistentStores { description, error in
             if let error = error as NSError? {
                 fatalError("Unresolved error \(error), \(error.userInfo)")
             }
         }
-
+        
         viewContext.automaticallyMergesChangesFromParent = true
+        
+        // ✅ Debug check: Confirm main-thread access safety
+        viewContext.perform {
+            print("✅ ViewContext access is safe — running on \(Thread.isMainThread ? "Main Thread" : "Background Thread")")
+        }
     }
 
     // MARK: - Core Data Methods
@@ -292,6 +297,7 @@ class PersistenceController: ObservableObject {
         }
     }
 
+    @MainActor // ⬅️ ADD THIS ATTRIBUTE
     func fetchLocalRecord(forCollection collectionName: String, recordId: UUID) async throws -> NSManagedObject? {
         let entityNameMap = [
             "pirateIslands": "PirateIsland",
@@ -304,6 +310,7 @@ class PersistenceController: ObservableObject {
             throw PersistenceError.invalidCollectionName(collectionName)
         }
 
+        // viewContext access is now safe because the function is marked @MainActor
         guard let entity = NSEntityDescription.entity(forEntityName: entityName, in: viewContext) else {
             throw PersistenceError.entityNotFound(entityName)
         }
@@ -325,6 +332,7 @@ class PersistenceController: ObservableObject {
         fetchRequest.predicate = NSPredicate(format: "\(primaryKey) == %@", recordId.uuidString)
         fetchRequest.fetchLimit = 1
 
+        // viewContext.fetch is now safely executed on the MainActor
         let results = try viewContext.fetch(fetchRequest)
         return results.first
     }

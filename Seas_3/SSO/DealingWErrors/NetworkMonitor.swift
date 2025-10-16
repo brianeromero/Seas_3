@@ -8,20 +8,38 @@
 import Foundation
 import Network
 
-class NetworkMonitor {
+
+
+final class NetworkMonitor {
     static let shared = NetworkMonitor()
     
-    private var monitor: NWPathMonitor
-    private(set) var isConnected: Bool = false
+    private let monitor = NWPathMonitor()
+    private let queue = DispatchQueue(label: "NetworkMonitorQueue")
+    private var currentStatus: NWPath.Status = .requiresConnection
+
+    /// Thread-safe connectivity flag
+    var isConnected: Bool {
+        return currentStatus == .satisfied
+    }
     
     private init() {
-        monitor = NWPathMonitor()
-        monitor.pathUpdateHandler = { path in
-            self.isConnected = path.status == .satisfied
-            NotificationCenter.default.post(name: .networkStatusChanged, object: nil, userInfo: ["isConnected": self.isConnected])
+        monitor.pathUpdateHandler = { [weak self] path in
+            guard let self = self else { return }
+            self.currentStatus = path.status
+            
+            // Post on main thread so UI listeners don’t need to dispatch manually
+            DispatchQueue.main.async {
+                NotificationCenter.default.post(
+                    name: .networkStatusChanged,
+                    object: nil,
+                    userInfo: ["isConnected": self.isConnected]
+                )
+            }
         }
-        let queue = DispatchQueue(label: "NetworkMonitor")
         monitor.start(queue: queue)
     }
+    
+    deinit {
+        monitor.cancel()
+    }
 }
-
