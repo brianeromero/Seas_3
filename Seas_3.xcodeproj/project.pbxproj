@@ -1352,7 +1352,7 @@
 				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Mat_Finder;
 				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "This app requires access to your location even when the app is in the background.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We need your location to provide personalized services.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We need your location to show gyms near you.";
 				INFOPLIST_KEY_NSUserTrackingUsageDescription = "This identifier will be used to deliver personalized ads to you.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -1462,7 +1462,7 @@
 				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Mat_Finder;
 				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "This app requires access to your location even when the app is in the background.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We need your location to provide personalized services.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We need your location to show gyms near you.";
 				INFOPLIST_KEY_NSUserTrackingUsageDescription = "This identifier will be used to deliver personalized ads to you.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

@@ -27,7 +27,7 @@ class EnterZipCodeViewModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private let geocoder = CLGeocoder()
     private let updateQueue = DispatchQueue(label: "com.example.Seas_3.updateQueue")
-    let locationManager = UserLocationMapViewModel()
+    let locationManager = UserLocationMapViewModel.shared
     private let earthRadius = 6371.0088 // Radius of Earth in kilometers
 
 

@@ -6,6 +6,11 @@ import SwiftUI
 import CoreData
 import CoreLocation
 import MapKit
+import os
+import OSLog
+
+
+
 
 // Equatable wrapper for MKCoordinateRegion
 struct EquatableMKCoordinateRegion: Equatable {
@@ -19,17 +24,12 @@ struct EquatableMKCoordinateRegion: Equatable {
     }
 }
 
-
 struct ConsolidatedIslandMapView: View {
-    @Environment(\.managedObjectContext) private var viewContext // Injected context
-    @FetchRequest(
-        entity: PirateIsland.entity(),
-        sortDescriptors: []
-    ) private var islands: FetchedResults<PirateIsland>
+    @Environment(\.managedObjectContext) private var viewContext
+    @FetchRequest(entity: PirateIsland.entity(), sortDescriptors: [])
+    private var islands: FetchedResults<PirateIsland>
 
-    // CHANGE: Removed @State for enterZipCodeViewModel, now passed directly
-    @ObservedObject var enterZipCodeViewModel: EnterZipCodeViewModel // CHANGE: Changed to @ObservedObject
-
+    @ObservedObject var enterZipCodeViewModel: EnterZipCodeViewModel
     @StateObject private var viewModel: AppDayOfWeekViewModel
     @StateObject private var locationManager: UserLocationMapViewModel
 
@@ -47,63 +47,60 @@ struct ConsolidatedIslandMapView: View {
     @State private var selectedDay: DayOfWeek? = .monday
     @State private var fetchedLocation: CLLocation?
 
-    // CHANGE: Changed from @State to @Binding to receive navigationPath from parent
     @Binding var navigationPath: NavigationPath
-
+    
+    
+    private let log = os.Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.seas3",
+                                category: "AllIslandMapView")
 
     init(
         viewModel: AppDayOfWeekViewModel,
         enterZipCodeViewModel: EnterZipCodeViewModel,
-        navigationPath: Binding<NavigationPath> // CHANGE: Add navigationPath to init
+        navigationPath: Binding<NavigationPath>
     ) {
         _viewModel = StateObject(wrappedValue: viewModel)
-        // CHANGE: No longer wrap enterZipCodeViewModel with @State(wrappedValue:), just assign
         self.enterZipCodeViewModel = enterZipCodeViewModel
-        _locationManager = StateObject(wrappedValue: UserLocationMapViewModel())
+        _locationManager = StateObject(wrappedValue: UserLocationMapViewModel.shared)
         _selectedDay = State(initialValue: .monday)
-        self._navigationPath = navigationPath // CHANGE: Assign navigationPath binding
+        self._navigationPath = navigationPath
     }
 
-
     var body: some View {
-        // CHANGE: REMOVE NavigationView to prevent nesting
-        VStack {
+        let content = VStack {
             if locationManager.userLocation != nil {
                 makeMapView()
                 makeRadiusPicker()
             } else {
                 Text("Fetching user location...")
-                    // .navigationTitle("Gyms Near Me") // This can be on the VStack
+                    .onAppear {
+                        log.debug("🕐 Showing 'Fetching user location...' — locationManager.userLocation is currently nil.")
+                    }
             }
         }
-        .navigationTitle("Gyms Near Me") // CHANGE: Apply navigationTitle directly to the VStack
-        .overlay(overlayContentView())
-        .onAppear(perform: onAppear)
-        .onChange(of: locationManager.userLocation) { _, newValue in
-            onChangeUserLocation(newValue)
-        }
-        .onChange(of: equatableRegion) { _, newValue in
-            onChangeEquatableRegion(newValue)
-        }
-        .onChange(of: selectedRadius) { _, newValue in
-            onChangeSelectedRadius(newValue)
-        }
-        // No .sheet here, it should be in the main content if it's a modal,
-        // or if it's a NavigationLink, it should push.
-        // Your overlayContentView() handles the modal, so sheet is not needed here.
+
+        return content
+            .navigationTitle("Gyms Near Me")
+            .overlay(overlayContentView())
+            .onAppear(perform: onAppear)
+            .onChange(of: locationManager.userLocation) { oldValue, newValue in
+                log.info("📍 locationManager.userLocation changed from \(String(describing: oldValue)) to \(String(describing: newValue))")
+                onChangeUserLocation(newValue)
+            }
+            .onChange(of: equatableRegion) { oldValue, newValue in
+                log.info("🗺️ Region changed from \(oldValue.region.center.latitude),\(oldValue.region.center.longitude) → \(newValue.region.center.latitude),\(newValue.region.center.longitude)")
+                onChangeEquatableRegion(newValue)
+            }
+            .onChange(of: selectedRadius) { oldValue, newValue in
+                log.info("🎯 Radius changed from \(oldValue) → \(newValue) miles")
+                onChangeSelectedRadius(newValue)
+            }
     }
 
-    private func makeMapView() -> some View {
-        // NOTE: Map in iOS 17+ prefers MapCameraPosition.
-        // If you are using an older version of SwiftUI/iOS, MKCoordinateRegion might still be correct.
-        // Assuming iOS 17+ and Map(position: ...), but keeping your MKCoordinateRegion as it implies a binding.
-        // If you are using iOS 17+, you'd typically convert equatableRegion.region to MapCameraPosition.
-        // Example for iOS 17+:
-        // Map(position: .constant(.region(equatableRegion.region)), showsUserLocation: true) { ... }
-        // For now, retaining your Map(coordinateRegion: ...) which works on older iOS.
-        Map(position: .constant(.region(equatableRegion.region))) {
-            UserAnnotation() // ✅ Shows the user's current location
 
+
+    private func makeMapView() -> some View {
+        Map(position: .constant(.region(equatableRegion.region))) {
+            UserAnnotation()
             ForEach(pirateMarkers) { marker in
                 Annotation(marker.title ?? "", coordinate: marker.coordinate) {
                     mapAnnotationView(for: marker)
@@ -112,15 +109,19 @@ struct ConsolidatedIslandMapView: View {
         }
         .frame(height: 400)
         .padding()
-
+        .onAppear {
+            log.debug("🗺️ Map view appeared with \(pirateMarkers.count) markers.")
+        }
     }
 
 
     private func makeRadiusPicker() -> some View {
         RadiusPicker(selectedRadius: $selectedRadius)
             .padding()
+            .onAppear {
+                log.debug("🎚️ RadiusPicker appeared. Current radius = \(selectedRadius)")
+            }
     }
-
 
 
     private func overlayContentView() -> some View {
@@ -128,11 +129,9 @@ struct ConsolidatedIslandMapView: View {
             if showModal {
                 Color.primary.opacity(0.2)
                     .edgesIgnoringSafeArea(.all)
-                    .onTapGesture {
-                        showModal = false
-                    }
+                    .onTapGesture { showModal = false }
 
-                if selectedIsland != nil {
+                if let selectedIsland = selectedIsland {
                     IslandModalContainer(
                         selectedIsland: $selectedIsland,
                         viewModel: viewModel,
@@ -140,17 +139,18 @@ struct ConsolidatedIslandMapView: View {
                         showModal: $showModal,
                         enterZipCodeViewModel: enterZipCodeViewModel,
                         selectedAppDayOfWeek: $selectedAppDayOfWeek,
-                        navigationPath: $navigationPath // ✅ Pass the binding here!
+                        navigationPath: $navigationPath
                     )
                     .frame(width: UIScreen.main.bounds.width * 0.8, height: UIScreen.main.bounds.height * 0.6)
                     .background(Color(.systemBackground))
                     .cornerRadius(10)
                     .padding()
                     .transition(.opacity)
+                    .onAppear {
+                        log.debug("🧭 Showing modal for island: \(selectedIsland.islandName ?? "Unknown")")
+                    }
                 } else {
-                    Text("No Gym Selected")
-                        .padding()
-                        .foregroundColor(.primary)
+                    Text("No Gym Selected").padding().foregroundColor(.primary)
                 }
             }
         }
@@ -180,11 +180,19 @@ struct ConsolidatedIslandMapView: View {
     }
     
     private func onAppear() {
-        locationManager.startLocationServices()
-        if let userLocation = locationManager.userLocation {
-            updateRegion(userLocation, radius: selectedRadius)
+        log.info("👀 ConsolidatedIslandMapView appeared.")
+
+        // Only start location services if we don't already have a location
+        if locationManager.userLocation == nil {
+            locationManager.startLocationServices()
+            log.debug("🚀 Called startLocationServices()")
+        } else {
+            log.debug("✅ userLocation already available on appear: \(locationManager.userLocation!.coordinate.latitude), \(locationManager.userLocation!.coordinate.longitude)")
+            updateRegion(locationManager.userLocation!, radius: selectedRadius)
         }
     }
+
+
 
 
     private func onChangeUserLocation(_ newUserLocation: CLLocation?) {

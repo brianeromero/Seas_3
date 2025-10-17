@@ -92,6 +92,13 @@
     <key>NSUserTrackingUsageDescription</key>
     <string>This app uses tracking to deliver personalized ads and improve user experience.</string>
 
+    <!-- Location Permissions -->
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>We need your location to show gyms near you.</string>
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>We need your location to show gyms near you, even in the background.</string>
+
+
     <!-- Keychain -->
     <key>KeychainAccessGroups</key>
     <array>
