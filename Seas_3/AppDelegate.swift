@@ -155,7 +155,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
             }
         }
 
-        // ✅ Debug: confirm Info.plist contains Google Ads key
+        // 🔟 Start location services
+        configureLocationServices()
+
+        // Debug: confirm Google Ads key
         print("GADApplicationIdentifier: \(Bundle.main.object(forInfoDictionaryKey: "GADApplicationIdentifier") ?? "❌ missing")")
 
         return true
@@ -168,6 +171,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         }
     }
 
+    
+    // MARK: - Location Services
+    private func configureLocationServices() {
+        print("🧭 Starting UserLocationMapViewModel location services...")
+        UserLocationMapViewModel.shared.startLocationServices()
+    }
     
     func testKeychainAccessGroup() {
         let query: [String: Any] = [

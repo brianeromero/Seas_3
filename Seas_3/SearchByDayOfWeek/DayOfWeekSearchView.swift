@@ -31,7 +31,7 @@ struct DayOfWeekSearchView: View {
     @State private var navigationPath = NavigationPath()
 
     // UserLocationMapViewModel can remain @StateObject if it's specific to this view's lifecycle
-    @StateObject private var userLocationMapViewModel = UserLocationMapViewModel.shared
+    @ObservedObject private var userLocationMapViewModel = UserLocationMapViewModel.shared
 
     // ✅ IMPORTANT: Use @EnvironmentObject for shared view models
     @EnvironmentObject var viewModel: AppDayOfWeekViewModel

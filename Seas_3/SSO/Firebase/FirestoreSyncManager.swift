@@ -82,11 +82,21 @@ class FirestoreSyncManager {
     }
 
     private func checkLocalRecordsAndCreateFirestoreRecordsIfNecessary(collectionName: String, querySnapshot: QuerySnapshot?) async {
-        print("🚀 [SyncManager] Initiating record check for collection: \(collectionName)")
+        // 👇 Add this right at the top
+        let syncID = UUID().uuidString.prefix(8)
+        print("🚀 [SyncManager:\(syncID)] Starting sync for \(collectionName)")
+
+        print("🚀 [SyncManager:\(syncID)] Initiating record check for collection: \(collectionName)")
+
 
         // ✅ Step 1: Check for network connection before doing anything
         guard NetworkMonitor.shared.isConnected else {
-            print("⚠️ [SyncManager] No network connection detected. Skipping Firestore sync for \(collectionName).")
+            print("⚠️ [SyncManager] NetworkMonitor reported offline at \(Date()). " +
+                  "Current path status: \(NetworkMonitor.shared.currentPath?.status ?? .requiresConnection)")
+
+            print("⚠️ [SyncManager] Skipping Firestore sync for \(collectionName). " +
+                  "NetworkMonitor.isConnected = \(NetworkMonitor.shared.isConnected)")
+
             DispatchQueue.main.async {
                 NotificationCenter.default.post(name: Notification.Name("ShowToast"), object: nil, userInfo: [
                     "message": "No internet connection. Sync postponed until you're back online.",
@@ -95,6 +105,7 @@ class FirestoreSyncManager {
             }
             return
         }
+
 
         // ✅ Step 2: Continue if querySnapshot is valid
         guard let querySnapshot = querySnapshot else {
@@ -352,7 +363,12 @@ class FirestoreSyncManager {
                         } else {
                             print("🟢 Updating existing PirateIsland with ID: \(record)")
                         }
+                        if isNewRecord {
+                            print("⚡️ New record created for \(collectionName) record \(record)")
+                        }
+
                         if let pi = pirateIsland {
+                            // Update properties from Firestore document
                             pi.islandName = docSnapshot.get("name") as? String
                             pi.islandLocation = docSnapshot.get("location") as? String
                             pi.country = docSnapshot.get("country") as? String
@@ -378,7 +394,12 @@ class FirestoreSyncManager {
                         } else {
                             print("🟢 Updating existing Review with ID: \(record)")
                         }
+                        if isNewRecord {
+                            print("⚡️ New record created for \(collectionName) record \(record)")
+                        }
+
                         if let r = review {
+                            // Update properties from Firestore document
                             r.stars = docSnapshot.get("stars") as? Int16 ?? 0
                             r.review = docSnapshot.get("review") as? String ?? ""
                             r.userName = docSnapshot.get("userName") as? String ?? docSnapshot.get("name") as? String ?? "Anonymous"
@@ -394,6 +415,7 @@ class FirestoreSyncManager {
                             } else {
                                 print("⚠️ WARNING: No 'islandID' found in Firestore data for Review \(record).")
                             }
+
                             managedObject = r
                         }
 
@@ -407,10 +429,12 @@ class FirestoreSyncManager {
                                 print("🟡 Creating new MatTime with ID: \(record)")
                             } else {
                                 print("❌ Error: Invalid UUID string for MatTime ID: \(record). Skipping creation.")
-                                // Do not return here, just skip managedObject = mt
                             }
                         } else {
                             print("🟢 Updating existing MatTime with ID: \(record)")
+                        }
+                        if isNewRecord {
+                            print("⚡️ New record created for \(collectionName) record \(record)")
                         }
 
                         if let mt = matTime {
@@ -436,6 +460,7 @@ class FirestoreSyncManager {
                             } else {
                                 print("⚠️ WARNING: No 'appDayOfWeek' reference found in Firestore data for MatTime \(record).")
                             }
+
                             managedObject = mt
                         }
 
@@ -448,6 +473,9 @@ class FirestoreSyncManager {
                             print("🟡 Creating new AppDayOfWeek with ID: \(record)")
                         } else {
                             print("🟢 Updating existing AppDayOfWeek with ID: \(record)")
+                        }
+                        if isNewRecord {
+                            print("⚡️ New record created for \(collectionName) record \(record)")
                         }
 
                         if let ado = appDayOfWeek {
@@ -489,6 +517,7 @@ class FirestoreSyncManager {
                             }
                             managedObject = ado
                         }
+
 
                     default:
                         print("Unknown collection: \(collectionName). Skipping record \(record).")

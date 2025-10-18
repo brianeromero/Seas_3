@@ -32,7 +32,7 @@ struct IslandMenu2: View {
     @State private var showAlert = false
     @State private var alertMessage = ""
     @State private var selectedIsland: PirateIsland? = nil
-    @StateObject private var locationManager = UserLocationMapViewModel.shared
+    @ObservedObject private var locationManager = UserLocationMapViewModel.shared
     @State private var region: MKCoordinateRegion = MKCoordinateRegion()
     @State private var searchResults: [PirateIsland] = []
     @StateObject var appDayOfWeekViewModel: AppDayOfWeekViewModel

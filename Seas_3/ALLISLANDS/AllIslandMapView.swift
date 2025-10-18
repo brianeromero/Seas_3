@@ -31,7 +31,8 @@ struct ConsolidatedIslandMapView: View {
 
     @ObservedObject var enterZipCodeViewModel: EnterZipCodeViewModel
     @StateObject private var viewModel: AppDayOfWeekViewModel
-    @StateObject private var locationManager: UserLocationMapViewModel
+    @ObservedObject private var locationManager: UserLocationMapViewModel
+    
 
     @State private var selectedRadius: Double = 5.0
     @State private var equatableRegion = EquatableMKCoordinateRegion(
@@ -60,7 +61,7 @@ struct ConsolidatedIslandMapView: View {
     ) {
         _viewModel = StateObject(wrappedValue: viewModel)
         self.enterZipCodeViewModel = enterZipCodeViewModel
-        _locationManager = StateObject(wrappedValue: UserLocationMapViewModel.shared)
+        _locationManager = ObservedObject(wrappedValue: UserLocationMapViewModel.shared)
         _selectedDay = State(initialValue: .monday)
         self._navigationPath = navigationPath
     }
@@ -68,12 +69,13 @@ struct ConsolidatedIslandMapView: View {
     var body: some View {
         let content = VStack {
             if locationManager.userLocation != nil {
-                makeMapView()
+                makeMapView() // you can pass location if you want
                 makeRadiusPicker()
             } else {
-                Text("Fetching user location...")
+                ProgressView("Fetching user location…")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .onAppear {
-                        log.debug("🕐 Showing 'Fetching user location...' — locationManager.userLocation is currently nil.")
+                        log.debug("🕐 Waiting for user location…")
                     }
             }
         }
@@ -193,31 +195,22 @@ struct ConsolidatedIslandMapView: View {
     }
 
 
-
-
     private func onChangeUserLocation(_ newUserLocation: CLLocation?) {
         guard let newUserLocation = newUserLocation else { return }
-        updateRegion(newUserLocation, radius: selectedRadius)
-
-        let address = "Your Address Here" // This will likely need to be dynamic
-        Task {
-            do {
-                // Assuming MapUtils.fetchLocation returns CLLocationCoordinate2D
-                let locationCoordinate = try await MapUtils.fetchLocation(for: address)
-                self.fetchedLocation = CLLocation(latitude: locationCoordinate.latitude, longitude: locationCoordinate.longitude)
-
-                if let location = self.fetchedLocation {
-                    updateRegion(location, radius: selectedRadius)
-                }
-            } catch {
-                print("Error fetching location: \(error)")
-            }
-        }
+        
+        // Only update the region; markers will update via onChangeEquatableRegion
+        let newRegion = MKCoordinateRegion(
+            center: newUserLocation.coordinate,
+            latitudinalMeters: selectedRadius * 1609.34,
+            longitudinalMeters: selectedRadius * 1609.34
+        )
+        equatableRegion = EquatableMKCoordinateRegion(region: newRegion)
     }
 
     private func onChangeEquatableRegion(_ newRegion: EquatableMKCoordinateRegion) {
         updateMarkers(for: newRegion.region)
     }
+
 
     private func onChangeSelectedRadius(_ newRadius: Double) {
         if let userLocation = locationManager.userLocation {
