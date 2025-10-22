@@ -1,6 +1,6 @@
 platform :ios, '18.0'
 
-target 'Seas_3' do
+target 'Mat_Finder' do
   use_frameworks!
 
   # ✅ Modular Firebase (using individual pods, highly recommended)

@@ -1,6 +1,6 @@
 //
 //  MatTime+CoreDataProperties.swift
-//  Seas_3
+//  Mat_Finder
 //
 //  Created by Brian Romero on 7/15/24.
 //
