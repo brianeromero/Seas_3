@@ -83,14 +83,15 @@ struct LoginForm: View {
     @Binding var errorMessage: String
     @EnvironmentObject var authenticationState: AuthenticationState
     @ObservedObject var islandViewModel: PirateIslandViewModel
-    @State private var showDisclaimer = false
-    @State private var showAdminLogin = false
     @Binding var showMainContent: Bool
     @Environment(\.managedObjectContext) private var viewContext
     @State private var isPasswordVisible = false
     @Binding var isLoggedIn: Bool
     @Binding var navigateToAdminMenu: Bool
     @State private var showToastMessage: String = ""
+    
+    
+    
 
     var body: some View {
         VStack(spacing: 10) {
@@ -101,14 +102,16 @@ struct LoginForm: View {
                 .padding(.bottom, -40)
 
             VStack(alignment: .leading, spacing: 20) {
+                // Username/Email
                 Text("Username or Email")
                     .font(.headline)
                 TextField("Username or Email", text: $usernameOrEmail)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .onChange(of: usernameOrEmail) { oldValue, newValue in // Changed to two parameters
+                    .onChange(of: usernameOrEmail) { _, newValue in
                         isSignInEnabled = !newValue.isEmpty && !password.isEmpty
                     }
 
+                // Password
                 Text("Password")
                     .font(.headline)
                 HStack {
@@ -125,28 +128,29 @@ struct LoginForm: View {
                             .textContentType(.password)
                     }
 
-                    Button(action: {
+                    Button {
                         isPasswordVisible.toggle()
-                    }) {
+                    } label: {
                         Image(systemName: isPasswordVisible ? "eye.slash" : "eye")
                             .accessibilityLabel(isPasswordVisible ? "Hide password" : "Show password")
                             .foregroundColor(.blue)
                     }
                     .buttonStyle(BorderlessButtonStyle())
                 }
-                .onChange(of: password) { oldValue, newValue in // Changed to two parameters
+                .onChange(of: password) { _, newValue in
                     isSignInEnabled = !usernameOrEmail.isEmpty && !newValue.isEmpty
                 }
             }
             .padding(.top, -20)
             .frame(maxWidth: .infinity, alignment: .leading)
 
+            // Sign In Button
             VStack(spacing: 20) {
-                Button(action: {
+                Button {
                     Task {
                         await signIn()
                     }
-                }) {
+                } label: {
                     Text("Sign In")
                         .font(.headline)
                         .padding()
@@ -157,34 +161,44 @@ struct LoginForm: View {
                 }
                 .disabled(!isSignInEnabled)
 
-                VStack {
-                    HStack {
-                        GoogleSignInButtonWrapper(
-                            handleError: { message in
-                                self.errorMessage = message
-                            }
-                        )
-                        // .environmentObject(authenticationState) // <-- This line should be REMOVED (already removed)
-                        .frame(height: 50)
-                        .clipped()
+                // Social Login Buttons
+                HStack(spacing: 12) {
+                    GoogleSignInButtonWrapper { message in
+                        self.errorMessage = message
                     }
-                }
-                .frame(maxHeight: .infinity, alignment: .center)
+                    .frame(height: 50)
+                    .clipped()
 
+                    AppleSignInButtonView(
+                        onRequest: {  /* Configure scopes if needed */ },
+                        onCompletion: { result in
+                            switch result {
+                            case .success:
+                                // Just call the synchronous method
+                                AuthViewModel.shared.signInWithApple()
+                            case .failure(let error):
+                                print("Apple Sign-In failed: \(error.localizedDescription)")
+                                self.errorMessage = error.localizedDescription
+                            }
+                        }
+                    )
+                    .frame(height: 50)
+
+                }
+
+                // Error message
                 if !errorMessage.isEmpty {
                     Text(errorMessage)
                         .foregroundColor(.red)
                 }
 
+                // Links
                 VStack {
-                    // These NavigationLinks will now push onto the AppRootView's NavigationStack
                     NavigationLink(destination: ApplicationOfServiceView()) {
                         Text("By continuing, you agree to the updated Terms of Service/Disclaimer")
                             .font(.footnote)
-                            .lineLimit(nil)
                             .multilineTextAlignment(.center)
                             .padding()
-                            .fixedSize(horizontal: false, vertical: true)
                     }
                     .padding(.top, -10)
 
@@ -196,27 +210,30 @@ struct LoginForm: View {
                     }
                 }
             }
-            .onAppear {
-                print("Login form loaded (LoginForm)")
-            }
-            .onDisappear {
-                print("Login form has finished loading LOGIN FORM")
-            }
+            .frame(maxHeight: .infinity, alignment: .center)
+        }
+        .onAppear {
+            print("Login form loaded (LoginForm)")
+        }
+        .onDisappear {
+            print("Login form has finished loading LOGIN FORM")
         }
     }
 
     // MARK: - Sign In Logic
     private func signIn() async {
         guard !usernameOrEmail.isEmpty && !password.isEmpty else {
-            showAlert(with: "Please enter both username and password.")
+            errorMessage = "Please enter both username and password."
             return
         }
 
         let normalizedUsernameOrEmail = usernameOrEmail.lowercased()
 
         do {
-            print("Starting sign-in process for \(normalizedUsernameOrEmail)")
-            try await AuthViewModel.shared.signInUser(with: normalizedUsernameOrEmail, password: password)
+            try await AuthViewModel.shared.signInUser(
+                with: normalizedUsernameOrEmail,
+                password: password
+            )
 
             DispatchQueue.main.async {
                 authenticationState.setIsAuthenticated(true)
@@ -225,9 +242,9 @@ struct LoginForm: View {
             }
 
         } catch let error as AppAuthError {
-            handleAppAuthError(error)
+            errorMessage = error.localizedDescription
         } catch {
-            handleAppAuthError(.unknown(error))
+            errorMessage = error.localizedDescription
         }
     }
 

@@ -323,6 +323,8 @@
 				Firebase/HashedPassword.swift,
 				Firebase/User.swift,
 				Login/AppConfig.swift,
+				Login/AppleSignIn/AppleSignInButtonView.swift,
+				Login/AppleSignIn/AppleSignInCoordinator.swift,
 				Login/AuthenticationState.swift,
 				Login/ButtonStyle.swift,
 				Login/FacebookSignInButtonWrapper.swift,

@@ -1068,7 +1068,31 @@ class AuthViewModel: ObservableObject {
         self.userIsLoggedIn = false
     }
 
+    /// SIGN IN WITH APPLE
 
+    func signInWithApple() {
+        let coordinator = AppleSignInCoordinator()
+        coordinator.startSignInWithAppleFlow { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let authResult):
+                    guard let user = authResult.user.email else { return }
+                    print("✅ Apple Sign-In success for \(user)")
+                    
+                    Task { // async call
+                        await self?.handleUserLogin(firebaseUser: authResult.user)
+                    }
+                    
+                case .failure(let error):
+                    print("❌ Apple Sign-In failed: \(error.localizedDescription)")
+                    self?.formState.alertMessage = error.localizedDescription
+                    self?.formState.showAlert = true
+
+                }
+            }
+        }
+    }
+    
 }
 
 extension User {
