@@ -76,53 +76,44 @@ enum AppAuthError: LocalizedError {
 struct HeroHeaderView: View {
     @Binding var selectedLoginTab: LoginViewSelection
     @ObservedObject var islandViewModel: PirateIslandViewModel
-
+    
+    private let heroBackgroundColor = Color(red: 0.1, green: 0.2, blue: 0.25)
+    
     var body: some View {
         VStack(spacing: 15) {
-            // Logo
+            // MARK: - Logo
             VStack(spacing: 8) {
                 Image("MF_little_trans")
                     .resizable()
                     .scaledToFit()
                     .frame(width: 120, height: 120)
-
+                
                 Text("Mat_Finder")
                     .font(.title3)
-                    .fontWeight(.medium)
-                    .foregroundColor(.white.opacity(0.9))
+                    .foregroundColor(.white)
             }
-            .padding(.top, 50)
+            .padding(.top, 40)
             .padding(.bottom, 20)
-
-            // Segmented control
-            Picker("", selection: $selectedLoginTab) {
-                Text("Log In").tag(LoginViewSelection.login)
-                Text("Create Account").tag(LoginViewSelection.createAccount)
+            
+            // MARK: - Segmented Control
+            Picker("Select View", selection: $selectedLoginTab) {
+                ForEach(LoginViewSelection.allCases, id: \.self) { tab in
+                    Text(tab == .login ? "Log In" : "Create Account")
+                        .tag(tab)
+                }
             }
             .pickerStyle(.segmented)
-            .padding(.horizontal, 40)
             .tint(.white)
-            .background(Color.clear)
-            .controlSize(.large)
+            .padding(.horizontal)
             .padding(.bottom, 10)
         }
+        .background(heroBackgroundColor.edgesIgnoringSafeArea(.top))
         .frame(maxWidth: .infinity)
-        .background(
-            LinearGradient(
-                gradient: Gradient(colors: [
-                    Color(red: 0.04, green: 0.09, blue: 0.13),
-                    Color(red: 0.07, green: 0.15, blue: 0.20)
-                ]),
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .edgesIgnoringSafeArea(.top)
-        )
     }
 }
 
 
-// MARK: - LOGIN FORM (Revised to match Mockup 2 style)
+// MARK: - LOGIN FORM (Organized to Match Mockup)
 struct LoginForm: View {
     @Binding var usernameOrEmail: String
     @Binding var password: String
@@ -131,95 +122,58 @@ struct LoginForm: View {
     @EnvironmentObject var authenticationState: AuthenticationState
     @ObservedObject var islandViewModel: PirateIslandViewModel
     @Binding var showMainContent: Bool
-    @Environment(\.managedObjectContext) private var viewContext
-    @State private var isPasswordVisible = false
     @Binding var isLoggedIn: Bool
     @Binding var navigateToAdminMenu: Bool
-    @State private var showToastMessage: String = ""
+    @Environment(\.managedObjectContext) private var viewContext
+    @State private var isPasswordVisible = false
 
     var body: some View {
-        VStack(spacing: 25) {
+        VStack(spacing: 20) {
             
-            // MARK: - Username/Email Field
-            VStack(alignment: .leading, spacing: 5) {
-                Text("Username or Email")
-                    .foregroundColor(.white) // Text label color
-                    .font(.body)
-                
-                TextField("Email Address", text: $usernameOrEmail) // Changed placeholder text to match mockup
-                    .padding()
-                    .background(Color.gray.opacity(0.4)) // Darker gray for contrast on dark background
-                    .foregroundColor(.white)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled(true)
-                    .cornerRadius(8)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color.gray.opacity(0.7), lineWidth: 1) // Subtle border
-                    )
-                    .onChange(of: usernameOrEmail) { _, newValue in
-                        isSignInEnabled = !newValue.isEmpty && !password.isEmpty
-                    }
-                    .accessibilityLabel("Username or Email input")
-            }
-            
-            // MARK: - Social Login Icons (Moved above password field as per Mockup 2)
-            HStack(spacing: 25) {
-                GoogleSignInButtonWrapper { message in
-                    self.errorMessage = message
+            // MARK: - Username / Email + Password
+            VStack(spacing: 15) {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("Username or Email")
+                        .foregroundColor(.white)
+                    TextField("Email Address", text: $usernameOrEmail)
+                        .padding()
+                        .background(Color.gray.opacity(0.4))
+                        .cornerRadius(8)
+                        .foregroundColor(.white)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled(true)
+                        .onChange(of: usernameOrEmail) { _, newValue in
+                            isSignInEnabled = !newValue.isEmpty && !password.isEmpty
+                        }
                 }
-                .frame(width: 50, height: 50)
-
-                AppleSignInButtonView(
-                    onRequest: { /* Configure scopes if needed */ },
-                    onCompletion: { result in
-                        // ... existing logic ...
-                    }
-                )
-                .frame(width: 50, height: 50)
-            }
-            
-            Text("OR")
-                .font(.caption)
-                .foregroundColor(.gray)
-                .padding(.vertical, -5)
-            
-            // MARK: - Password Field
-            VStack(alignment: .leading, spacing: 5) {
-                Text("Password")
-                    .foregroundColor(.white) // Text label color
-                    .font(.body)
                 
-                HStack {
-                    Group {
-                        if isPasswordVisible {
-                            TextField("Password", text: $password)
-                        } else {
-                            SecureField("Password", text: $password)
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("Password")
+                        .foregroundColor(.white)
+                    
+                    HStack {
+                        Group {
+                            if isPasswordVisible {
+                                TextField("Password", text: $password)
+                            } else {
+                                SecureField("Password", text: $password)
+                            }
+                        }
+                        .padding()
+                        .background(Color.gray.opacity(0.4))
+                        .cornerRadius(8)
+                        .foregroundColor(.white)
+                        .onChange(of: password) { _, newValue in
+                            isSignInEnabled = !usernameOrEmail.isEmpty && !newValue.isEmpty
+                        }
+                        
+                        Button {
+                            isPasswordVisible.toggle()
+                        } label: {
+                            Image(systemName: isPasswordVisible ? "eye.slash" : "eye")
+                                .foregroundColor(.gray)
                         }
                     }
-                    .padding()
-                    .background(Color.gray.opacity(0.4))
-                    .foregroundColor(.white)
-                    .disableAutocorrection(true)
-                    .textContentType(.password)
-                    .cornerRadius(8)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color.gray.opacity(0.7), lineWidth: 1)
-                    )
-                    
-                    Button {
-                        isPasswordVisible.toggle()
-                    } label: {
-                        Image(systemName: isPasswordVisible ? "eye.slash" : "eye")
-                            .foregroundColor(.gray)
-                            .padding(.trailing, 5)
-                    }
-                    .buttonStyle(BorderlessButtonStyle())
-                }
-                .onChange(of: password) { _, newValue in
-                    isSignInEnabled = !usernameOrEmail.isEmpty && !newValue.isEmpty
                 }
             }
             
@@ -237,24 +191,50 @@ struct LoginForm: View {
             }
             .disabled(!isSignInEnabled)
             
-            // MARK: - Footer Links and Error
+            // MARK: - OR Separator
+            HStack {
+                Rectangle()
+                    .frame(height: 1)
+                    .foregroundColor(.gray.opacity(0.5))
+                Text("OR")
+                    .foregroundColor(.gray)
+                    .font(.caption)
+                Rectangle()
+                    .frame(height: 1)
+                    .foregroundColor(.gray.opacity(0.5))
+            }
+            .padding(.vertical, 10)
+            
+            // MARK: - Social Buttons
+            HStack(spacing: 25) {
+                GoogleSignInButtonWrapper { message in
+                    self.errorMessage = message
+                }
+                .frame(width: 50, height: 50)
+                
+                AppleSignInButtonView(
+                    onRequest: { },
+                    onCompletion: { _ in }
+                )
+                .frame(width: 50, height: 50)
+            }
+            
+            // MARK: - Error Message
+            if !errorMessage.isEmpty {
+                Text(errorMessage)
+                    .foregroundColor(.red)
+                    .multilineTextAlignment(.center)
+            }
+            
+            // MARK: - Links
             VStack(spacing: 10) {
-                if !errorMessage.isEmpty {
-                    Text(errorMessage)
-                        .foregroundColor(.red)
-                        .multilineTextAlignment(.center)
-                        .font(.caption)
-                }
-
-                // Terms of Service Link
                 NavigationLink(destination: ApplicationOfServiceView()) {
-                    Text("By continuing, you agree to the updated Terms of Service/Disclaimer")
+                    Text("By continuing, you agree to the Terms of Service/Disclaimer")
                         .font(.footnote)
-                        .multilineTextAlignment(.center)
                         .foregroundColor(.gray)
+                        .multilineTextAlignment(.center)
                 }
-
-                // Admin Login Link
+                
                 NavigationLink(destination: AdminLoginView(isPresented: .constant(false))) {
                     Text("Admin Login")
                         .font(.footnote)
@@ -265,90 +245,58 @@ struct LoginForm: View {
             
             Spacer()
         }
-        .padding(.horizontal, 20) // Use horizontal padding for a cleaner look
-        .padding(.top, 30) // Push content down slightly from the header
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(UIColor.systemBackground).edgesIgnoringSafeArea(.bottom))
-        .foregroundColor(.white) // Default text color for the form
+        .padding(.horizontal, 20)
+        .padding(.top, 30)
+        .background(Color.black.edgesIgnoringSafeArea(.bottom))
     }
 
-    // MARK: - Sign In Logic (no changes needed)
+    // MARK: - Sign In Function
     private func signIn() async {
         guard !usernameOrEmail.isEmpty && !password.isEmpty else {
             errorMessage = "Please enter both username and password."
             return
         }
-
-        let normalizedUsernameOrEmail = usernameOrEmail.lowercased()
-
+        
         do {
             try await AuthViewModel.shared.signInUser(
-                with: normalizedUsernameOrEmail,
+                with: usernameOrEmail.lowercased(),
                 password: password
             )
-
             DispatchQueue.main.async {
                 authenticationState.setIsAuthenticated(true)
                 isLoggedIn = true
                 showMainContent = true
             }
-
-        } catch let error as AppAuthError {
-            errorMessage = error.localizedDescription
         } catch {
             errorMessage = error.localizedDescription
         }
-    }
-
-    @MainActor
-    private func handleAppAuthError(_ error: AppAuthError) {
-        NotificationCenter.default.post(
-            name: .showToast,
-            object: nil,
-            userInfo: ["message": error.localizedDescription]
-        )
-        errorMessage = error.localizedDescription
-    }
-
-    private let userFetcher = UserFetcher()
-
-    private func fetchUser(_ usernameOrEmail: String) async throws -> UserInfo {
-        print("Fetching user with identifier: \(usernameOrEmail)")
-        return try await userFetcher.fetchUser(usernameOrEmail: usernameOrEmail, context: viewContext)
-    }
-
-    private func showAlert(with message: String) {
-        print("Showing alert with message: \(message)")
-        errorMessage = message
     }
 }
 
 
 // MARK: - LOGIN VIEW
-public struct LoginView: View {
+struct LoginView: View {
     @Binding var navigationPath: NavigationPath
-
     @EnvironmentObject var authenticationState: AuthenticationState
     @Environment(\.managedObjectContext) private var viewContext
-
-    @State private var showMainContent: Bool = false
-    @State private var errorMessage: String = ""
-    @State private var usernameOrEmail: String = ""
-    @State private var password: String = ""
-    @State private var showAlert = false
-    @State private var showDisclaimer = false
-    @State private var showAdminLogin = false
+    
+    // Keep these as StateObjects
     @StateObject private var islandViewModel: PirateIslandViewModel
     @StateObject private var profileViewModel: ProfileViewModel
-    @State private var isUserProfileActive: Bool = false
-    @State private var selectedTabIndex: Int = 0
-    @State private var selectedLoginTab: LoginViewSelection
-    @Binding private var navigateToAdminMenu: Bool
-    @Binding private var isLoggedIn: Bool
-    @State private var isSignInEnabled: Bool = false
-    @State private var showToastMessage: String = ""
-    @State private var isToastShown: Bool = false
+    
+    // Form state
+    @State private var usernameOrEmail = ""
+    @State private var password = ""
+    @State private var errorMessage = ""
+    @State private var isSignInEnabled = false
+    @State private var showMainContent = false
+    
+    // Bindings
+    @Binding var selectedLoginTab: LoginViewSelection
+    @Binding var navigateToAdminMenu: Bool
+    @Binding var isLoggedIn: Bool
 
+    // MARK: - Init
     public init(
         islandViewModel: PirateIslandViewModel,
         profileViewModel: ProfileViewModel,
@@ -357,88 +305,67 @@ public struct LoginView: View {
         isLoggedIn: Binding<Bool>,
         navigationPath: Binding<NavigationPath>
     ) {
-        _selectedLoginTab = State(initialValue: isSelected.wrappedValue)
+        _selectedLoginTab = isSelected
         _navigateToAdminMenu = navigateToAdminMenu
         _isLoggedIn = isLoggedIn
         _navigationPath = navigationPath
         _islandViewModel = StateObject(wrappedValue: islandViewModel)
         _profileViewModel = StateObject(wrappedValue: profileViewModel)
     }
-
-    public var body: some View {
+    
+    var body: some View {
         VStack(spacing: 0) {
-            mainContent
-        }
-        .alert(isPresented: $showAlert) {
-            Alert(title: Text("Error"), message: Text(errorMessage), dismissButton: .default(Text("OK")))
-        }
-        .onChange(of: showMainContent) {
-            isLoggedIn = showMainContent
-        }
-        .showToast(
-            isPresenting: $isToastShown,
-            message: showToastMessage,
-            type: .success
-        )
-        .onReceive(NotificationCenter.default.publisher(for: Notification.Name.showToast)) { notification in
-            if let message = notification.userInfo?["message"] as? String {
-                showToastMessage = message
-                isToastShown = true
-            }
-        }
-    }
-
-    private var mainContent: some View {
-        VStack(spacing: 0) {
-            
             if authenticationState.isAuthenticated {
                 IslandMenu2(
-                    profileViewModel: profileViewModel,
+                    profileViewModel: profileViewModel, // Pass the StateObject
                     navigationPath: $navigationPath
                 )
             } else {
                 VStack(spacing: 0) {
-                    
-                    // 1. Hero Header (Logo + Segmented Control)
                     HeroHeaderView(
                         selectedLoginTab: $selectedLoginTab,
                         islandViewModel: islandViewModel
                     )
                     
-                    // 2. Main Content (Login Form or Create Account Form)
-                    Group {
-                        if selectedLoginTab == .login {
-                            LoginForm(
-                                usernameOrEmail: $usernameOrEmail,
-                                password: $password,
-                                isSignInEnabled: $isSignInEnabled,
-                                errorMessage: $errorMessage,
-                                islandViewModel: islandViewModel,
-                                showMainContent: $showMainContent,
-                                isLoggedIn: $isLoggedIn,
-                                navigateToAdminMenu: $navigateToAdminMenu
-                            )
-                            .transition(.move(edge: .leading).combined(with: .opacity))
-                            
-                        } else { // selectedLoginTab == .createAccount
-                            CreateAccountView(
-                                islandViewModel: islandViewModel,
-                                isUserProfileActive: $isUserProfileActive,
-                                persistenceController: PersistenceController.shared,
-                                selectedTabIndex: $selectedTabIndex,
-                                emailManager: UnifiedEmailManager.shared
-                            )
-                            .transition(.move(edge: .trailing).combined(with: .opacity))
-                        }
+                    if selectedLoginTab == .login {
+                        LoginForm(
+                            usernameOrEmail: $usernameOrEmail,
+                            password: $password,
+                            isSignInEnabled: $isSignInEnabled,
+                            errorMessage: $errorMessage,
+                            islandViewModel: islandViewModel,
+                            showMainContent: $showMainContent,
+                            isLoggedIn: $isLoggedIn,
+                            navigateToAdminMenu: $navigateToAdminMenu
+                        )
+                        .transition(.move(edge: .leading).combined(with: .opacity))
+                    } else {
+                        CreateAccountView(
+                            islandViewModel: islandViewModel,
+                            isUserProfileActive: .constant(false),
+                            persistenceController: PersistenceController.shared,
+                            selectedTabIndex: .constant(LoginViewSelection.createAccount.rawValue),
+                            emailManager: UnifiedEmailManager.shared
+                        )
+                        .transition(.move(edge: .trailing).combined(with: .opacity))
                     }
-                    .animation(.default, value: selectedLoginTab)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-                .background(Color.black.edgesIgnoringSafeArea(.all))
+                .animation(.default, value: selectedLoginTab)
+                .background(
+                    LinearGradient(
+                        colors: [Color.purple.opacity(0.8), Color.blue.opacity(0.8)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .ignoresSafeArea()
+                )
             }
         }
     }
 }
+
+
+
 
 extension View {
     func setupListeners(showToastMessage: Binding<String>, isToastShown: Binding<Bool>, isLoggedIn: Bool = false) -> some View {
@@ -453,41 +380,5 @@ extension View {
                 }
             }
         }
-    }
-}
-
-struct HeroHeaderView_Previews: PreviewProvider {
-    @State static var selectedLoginTab: LoginViewSelection = .login
-    static var islandViewModel = PirateIslandViewModel(
-        persistenceController: PersistenceController.preview
-    )
-
-    static var previews: some View {
-        HStack(spacing: 0) {
-            // Light mode
-            HeroHeaderView(
-                selectedLoginTab: $selectedLoginTab,
-                islandViewModel: islandViewModel
-            )
-            .environment(\.colorScheme, .light)
-            .previewLayout(.sizeThatFits)
-            .frame(width: 220, height: 260)
-            .background(Color.white)
-            .cornerRadius(12)
-            .padding()
-
-            // Dark mode
-            HeroHeaderView(
-                selectedLoginTab: $selectedLoginTab,
-                islandViewModel: islandViewModel
-            )
-            .environment(\.colorScheme, .dark)
-            .previewLayout(.sizeThatFits)
-            .frame(width: 220, height: 260)
-            .background(Color.black)
-            .cornerRadius(12)
-            .padding()
-        }
-        .previewDisplayName("HeroHeaderView – Light vs Dark")
     }
 }
