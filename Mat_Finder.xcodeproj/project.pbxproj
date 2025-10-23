@@ -99,6 +99,9 @@
 		0CD930B12C33D4FB0051E923 /* YOu are HEre2.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C07B0C72C2D022C00D0BFB2 /* YOu are HEre2.png */; };
 		0CD930B22C33D4FE0051E923 /* MF_little_trans .png in Resources */ = {isa = PBXBuildFile; fileRef = 0C07B0CA2C2D022D00D0BFB2 /* MF_little_trans .png */; };
 		0CD930B32C33D5020051E923 /* YOu are HEre.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C07B0C82C2D022C00D0BFB2 /* YOu are HEre.png */; };
+		0CDA09542EA99E250095AA59 /* google_logo@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 0CDA09502EA99E250095AA59 /* google_logo@2x.png */; };
+		0CDA09552EA99E250095AA59 /* google_logo@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 0CDA09512EA99E250095AA59 /* google_logo@3x.png */; };
+		0CDA09562EA99E250095AA59 /* google_logo@1x.png in Resources */ = {isa = PBXBuildFile; fileRef = 0CDA094F2EA99E250095AA59 /* google_logo@1x.png */; };
 		0CDBEA302D024CA500559B6A /* MatTimesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CDBEA2F2D024CA500559B6A /* MatTimesViewModel.swift */; };
 		0CDF61CF2C3C9BE900A8A0BF /* IslandScheduleAsCal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CDF61CE2C3C9BE900A8A0BF /* IslandScheduleAsCal.swift */; };
 		0CDF61D12C3CA0F400A8A0BF /* ScheduleDetailModal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CDF61D02C3CA0F400A8A0BF /* ScheduleDetailModal.swift */; };
@@ -247,6 +250,9 @@
 		0CD376DF2CED4C7200491DD8 /* AdSettings+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AdSettings+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		0CD4E2BE2C7CDA0C005082AC /* ScheduledMatTimesSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduledMatTimesSection.swift; sourceTree = "<group>"; };
 		0CD9014F2CB655B40097D71F /* DoNotStorePasswords.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoNotStorePasswords.swift; sourceTree = "<group>"; };
+		0CDA094F2EA99E250095AA59 /* google_logo@1x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "google_logo@1x.png"; sourceTree = "<group>"; };
+		0CDA09502EA99E250095AA59 /* google_logo@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "google_logo@2x.png"; sourceTree = "<group>"; };
+		0CDA09512EA99E250095AA59 /* google_logo@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "google_logo@3x.png"; sourceTree = "<group>"; };
 		0CDBEA2F2D024CA500559B6A /* MatTimesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatTimesViewModel.swift; sourceTree = "<group>"; };
 		0CDF61CE2C3C9BE900A8A0BF /* IslandScheduleAsCal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandScheduleAsCal.swift; sourceTree = "<group>"; };
 		0CDF61D02C3CA0F400A8A0BF /* ScheduleDetailModal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleDetailModal.swift; sourceTree = "<group>"; };
@@ -648,6 +654,9 @@
 				0C07B0842C2CFE6200D0BFB2 /* AdditionalGymInfo.swift */,
 				0C07B0C02C2D01F300D0BFB2 /* CustomUnarchiveTransformer.swift */,
 				0CEB03952C2B9B73007CA3CC /* PirateIslandViewModel.swift */,
+				0CDA094F2EA99E250095AA59 /* google_logo@1x.png */,
+				0CDA09502EA99E250095AA59 /* google_logo@2x.png */,
+				0CDA09512EA99E250095AA59 /* google_logo@3x.png */,
 				0C07B0C52C2D022C00D0BFB2 /* calendar Image.png */,
 				0C07B0C42C2D022C00D0BFB2 /* flashing.gif */,
 				0C07B0C92C2D022D00D0BFB2 /* flashing2.gif */,
@@ -852,6 +861,9 @@
 				0CD930AF2C33D4F60051E923 /* flashing2.gif in Resources */,
 				0CD930B12C33D4FB0051E923 /* YOu are HEre2.png in Resources */,
 				0CEC326F2C3F07D400F0747F /* MainStoryboard.storyboard in Resources */,
+				0CDA09542EA99E250095AA59 /* google_logo@2x.png in Resources */,
+				0CDA09552EA99E250095AA59 /* google_logo@3x.png in Resources */,
+				0CDA09562EA99E250095AA59 /* google_logo@1x.png in Resources */,
 				0CD930AC2C33D4DD0051E923 /* Preview Assets.xcassets in Resources */,
 				0CD930B32C33D5020051E923 /* YOu are HEre.png in Resources */,
 				0CD930AE2C33D4F30051E923 /* flashing.gif in Resources */,
