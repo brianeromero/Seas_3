@@ -77,8 +77,6 @@ struct HeroHeaderView: View {
     @Binding var selectedLoginTab: LoginViewSelection
     @ObservedObject var islandViewModel: PirateIslandViewModel
     
-    private let heroBackgroundColor = Color(red: 0.1, green: 0.2, blue: 0.25)
-    
     var body: some View {
         VStack(spacing: 15) {
             // MARK: - Logo
@@ -86,14 +84,11 @@ struct HeroHeaderView: View {
                 Image("MF_little_trans")
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 120, height: 120)
-                
-                Text("Mat_Finder")
-                    .font(.title3)
-                    .foregroundColor(.white)
+                    .frame(width: 300, height: 300)
+                    .offset(y: 50) // moves image down 20 points
             }
-            .padding(.top, 40)
-            .padding(.bottom, 20)
+            .padding(.top, 10)
+            .padding(.bottom, 10)
             
             // MARK: - Segmented Control
             Picker("Select View", selection: $selectedLoginTab) {
@@ -107,13 +102,12 @@ struct HeroHeaderView: View {
             .padding(.horizontal)
             .padding(.bottom, 10)
         }
-        .background(heroBackgroundColor.edgesIgnoringSafeArea(.top))
         .frame(maxWidth: .infinity)
     }
 }
 
 
-// MARK: - LOGIN FORM (Organized to Match Mockup)
+// MARK: - LOGIN FORM
 struct LoginForm: View {
     @Binding var usernameOrEmail: String
     @Binding var password: String
@@ -124,7 +118,6 @@ struct LoginForm: View {
     @Binding var showMainContent: Bool
     @Binding var isLoggedIn: Bool
     @Binding var navigateToAdminMenu: Bool
-    @Environment(\.managedObjectContext) private var viewContext
     @State private var isPasswordVisible = false
 
     var body: some View {
@@ -132,11 +125,18 @@ struct LoginForm: View {
             
             // MARK: - Username / Email + Password
             VStack(spacing: 15) {
+                
+                // Username / Email
                 VStack(alignment: .leading, spacing: 5) {
                     Text("Username or Email")
                         .foregroundColor(.white)
+                        .font(.subheadline)
+                    
                     TextField("Email Address", text: $usernameOrEmail)
-                        .padding()
+                        .font(.subheadline)
+                        .padding(.vertical, 8)    // reduced height
+                        .padding(.horizontal, 12) // balanced sides
+                        .frame(height: 44)        // accessibility minimum
                         .background(Color.gray.opacity(0.4))
                         .cornerRadius(8)
                         .foregroundColor(.white)
@@ -147,11 +147,13 @@ struct LoginForm: View {
                         }
                 }
                 
+                // Password
                 VStack(alignment: .leading, spacing: 5) {
                     Text("Password")
                         .foregroundColor(.white)
+                        .font(.subheadline)
                     
-                    HStack {
+                    HStack(spacing: 8) {
                         Group {
                             if isPasswordVisible {
                                 TextField("Password", text: $password)
@@ -159,14 +161,17 @@ struct LoginForm: View {
                                 SecureField("Password", text: $password)
                             }
                         }
-                        .padding()
+                        .font(.subheadline)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 12)
+                        .frame(height: 44)
                         .background(Color.gray.opacity(0.4))
                         .cornerRadius(8)
                         .foregroundColor(.white)
                         .onChange(of: password) { _, newValue in
                             isSignInEnabled = !usernameOrEmail.isEmpty && !newValue.isEmpty
                         }
-                        
+
                         Button {
                             isPasswordVisible.toggle()
                         } label: {
@@ -182,12 +187,12 @@ struct LoginForm: View {
                 Task { await signIn() }
             } label: {
                 Text("Sign In")
-                    .font(.headline)
-                    .padding()
+                    .font(.system(size: 17, weight: .semibold))
                     .frame(maxWidth: .infinity)
+                    .frame(height: 44) // same visual rhythm as fields
                     .background(isSignInEnabled ? Color.blue : Color.gray)
                     .foregroundColor(.white)
-                    .cornerRadius(12)
+                    .cornerRadius(10)
             }
             .disabled(!isSignInEnabled)
             
@@ -229,10 +234,17 @@ struct LoginForm: View {
             // MARK: - Links
             VStack(spacing: 10) {
                 NavigationLink(destination: ApplicationOfServiceView()) {
-                    Text("By continuing, you agree to the Terms of Service/Disclaimer")
-                        .font(.footnote)
-                        .foregroundColor(.gray)
-                        .multilineTextAlignment(.center)
+                    (
+                        Text("By continuing, you agree to the ")
+                            .foregroundColor(.gray)
+                        +
+                        Text("Terms of Service/Disclaimer")
+                            .foregroundColor(.blue)
+                            .underline()
+                    )
+                    .font(.footnote)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity, alignment: .center)
                 }
                 
                 NavigationLink(destination: AdminLoginView(isPresented: .constant(false))) {
@@ -242,15 +254,17 @@ struct LoginForm: View {
                         .underline()
                 }
             }
-            
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
+
             Spacer()
+
         }
         .padding(.horizontal, 20)
         .padding(.top, 30)
-        .background(Color.black.edgesIgnoringSafeArea(.bottom))
+        // Removed black background so gradient shows through
     }
 
-    // MARK: - Sign In Function
     private func signIn() async {
         guard !usernameOrEmail.isEmpty && !password.isEmpty else {
             errorMessage = "Please enter both username and password."
@@ -278,25 +292,18 @@ struct LoginForm: View {
 struct LoginView: View {
     @Binding var navigationPath: NavigationPath
     @EnvironmentObject var authenticationState: AuthenticationState
-    @Environment(\.managedObjectContext) private var viewContext
-    
-    // Keep these as StateObjects
     @StateObject private var islandViewModel: PirateIslandViewModel
     @StateObject private var profileViewModel: ProfileViewModel
+    @Binding var selectedLoginTab: LoginViewSelection
+    @Binding var navigateToAdminMenu: Bool
+    @Binding var isLoggedIn: Bool
     
-    // Form state
     @State private var usernameOrEmail = ""
     @State private var password = ""
     @State private var errorMessage = ""
     @State private var isSignInEnabled = false
     @State private var showMainContent = false
-    
-    // Bindings
-    @Binding var selectedLoginTab: LoginViewSelection
-    @Binding var navigateToAdminMenu: Bool
-    @Binding var isLoggedIn: Bool
 
-    // MARK: - Init
     public init(
         islandViewModel: PirateIslandViewModel,
         profileViewModel: ProfileViewModel,
@@ -314,56 +321,60 @@ struct LoginView: View {
     }
     
     var body: some View {
-        VStack(spacing: 0) {
-            if authenticationState.isAuthenticated {
-                IslandMenu2(
-                    profileViewModel: profileViewModel, // Pass the StateObject
-                    navigationPath: $navigationPath
-                )
-            } else {
-                VStack(spacing: 0) {
-                    HeroHeaderView(
-                        selectedLoginTab: $selectedLoginTab,
-                        islandViewModel: islandViewModel
+        ZStack {
+            // Full-screen gradient
+            LinearGradient(
+                colors: [
+                    Color(red: 0.1, green: 0.2, blue: 0.25),   // Top color (original heroBackgroundColor)
+                    Color(red: 0.05, green: 0.15, blue: 0.2)   // Slightly darker bottom for depth
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                if authenticationState.isAuthenticated {
+                    IslandMenu2(
+                        profileViewModel: profileViewModel,
+                        navigationPath: $navigationPath
                     )
-                    
-                    if selectedLoginTab == .login {
-                        LoginForm(
-                            usernameOrEmail: $usernameOrEmail,
-                            password: $password,
-                            isSignInEnabled: $isSignInEnabled,
-                            errorMessage: $errorMessage,
-                            islandViewModel: islandViewModel,
-                            showMainContent: $showMainContent,
-                            isLoggedIn: $isLoggedIn,
-                            navigateToAdminMenu: $navigateToAdminMenu
+                } else {
+                    VStack(spacing: 0) {
+                        HeroHeaderView(
+                            selectedLoginTab: $selectedLoginTab,
+                            islandViewModel: islandViewModel
                         )
-                        .transition(.move(edge: .leading).combined(with: .opacity))
-                    } else {
-                        CreateAccountView(
-                            islandViewModel: islandViewModel,
-                            isUserProfileActive: .constant(false),
-                            persistenceController: PersistenceController.shared,
-                            selectedTabIndex: .constant(LoginViewSelection.createAccount.rawValue),
-                            emailManager: UnifiedEmailManager.shared
-                        )
-                        .transition(.move(edge: .trailing).combined(with: .opacity))
+                        
+                        if selectedLoginTab == .login {
+                            LoginForm(
+                                usernameOrEmail: $usernameOrEmail,
+                                password: $password,
+                                isSignInEnabled: $isSignInEnabled,
+                                errorMessage: $errorMessage,
+                                islandViewModel: islandViewModel,
+                                showMainContent: $showMainContent,
+                                isLoggedIn: $isLoggedIn,
+                                navigateToAdminMenu: $navigateToAdminMenu
+                            )
+                            .transition(.move(edge: .leading).combined(with: .opacity))
+                        } else {
+                            CreateAccountView(
+                                islandViewModel: islandViewModel,
+                                isUserProfileActive: .constant(false),
+                                persistenceController: PersistenceController.shared,
+                                selectedTabIndex: .constant(LoginViewSelection.createAccount.rawValue),
+                                emailManager: UnifiedEmailManager.shared
+                            )
+                            .transition(.move(edge: .trailing).combined(with: .opacity))
+                        }
                     }
+                    .animation(.default, value: selectedLoginTab)
                 }
-                .animation(.default, value: selectedLoginTab)
-                .background(
-                    LinearGradient(
-                        colors: [Color.purple.opacity(0.8), Color.blue.opacity(0.8)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                    .ignoresSafeArea()
-                )
             }
         }
     }
 }
-
 
 
 
