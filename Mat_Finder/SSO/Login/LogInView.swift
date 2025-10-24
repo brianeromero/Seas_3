@@ -217,11 +217,20 @@ struct LoginForm: View {
                 }
                 .frame(width: 50, height: 50)
                 
-                AppleSignInButtonView(
-                    onRequest: { },
-                    onCompletion: { _ in }
-                )
+                AppleSignInButtonView { result in
+                    switch result {
+                    case .success(let authResult):
+                        DispatchQueue.main.async {
+                            authenticationState.setIsAuthenticated(true)
+                            isLoggedIn = true
+                            showMainContent = true
+                        }
+                    case .failure(let error):
+                        errorMessage = error.localizedDescription
+                    }
+                }
                 .frame(width: 50, height: 50)
+
             }
             
             // MARK: - Error Message

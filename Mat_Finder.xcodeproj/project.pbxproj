@@ -81,6 +81,7 @@
 		0C96BE1F2DB6E53F0021ACCC /* LoggingURLProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C96BE1E2DB6E53F0021ACCC /* LoggingURLProtocol.swift */; };
 		0C98D2C72DA5949B000583ED /* ToggleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C98D2C62DA5949B000583ED /* ToggleView.swift */; };
 		0C9B5F292E260B9100C643B7 /* DaysOfWeekFormViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C9B5F282E260B9100C643B7 /* DaysOfWeekFormViewModel.swift */; };
+		0CB6E1E72EAC09F600BE4016 /* Mat_Finder.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 0CB6E1E52EAC09F600BE4016 /* Mat_Finder.xcdatamodeld */; };
 		0CBA130A2CC19BC700A74C2A /* CryptoSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 0CBA13092CC19BC700A74C2A /* CryptoSwift */; };
 		0CC1120F2C45F7D80066CF80 /* MatTime+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC1120D2C45F7D80066CF80 /* MatTime+CoreDataClass.swift */; };
 		0CC112102C45F7D80066CF80 /* MatTime+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC1120E2C45F7D80066CF80 /* MatTime+CoreDataProperties.swift */; };
@@ -116,7 +117,6 @@
 		0CF13E452C2A326700D714C0 /* Mat_FinderApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E442C2A326700D714C0 /* Mat_FinderApp.swift */; };
 		0CF13E472C2A326700D714C0 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E462C2A326700D714C0 /* ContentView.swift */; };
 		0CF13E4E2C2A326A00D714C0 /* Persistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E4D2C2A326A00D714C0 /* Persistence.swift */; };
-		0CF13E512C2A326A00D714C0 /* Mat_Finder.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E4F2C2A326A00D714C0 /* Mat_Finder.xcdatamodeld */; };
 		0CF13E5B2C2A326A00D714C0 /* Mat_FinderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E5A2C2A326A00D714C0 /* Mat_FinderTests.swift */; };
 		0CF13E652C2A326A00D714C0 /* Mat_FinderUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E642C2A326A00D714C0 /* Mat_FinderUITests.swift */; };
 		0CF13E672C2A326A00D714C0 /* Mat_FinderUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF13E662C2A326A00D714C0 /* Mat_FinderUITestsLaunchTests.swift */; };
@@ -236,6 +236,7 @@
 		0C9B5F282E260B9100C643B7 /* DaysOfWeekFormViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DaysOfWeekFormViewModel.swift; sourceTree = "<group>"; };
 		0CA142232C3EF19900C366CF /* MainLoginViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainLoginViewController.swift; sourceTree = "<group>"; };
 		0CA142252C3EF7F200C366CF /* IslandScheduleAsCalViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandScheduleAsCalViewController.swift; sourceTree = "<group>"; };
+		0CB6E1E62EAC09F600BE4016 /* Mat_Finder.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = Mat_Finder.xcdatamodel; sourceTree = "<group>"; };
 		0CBA13292CC19D0C00A74C2A /* MapKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MapKit.framework; path = System/Library/Frameworks/MapKit.framework; sourceTree = SDKROOT; };
 		0CBA132B2CC19D1600A74C2A /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = System/Library/Frameworks/CoreData.framework; sourceTree = SDKROOT; };
 		0CBA132D2CC19D4100A74C2A /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
@@ -272,7 +273,6 @@
 		0CF13E482C2A326A00D714C0 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		0CF13E4B2C2A326A00D714C0 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		0CF13E4D2C2A326A00D714C0 /* Persistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Persistence.swift; sourceTree = "<group>"; };
-		0CF13E502C2A326A00D714C0 /* Mat_Finder.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; name = Mat_Finder.xcdatamodel; path = ../../../Mat_Finder.xcdatamodel; sourceTree = "<group>"; };
 		0CF13E562C2A326A00D714C0 /* Mat_FinderTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Mat_FinderTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		0CF13E5A2C2A326A00D714C0 /* Mat_FinderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Mat_FinderTests.swift; sourceTree = "<group>"; };
 		0CF13E602C2A326A00D714C0 /* Mat_FinderUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Mat_FinderUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -705,7 +705,7 @@
 		0CF13E7F2C2A36C000D714C0 /* CoreDataItems */ = {
 			isa = PBXGroup;
 			children = (
-				0CF13E4F2C2A326A00D714C0 /* Mat_Finder.xcdatamodeld */,
+				0CB6E1E52EAC09F600BE4016 /* Mat_Finder.xcdatamodeld */,
 				0CF13E752C2A36B500D714C0 /* PirateIsland+CoreDataClass.swift */,
 				0CF13E762C2A36B500D714C0 /* PirateIsland+CoreDataProperties.swift */,
 				0CF13E732C2A36B500D714C0 /* AppDayOfWeek+CoreDataClass.swift */,
@@ -1038,7 +1038,6 @@
 				0C07B0D32C2D033700D0BFB2 /* AppState.swift in Sources */,
 				0C07B0A62C2D002D00D0BFB2 /* SceneLoader.swift in Sources */,
 				0C07B07D2C2CFDFE00D0BFB2 /* IslandMapView.swift in Sources */,
-				0CF13E512C2A326A00D714C0 /* Mat_Finder.xcdatamodeld in Sources */,
 				0C8817752C3371B7008FE469 /* MapDetails.swift in Sources */,
 				0C2EE2AF2C9DEF110029432F /* ViewReviewSearch.swift in Sources */,
 				0C8AEC292C5C246800D38635 /* AddNewMatTimeSection.swift in Sources */,
@@ -1052,6 +1051,7 @@
 				0C07B0812C2CFE3600D0BFB2 /* IslandMap.swift in Sources */,
 				0C1893D32C7F95FB007BFADB /* ViewReviewforIsland.swift in Sources */,
 				0C07B0A82C2D004900D0BFB2 /* RenderingManager.swift in Sources */,
+				0CB6E1E72EAC09F600BE4016 /* Mat_Finder.xcdatamodeld in Sources */,
 				0CC29C802CEC49AA00FC48F9 /* IslandDetails.swift in Sources */,
 				0C07B0AA2C2D007000D0BFB2 /* GIFBackgroundView.swift in Sources */,
 				0C524E952C308E4A008D6623 /* EnterZipCodeViewModel.swift in Sources */,
@@ -1635,12 +1635,12 @@
 /* End XCSwiftPackageProductDependency section */
 
 /* Begin XCVersionGroup section */
-		0CF13E4F2C2A326A00D714C0 /* Mat_Finder.xcdatamodeld */ = {
+		0CB6E1E52EAC09F600BE4016 /* Mat_Finder.xcdatamodeld */ = {
 			isa = XCVersionGroup;
 			children = (
-				0CF13E502C2A326A00D714C0 /* Mat_Finder.xcdatamodel */,
+				0CB6E1E62EAC09F600BE4016 /* Mat_Finder.xcdatamodel */,
 			);
-			currentVersion = 0CF13E502C2A326A00D714C0 /* Mat_Finder.xcdatamodel */;
+			currentVersion = 0CB6E1E62EAC09F600BE4016 /* Mat_Finder.xcdatamodel */;
 			path = Mat_Finder.xcdatamodeld;
 			sourceTree = "<group>";
 			versionGroupType = wrapper.xcdatamodel;
