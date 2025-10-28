@@ -13,9 +13,9 @@ import FirebaseAnalytics
 import GoogleMobileAds
 import FBSDKCoreKit
 import FirebaseFirestore
-import CoreData // Ensure Core Data is imported
+import CoreData
 
-
+@MainActor
 class IDFAAnalyticsHelper {
     
     // MARK: - Advertising and Analytics
@@ -44,22 +44,16 @@ class IDFAAnalyticsHelper {
             try await PersistenceController.shared.saveContext()
         }
     }
-
-
     
     /// Measures ad effectiveness using IDFA
     static func trackAdAttribution() {
         guard let idfa = IDFAHelper.getIdfa() else { return }
-        
-        // Log ad attribution events
         Analytics.logEvent("ad_attribution", parameters: ["idfa": idfa])
     }
     
     /// Analyzes user behavior using IDFA
     static func trackUserBehavior() {
         guard let idfa = IDFAHelper.getIdfa() else { return }
-        
-        // Log user behavior events
         Analytics.logEvent("user_behavior", parameters: ["idfa": idfa])
     }
     
@@ -69,7 +63,6 @@ class IDFAAnalyticsHelper {
     static func identifyUser() async throws {
         guard let idfa = IDFAHelper.getIdfa() else { return }
         
-        // Store IDFA in Core Data
         let context = PersistenceController.shared.container.viewContext
         if let userInfo = try? await PersistenceController.shared.fetchSingle(entityName: "UserInfo") as? UserInfo {
             if userInfo.adSettings == nil {
@@ -81,24 +74,20 @@ class IDFAAnalyticsHelper {
             try await PersistenceController.shared.saveContext()
         }
         
-        // Save to Firestore
         try await Firestore.firestore().collection("users").document("user_idfa").setData([
             "idfa": idfa
         ])
     }
-
     
     /// Associates users across devices using IDFA
     static func trackCrossDevice() async throws {
         guard let idfa = IDFAHelper.getIdfa() else { return }
         
-        // Log cross-device events in Firestore
         try await Firestore.firestore().collection("analytics").document("cross_device").setData([
             "idfa": idfa,
             "timestamp": Date()
         ])
         
-        // Cache in Core Data Stack
         let context = PersistenceController.shared.container.viewContext
         if let userInfo = try? await PersistenceController.shared.fetchSingle(entityName: "UserInfo") as? UserInfo {
             if userInfo.adSettings == nil {
@@ -110,36 +99,34 @@ class IDFAAnalyticsHelper {
             try await PersistenceController.shared.saveContext()
         }
     }
-
     
     // MARK: - Specific Use Cases
     
     /// Configures Facebook Ads using IDFA
     static func configureFacebookAds() {
-        ATTrackingManager.requestTrackingAuthorization(completionHandler: { status in
-            switch status {
-            case .authorized:
-                guard let idfa = IDFAHelper.getIdfa() else { return }
-                
-                // Configure Facebook Ads
-                print("Facebook Ads configured with IDFA: \(idfa)")
-            case .denied:
-                print("User denied IDFA access")
-            case .restricted:
-                print("IDFA access restricted")
-            case .notDetermined:
-                print("IDFA access not determined")
-            @unknown default:
-                print("Unexpected authorization status")
+        ATTrackingManager.requestTrackingAuthorization { status in
+            Task { @MainActor in
+                switch status {
+                case .authorized:
+                    guard let idfa = IDFAHelper.getIdfa() else { return }
+                    print("Facebook Ads configured with IDFA: \(idfa)")
+                case .denied:
+                    print("User denied IDFA access - configureFacebookAds")
+                case .restricted:
+                    print("IDFA access restricted- configureFacebookAds")
+                case .notDetermined:
+                    print("IDFA access not determined - configureFacebookAds")
+                @unknown default:
+                    print("Unexpected authorization status - configureFacebookAds")
+                }
             }
-        })
+        }
     }
+
     
     /// Configures Firebase Analytics using IDFA
     static func configureFirebaseAnalytics() {
         guard let idfa = IDFAHelper.getIdfa() else { return }
-        
-        // Set IDFA in Firebase Analytics
         Analytics.setUserProperty(idfa, forName: "idfa")
     }
 }

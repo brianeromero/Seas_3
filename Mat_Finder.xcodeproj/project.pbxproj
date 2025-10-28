@@ -1290,10 +1290,12 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				BUNDLE_ID = "MF-inder.Seas-3";
 				CODE_SIGN_ENTITLEMENTS = Mat_Finder/Mat_Finder.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 2;
 				DATABASE_URL = "https://smart-abacus-425519-r7-default-rtdb.firebaseio.com";
 				DEVELOPMENT_ASSET_PATHS = "\"Mat_Finder/Preview Content\"";
+				DEVELOPMENT_TEAM = 84463TFCZ4;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				EXCLUDED_ARCHS = "";
@@ -1384,6 +1386,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "MF-inder.Seas-3";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROJECT_ID = "smart-abacus-425519-r7";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				STORAGE_BUCKET = "smart-abacus-425519-r7.appspot.com";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -1400,10 +1403,12 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				BUNDLE_ID = "MF-inder.Seas-3";
 				CODE_SIGN_ENTITLEMENTS = Mat_Finder/Mat_Finder.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 2;
 				DATABASE_URL = "https://smart-abacus-425519-r7-default-rtdb.firebaseio.com";
 				DEVELOPMENT_ASSET_PATHS = "\"Mat_Finder/Preview Content\"";
+				DEVELOPMENT_TEAM = 84463TFCZ4;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				EXCLUDED_ARCHS = "";
@@ -1493,6 +1498,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "MF-inder.Seas-3";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROJECT_ID = "smart-abacus-425519-r7";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				STORAGE_BUCKET = "smart-abacus-425519-r7.appspot.com";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;

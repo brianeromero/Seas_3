@@ -9,6 +9,7 @@ import Foundation
 
 class CustomAnalytics {
     
+    @MainActor
     func trackEvent(_ event: String) {
         guard IDFAHelper.getIdfa() != nil else { return }
         // Log event with IDFA

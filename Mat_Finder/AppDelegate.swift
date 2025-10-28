@@ -133,8 +133,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
             self.testKeychainAccessGroup()
         }
 
-        // ✅ 8. IDFA request — independent of Firebase
-        IDFAHelper.requestIDFAPermission()
+        // ✅ 8. IDFA request — delayed to ensure UI is ready
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            Task {
+                await IDFAHelper.requestIDFAPermission()
+            }
+        }
 
         // ✅ 9. Firebase Auth State Listener (final setup)
         authStateDidChangeListenerHandle = Auth.auth().addStateDidChangeListener { [weak self] auth, user in
@@ -148,10 +152,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
             } else {
                 print("❌ Firebase No user is signed in.")
                 self.authViewModel.userSession = nil
-                self.authenticationState.isAuthenticated = false // <-- AppDelegate updates isAuthenticated
-                self.authenticationState.isLoggedIn = false     // <-- AppDelegate updates isLoggedIn
+                self.authenticationState.isAuthenticated = false
+                self.authenticationState.isLoggedIn = false
                 self.authenticationState.navigateToAdminMenu = false
-                print("DEBUG: authenticationState.isAuthenticated set to \(self.authenticationState.isAuthenticated)") // ADD THIS
+                print("DEBUG: authenticationState.isAuthenticated set to \(self.authenticationState.isAuthenticated)")
             }
         }
 
@@ -163,6 +167,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
 
         return true
     }
+
 
 
     func applicationWillTerminate(_ application: UIApplication) {
