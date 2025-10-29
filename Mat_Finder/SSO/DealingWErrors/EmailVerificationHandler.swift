@@ -25,7 +25,7 @@ class EmailVerificationHandler {
                 if let token = components?.queryItems?.first(where: { $0.name == "token" })?.value,
                    let email = components?.queryItems?.first(where: { $0.name == "email" })?.value {
                     
-                    let emailManager = UnifiedEmailManager.shared
+                    let emailManager = await UnifiedEmailManager.shared
                     let success = await emailManager.verifyEmail(token: token, email: email, userName: userName)
                     
                     let redirectURL = success ? "http://mfinderbjj.rf.gd/success.html" : "http://mfinderbjj.rf.gd/failed.html"

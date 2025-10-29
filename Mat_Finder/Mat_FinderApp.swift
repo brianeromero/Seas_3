@@ -420,7 +420,11 @@ struct AppRootDestinationView: View {
 
 // Optional: Extension for injecting PersistenceController via Environment
 struct PersistenceControllerKey: EnvironmentKey {
-    static var defaultValue: PersistenceController { PersistenceController.shared }
+    static var defaultValue: PersistenceController {
+        MainActor.assumeIsolated {
+            PersistenceController.shared
+        }
+    }
 }
 
 extension EnvironmentValues {

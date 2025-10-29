@@ -8,7 +8,7 @@
 import Foundation
 import SwiftUI
 import FirebaseFirestore
-import CoreData
+@preconcurrency import CoreData
 
 
 struct DeleteRecordView: View {

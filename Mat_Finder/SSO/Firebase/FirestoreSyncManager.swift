@@ -205,7 +205,7 @@ class FirestoreSyncManager {
             // Fetch the entire record from Core Data
             // The underlying fetchLocalRecord is now also protected by @MainActor,
             // and since this function is @MainActor, this call is safe.
-            guard let localRecord = try? await PersistenceController.shared.fetchLocalRecord(forCollection: collectionName, recordId: UUID(uuidString: record) ?? UUID()) else {
+            guard let localRecord = try?  PersistenceController.shared.fetchLocalRecord(forCollection: collectionName, recordId: UUID(uuidString: record) ?? UUID()) else {
                 print("Error fetching local record \(record) from Core Data (FROM APPDELEGATE-uploadLocalRecordsToFirestore)")
                 continue
             }

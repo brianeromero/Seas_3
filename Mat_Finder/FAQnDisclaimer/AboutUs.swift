@@ -44,7 +44,9 @@ struct AboutUsView: View {
                 DisclosureGroup(
                     content: {
                         Text("""
-                            Mat_Finder is my passion project, developed over the past year with the Brazilian Jiu Jitsu practitioner in mind. Me? I’m a BJJ purple belt with nine years of training out of Orange County, CA. By profession, I work as a Software Implementation Product Owner and Business Analyst. While I usually handle the business side of developing system applications, this is my first attempt at developing an app ex nihilo. Despite my lack of coding experience, my frequent work travels and years of training led me to develop this app out of both need and curiosity. I often wondered if there was a gym near my hotel with an open mat and whether I should pack my Gi or NoGi garb. Too often, I found myself in places with no BJJ gym relatively close by or having my search findings return vague “grappling” options at the “Martial Arts” dojo down the street. This led me to create Mat_F_inder.
+                            Mat_Finder is a passion project I’ve developed over the past year with Brazilian Jiu Jitsu practitioners in mind. As a BJJ brown belt with over 10 years of training in Orange County, CA, I know the struggle of finding the right gym or open mat while traveling. By profession, I’m a Software Product Delivery Manager and Business Analyst, usually focused on the client side of system applications. This, however, is my first venture into building an app from scratch.
+
+                            The idea came from necessity and curiosity. Traveling frequently, I often wondered if there was a nearby gym with an open mat, and whether I should pack my Gi or NoGi gear. Too often, my searches led to vague results—“grappling” classes at a generic "martial arts" dojo or gyms that were far from convenient. Frustrated, I decided to create Mat_Finder: a way for BJJ practitioners to list, locate, and review open mats, class schedules, and plan their training, wherever they are.
                             """)
                             .font(.body)
                             .padding(.horizontal)

@@ -149,7 +149,7 @@ class UnifiedEmailManager {
         Welcome to Mat_Finder! You're now ready to navigate Jiu-Jitsu gyms and open mats near you and all over. Share your favorite gyms and training schedules with friends!
         
         About Mat_Finder:
-        Mat_Finder is a passion project created by a BJJ purple belt to help practitioners find training opportunities while traveling.
+        Mat_Finder is a passion project created by a BJJ Brown belt to help practitioners find training opportunities while traveling.
         
         Our Mission:
         Provide a free, community-driven platform for BJJ enthusiasts to share and discover open mats and gyms worldwide.
