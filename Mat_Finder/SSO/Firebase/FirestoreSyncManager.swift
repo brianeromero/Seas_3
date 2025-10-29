@@ -13,38 +13,38 @@ import CoreData
 
 class FirestoreSyncManager {
     static let shared = FirestoreSyncManager()
-
+    
     func syncInitialFirestoreData() {
         guard Auth.auth().currentUser != nil else {
             print("❌ No user is signed in. Firestore access is restricted.")
             return
         }
-
+        
         Task {
             do {
                 try await createFirestoreCollection() // This creates/checks collections
-
+                
                 let db = Firestore.firestore()
-
+                
                 // Get all Firestore document IDs for pirateIslands
                 let pirateIslandSnapshot = try await db.collection("pirateIslands").getDocuments()
                 let pirateIslandFirestoreIDs = pirateIslandSnapshot.documents.map { $0.documentID }
                 await downloadFirestoreRecordsToLocal(collectionName: "pirateIslands", records: pirateIslandFirestoreIDs)
-
+                
                 // Get all Firestore document IDs for reviews
                 let reviewsSnapshot = try await db.collection("reviews").getDocuments()
                 let reviewsFirestoreIDs = reviewsSnapshot.documents.map { $0.documentID }
                 await downloadFirestoreRecordsToLocal(collectionName: "reviews", records: reviewsFirestoreIDs)
-
+                
                 // Continue for AppDayOfWeek and MatTime (ensuring order if dependencies exist)
                 let appDayOfWeekSnapshot = try await db.collection("AppDayOfWeek").getDocuments()
                 let appDayOfWeekFirestoreIDs = appDayOfWeekSnapshot.documents.map { $0.documentID }
                 await downloadFirestoreRecordsToLocal(collectionName: "AppDayOfWeek", records: appDayOfWeekFirestoreIDs)
-
+                
                 let matTimesSnapshot = try await db.collection("MatTime").getDocuments() // Note: your collection name is "MatTime" not "matTimes"
                 let matTimesFirestoreIDs = matTimesSnapshot.documents.map { $0.documentID }
                 await downloadFirestoreRecordsToLocal(collectionName: "MatTime", records: matTimesFirestoreIDs)
-
+                
             } catch {
                 print("❌ Firestore sync error: \(error.localizedDescription)")
             }
@@ -58,8 +58,8 @@ class FirestoreSyncManager {
             "AppDayOfWeek", // ⬅️ AppDayOfWeek must come before MatTime
             "MatTime"
         ]
-
-
+        
+        
         for collectionName in collectionsToCheck {
             do {
                 let querySnapshot = try await Firestore.firestore().collection(collectionName).getDocuments()
@@ -80,23 +80,23 @@ class FirestoreSyncManager {
             }
         }
     }
-
+    
     private func checkLocalRecordsAndCreateFirestoreRecordsIfNecessary(collectionName: String, querySnapshot: QuerySnapshot?) async {
         // 👇 Add this right at the top
         let syncID = UUID().uuidString.prefix(8)
         print("🚀 [SyncManager:\(syncID)] Starting sync for \(collectionName)")
-
+        
         print("🚀 [SyncManager:\(syncID)] Initiating record check for collection: \(collectionName)")
-
-
+        
+        
         // ✅ Step 1: Check for network connection before doing anything
         guard NetworkMonitor.shared.isConnected else {
             print("⚠️ [SyncManager] NetworkMonitor reported offline at \(Date()). " +
                   "Current path status: \(NetworkMonitor.shared.currentPath?.status ?? .requiresConnection)")
-
+            
             print("⚠️ [SyncManager] Skipping Firestore sync for \(collectionName). " +
                   "NetworkMonitor.isConnected = \(NetworkMonitor.shared.isConnected)")
-
+            
             DispatchQueue.main.async {
                 NotificationCenter.default.post(name: Notification.Name("ShowToast"), object: nil, userInfo: [
                     "message": "No internet connection. Sync postponed until you're back online.",
@@ -105,23 +105,23 @@ class FirestoreSyncManager {
             }
             return
         }
-
-
+        
+        
         // ✅ Step 2: Continue if querySnapshot is valid
         guard let querySnapshot = querySnapshot else {
             print("❌ [SyncManager] Error: Query snapshot is nil for collection \(collectionName). Cannot proceed with record checking.")
             return
         }
-
+        
         print("✅ [SyncManager] Query snapshot successfully received for collection: \(collectionName)")
-
+        
         let firestoreRecords = querySnapshot.documents.compactMap { $0.documentID }
         print("📊 [SyncManager] Firestore records for \(collectionName) (count: \(firestoreRecords.count)): \(firestoreRecords.prefix(5))\(firestoreRecords.count > 5 ? "... (and \(firestoreRecords.count - 5) more)" : "")")
-
+        
         do {
             if let localRecords = try await PersistenceController.shared.fetchLocalRecords(forCollection: collectionName) {
                 print("💾 [SyncManager] Local records for \(collectionName) (count: \(localRecords.count)): \(localRecords.prefix(5))\(localRecords.count > 5 ? "... (and \(localRecords.count - 5) more)" : "")")
-
+                
                 var localRecordsNotInFirestore: [String] = []
                 for record in localRecords {
                     let recordId = record
@@ -136,16 +136,16 @@ class FirestoreSyncManager {
                         print("⚠️ [SyncManager] Error querying Firestore for local record \(record): \(error.localizedDescription)")
                     }
                 }
-
+                
                 print("🔍 [SyncManager] Local records not found in Firestore for \(collectionName) (count: \(localRecordsNotInFirestore.count)): \(localRecordsNotInFirestore.prefix(5))\(localRecordsNotInFirestore.count > 5 ? "... (and \(localRecordsNotInFirestore.count - 5) more)" : "")")
-
+                
                 let localRecordsWithoutHyphens = Set(localRecords.map { $0.replacingOccurrences(of: "-", with: "") })
                 let firestoreRecordsNotInLocal = firestoreRecords.filter { !localRecordsWithoutHyphens.contains($0.replacingOccurrences(of: "-", with: "")) }
                 print("🔍 [SyncManager] Firestore records not found locally for \(collectionName) (count: \(firestoreRecordsNotInLocal.count)): \(firestoreRecordsNotInLocal.prefix(5))\(firestoreRecordsNotInLocal.count > 5 ? "... (and \(firestoreRecordsNotInLocal.count - 5) more)" : "")")
-
+                
                 await syncRecords(localRecords: localRecords, firestoreRecords: firestoreRecords, collectionName: collectionName)
                 print("🔄 [SyncManager] `syncRecords` function completed for collection: \(collectionName)")
-
+                
                 if !localRecordsNotInFirestore.isEmpty || !firestoreRecordsNotInLocal.isEmpty {
                     print("🚨 [SyncManager] Records are out of sync for collection: \(collectionName). Initiating 'You need to sync your records' toast.")
                     DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
@@ -169,7 +169,7 @@ class FirestoreSyncManager {
                 print("⚠️ [SyncManager] No local records found for collection: \(collectionName) (or error fetching them). Proceeding to sync from Firestore.")
                 await syncRecords(localRecords: [], firestoreRecords: firestoreRecords, collectionName: collectionName)
                 print("🔄 [SyncManager] `syncRecords` function completed for collection: \(collectionName) (no local records case).")
-
+                
                 DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
                     NotificationCenter.default.post(name: Notification.Name("ShowToast"), object: nil, userInfo: [
                         "message": "Local data initialized from cloud.",
@@ -188,18 +188,18 @@ class FirestoreSyncManager {
                 print("📧 [SyncManager] Posted 'ShowToast' notification (critical error type) for \(collectionName).")
             }
         }
-
+        
         print("🏁 [SyncManager] Finished checking local records for collection: \(collectionName)")
     }
-
-
-
+    
+    
+    
     @MainActor
     private func uploadLocalRecordsToFirestore(collectionName: String, records: [String]) async {
         // Get a reference to the Firestore collection
         let db = Firestore.firestore()
         let collectionRef = db.collection(collectionName)
-
+        
         // Loop through each local record
         for record in records {
             // Fetch the entire record from Core Data
@@ -209,10 +209,10 @@ class FirestoreSyncManager {
                 print("Error fetching local record \(record) from Core Data (FROM APPDELEGATE-uploadLocalRecordsToFirestore)")
                 continue
             }
-
+            
             // Create a dictionary to hold the record's fields
             var recordData: [String: Any] = [:]
-
+            
             // ⚠️ Core Data property access is now SAFE because the entire function is on the Main Actor
             switch collectionName {
             case "pirateIslands":
@@ -230,7 +230,7 @@ class FirestoreSyncManager {
                     "lastModifiedByUserId": pirateIsland.lastModifiedByUserId ?? "",
                     "lastModifiedTimestamp": pirateIsland.lastModifiedTimestamp ?? Date()
                 ]
-
+                
             case "reviews":
                 // CRASH POINT WAS HERE, when accessing review properties off-thread
                 guard let review = localRecord as? Review else { continue }
@@ -242,8 +242,8 @@ class FirestoreSyncManager {
                     "createdTimestamp": review.createdTimestamp,
                     "islandID": review.island?.islandID?.uuidString ?? ""
                 ]
-
-
+                
+                
             case "MatTime":
                 guard let matTime = localRecord as? MatTime else { continue }
                 recordData = [
@@ -260,8 +260,8 @@ class FirestoreSyncManager {
                     "createdTimestamp": matTime.createdTimestamp ?? Date(),
                     "appDayOfWeekID": matTime.appDayOfWeek?.appDayOfWeekID ?? "" // Add appDayOfWeekID field
                 ]
-
-
+                
+                
             case "AppDayOfWeek":
                 guard let appDayOfWeek = localRecord as? AppDayOfWeek else { continue }
                 recordData = [
@@ -270,17 +270,17 @@ class FirestoreSyncManager {
                     "name": appDayOfWeek.name ?? "",
                     "createdTimestamp": appDayOfWeek.createdTimestamp ?? Date()
                 ]
-
-
-            // Add other collection types as needed
+                
+                
+                // Add other collection types as needed
             default:
                 print("Unknown collection name: \(collectionName)")
                 continue
             }
-
+            
             // Get a reference to the Firestore document
             let docRef = collectionRef.document(record)
-
+            
             // Upload the record to Firestore (Network call is not restricted to main thread)
             do {
                 try await docRef.setData(recordData)
@@ -293,310 +293,461 @@ class FirestoreSyncManager {
             }
         }
     }
-
+    
     private func syncRecords(localRecords: [String], firestoreRecords: [String], collectionName: String) async {
         // Identify records that exist in Core Data but not in Firestore
         let localRecordsNotInFirestore = localRecords.filter { !firestoreRecords.contains($0) && !firestoreRecords.map { $0.replacingOccurrences(of: "-", with: "") }.contains($0) }
-
+        
         // Identify records that exist in Firestore but not in Core Data
         let localRecordsWithoutHyphens = Set(localRecords.map { $0.replacingOccurrences(of: "-", with: "") })
         _ = firestoreRecords.map { $0.replacingOccurrences(of: "-", with: "") }
         let firestoreRecordsNotInLocal = firestoreRecords.filter { !localRecordsWithoutHyphens.contains($0.replacingOccurrences(of: "-", with: "")) }
-
+        
         // Upload local records to Firestore if they don't exist
         await uploadLocalRecordsToFirestore(collectionName: collectionName, records: localRecordsNotInFirestore)
-
+        
         // DOWNLOAD: Pass only the records relevant to the current collectionName
         await downloadFirestoreRecordsToLocal(collectionName: collectionName, records: firestoreRecordsNotInLocal)
     }
-
-    // New function to download Firestore records to Core Data
+    
+    // MARK: - Main download function
     private func downloadFirestoreRecordsToLocal(collectionName: String, records: [String]) async {
         print("Downloading Firestore records to local Core Data for collection: \(collectionName)")
-
-        // Optional: Toast at the very start of the download process for a collection
-        // This could be useful if a collection has many records and takes time
+        
         if !records.isEmpty {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { // Small delay to not interfere with other immediate toasts
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 NotificationCenter.default.post(name: Notification.Name("ShowToast"), object: nil, userInfo: [
                     "message": "Downloading \(records.count) \(collectionName) from cloud...",
                     "type": ToastView.ToastType.info.rawValue
                 ])
-                print("📧 [SyncManager] Posted 'ShowToast' notification (info type - downloading start) for \(collectionName).")
+                print("📧 [SyncManager] Posted 'ShowToast' notification for \(collectionName) start.")
             }
         }
-
-
+        
         let context = PersistenceController.shared.container.newBackgroundContext()
         let db = Firestore.firestore()
         let collectionRef = db.collection(collectionName)
-
+        
         var downloadedCount = 0
         var errorCount = 0
-
+        
         for record in records {
             let docRef = collectionRef.document(record)
-
+            
             do {
                 let docSnapshot = try await docRef.getDocument()
-
+                
                 guard docSnapshot.exists else {
-                    print("❌ Firestore document does not exist for record: \(record). Skipping download.")
+                    print("❌ Firestore document does not exist for record: \(record). Skipping.")
                     errorCount += 1
                     continue
                 }
-
+                
                 print("🔵 Firestore data for \(collectionName) record \(record): \(docSnapshot.data() ?? [:])")
-
-                await context.perform { [self] in
-                    var managedObject: NSManagedObject? = nil
-                    var isNewRecord = false // To track if a new record was created
-
-                    switch collectionName {
-                    case "pirateIslands":
-                        var pirateIsland = fetchPirateIslandByID(record, in: context)
-                        if pirateIsland == nil {
-                            pirateIsland = PirateIsland(context: context)
-                            pirateIsland?.islandID = UUID(uuidString: record)
-                            isNewRecord = true
-                            print("🟡 Creating new PirateIsland with ID: \(record)")
-                        } else {
-                            print("🟢 Updating existing PirateIsland with ID: \(record)")
+                
+                // Capture only the data the closure needs
+                let snapshot = docSnapshot
+                let collection = collectionName
+                
+                await context.perform {
+                    do {
+                        switch collection {
+                        case "pirateIslands":
+                            try Self.syncPirateIslandStatic(docSnapshot: snapshot, context: context)
+                        case "reviews":
+                            try Self.syncReviewStatic(docSnapshot: snapshot, context: context)
+                        case "MatTime":
+                            try Self.syncMatTimeStatic(docSnapshot: snapshot, context: context)
+                        case "AppDayOfWeek":
+                            try Self.syncAppDayOfWeekStatic(docSnapshot: snapshot, context: context)
+                        default:
+                            print("❌ Unknown collection: \(collection)")
+                            errorCount += 1
                         }
-                        if isNewRecord {
-                            print("⚡️ New record created for \(collectionName) record \(record)")
-                        }
-
-                        if let pi = pirateIsland {
-                            // Update properties from Firestore document
-                            pi.islandName = docSnapshot.get("name") as? String
-                            pi.islandLocation = docSnapshot.get("location") as? String
-                            pi.country = docSnapshot.get("country") as? String
-                            pi.createdByUserId = docSnapshot.get("createdByUserId") as? String
-                            pi.createdTimestamp = (docSnapshot.get("createdTimestamp") as? Timestamp)?.dateValue()
-                            if let urlString = docSnapshot.get("gymWebsite") as? String {
-                                pi.gymWebsite = URL(string: urlString)
-                            }
-                            pi.latitude = docSnapshot.get("latitude") as? Double ?? 0.0
-                            pi.longitude = docSnapshot.get("longitude") as? Double ?? 0.0
-                            pi.lastModifiedByUserId = docSnapshot.get("lastModifiedByUserId") as? String
-                            pi.lastModifiedTimestamp = (docSnapshot.get("lastModifiedTimestamp") as? Timestamp)?.dateValue()
-                            managedObject = pi
-                        }
-
-                    case "reviews":
-                        var review = fetchReviewByID(record, in: context)
-                        if review == nil {
-                            review = Review(context: context)
-                            review?.reviewID = UUID(uuidString: record)!
-                            isNewRecord = true
-                            print("🟡 Creating new Review with ID: \(record)")
-                        } else {
-                            print("🟢 Updating existing Review with ID: \(record)")
-                        }
-                        if isNewRecord {
-                            print("⚡️ New record created for \(collectionName) record \(record)")
-                        }
-
-                        if let r = review {
-                            // Update properties from Firestore document
-                            r.stars = docSnapshot.get("stars") as? Int16 ?? 0
-                            r.review = docSnapshot.get("review") as? String ?? ""
-                            r.userName = docSnapshot.get("userName") as? String ?? docSnapshot.get("name") as? String ?? "Anonymous"
-                            r.createdTimestamp = (docSnapshot.get("createdTimestamp") as? Timestamp)?.dateValue() ?? Date()
-
-                            if let islandIDString = docSnapshot.get("islandID") as? String {
-                                if let island = fetchPirateIslandByID(islandIDString, in: context) {
-                                    r.island = island
-                                    print("🔗 Successfully linked Review \(record) to PirateIsland \(islandIDString).")
-                                } else {
-                                    print("⚠️ WARNING: Could not find PirateIsland with ID \(islandIDString) for Review \(record). Relationship not set.")
-                                }
-                            } else {
-                                print("⚠️ WARNING: No 'islandID' found in Firestore data for Review \(record).")
-                            }
-
-                            managedObject = r
-                        }
-
-                    case "MatTime":
-                        var matTime = fetchMatTimeByID(record, in: context)
-                        if matTime == nil {
-                            matTime = MatTime(context: context)
-                            if let uuid = UUID(uuidString: record) {
-                                matTime?.id = uuid
-                                isNewRecord = true
-                                print("🟡 Creating new MatTime with ID: \(record)")
-                            } else {
-                                print("❌ Error: Invalid UUID string for MatTime ID: \(record). Skipping creation.")
-                            }
-                        } else {
-                            print("🟢 Updating existing MatTime with ID: \(record)")
-                        }
-                        if isNewRecord {
-                            print("⚡️ New record created for \(collectionName) record \(record)")
-                        }
-
-                        if let mt = matTime {
-                            mt.type = docSnapshot.get("type") as? String
-                            mt.time = docSnapshot.get("time") as? String
-                            mt.gi = docSnapshot.get("gi") as? Bool ?? false
-                            mt.noGi = docSnapshot.get("noGi") as? Bool ?? false
-                            mt.openMat = docSnapshot.get("openMat") as? Bool ?? false
-                            mt.restrictions = docSnapshot.get("restrictions") as? Bool ?? false
-                            mt.restrictionDescription = docSnapshot.get("restrictionDescription") as? String
-                            mt.goodForBeginners = docSnapshot.get("goodForBeginners") as? Bool ?? false
-                            mt.kids = docSnapshot.get("kids") as? Bool ?? false
-                            mt.createdTimestamp = (docSnapshot.get("createdTimestamp") as? Timestamp)?.dateValue()
-
-                            if let appDayOfWeekRef = docSnapshot.get("appDayOfWeek") as? DocumentReference {
-                                let appDayOfWeekID = appDayOfWeekRef.documentID
-                                if let appDayOfWeek = fetchAppDayOfWeekByID(appDayOfWeekID, in: context) {
-                                    mt.appDayOfWeek = appDayOfWeek
-                                    print("🔗 Successfully linked MatTime \(record) to AppDayOfWeek \(appDayOfWeekID).")
-                                } else {
-                                    print("⚠️ WARNING: Could not find AppDayOfWeek with ID \(appDayOfWeekID) for MatTime \(record). Relationship not set.")
-                                }
-                            } else {
-                                print("⚠️ WARNING: No 'appDayOfWeek' reference found in Firestore data for MatTime \(record).")
-                            }
-
-                            managedObject = mt
-                        }
-
-                    case "AppDayOfWeek":
-                        var appDayOfWeek = fetchAppDayOfWeekByID(record, in: context)
-                        if appDayOfWeek == nil {
-                            appDayOfWeek = AppDayOfWeek(context: context)
-                            appDayOfWeek?.appDayOfWeekID = record
-                            isNewRecord = true
-                            print("🟡 Creating new AppDayOfWeek with ID: \(record)")
-                        } else {
-                            print("🟢 Updating existing AppDayOfWeek with ID: \(record)")
-                        }
-                        if isNewRecord {
-                            print("⚡️ New record created for \(collectionName) record \(record)")
-                        }
-
-                        if let ado = appDayOfWeek {
-                            ado.day = docSnapshot.get("day") as? String ?? ""
-                            ado.name = docSnapshot.get("name") as? String
-                            ado.createdTimestamp = (docSnapshot.get("createdTimestamp") as? Timestamp)?.dateValue()
-
-                            if let pIslandData = docSnapshot.get("pIsland") as? [String: Any],
-                               let pirateIslandID = pIslandData["islandID"] as? String {
-                                if let pirateIsland = fetchPirateIslandByID(pirateIslandID, in: context) {
-                                    ado.pIsland = pirateIsland
-                                    print("🔗 Successfully linked AppDayOfWeek \(record) to PirateIsland \(pirateIslandID).")
-                                } else {
-                                    print("⚠️ WARNING: Could not find PirateIsland with ID \(pirateIslandID) for AppDayOfWeek \(record). Creating a stub.")
-                                    let newIsland = PirateIsland(context: context)
-                                    newIsland.islandID = UUID(uuidString: pirateIslandID)
-                                    newIsland.islandName = pIslandData["islandName"] as? String
-                                    newIsland.islandLocation = pIslandData["islandLocation"] as? String
-                                    newIsland.country = pIslandData["country"] as? String
-                                    newIsland.latitude = pIslandData["latitude"] as? Double ?? 0.0
-                                    newIsland.longitude = pIslandData["longitude"] as? Double ?? 0.0
-                                    ado.pIsland = newIsland
-                                }
-                            } else {
-                                print("⚠️ WARNING: No 'pIsland' or 'islandID' found in Firestore data for AppDayOfWeek \(record).")
-                            }
-
-                            if let matTimesArray = docSnapshot.get("matTimes") as? [String] {
-                                for matTimeID in matTimesArray {
-                                    if let matTime = fetchMatTimeByID(matTimeID, in: context) {
-                                        ado.addToMatTimes(matTime)
-                                        print("🔗 Added MatTime \(matTimeID) to AppDayOfWeek \(record).")
-                                    } else {
-                                        print("⚠️ WARNING: Could not find MatTime with ID \(matTimeID) for AppDayOfWeek \(record). Not linking.")
-                                    }
-                                }
-                            } else {
-                                print("⚠️ WARNING: No 'matTimes' found in Firestore data for AppDayOfWeek \(record).")
-                            }
-                            managedObject = ado
-                        }
-
-
-                    default:
-                        print("Unknown collection: \(collectionName). Skipping record \(record).")
-                        errorCount += 1
-                        return // Exit perform block for this record
-                    }
-
-                    if let obj = managedObject {
-                        do {
-                            try obj.validateForInsert()
-                            try obj.validateForUpdate()
-                            try context.save()
-                            print("✅ Synced \(collectionName) record \(record) to Core Data.")
-                            downloadedCount += 1 // Increment success count
-                        } catch let validationError as NSError {
-                            print("❌ CORE DATA VALIDATION ERROR for \(collectionName) record \(record): \(validationError.localizedDescription)")
-                            errorCount += 1 // Increment error count
-                            if let detailedErrors = validationError.userInfo[NSDetailedErrorsKey] as? [NSError] {
-                                for detailedError in detailedErrors {
-                                    print("    - Detailed Error: \(detailedError.localizedDescription)")
-                                    if let key = detailedError.userInfo["NSValidationErrorKey"] {
-                                        print("      Attribute/Relationship Key: \(key)")
-                                    }
-                                    if let value = detailedError.userInfo["NSValidationErrorValue"] {
-                                        print("      Invalid Value: \(value)")
-                                    }
-                                }
-                            }
-                            context.rollback() // Rollback changes for this record
-                        } catch {
-                            print("❌ Error saving \(collectionName) record \(record) to Core Data: \(error.localizedDescription)")
-                            errorCount += 1 // Increment error count
-                            let nsError = error as NSError
-                            print("    - Core Data Error Code: \(nsError.code)")
-                            print("    - Core Data User Info: \(nsError.userInfo)")
-                            context.rollback() // Rollback changes for this record
-                        }
-                    } else {
-                        print("⚠️ No managed object created/found for \(collectionName) record \(record). Skipping save.")
+                        
+                        try context.save()
+                        downloadedCount += 1
+                        print("✅ Synced \(collection) record \(record) to Core Data.")
+                    } catch {
+                        context.rollback()
+                        print("❌ Error syncing \(collection) record \(record): \(error)")
                         errorCount += 1
                     }
-                } // end await context.perform
+                }
+
+                
+                
             } catch {
                 print("❌ Error fetching Firestore document for \(collectionName) record \(record): \(error.localizedDescription)")
                 errorCount += 1
             }
         } // end for record in records
-
-        // Final toast for the download operation
-        if !records.isEmpty { // Only show if there were records to attempt to download
-            if errorCount == 0 {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    NotificationCenter.default.post(name: Notification.Name("ShowToast"), object: nil, userInfo: [
-                        "message": "Successfully downloaded \(downloadedCount) \(collectionName) records.",
-                        "type": ToastView.ToastType.success.rawValue
-                    ])
-                    print("📧 [SyncManager] Posted 'ShowToast' notification (success type - download complete) for \(collectionName).")
+        
+        // Final toast
+        if !records.isEmpty {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                let message: String
+                let type: String
+                
+                if errorCount == 0 {
+                    message = "Successfully downloaded \(downloadedCount) \(collectionName) records."
+                    type = ToastView.ToastType.success.rawValue
+                } else if downloadedCount > 0 {
+                    message = "Downloaded \(downloadedCount) \(collectionName) records, \(errorCount) failed."
+                    type = ToastView.ToastType.info.rawValue
+                } else {
+                    message = "Failed to download any \(collectionName) records. Check logs."
+                    type = ToastView.ToastType.error.rawValue
                 }
-            } else if downloadedCount > 0 {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    NotificationCenter.default.post(name: Notification.Name("ShowToast"), object: nil, userInfo: [
-                        "message": "Downloaded \(downloadedCount) \(collectionName) records, \(errorCount) failed.",
-                        "type": ToastView.ToastType.info.rawValue // Info or error depending on severity
-                    ])
-                    print("📧 [SyncManager] Posted 'ShowToast' notification (info type - partial download) for \(collectionName).")
+                
+                NotificationCenter.default.post(name: Notification.Name("ShowToast"), object: nil, userInfo: [
+                    "message": message,
+                    "type": type
+                ])
+            }
+        }
+    }
+    
+    
+    // MARK: - Static helpers for Firestore sync
+    
+    // ---------------------------
+    // PirateIsland
+    // ---------------------------
+    private static func syncPirateIslandStatic(docSnapshot: DocumentSnapshot, context: NSManagedObjectContext) throws {
+        let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
+        
+        guard let uuid = UUID(uuidString: docSnapshot.documentID) else {
+            print("Invalid UUID string: \(docSnapshot.documentID)")
+            return
+        }
+        
+        fetchRequest.predicate = NSPredicate(format: "islandID == %@", uuid as CVarArg)
+        fetchRequest.fetchLimit = 1
+        
+        var pirateIsland: PirateIsland?
+        
+        do {
+            pirateIsland = try context.fetch(fetchRequest).first
+        } catch {
+            print("Error fetching PirateIsland by ID: \(error.localizedDescription)")
+        }
+        
+        if pirateIsland == nil {
+            pirateIsland = PirateIsland(context: context)
+            pirateIsland?.islandID = uuid
+            print("🟡 Creating new PirateIsland with ID: \(docSnapshot.documentID)")
+        } else {
+            print("🟢 Updating existing PirateIsland with ID: \(docSnapshot.documentID)")
+        }
+        
+        if let pi = pirateIsland {
+            pi.islandName = docSnapshot.get("name") as? String
+            pi.islandLocation = docSnapshot.get("location") as? String
+            pi.country = docSnapshot.get("country") as? String
+            pi.createdByUserId = docSnapshot.get("createdByUserId") as? String
+            pi.createdTimestamp = (docSnapshot.get("createdTimestamp") as? Timestamp)?.dateValue()
+            
+            if let urlString = docSnapshot.get("gymWebsite") as? String {
+                pi.gymWebsite = URL(string: urlString)
+            }
+            
+            pi.latitude = docSnapshot.get("latitude") as? Double ?? 0.0
+            pi.longitude = docSnapshot.get("longitude") as? Double ?? 0.0
+            pi.lastModifiedByUserId = docSnapshot.get("lastModifiedByUserId") as? String
+            pi.lastModifiedTimestamp = (docSnapshot.get("lastModifiedTimestamp") as? Timestamp)?.dateValue()
+        }
+    }
+    
+    // ---------------------------
+    // Review
+    // ---------------------------
+    private static func syncReviewStatic(docSnapshot: DocumentSnapshot, context: NSManagedObjectContext) throws {
+        let fetchRequest = Review.fetchRequest() as! NSFetchRequest<Review>
+        
+        guard let uuid = UUID(uuidString: docSnapshot.documentID) else {
+            print("Invalid UUID string for Review: \(docSnapshot.documentID)")
+            return
+        }
+        
+        fetchRequest.predicate = NSPredicate(format: "reviewID == %@", uuid as CVarArg)
+        fetchRequest.fetchLimit = 1
+        
+        var review: Review?
+        
+        do {
+            review = try context.fetch(fetchRequest).first
+        } catch {
+            print("Error fetching Review by ID: \(error.localizedDescription)")
+        }
+        
+        if review == nil {
+            review = Review(context: context)
+            review?.reviewID = uuid
+            print("🟡 Creating new Review with ID: \(docSnapshot.documentID)")
+        } else {
+            print("🟢 Updating existing Review with ID: \(docSnapshot.documentID)")
+        }
+        
+        if let r = review {
+            r.stars = docSnapshot.get("stars") as? Int16 ?? 0
+            r.review = docSnapshot.get("review") as? String ?? ""
+            r.userName = docSnapshot.get("userName") as? String ?? docSnapshot.get("name") as? String ?? "Anonymous"
+            r.createdTimestamp = (docSnapshot.get("createdTimestamp") as? Timestamp)?.dateValue() ?? Date()
+            
+            if let islandIDString = docSnapshot.get("islandID") as? String {
+                let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
+                if let uuid = UUID(uuidString: islandIDString) {
+                    fetchRequest.predicate = NSPredicate(format: "islandID == %@", uuid as CVarArg)
+                    fetchRequest.fetchLimit = 1
+                    if let island = try? context.fetch(fetchRequest).first {
+                        r.island = island
+                    }
                 }
+            }
+        }
+    }
+    
+    // ---------------------------
+    // MatTime
+    // ---------------------------
+    private static func syncMatTimeStatic(docSnapshot: DocumentSnapshot, context: NSManagedObjectContext) throws {
+        let fetchRequest: NSFetchRequest<MatTime> = MatTime.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "id == %@", docSnapshot.documentID)
+        fetchRequest.fetchLimit = 1
+        
+        var matTime: MatTime?
+        
+        do {
+            matTime = try context.fetch(fetchRequest).first
+        } catch {
+            print("Error fetching MatTime by ID: \(error.localizedDescription)")
+        }
+        
+        if matTime == nil {
+            matTime = MatTime(context: context)
+            if let uuid = UUID(uuidString: docSnapshot.documentID) {
+                matTime?.id = uuid
+                print("🟡 Creating new MatTime with ID: \(docSnapshot.documentID)")
+            }
+        } else {
+            print("🟢 Updating existing MatTime with ID: \(docSnapshot.documentID)")
+        }
+        
+        if let mt = matTime {
+            mt.type = docSnapshot.get("type") as? String
+            mt.time = docSnapshot.get("time") as? String
+            mt.gi = docSnapshot.get("gi") as? Bool ?? false
+            mt.noGi = docSnapshot.get("noGi") as? Bool ?? false
+            mt.openMat = docSnapshot.get("openMat") as? Bool ?? false
+            mt.restrictions = docSnapshot.get("restrictions") as? Bool ?? false
+            mt.restrictionDescription = docSnapshot.get("restrictionDescription") as? String
+            mt.goodForBeginners = docSnapshot.get("goodForBeginners") as? Bool ?? false
+            mt.kids = docSnapshot.get("kids") as? Bool ?? false
+            mt.createdTimestamp = (docSnapshot.get("createdTimestamp") as? Timestamp)?.dateValue()
+            
+            if let appDayOfWeekRef = docSnapshot.get("appDayOfWeek") as? DocumentReference {
+                let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
+                fetchRequest.predicate = NSPredicate(format: "appDayOfWeekID == %@", appDayOfWeekRef.documentID)
+                fetchRequest.fetchLimit = 1
+                if let appDayOfWeek = try? context.fetch(fetchRequest).first {
+                    mt.appDayOfWeek = appDayOfWeek
+                }
+            }
+        }
+    }
+    
+    // ---------------------------
+    // AppDayOfWeek
+    // ---------------------------
+    private static func syncAppDayOfWeekStatic(docSnapshot: DocumentSnapshot, context: NSManagedObjectContext) throws {
+        let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "appDayOfWeekID == %@", docSnapshot.documentID)
+        fetchRequest.fetchLimit = 1
+        
+        var ado: AppDayOfWeek?
+        
+        do {
+            ado = try context.fetch(fetchRequest).first
+        } catch {
+            print("Error fetching AppDayOfWeek by ID: \(error.localizedDescription)")
+        }
+        
+        if ado == nil {
+            ado = AppDayOfWeek(context: context)
+            ado?.appDayOfWeekID = docSnapshot.documentID
+            print("🟡 Creating new AppDayOfWeek with ID: \(docSnapshot.documentID)")
+        } else {
+            print("🟢 Updating existing AppDayOfWeek with ID: \(docSnapshot.documentID)")
+        }
+        
+        if let ado = ado {
+            ado.day = docSnapshot.get("day") as? String ?? ""
+            ado.name = docSnapshot.get("name") as? String
+            ado.createdTimestamp = (docSnapshot.get("createdTimestamp") as? Timestamp)?.dateValue()
+            
+            // Link to PirateIsland
+            if let pIslandData = docSnapshot.get("pIsland") as? [String: Any],
+               let pirateIslandID = pIslandData["islandID"] as? String {
+                let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
+                if let uuid = UUID(uuidString: pirateIslandID) {
+                    fetchRequest.predicate = NSPredicate(format: "islandID == %@", uuid as CVarArg)
+                    fetchRequest.fetchLimit = 1
+                    if let pirateIsland = try? context.fetch(fetchRequest).first {
+                        ado.pIsland = pirateIsland
+                    }
+                }
+            }
+            
+            // Link MatTimes
+            if let matTimesArray = docSnapshot.get("matTimes") as? [String] {
+                for matTimeID in matTimesArray {
+                    let fetchRequest: NSFetchRequest<MatTime> = MatTime.fetchRequest()
+                    fetchRequest.predicate = NSPredicate(format: "id == %@", matTimeID)
+                    fetchRequest.fetchLimit = 1
+                    if let matTime = try? context.fetch(fetchRequest).first {
+                        ado.addToMatTimes(matTime)
+                    }
+                }
+            }
+        }
+    }
+    
+    
+    
+    
+    // MARK: - Helper functions
+    
+    private func syncPirateIsland(docSnapshot: DocumentSnapshot, context: NSManagedObjectContext) throws {
+        var pirateIsland = fetchPirateIslandByID(docSnapshot.documentID, in: context)
+        if pirateIsland == nil {
+            pirateIsland = PirateIsland(context: context)
+            pirateIsland?.islandID = UUID(uuidString: docSnapshot.documentID)
+            print("🟡 Creating new PirateIsland with ID: \(docSnapshot.documentID)")
+        } else {
+            print("🟢 Updating existing PirateIsland with ID: \(docSnapshot.documentID)")
+        }
+        
+        if let pi = pirateIsland {
+            pi.islandName = docSnapshot.get("name") as? String
+            pi.islandLocation = docSnapshot.get("location") as? String
+            pi.country = docSnapshot.get("country") as? String
+            pi.createdByUserId = docSnapshot.get("createdByUserId") as? String
+            pi.createdTimestamp = (docSnapshot.get("createdTimestamp") as? Timestamp)?.dateValue()
+            if let urlString = docSnapshot.get("gymWebsite") as? String {
+                pi.gymWebsite = URL(string: urlString)
+            }
+            pi.latitude = docSnapshot.get("latitude") as? Double ?? 0.0
+            pi.longitude = docSnapshot.get("longitude") as? Double ?? 0.0
+            pi.lastModifiedByUserId = docSnapshot.get("lastModifiedByUserId") as? String
+            pi.lastModifiedTimestamp = (docSnapshot.get("lastModifiedTimestamp") as? Timestamp)?.dateValue()
+        }
+    }
+    
+    
+    private func syncReview(docSnapshot: DocumentSnapshot, context: NSManagedObjectContext) throws {
+        var review = fetchReviewByID(docSnapshot.documentID, in: context)
+        if review == nil {
+            review = Review(context: context)
+            if let uuid = UUID(uuidString: docSnapshot.documentID) {
+                review?.reviewID = uuid
             } else {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    NotificationCenter.default.post(name: Notification.Name("ShowToast"), object: nil, userInfo: [
-                        "message": "Failed to download any \(collectionName) records. Check logs.",
-                        "type": ToastView.ToastType.error.rawValue
-                    ])
-                    print("📧 [SyncManager] Posted 'ShowToast' notification (error type - download failed) for \(collectionName).")
+                print("❌ Invalid UUID for Review: \(docSnapshot.documentID)")
+            }
+            print("🟡 Creating new Review with ID: \(docSnapshot.documentID)")
+        } else {
+            print("🟢 Updating existing Review with ID: \(docSnapshot.documentID)")
+        }
+        
+        if let r = review {
+            r.stars = docSnapshot.get("stars") as? Int16 ?? 0
+            r.review = docSnapshot.get("review") as? String ?? ""
+            r.userName = docSnapshot.get("userName") as? String ?? docSnapshot.get("name") as? String ?? "Anonymous"
+            r.createdTimestamp = (docSnapshot.get("createdTimestamp") as? Timestamp)?.dateValue() ?? Date()
+            
+            if let islandIDString = docSnapshot.get("islandID") as? String,
+               let island = fetchPirateIslandByID(islandIDString, in: context) {
+                r.island = island
+            }
+        }
+    }
+
+    
+    private func syncMatTime(docSnapshot: DocumentSnapshot, context: NSManagedObjectContext) throws {
+        var matTime = fetchMatTimeByID(docSnapshot.documentID, in: context)
+        if matTime == nil {
+            matTime = MatTime(context: context)
+            if let uuid = UUID(uuidString: docSnapshot.documentID) {
+                matTime?.id = uuid
+                print("🟡 Creating new MatTime with ID: \(docSnapshot.documentID)")
+            }
+        } else {
+            print("🟢 Updating existing MatTime with ID: \(docSnapshot.documentID)")
+        }
+        
+        if let mt = matTime {
+            mt.type = docSnapshot.get("type") as? String
+            mt.time = docSnapshot.get("time") as? String
+            mt.gi = docSnapshot.get("gi") as? Bool ?? false
+            mt.noGi = docSnapshot.get("noGi") as? Bool ?? false
+            mt.openMat = docSnapshot.get("openMat") as? Bool ?? false
+            mt.restrictions = docSnapshot.get("restrictions") as? Bool ?? false
+            mt.restrictionDescription = docSnapshot.get("restrictionDescription") as? String
+            mt.goodForBeginners = docSnapshot.get("goodForBeginners") as? Bool ?? false
+            mt.kids = docSnapshot.get("kids") as? Bool ?? false
+            mt.createdTimestamp = (docSnapshot.get("createdTimestamp") as? Timestamp)?.dateValue()
+            
+            if let appDayOfWeekRef = docSnapshot.get("appDayOfWeek") as? DocumentReference,
+               let appDayOfWeek = fetchAppDayOfWeekByID(appDayOfWeekRef.documentID, in: context) {
+                mt.appDayOfWeek = appDayOfWeek
+            }
+        }
+    }
+    
+    private func syncAppDayOfWeek(docSnapshot: DocumentSnapshot, context: NSManagedObjectContext) throws {
+        var ado = fetchAppDayOfWeekByID(docSnapshot.documentID, in: context)
+        if ado == nil {
+            ado = AppDayOfWeek(context: context)
+            ado?.appDayOfWeekID = docSnapshot.documentID
+            print("🟡 Creating new AppDayOfWeek with ID: \(docSnapshot.documentID)")
+        } else {
+            print("🟢 Updating existing AppDayOfWeek with ID: \(docSnapshot.documentID)")
+        }
+        
+        if let ado = ado {
+            ado.day = docSnapshot.get("day") as? String ?? ""
+            ado.name = docSnapshot.get("name") as? String
+            ado.createdTimestamp = (docSnapshot.get("createdTimestamp") as? Timestamp)?.dateValue()
+            
+            // Link to PirateIsland
+            if let pIslandData = docSnapshot.get("pIsland") as? [String: Any],
+               let pirateIslandID = pIslandData["islandID"] as? String {
+                if let pirateIsland = fetchPirateIslandByID(pirateIslandID, in: context) {
+                    ado.pIsland = pirateIsland
+                } else {
+                    let newIsland = PirateIsland(context: context)
+                    newIsland.islandID = UUID(uuidString: pirateIslandID)
+                    newIsland.islandName = pIslandData["islandName"] as? String
+                    newIsland.islandLocation = pIslandData["islandLocation"] as? String
+                    newIsland.country = pIslandData["country"] as? String
+                    newIsland.latitude = pIslandData["latitude"] as? Double ?? 0.0
+                    newIsland.longitude = pIslandData["longitude"] as? Double ?? 0.0
+                    ado.pIsland = newIsland
+                }
+            }
+            
+            // Link MatTimes
+            if let matTimesArray = docSnapshot.get("matTimes") as? [String] {
+                for matTimeID in matTimesArray {
+                    if let matTime = fetchMatTimeByID(matTimeID, in: context) {
+                        ado.addToMatTimes(matTime)
+                    }
                 }
             }
         }
     }
 
-
+    
     
     private func fetchPirateIslandByID(_ id: String, in context: NSManagedObjectContext) -> PirateIsland? {
         let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
@@ -680,5 +831,12 @@ class FirestoreSyncManager {
             print("Error syncing appDayOfWeek records: \(error.localizedDescription)")
         }
     }
+    
+    
+    
 
 }
+
+
+    
+    
