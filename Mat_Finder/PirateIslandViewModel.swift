@@ -94,7 +94,7 @@ public class PirateIslandViewModel: ObservableObject {
         }
 
         // Step 3: Check if the island already exists
-        guard !pirateIslandExists(name: islandDetails.islandName) else {
+        guard await !pirateIslandExists(name: islandDetails.islandName) else {
             os_log("Island already exists: %@", log: logger, type: .error, islandDetails.islandName)
             throw PirateIslandError.islandExists
         }
@@ -121,7 +121,7 @@ public class PirateIslandViewModel: ObservableObject {
 
 
         // Step 5: Create the new PirateIsland object
-        let newIsland = PirateIsland(context: persistenceController.viewContext)
+        let newIsland = await PirateIsland(context: persistenceController.viewContext)
         newIsland.islandID = UUID()  // Assign new UUID
         newIsland.islandName = islandDetails.islandName
         newIsland.islandLocation = islandDetails.fullAddress
@@ -252,7 +252,7 @@ public class PirateIslandViewModel: ObservableObject {
     }
 
     // MARK: - Check Existing Islands
-    private func pirateIslandExists(name: String) -> Bool {
+    @MainActor private func pirateIslandExists(name: String) -> Bool {
         let fetchRequest = PirateIsland.fetchRequest()
         fetchRequest.predicate = NSPredicate(format: "islandName == %@", name)
         

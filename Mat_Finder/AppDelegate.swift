@@ -96,6 +96,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
 
         // ✅ 1. Configure Firebase & App Check FIRST
         configureFirebaseIfNeeded() // This should set `isFirebaseConfigured = true` once done
+        
+        print("Current user: \(Auth.auth().currentUser?.uid ?? "nil")")
+
 
         // ✅ 2. Initialize ViewModels that depend on Firebase *after* Firebase is configured
         AuthViewModel._shared = AuthViewModel(
@@ -143,6 +146,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         // ✅ 9. Firebase Auth State Listener (final setup)
         authStateDidChangeListenerHandle = Auth.auth().addStateDidChangeListener { [weak self] auth, user in
             guard let self = self else { return }
+            
+            print("Current user inside listener - ✅ 9. Firebase Auth State Listener (final setup): \(user?.uid ?? "nil")")
+
 
             if let user = user {
                 print("✅ Firebase User is signed in: \(user.email ?? "N/A") (UID: \(user.uid))")

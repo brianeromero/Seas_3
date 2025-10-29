@@ -8,31 +8,28 @@
 import Foundation
 import CoreData
 
+@MainActor
 class UserProfileViewModel: ObservableObject {
     @Published var userInfo: UserInfo?
 
     private let persistenceController = PersistenceController.shared
 
-    func fetchData() {
-        fetchData { [weak self] result in
-            switch result {
-            case .success(let userInfo):
-                self?.userInfo = userInfo
-            case .failure(let error):
-                print("Error fetching UserInfo: \(error.localizedDescription)")
-            }
+    /// Public method to fetch data asynchronously
+    func fetchData() async {
+        do {
+            self.userInfo = try await fetchUserInfo()
+        } catch {
+            print("Error fetching UserInfo: \(error.localizedDescription)")
         }
     }
-    
-    private func fetchData(completion: @escaping (Result<UserInfo?, Error>) -> Void) {
+
+    /// Private async method that performs Core Data fetch
+    private func fetchUserInfo() async throws -> UserInfo? {
         let context = persistenceController.container.viewContext
-        let request: NSFetchRequest<UserInfo> = UserInfo.fetchRequest()
-        
-        do {
+        return try await context.perform {
+            let request: NSFetchRequest<UserInfo> = UserInfo.fetchRequest()
             let results = try context.fetch(request)
-            completion(.success(results.first))
-        } catch {
-            completion(.failure(error))
+            return results.first
         }
     }
 }

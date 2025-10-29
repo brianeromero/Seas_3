@@ -7,7 +7,7 @@
 
 import Foundation
 import SwiftUI
-import CoreData
+@preconcurrency import CoreData
 
 
 

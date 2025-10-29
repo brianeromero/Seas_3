@@ -9,11 +9,11 @@ import Foundation
 import CoreData
 
 struct EmailUtility {
-    static let persistenceController = PersistenceController.shared
 
     // MARK: - Fetch by email
+    @MainActor
     static func fetchUserInfo(byEmail email: String) async -> UserInfo? {
-        let context = persistenceController.container.viewContext
+        let context = PersistenceController.shared.container.viewContext
         return await context.perform {
             let fetchRequest: NSFetchRequest<UserInfo> = UserInfo.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "email == %@", email)
@@ -30,8 +30,9 @@ struct EmailUtility {
     }
 
     // MARK: - Fetch by username
+    @MainActor
     static func fetchUserInfo(byUserName userName: String) async -> UserInfo? {
-        let context = persistenceController.container.viewContext
+        let context = PersistenceController.shared.container.viewContext
         return await context.perform {
             let fetchRequest: NSFetchRequest<UserInfo> = UserInfo.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "userName == %@", userName)

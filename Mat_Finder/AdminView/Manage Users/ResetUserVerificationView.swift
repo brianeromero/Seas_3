@@ -16,7 +16,7 @@ struct ResetUserVerificationView: View {
     @State private var successMessage: String?
     @State private var errorMessage: String?
     @State private var isLoading = false
-    private let emailService = EmailService()
+    private let emailService = EmailService(managedObjectContext: PersistenceController.shared.viewContext)
     @State private var user: User?
     @State private var customToken: String?
 
@@ -31,8 +31,8 @@ struct ResetUserVerificationView: View {
             TextField("Enter User ID or Email", text: $userId)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding(.horizontal)
-                .onChange(of: userId) { newValue in
-                    os_log("User entered email: %@", log: logger, newValue)
+                .onChange(of: userId) { oldValue, newValue in
+                    os_log("User changed email from %@ to %@", log: logger, oldValue, newValue)
                 }
 
             Button(action: fetchCustomToken) {

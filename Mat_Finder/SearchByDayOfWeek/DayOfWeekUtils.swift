@@ -84,7 +84,9 @@ struct DayOfWeekView: View {
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button("Save") {
-                            viewModel.updateSchedules()
+                            Task {
+                                await viewModel.updateSchedules()
+                            }
                         }
                     }
                 }
@@ -128,7 +130,7 @@ struct DaysOfWeekView: View {
     @State private var selectedDay: DayOfWeek?
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack(alignment: .leading) {
                 Text("Select a day...")
                     .font(.subheadline)
@@ -136,11 +138,7 @@ struct DaysOfWeekView: View {
                     .padding(.bottom, 20)
 
                 List(DayOfWeek.allCases, id: \.self) { day in
-                    NavigationLink(
-                        destination: DayDetailView(day: day),
-                        tag: day,
-                        selection: $selectedDay
-                    ) {
+                    NavigationLink(value: day) {
                         Text(day.displayName)
                             .padding(.leading, 10)
                     }
@@ -149,17 +147,16 @@ struct DaysOfWeekView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 Spacer()
-
-                if let selectedDay = selectedDay {
-                    DayDetailView(day: selectedDay)
-                        .padding(.horizontal)
-                }
             }
             .padding(.horizontal)
             .navigationTitle("By Days of the Week")
+            .navigationDestination(for: DayOfWeek.self) { day in
+                DayDetailView(day: day)
+            }
         }
     }
 }
+
 
 struct DayDetailView: View {
     let day: DayOfWeek

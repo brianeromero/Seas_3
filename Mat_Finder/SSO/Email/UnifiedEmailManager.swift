@@ -13,17 +13,17 @@ import FirebaseAuth
 import CoreData
 
 
-
 @MainActor
 class UnifiedEmailManager {
     static let shared = UnifiedEmailManager(managedObjectContext: PersistenceController.shared.container.viewContext)
     
     private let managedObjectContext: NSManagedObjectContext
-    private let firebaseEmailService = EmailService()
+    private let firebaseEmailService: EmailService
     private let sendGridEmailService = SendGridEmailService()
     
     public init(managedObjectContext: NSManagedObjectContext) {
         self.managedObjectContext = managedObjectContext
+        self.firebaseEmailService = EmailService(managedObjectContext: managedObjectContext)
     }
 
     // MARK: - Firebase password reset

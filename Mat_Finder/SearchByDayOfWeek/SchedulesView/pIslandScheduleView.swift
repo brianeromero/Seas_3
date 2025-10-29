@@ -98,7 +98,9 @@ struct pIslandScheduleView: View {
             }
         }
         .onAppear {
-            viewModel.fetchPirateIslands()
+            Task {
+                await viewModel.fetchPirateIslands()
+            }
         }
     }
 

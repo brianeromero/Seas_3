@@ -97,10 +97,12 @@ enum CoreDataError: Error, LocalizedError {
 class AuthViewModel: ObservableObject {
     static var _shared: AuthViewModel?
 
+    @MainActor
     static var shared: AuthViewModel {
         get {
             if _shared == nil {
                 _shared = AuthViewModel(
+                    managedObjectContext: PersistenceController.shared.container.viewContext,
                     emailManager: UnifiedEmailManager.shared,
                     authenticationState: AppDelegate.shared.authenticationState
                 )
@@ -108,6 +110,7 @@ class AuthViewModel: ObservableObject {
             return _shared!
         }
     }
+
 
     @Published var usernameOrEmail: String = ""
     @Published var password: String = ""
@@ -140,7 +143,7 @@ class AuthViewModel: ObservableObject {
 
     @MainActor
     public init(
-        managedObjectContext: NSManagedObjectContext = PersistenceController.shared.container.viewContext,
+        managedObjectContext: NSManagedObjectContext,
         emailManager: UnifiedEmailManager,
         authenticationState: AuthenticationState
     ) {
@@ -162,6 +165,7 @@ class AuthViewModel: ObservableObject {
             }
         }
     }
+
 
 
 

@@ -11,12 +11,15 @@ import FirebaseAuth
 import FirebaseFirestore
 import CoreData
 
+
 class EmailService {
     let managedObjectContext: NSManagedObjectContext
-    
-    init(managedObjectContext: NSManagedObjectContext = PersistenceController.shared.viewContext) {
+
+    @MainActor
+    init(managedObjectContext: NSManagedObjectContext) {
         self.managedObjectContext = managedObjectContext
     }
+
 
     // Firebase Authentication: Sends a password reset email
     func sendPasswordResetEmail(to email: String, completion: @escaping (Bool) -> Void) {

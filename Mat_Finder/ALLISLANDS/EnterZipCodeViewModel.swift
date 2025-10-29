@@ -12,40 +12,43 @@ import Combine
 import CoreLocation
 import MapKit
 
+@MainActor
 class EnterZipCodeViewModel: ObservableObject {
     @Published var region: MKCoordinateRegion
     private var repository: AppDayOfWeekRepository
     private var context: NSManagedObjectContext
     @Published var postalCode: String = ""
 
-
-
     @Published var enteredLocation: CustomMapMarker?
     @Published var pirateIslands: [CustomMapMarker] = []
     @Published var address: String = ""
     @Published var currentRadius: Double = 5.0
+
     private var cancellables = Set<AnyCancellable>()
     private let geocoder = CLGeocoder()
     private let updateQueue = DispatchQueue(label: "com.example.Mat_Finder.updateQueue")
     let locationManager = UserLocationMapViewModel.shared
-    private let earthRadius = 6371.0088 // Radius of Earth in kilometers
-
+    private let earthRadius = 6371.0088 // km
 
     init(repository: AppDayOfWeekRepository, persistenceController: PersistenceController) {
         self.repository = repository
         self.context = persistenceController.viewContext
-        self.region = MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194), span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)) // Default to San Francisco
-        
+        self.region = MKCoordinateRegion(
+            center: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
+            span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
+        )
+
         locationManager.$userLocation
             .sink { [weak self] userLocation in
                 guard let location = userLocation else { return }
                 self?.updateRegion(location, radius: self?.currentRadius ?? 5.0)
-                self?.fetchPirateIslandsNear(location, within: self?.currentRadius ?? 5.0 * 1609.34)
+                self?.fetchPirateIslandsNear(location, within: (self?.currentRadius ?? 5.0) * 1609.34)
             }
             .store(in: &cancellables)
 
         locationManager.startLocationServices()
     }
+
 
     func isValidPostalCode() -> Bool {
         postalCode.count == 5 && postalCode.allSatisfy(\.isNumber)

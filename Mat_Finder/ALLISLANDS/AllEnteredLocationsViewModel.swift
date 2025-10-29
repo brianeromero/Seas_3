@@ -34,12 +34,16 @@ class AllEnteredLocationsViewModel: NSObject, ObservableObject, NSFetchedResults
 
     func fetchPirateIslands() {
         print("Fetching pirate islands...")
+
+        // Start loading
         DispatchQueue.main.async {
             self.isDataLoaded = false
+            self.errorMessage = nil
         }
 
         DispatchQueue.global(qos: .userInitiated).async {
             let result = self.dataManager.fetchPirateIslands()
+
             DispatchQueue.main.async { [weak self] in
                 guard let self = self else { return }
 
@@ -47,30 +51,24 @@ class AllEnteredLocationsViewModel: NSObject, ObservableObject, NSFetchedResults
                 case .success(let pirateIslands):
                     self.allIslands = pirateIslands
                     self.updatePirateMarkers(with: pirateIslands)
-                    self.errorMessage = nil
-
-                    // ✅ ADD THESE DEBUG PRINTS HERE
-                    print("🗺️ pirateMarkers count after fetch: \(self.pirateMarkers.count)")
-                    self.pirateMarkers.forEach { marker in
-                        print("📍 \(marker.title ?? "Unknown") - \(marker.coordinate.latitude), \(marker.coordinate.longitude)")
-                    }
 
                 case .failure(let error):
                     self.errorMessage = "Failed to load pirate islands: \(error.localizedDescription)"
                     print("❌ Error fetching pirate islands: \(error)")
+                    self.pirateMarkers = []  // Ensure markers are empty on failure
+                    self.region = .automatic // Reset map
+                    self.isDataLoaded = true // Done loading even on error
                 }
-
-                self.isDataLoaded = true
             }
         }
     }
 
-    
     private func updatePirateMarkers(with islands: [PirateIsland]) {
         guard !islands.isEmpty else {
             print("No pirate islands available to create markers.")
-            self.pirateMarkers = [] // Ensure markers are empty if no islands
-            self.updateRegion() // Still update region even if empty to reset map
+            self.pirateMarkers = []
+            self.region = .automatic
+            self.isDataLoaded = true
             return
         }
 
@@ -83,11 +81,22 @@ class AllEnteredLocationsViewModel: NSObject, ObservableObject, NSFetchedResults
             )
         }
 
+        // Update markers and map region on main thread
         DispatchQueue.main.async {
             self.pirateMarkers = markers
-            self.updateRegion() // Update map region after markers are set
+            self.updateRegion()
+
+            // Debug prints
+            print("🗺️ pirateMarkers count after fetch: \(self.pirateMarkers.count)")
+            self.pirateMarkers.forEach { marker in
+                print("📍 \(marker.title ?? "Unknown") - \(marker.coordinate.latitude), \(marker.coordinate.longitude)")
+            }
+
+            // ✅ Only set isDataLoaded after markers and region are updated
+            self.isDataLoaded = true
         }
     }
+
 
     func updateRegion() {
         guard !pirateMarkers.isEmpty else {

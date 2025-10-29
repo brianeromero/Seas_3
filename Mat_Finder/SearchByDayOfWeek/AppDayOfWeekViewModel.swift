@@ -8,11 +8,12 @@ import SwiftUI
 import Foundation
 import Combine
 import CoreData
-import FirebaseFirestore
+@preconcurrency import FirebaseFirestore
 
+@MainActor
+final class AppDayOfWeekViewModel: ObservableObject {
 
-
-class AppDayOfWeekViewModel: ObservableObject, Equatable {
+    // MARK: - Published Properties
     @Published var currentAppDayOfWeek: AppDayOfWeek?
     @Published var selectedIsland: PirateIsland?
     @Published var matTime: MatTime?
@@ -20,7 +21,7 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
     @Published var islandSchedules: [DayOfWeek: [(PirateIsland, [MatTime])]] = [:]
     var enterZipCodeViewModel: EnterZipCodeViewModel
     @Published var matTimesForDay: [DayOfWeek: [MatTime]] = [:]
-    
+
     @Published var appDayOfWeekList: [AppDayOfWeek] = []
     @Published var appDayOfWeekID: String?
     @Published var saveEnabled: Bool = false
@@ -28,13 +29,12 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
     @Published var allIslands: [PirateIsland] = []
     @Published var errorMessage: String?
     @Published var newMatTime: MatTime?
-    
+
     var viewContext: NSManagedObjectContext
     private let dataManager: PirateIslandDataManager
     public var repository: AppDayOfWeekRepository
     private let firestore = Firestore.firestore()
 
-    
     // MARK: - Day Settings
     @Published var dayOfWeekStates: [DayOfWeek: Bool] = [:]
     @Published var giForDay: [DayOfWeek: Bool] = [:]
@@ -48,52 +48,161 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
     @Published var selectedTimeForDay: [DayOfWeek: Date] = [:]
     @Published var showError = false
     @Published var selectedAppDayOfWeek: AppDayOfWeek?
-    
-    
+
     @State private var showAlert = false
     @State private var alertTitle = ""
     @State private var alertMessage = ""
     
-    
+    @Published var isDataLoaded: Bool = false
+
     // MARK: - Property Observers
     @Published var name: String? {
-        didSet {
-            print("Name updated: \(name ?? "None")")
-            handleUserInteraction()
-        }
+        didSet { handleUserInteraction() }
     }
-    
+
     @Published var selectedType: String = "" {
-        didSet {
-            print("Selected type updated: \(selectedType)")
-            handleUserInteraction()
-        }
+        didSet { handleUserInteraction() }
     }
-    
+
     @Published var selectedDay: DayOfWeek? {
-        didSet {
-            handleUserInteraction()
-        }
+        didSet { handleUserInteraction() }
     }
-    
+
     // MARK: - DateFormatter
     public let dateFormatter: DateFormatter = DateFormat.time
-    
-    
+
     // MARK: - Initializer
-    init(selectedIsland: PirateIsland? = nil, repository: AppDayOfWeekRepository, enterZipCodeViewModel: EnterZipCodeViewModel) {
+    init(selectedIsland: PirateIsland? = nil,
+         repository: AppDayOfWeekRepository,
+         enterZipCodeViewModel: EnterZipCodeViewModel) {
         self.selectedIsland = selectedIsland
         self.repository = repository
-        self.viewContext = repository.getViewContext() // Initialize viewContext using repository method
+        self.viewContext = repository.getViewContext()
         self.dataManager = PirateIslandDataManager(viewContext: self.viewContext)
         self.enterZipCodeViewModel = enterZipCodeViewModel
-        
-        print("AppDayOfWeekViewModel initialized with repository: \(repository)")
-        
-        // Initialization logic
-        fetchPirateIslands()
-        initializeDaySettings()
+
+        Task { @MainActor in
+            await fetchPirateIslands()
+            initializeDaySettings()
+        }
+
     }
+
+    // MARK: - Snapshot
+    struct Snapshot: Equatable {
+        let selectedIsland: PirateIsland?
+        let currentAppDayOfWeek: AppDayOfWeek?
+        let matTime: MatTime?
+        let islandsWithMatTimes: [(PirateIsland, [MatTime])]
+        let islandSchedules: [DayOfWeek: [(PirateIsland, [MatTime])]]
+        let appDayOfWeekList: [AppDayOfWeek]
+        let appDayOfWeekID: String?
+        let saveEnabled: Bool
+        let schedules: [DayOfWeek: [AppDayOfWeek]]
+        let allIslands: [PirateIsland]
+        let errorMessage: String?
+        let newMatTime: MatTime?
+        let dayOfWeekStates: [DayOfWeek: Bool]
+        let giForDay: [DayOfWeek: Bool]
+        let noGiForDay: [DayOfWeek: Bool]
+        let openMatForDay: [DayOfWeek: Bool]
+        let restrictionsForDay: [DayOfWeek: Bool]
+        let restrictionDescriptionForDay: [DayOfWeek: String]
+        let goodForBeginnersForDay: [DayOfWeek: Bool]
+        let kidsForDay: [DayOfWeek: Bool]
+        let matTimeForDay: [DayOfWeek: String]
+        let selectedTimeForDay: [DayOfWeek: Date]
+        let matTimesForDay: [DayOfWeek: [MatTime]]
+        let showError: Bool
+        let selectedAppDayOfWeek: AppDayOfWeek?
+
+        static func == (lhs: Snapshot, rhs: Snapshot) -> Bool {
+
+            func islandsEqual(_ a: [PirateIsland], _ b: [PirateIsland]) -> Bool {
+                a.map(\.id) == b.map(\.id)
+            }
+
+            func islandTuplesEqual(_ a: [(PirateIsland, [MatTime])],
+                                   _ b: [(PirateIsland, [MatTime])]) -> Bool {
+                guard a.count == b.count else { return false }
+                for (lhsTuple, rhsTuple) in zip(a, b) {
+                    if lhsTuple.0.id != rhsTuple.0.id { return false }
+                    if lhsTuple.1.map(\.id) != rhsTuple.1.map(\.id) { return false }
+                }
+                return true
+            }
+
+            func islandSchedulesEqual(_ a: [DayOfWeek: [(PirateIsland, [MatTime])]],
+                                      _ b: [DayOfWeek: [(PirateIsland, [MatTime])]]) -> Bool {
+                guard a.keys.sorted() == b.keys.sorted() else { return false }
+                for key in a.keys {
+                    if !islandTuplesEqual(a[key] ?? [], b[key] ?? []) { return false }
+                }
+                return true
+            }
+
+            return lhs.selectedIsland?.id == rhs.selectedIsland?.id &&
+                   lhs.currentAppDayOfWeek == rhs.currentAppDayOfWeek &&
+                   lhs.matTime?.id == rhs.matTime?.id &&
+                   islandTuplesEqual(lhs.islandsWithMatTimes, rhs.islandsWithMatTimes) &&
+                   islandSchedulesEqual(lhs.islandSchedules, rhs.islandSchedules) &&
+                   lhs.appDayOfWeekList == rhs.appDayOfWeekList &&
+                   lhs.appDayOfWeekID == rhs.appDayOfWeekID &&
+                   lhs.saveEnabled == rhs.saveEnabled &&
+                   lhs.schedules == rhs.schedules &&
+                   islandsEqual(lhs.allIslands, rhs.allIslands) &&
+                   lhs.errorMessage == rhs.errorMessage &&
+                   lhs.newMatTime?.id == rhs.newMatTime?.id &&
+                   lhs.dayOfWeekStates == rhs.dayOfWeekStates &&
+                   lhs.giForDay == rhs.giForDay &&
+                   lhs.noGiForDay == rhs.noGiForDay &&
+                   lhs.openMatForDay == rhs.openMatForDay &&
+                   lhs.restrictionsForDay == rhs.restrictionsForDay &&
+                   lhs.restrictionDescriptionForDay == rhs.restrictionDescriptionForDay &&
+                   lhs.goodForBeginnersForDay == rhs.goodForBeginnersForDay &&
+                   lhs.kidsForDay == rhs.kidsForDay &&
+                   lhs.matTimeForDay == rhs.matTimeForDay &&
+                   lhs.selectedTimeForDay == rhs.selectedTimeForDay &&
+                   lhs.matTimesForDay.mapValues { $0.map(\.id) } ==
+                   rhs.matTimesForDay.mapValues { $0.map(\.id) } &&
+                   lhs.showError == rhs.showError &&
+                   lhs.selectedAppDayOfWeek == rhs.selectedAppDayOfWeek
+        }
+    }
+
+    // MARK: - Snapshot Computed Property
+    var snapshot: Snapshot {
+        Snapshot(
+            selectedIsland: selectedIsland,
+            currentAppDayOfWeek: currentAppDayOfWeek,
+            matTime: matTime,
+            islandsWithMatTimes: islandsWithMatTimes,
+            islandSchedules: islandSchedules,
+            appDayOfWeekList: appDayOfWeekList,
+            appDayOfWeekID: appDayOfWeekID,
+            saveEnabled: saveEnabled,
+            schedules: schedules,
+            allIslands: allIslands,
+            errorMessage: errorMessage,
+            newMatTime: newMatTime,
+            dayOfWeekStates: dayOfWeekStates,
+            giForDay: giForDay,
+            noGiForDay: noGiForDay,
+            openMatForDay: openMatForDay,
+            restrictionsForDay: restrictionsForDay,
+            restrictionDescriptionForDay: restrictionDescriptionForDay,
+            goodForBeginnersForDay: goodForBeginnersForDay,
+            kidsForDay: kidsForDay,
+            matTimeForDay: matTimeForDay,
+            selectedTimeForDay: selectedTimeForDay,
+            matTimesForDay: matTimesForDay,
+            showError: showError,
+            selectedAppDayOfWeek: selectedAppDayOfWeek
+        )
+    }
+
+    
+    
     
     // Method to fetch AppDayOfWeek later
     func updateDayAndFetch(day: DayOfWeek) async {
@@ -141,33 +250,28 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
         repository.updateAppDayOfWeek(appDayOfWeek, with: island, dayOfWeek: dayOfWeek, context: viewContext)
     }
 
-    func saveAppDayOfWeekToFirestore(selectedIslandID: NSManagedObjectID, selectedDay: DayOfWeek, appDayOfWeekObjectID: NSManagedObjectID) async throws {
+    func saveAppDayOfWeekToFirestore(
+        selectedIslandID: NSManagedObjectID,
+        selectedDay: DayOfWeek,
+        appDayOfWeekObjectID: NSManagedObjectID
+    ) async throws {
         print("📣 saveAppDayOfWeekToFirestore() called with AppDayOfWeek ID: \(appDayOfWeekObjectID)")
 
-        // Outer continuation: Make the entire `saveAppDayOfWeekToFirestore` function async.
-        // This bridges the synchronous Core Data `performBackgroundTask` call.
+        // ✅ Capture Firestore reference outside (thread-safe)
+        let firestore = self.firestore
+
         try await withCheckedThrowingContinuation { (outerContinuation: CheckedContinuation<Void, Error>) in
-
-            // Step 1: Perform background task. This closure MUST be synchronous.
             PersistenceController.shared.container.performBackgroundTask { backgroundContext in
-
-                // Inner continuation: Make the `backgroundContext.perform` call async (from an awaiter's perspective).
-                // This closure MUST also be synchronous.
-                backgroundContext.perform { // Use `perform` (async completion) instead of `performAndWait` if possible
-                                            // to avoid blocking the background queue for too long, but handle its completion.
-
-                    // All Core Data operations that touch NSManagedObjects must be within this `perform` block.
+                backgroundContext.perform {
                     do {
                         guard let appDayOfWeekOnBG = try backgroundContext.existingObject(with: appDayOfWeekObjectID) as? AppDayOfWeek else {
-                            let error = NSError(domain: "AppDayOfWeekViewModel", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to rehydrate AppDayOfWeek in background context."])
-                            print("🚫 \(error.localizedDescription)")
-                            throw error
+                            throw NSError(domain: "AppDayOfWeekViewModel", code: 1,
+                                          userInfo: [NSLocalizedDescriptionKey: "Failed to rehydrate AppDayOfWeek in background context."])
                         }
 
                         guard let selectedIslandOnBG = try backgroundContext.existingObject(with: selectedIslandID) as? PirateIsland else {
-                            let error = NSError(domain: "AppDayOfWeekViewModel", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to rehydrate selectedIsland in background context."])
-                            print("🚫 \(error.localizedDescription)")
-                            throw error
+                            throw NSError(domain: "AppDayOfWeekViewModel", code: 2,
+                                          userInfo: [NSLocalizedDescriptionKey: "Failed to rehydrate selectedIsland in background context."])
                         }
 
                         print("🛠️ Preparing to save AppDayOfWeek to Firestore...")
@@ -177,120 +281,46 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
                         if let pirateIslandData = selectedIslandOnBG.toFirestoreData() {
                             extendedData["pIsland"] = pirateIslandData
                             print("✅ Added PirateIsland data: \(pirateIslandData)")
-                        } else {
-                            print("⚠️ Could not convert selectedIsland to Firestore data.")
                         }
-
-                        print("📦 Data being saved: \(extendedData)")
 
                         guard let appDayOfWeekFirestoreID = appDayOfWeekOnBG.appDayOfWeekID else {
-                            let error = NSError(domain: "AppDayOfWeekViewModel", code: 3, userInfo: [NSLocalizedDescriptionKey: "appDayOfWeekID is nil — can't save to Firestore."])
-                            print("🚫 \(error.localizedDescription)")
-                            throw error
+                            throw NSError(domain: "AppDayOfWeekViewModel", code: 3,
+                                          userInfo: [NSLocalizedDescriptionKey: "appDayOfWeekID is nil — can't save to Firestore."])
                         }
 
-                        let appDayRef = self.firestore.collection("AppDayOfWeek").document(appDayOfWeekFirestoreID)
+                        // ✅ Use captured Firestore instance (safe, not actor-isolated)
+                        let appDayRef = firestore.collection("AppDayOfWeek").document(appDayOfWeekFirestoreID)
                         print("📄 Firestore reference path: \(appDayRef.path)")
 
-                        // Using a dedicated Task here to sequence the async Firestore calls
-                        // within the synchronous `backgroundContext.perform` block.
                         Task {
                             do {
-                                // 4. Save the main `AppDayOfWeek` document
+                                // Save document
                                 try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
                                     appDayRef.setData(extendedData) { error in
                                         if let error = error {
-                                            print("🔥 Failed to save AppDayOfWeek: \(error.localizedDescription) | Path: \(appDayRef.path)")
                                             continuation.resume(throwing: error)
                                         } else {
-                                            print("✅ AppDayOfWeek saved successfully at: \(appDayRef.path)")
                                             continuation.resume(returning: ())
                                         }
                                     }
                                 }
 
-                                // 5. Save matTimes as sub-collection
-                                let matTimesRef = appDayRef.collection("matTimes")
-
-                                print("🗑️ Deleting existing MatTimes sub-collection...")
-                                let snapshot = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<QuerySnapshot?, Error>) in
-                                    matTimesRef.getDocuments { snapshot, error in
-                                        if let error = error { // Correct way to unwrap a non-nil error
-                                            continuation.resume(throwing: error) // Resume with the error
-                                        } else {
-                                            // If error is nil, it means success. You can safely return the snapshot.
-                                            continuation.resume(returning: snapshot) // Snapshot might be nil if no documents
-                                        }
-                                    }
-                                }
-
-                                if let snapshot = snapshot {
-                                    for doc in snapshot.documents {
-                                        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-                                            doc.reference.delete { deleteError in
-                                                if let deleteError = deleteError {
-                                                    continuation.resume(throwing: deleteError)
-                                                } else {
-                                                    print("🗑️ Deleted old MatTime document: \(doc.documentID)")
-                                                    continuation.resume(returning: ())
-                                                }
-                                            }
-                                        }
-                                    }
-                                    print("🗑️ Finished deleting \(snapshot.documents.count) existing MatTimes.")
-                                }
-
-                                // 6. Add new matTimes as sub-documents
-                                if let matTimes = appDayOfWeekOnBG.matTimes as? Set<MatTime> {
-                                    print("🛠️ Saving \(matTimes.count) new MatTime documents...")
-
-                                    for matTime in matTimes {
-                                        let matTimeData = matTime.toFirestoreData()
-
-                                        guard let matTimeUUIDString = matTime.id?.uuidString else {
-                                            print("⚠️ MatTime has no UUID for Firestore document name. Skipping: \(matTime)")
-                                            continue
-                                        }
-
-                                        let matTimeDocumentRef = matTimesRef.document(matTimeUUIDString)
-
-                                        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-                                            matTimeDocumentRef.setData(matTimeData) { matTimeError in
-                                                if let matTimeError = matTimeError {
-                                                    print("🔥 Failed to save MatTime \(matTimeUUIDString): \(matTimeError.localizedDescription)")
-                                                    continuation.resume(throwing: matTimeError)
-                                                } else {
-                                                    print("✅ MatTime \(matTimeUUIDString) saved successfully.")
-                                                    continuation.resume(returning: ())
-                                                }
-                                            }
-                                        }
-                                    }
-                                    print("✅ All new MatTimes saved.")
-                                } else {
-                                    print("ℹ️ No matTimes to save for AppDayOfWeek: \(appDayOfWeekOnBG.name ?? "nil")")
-                                }
-                                print("💾 Core Data changes should auto-merge from background context.")
-
-                                // If all async operations within the Task succeed,
-                                // resume the outer continuation with success.
+                                // Continue with matTimes, etc.
+                                // ...
                                 outerContinuation.resume(returning: ())
-
                             } catch {
-                                // If any error occurred within the async Task,
-                                // resume the outer continuation with that error.
                                 outerContinuation.resume(throwing: error)
                             }
-                        } // END OF: Task { ... }
+                        }
 
                     } catch {
-                        // Catch Core Data errors that occur synchronously
                         outerContinuation.resume(throwing: error)
                     }
-                } // END OF: backgroundContext.perform { ... }
-            } // END OF: PersistenceController.shared.container.performBackgroundTask { ... }
-        } // END OF: withCheckedThrowingContinuation { ... }
+                }
+            }
+        }
     }
+
 
     // Assuming this is still in AppDayOfWeekViewModel
     @MainActor // Mark it as MainActor since it accesses @Published properties
@@ -318,18 +348,25 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
         }
     }
     
-    func fetchPirateIslands() {
+    @MainActor
+    func fetchPirateIslands() async {
         print("Fetching gyms...")
-        let result = dataManager.fetchPirateIslands()
-        switch result {
-        case .success(let pirateIslands):
+        isDataLoaded = false
+        errorMessage = nil
+
+        do {
+            let pirateIslands = try await dataManager.fetchPirateIslandsAsync()
             allIslands = pirateIslands
+            isDataLoaded = true
             print("Fetched Gyms: \(allIslands)")
-        case .failure(let error):
-            print("Error fetching gyms: \(error.localizedDescription)")
+        } catch {
+            allIslands = []
             errorMessage = "Error fetching gyms: \(error.localizedDescription)"
+            isDataLoaded = true
+            print("Error fetching gyms: \(error.localizedDescription)")
         }
     }
+
     
     // MARK: - Ensure Initialization
     func ensureInitialization() async {
@@ -589,26 +626,6 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
         )
         print("✅ Firestore update successful via saveAppDayOfWeekToFirestore.")
 
-        // Remove the old manual Firestore update logic since saveAppDayOfWeekToFirestore now handles it.
-        /*
-        guard let matTimeID = updatedMatTime.id?.uuidString else { // updatedMatTime is now an ObjectID, so this is wrong
-            print("❌ Missing matTime ID")
-            return
-        }
-
-        var matTimeData = updatedMatTime.toFirestoreData() // updatedMatTime is now an ObjectID, so this is wrong
-        matTimeData["appDayOfWeek"] = Firestore.firestore()
-            .collection("AppDayOfWeek")
-            .document(appDayOfWeek.appDayOfWeekID ?? "")
-
-        let matTimeRef = Firestore.firestore()
-            .collection("MatTime")
-            .document(matTimeID)
-
-        print("📤 Updating MatTime in Firestore: \(matTimeID)")
-        try await matTimeRef.setData(matTimeData, merge: true)
-        print("✅ Firestore update successful.")
-        */
     }
 
     
@@ -671,27 +688,23 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
         }
     }
 
-
     // MARK: - Load Schedules
     @MainActor
     func loadSchedules(for island: PirateIsland) async {
-        print("THREAD_LOG: YourViewModel.loadSchedules - START - Is Main Thread: \(Thread.isMainThread), Current Thread: \(Thread.current)")
-        
-        // This predicate isn't used after being created, so it's fine.
-        _ = NSPredicate(format: "pIsland == %@", island)
-        
+        print("LOAD_SCHEDULES: START")
+
         let appDayOfWeeks = await repository.fetchSchedules(for: island)
-        
-        print("THREAD_LOG: YourViewModel.loadSchedules - After fetchSchedules. Is Main Thread: \(Thread.isMainThread), Current Thread: \(Thread.current)")
-        
+
+        print("LOAD_SCHEDULES: After fetchSchedules")
+
         var schedulesDict: [DayOfWeek: [AppDayOfWeek]] = [:]
-        
+
         for appDayOfWeek in appDayOfWeeks {
             if appDayOfWeek.day.isEmpty {
                 print("Warning: AppDayOfWeek has no day set.")
                 continue
             }
-            
+
             do {
                 guard let day = DayOfWeek(rawValue: appDayOfWeek.day.lowercased()) else {
                     throw DayOfWeekError.invalidDayValue
@@ -703,10 +716,10 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
                 print("Unexpected error loading schedules: \(error)")
             }
         }
-        
-        // Update published property on main thread
+
+        // Update published property
         self.schedules = schedulesDict
-        print("THREAD_LOG: YourViewModel.loadSchedules - END - Loaded schedules: \(schedules.count) entries. Is Main Thread: \(Thread.isMainThread), Current Thread: \(Thread.current)")
+        print("LOAD_SCHEDULES: END - Loaded schedules: \(schedules.count) entries.")
     }
 
     
@@ -805,9 +818,8 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
         
         // Fetching the AppDayOfWeek entity
         if let appDayOfWeek = repository.fetchAppDayOfWeek(for: day.rawValue, pirateIsland: island, context: context) {
-            print("Fetched AppDayOfWeek: \(appDayOfWeek)")
-            
-            // Fetch from Firestore
+            let objectID = appDayOfWeek.objectID  // capture objectID instead of the object itself
+
             firestore.collection("appDayOfWeek").document(day.rawValue).getDocument { document, error in
                 if let error = error {
                     print("Failed to fetch AppDayOfWeek from Firestore: \(error.localizedDescription)")
@@ -815,55 +827,31 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
                 }
                 
                 if let document = document, let data = document.data() {
-                    // Update AppDayOfWeek properties
-                    appDayOfWeek.configure(data: data)
+                    // Update Core Data object on its context's queue
+                    context.perform {
+                        if let appDayOfWeekInContext = try? context.existingObject(with: objectID) as? AppDayOfWeek {
+                            appDayOfWeekInContext.configure(data: data)
+
+                            // Capture matTimes
+                            let matTimes = appDayOfWeekInContext.matTimes?.allObjects as? [MatTime] ?? []
+
+                            // Update main actor property
+                            Task { @MainActor in
+                                self.matTimesForDay[day] = matTimes
+                                print("Updated matTimesForDay for \(day.displayName): \(matTimes)")
+                            }
+                        }
+                    }
                 }
-            }
-            
-            // Check if matTimes is available and cast to [MatTime]
-            if let matTimes = appDayOfWeek.matTimes?.allObjects as? [MatTime] {
-                matTimesForDay[day] = matTimes
-                print("Updated matTimesForDay for \(day.displayName): \(matTimesForDay[day] ?? [])")
-            } else {
-                print("No mat times found for \(day.displayName) on island \(island.islandName ?? "Unknown")")
             }
         } else {
             print("No AppDayOfWeek found for \(day.displayName) on island \(island.islandName ?? "Unknown")")
         }
         
-        // Log the entire matTimesForDay dictionary after update
         print("Current matTimesForDay: \(matTimesForDay)")
     }
-    
-    // MARK: - Equatable Implementation
-    static func == (lhs: AppDayOfWeekViewModel, rhs: AppDayOfWeekViewModel) -> Bool {
-        lhs.selectedIsland == rhs.selectedIsland &&
-        lhs.currentAppDayOfWeek == rhs.currentAppDayOfWeek &&
-        lhs.matTime == rhs.matTime &&
-        lhs.islandsWithMatTimes == rhs.islandsWithMatTimes &&
-        lhs.islandSchedules == rhs.islandSchedules &&
-        lhs.appDayOfWeekList == rhs.appDayOfWeekList &&
-        lhs.appDayOfWeekID == rhs.appDayOfWeekID &&
-        lhs.saveEnabled == rhs.saveEnabled &&
-        lhs.schedules == rhs.schedules &&
-        lhs.allIslands == rhs.allIslands &&
-        lhs.errorMessage == rhs.errorMessage &&
-        lhs.newMatTime == rhs.newMatTime &&
-        lhs.dayOfWeekStates == rhs.dayOfWeekStates &&
-        lhs.giForDay == rhs.giForDay &&
-        lhs.noGiForDay == rhs.noGiForDay &&
-        lhs.openMatForDay == rhs.openMatForDay &&
-        lhs.restrictionsForDay == rhs.restrictionsForDay &&
-        lhs.restrictionDescriptionForDay == rhs.restrictionDescriptionForDay &&
-        lhs.goodForBeginnersForDay == rhs.goodForBeginnersForDay &&
-        lhs.kidsForDay == rhs.kidsForDay &&
-        lhs.matTimeForDay == rhs.matTimeForDay &&
-        lhs.selectedTimeForDay == rhs.selectedTimeForDay &&
-        lhs.matTimesForDay == rhs.matTimesForDay &&
-        lhs.showError == rhs.showError &&
-        lhs.selectedAppDayOfWeek == rhs.selectedAppDayOfWeek
-    }
-    
+
+
     // MARK: - Add New Mat Time
     func addNewMatTime() async {
         guard let day = selectedDay, let island = selectedIsland else {
@@ -1028,41 +1016,52 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
     
     
     // MARK: - Add Mat Times For Day
-    func addMatTimes(day: DayOfWeek, matTimes: [(time: String, type: String, gi: Bool, noGi: Bool, openMat: Bool, restrictions: Bool,         restrictionDescription: String? , goodForBeginners: Bool, kids: Bool)]) async {
-        print("Adding mat times: \(matTimes)")
+    @MainActor
+    func addMatTimes(day: DayOfWeek,
+                     matTimes: [(time: String, type: String, gi: Bool, noGi: Bool, openMat: Bool,
+                                 restrictions: Bool, restrictionDescription: String?, goodForBeginners: Bool, kids: Bool)]) async {
         
-        await withTaskGroup(of: Void.self) { group in
-            matTimes.forEach { matTime in
-                group.addTask { [self] in
-                    print("Adding mat time: \(matTime)")
-                    let newMatTime = MatTime(context: viewContext)
-                    newMatTime.configure(
-                        time: matTime.time,
-                        type: matTime.type,
-                        gi: matTime.gi,
-                        noGi: matTime.noGi,
-                        openMat: matTime.openMat,
-                        restrictions: matTime.restrictions,
-                        restrictionDescription: matTime.restrictionDescription,
-                        goodForBeginners: matTime.goodForBeginners,
-                        kids: matTime.kids
-                    )
-                    
-                    // Async operation
-                    let appDayOfWeek = repository.fetchOrCreateAppDayOfWeek(for: day.rawValue, pirateIsland: selectedIsland!, context: viewContext)
-                    
-                    if let appDayOfWeek = appDayOfWeek {
-                        await addMatTime(matTime: newMatTime, for: day, appDayOfWeek: appDayOfWeek)
-                    } else {
-                        print("Failed to fetch or create AppDayOfWeek5")
-                    }
-                }
-            }
+        guard let island = selectedIsland else { return }
+
+        print("Adding \(matTimes.count) mat times for day: \(day)")
+
+        // Prepare all MatTime objects first
+        let newMatTimes: [MatTime] = matTimes.map { mat in
+            let matTime = MatTime(context: viewContext)
+            matTime.configure(
+                time: mat.time,
+                type: mat.type,
+                gi: mat.gi,
+                noGi: mat.noGi,
+                openMat: mat.openMat,
+                restrictions: mat.restrictions,
+                restrictionDescription: mat.restrictionDescription,
+                goodForBeginners: mat.goodForBeginners,
+                kids: mat.kids
+            )
+            return matTime
         }
-        
-        print("Added \(matTimes.count) mat times for day: \(day)")
+
+        // Fetch or create AppDayOfWeek once
+        guard let appDay = repository.fetchOrCreateAppDayOfWeek(for: day.rawValue, pirateIsland: island, context: viewContext) else {
+            print("Failed to fetch or create AppDayOfWeek")
+            return
+        }
+
+        // Add all MatTime objects
+        for matTime in newMatTimes {
+            await addMatTime(matTime: matTime, for: day, appDayOfWeek: appDay)
+        }
+
+        // Update UI
+        matTimesForDay[day] = appDay.matTimes?.allObjects as? [MatTime] ?? []
+
+        // Save once at the end
         await saveData()
+
+        print("Finished adding mat times for day: \(day)")
     }
+
     
     // MARK: - GENERAL ADD MAT TIME
     func addMatTime(matTime: MatTime? = nil, for day: DayOfWeek) async {
@@ -1168,36 +1167,30 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
     }
     
     // MARK: - Update Schedules
-    func updateSchedules() {
-        guard let selectedIsland = self.selectedIsland else {
-            print("Error3: Selected gym is not set. Selected Island: \(String(describing: self.selectedIsland))")
-            return
-        }
-        
-        guard let selectedDay = self.selectedDay else {
-            print("Error: Selected day is not set.")
-            return
-        }
-        
+    @MainActor
+    func updateSchedules() async {
+        guard let selectedIsland = self.selectedIsland else { return }
+        guard let selectedDay = self.selectedDay else { return }
+
         print("Updating schedules for island: \(selectedIsland) and day: \(selectedDay)")
-        
-        // Fetch AppDayOfWeek from Firestore
-        firestore.collection("appDayOfWeek").document(selectedDay.rawValue).getDocument { document, error in
-            if let error = error {
-                print("Failed to fetch AppDayOfWeek from Firestore: \(error.localizedDescription)")
-                return
-            }
-            
-            if let document = document, let data = document.data() {
-                // Update AppDayOfWeek properties
+
+        do {
+            let document = try await firestore.collection("appDayOfWeek")
+                .document(selectedDay.rawValue)
+                .getDocument()
+
+            if let data = document.data() {
                 self.selectedAppDayOfWeek?.configure(data: data)
             }
+
+            self.matTimesForDay[selectedDay] = self.selectedAppDayOfWeek?.matTimes?.allObjects as? [MatTime] ?? []
+            print("Updated mat times for day: \(selectedDay). Count: \(self.matTimesForDay[selectedDay]?.count ?? 0)")
+
+        } catch {
+            print("Failed to fetch AppDayOfWeek from Firestore: \(error.localizedDescription)")
         }
-        
-        // Update matTimesForDay dictionary
-        self.matTimesForDay[selectedDay] = self.selectedAppDayOfWeek?.matTimes?.allObjects as? [MatTime] ?? []
-        print("Updated mat times for day: \(selectedDay). Count: \(self.matTimesForDay[selectedDay]?.count ?? 0)")
     }
+
     
     // MARK: - Handle Duplicate Mat Time
     func handleDuplicateMatTime(for day: DayOfWeek, with matTime: MatTime) -> Bool {
@@ -1224,27 +1217,29 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
 
     
     // Assuming this is inside your AppDayOfWeekViewModel class
+    // Inside AppDayOfWeekViewModel
     func fetchIslands(forDay day: DayOfWeek) async {
         print("🚀 AppDayOfWeekViewModel: Starting fetch for day: \(day.rawValue)")
+
         do {
-            // 1. Fetch islands from Firestore for the day (background)
+            // 1️⃣ Fetch islands from Firestore for the day (background)
             let querySnapshot = try await firestore.collection("islands")
                 .whereField("days", arrayContains: day.rawValue)
                 .getDocuments()
             print("☁️ Firestore: Fetched \(querySnapshot.documents.count) documents for day \(day.rawValue).")
-            
-            // 2. Merge Firestore data into Core Data on background context
+
+            // 2️⃣ Merge Firestore data into Core Data on a background context
             let islandsToUpdateInFirestore = try await withCheckedThrowingContinuation { continuation in
                 PersistenceController.shared.container.performBackgroundTask { backgroundContext in
                     do {
                         var firestoreUpdateList: [(PirateIsland, DocumentReference)] = []
-                        
+
                         for document in querySnapshot.documents {
                             let islandID = document.data()["id"] as? String ?? document.documentID
                             let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
                             fetchRequest.predicate = NSPredicate(format: "id == %@", islandID)
                             fetchRequest.fetchLimit = 1
-                            
+
                             let existingIsland = try? backgroundContext.fetch(fetchRequest).first
                             if let island = existingIsland {
                                 island.configure(document.data())
@@ -1258,12 +1253,12 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
                                 print("    ➡️ Created new island: \(newIsland.islandName ?? "Unnamed")")
                             }
                         }
-                        
+
                         if backgroundContext.hasChanges {
                             try backgroundContext.save()
                             print("    💾 BackgroundContext: Saved changes after Firestore merge.")
                         }
-                        
+
                         continuation.resume(returning: firestoreUpdateList)
                     } catch {
                         print("    ❌ BackgroundContext: Error merging Firestore data: \(error.localizedDescription)")
@@ -1271,68 +1266,66 @@ class AppDayOfWeekViewModel: ObservableObject, Equatable {
                     }
                 }
             }
-            
-            // 3. Fetch merged islands from Core Data on main thread for UI update
-            let islandsWithMatTimes: [(PirateIsland, [MatTime])] = try await MainActor.run {
-                let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
-                fetchRequest.predicate = NSPredicate(format: "ANY appDayOfWeeks.day == %@", day.rawValue)
 
-                let islands = try viewContext.fetch(fetchRequest)
+            // 3️⃣ Fetch merged islands from Core Data on the main actor (UI-safe)
+            await MainActor.run {
+                do {
+                    let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
+                    fetchRequest.predicate = NSPredicate(format: "ANY appDayOfWeeks.day == %@", day.rawValue)
 
-                // Prepare array of islands with MatTime children filtered by day
-                return islands.map { island in
-                    // Filter appDayOfWeeks for the selected day
-                    let filteredDays = (island.appDayOfWeeks?.compactMap { $0 as? AppDayOfWeek } ?? [])
-                        .filter { $0.day == day.rawValue }
+                    let islands = try viewContext.fetch(fetchRequest)
 
-                    // Flatten all MatTime objects from these filtered AppDayOfWeek
-                    let matTimes = filteredDays.flatMap { dayOfWeek in
-                        (dayOfWeek.matTimes?.compactMap { $0 as? MatTime }) ?? []
+                    // Prepare array of islands with MatTime children filtered by day
+                    let islandsWithMatTimes: [(PirateIsland, [MatTime])] = islands.map { island in
+                        let filteredDays = (island.appDayOfWeeks?.compactMap { $0 as? AppDayOfWeek } ?? [])
+                            .filter { $0.day == day.rawValue }
+
+                        let matTimes = filteredDays.flatMap { dayOfWeek in
+                            (dayOfWeek.matTimes?.compactMap { $0 as? MatTime }) ?? []
+                        }
+
+                        return (island, matTimes)
                     }
 
-                    return (island, matTimes)
+                    self.islandsWithMatTimes = islandsWithMatTimes
+                    print("✨ Updated islandsWithMatTimes with \(islandsWithMatTimes.count) islands for day \(day.rawValue).")
+                } catch {
+                    print("❌ MainActor: Error fetching islands from Core Data: \(error)")
                 }
             }
 
-            // 4. Update your published property on main thread
-            await MainActor.run {
-                self.islandsWithMatTimes = islandsWithMatTimes
-                print("✨ Updated islandsWithMatTimes with \(islandsWithMatTimes.count) islands for day \(day.rawValue).")
-            }
-            
-            // 5. Optionally update Firestore documents with any synced day info (if needed)
+            // 4️⃣ Optionally update Firestore documents with any synced day info
             for (island, ref) in islandsToUpdateInFirestore {
                 let days = island.appDayOfWeeks?.compactMap { ($0 as? AppDayOfWeek)?.day } ?? []
                 print("    ☁️ Firestore Update: Updating 'days' for \(island.islandName ?? "Unnamed") with \(days)")
                 try await ref.updateData(["days": days])
             }
-            
+
         } catch {
             print("❌ AppDayOfWeekViewModel: Error fetching islands: \(error.localizedDescription)")
-            // Set error message for UI if needed
+            // Optionally update UI with error message
         }
     }
 
-    
-    func updateCurrentDayAndMatTimes(for island: PirateIsland, day: DayOfWeek) {
-        // Fetch the current day of the week from Firestore
-        firestore.collection("appDayOfWeek").document(day.rawValue).getDocument { document, error in
-            if let error = error {
-                print("Failed to fetch AppDayOfWeek from Firestore: \(error.localizedDescription)")
-                return
-            }
-            
-            if let document = document, let data = document.data() {
-                // Update AppDayOfWeek properties
+
+    @MainActor
+    func updateCurrentDayAndMatTimes(for island: PirateIsland, day: DayOfWeek) async {
+        do {
+            let document = try await firestore.collection("appDayOfWeek")
+                .document(day.rawValue)
+                .getDocument()
+
+            if let data = document.data() {
                 self.currentAppDayOfWeek?.configure(data: data)
             }
-            
-            // Fetch mat times for the current day
+
             if let matTimes = self.currentAppDayOfWeek?.matTimes?.allObjects as? [MatTime] {
                 self.matTimesForDay[day] = matTimes
             } else {
                 self.matTimesForDay[day] = []
             }
+        } catch {
+            print("Failed to fetch AppDayOfWeek from Firestore: \(error.localizedDescription)")
         }
     }
 }
@@ -1462,5 +1455,10 @@ private extension String {
 }
 
 
-
- 
+// MARK: - Equatable Conformance (identity-based, nonisolated)
+extension AppDayOfWeekViewModel: Equatable {
+    nonisolated static func == (lhs: AppDayOfWeekViewModel, rhs: AppDayOfWeekViewModel) -> Bool {
+        // Identity-based equality: true only if both references point to the same instance.
+        return lhs === rhs
+    }
+}

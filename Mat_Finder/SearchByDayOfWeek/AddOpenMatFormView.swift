@@ -35,9 +35,10 @@ struct AddOpenMatFormView: View {
             saveButton
         }
         .onAppear {
-            viewModel.fetchPirateIslands()
-            if let selectedIsland = selectedIsland, let selectedDay = viewModel.selectedDay {
-                Task {
+            Task { @MainActor in
+                await viewModel.fetchPirateIslands()
+
+                if let selectedIsland = selectedIsland, let selectedDay = viewModel.selectedDay {
                     _ = await viewModel.fetchCurrentDayOfWeek(
                         for: selectedIsland,
                         day: selectedDay,
@@ -46,9 +47,9 @@ struct AddOpenMatFormView: View {
                             set: { viewModel.selectedDay = $0 }
                         )
                     )
+                } else {
+                    print("No gym or day selected")
                 }
-            } else {
-                print("No gym or day selected")
             }
         }
     }

@@ -219,7 +219,7 @@ struct LoginForm: View {
                 
                 AppleSignInButtonView { result in
                     switch result {
-                    case .success(let authResult):
+                    case .success(_):
                         DispatchQueue.main.async {
                             authenticationState.setIsAuthenticated(true)
                             isLoggedIn = true

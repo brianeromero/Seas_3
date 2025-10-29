@@ -88,7 +88,7 @@ struct GrayPlaceholderTextField: View {
     }
 }
 
-
+@MainActor
 class IslandListViewModel: ObservableObject {
     static let shared = IslandListViewModel(persistenceController: PersistenceController.shared)
     
@@ -100,10 +100,14 @@ class IslandListViewModel: ObservableObject {
         os_log("Initializing IslandListViewModel", log: logger)
         self.persistenceController = persistenceController
         self.repository = AppDayOfWeekRepository(persistenceController: persistenceController)
-        self.enterZipCodeViewModel = EnterZipCodeViewModel(repository: repository, persistenceController: persistenceController)
+        self.enterZipCodeViewModel = EnterZipCodeViewModel(
+            repository: repository,
+            persistenceController: persistenceController
+        )
         os_log("Initialized IslandListViewModel", log: logger)
     }
 }
+
 
 struct IslandListItem: View {
     @ObservedObject var island: PirateIsland // <-- CHANGE THIS!

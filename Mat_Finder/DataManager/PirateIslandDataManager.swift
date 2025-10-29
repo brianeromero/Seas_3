@@ -8,8 +8,8 @@
 import Foundation
 import CoreData
 
-public class PirateIslandDataManager: ObservableObject { // Assuming you've made it ObservableObject as discussed
-    internal var viewContext: NSManagedObjectContext // Or 'public' if needed outside the module
+public class PirateIslandDataManager: ObservableObject {
+    internal var viewContext: NSManagedObjectContext
 
     init(viewContext: NSManagedObjectContext) {
         self.viewContext = viewContext
@@ -17,23 +17,21 @@ public class PirateIslandDataManager: ObservableObject { // Assuming you've made
 
     enum FetchError: Error {
         case failedFetchingIslands(Error)
-        // ADD THESE TWO CASES:
-        case unknownError(Error) // Add this line
-        case coreDataError(Error) // Add this line
+        case unknownError(Error)
+        case coreDataError(Error)
     }
 
     enum PersistenceError: Error {
         case invalidRecordId(String)
         case recordNotFound(String)
-        case mockError(String) // You might want a specific mock error too for completeness, or just use `unknownError`
-
+        case mockError(String)
     }
 
-    func fetchPirateIslands(sortDescriptors: [NSSortDescriptor]? = nil, predicate: NSPredicate? = nil, fetchLimit: Int? = nil) -> Result<[PirateIsland], FetchError> {
-        // Crucial: Ensure Core Data operations happen on the correct thread/queue
-        var result: Result<[PirateIsland], FetchError>! // Declare as implicitly unwrapped optional
+    func fetchPirateIslands(sortDescriptors: [NSSortDescriptor]? = nil,
+                             predicate: NSPredicate? = nil,
+                             fetchLimit: Int? = nil) -> Result<[PirateIsland], FetchError> {
+        var result: Result<[PirateIsland], FetchError>!
         
-        // Use performAndWait to ensure the block completes before returning
         viewContext.performAndWait {
             let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
             fetchRequest.sortDescriptors = sortDescriptors
@@ -42,54 +40,51 @@ public class PirateIslandDataManager: ObservableObject { // Assuming you've made
                 fetchRequest.fetchLimit = fetchLimit
             }
             do {
-                print("Performing fetch inside viewContext.performAndWait on thread: \(Thread.current)") // Check thread again
-                let pirateIslands = try self.viewContext.fetch(fetchRequest) // Use self.viewContext inside the block
+                let pirateIslands = try self.viewContext.fetch(fetchRequest)
                 result = .success(pirateIslands)
             } catch let error {
-                print("Error fetching pirate islands inside performAndWait: \(error.localizedDescription)")
                 result = .failure(.failedFetchingIslands(error))
             }
         }
-        return result // Now 'result' will have been set
-    }
-    
-    func fetchLocalPirateIsland(withId id: String) async throws -> PirateIsland? {
-        print("Fetching local pirate island with id: \(id)")
-            
-        guard let uuid = UUID(uuidString: id) else {
-            print("Failed to convert id to UUID")
-            throw PersistenceError.invalidRecordId(id)
-        }
-            
-        print("Successfully converted id to UUID: \(uuid.uuidString)")
-            
-        // The call to fetchPirateIsland (which calls fetchPirateIslands) will now be safely dispatched
-        // by the performAndWait within fetchPirateIslands.
-        let result = try await fetchPirateIsland(uuid: uuid)
-            
-        print("Attempting to fetch pirate island with UUID...")
-            
         return result
     }
-    
+
+    func fetchLocalPirateIsland(withId id: String) async throws -> PirateIsland? {
+        guard let uuid = UUID(uuidString: id) else {
+            throw PersistenceError.invalidRecordId(id)
+        }
+        return try await fetchPirateIsland(uuid: uuid)
+    }
+
     private func fetchPirateIsland(uuid: UUID) async throws -> PirateIsland? {
-        // This is an async function, but it calls the synchronous fetchPirateIslands,
-        // which now correctly uses performAndWait to handle threading.
         let predicate = NSPredicate(format: "islandID == %@", uuid as CVarArg)
         let result = fetchPirateIslands(predicate: predicate, fetchLimit: 1)
-            
         switch result {
         case .success(let pirateIslands):
-            if !pirateIslands.isEmpty {
-                print("Successfully fetched pirate island with UUID")
-                return pirateIslands.first
-            } else {
-                print("No pirate island found with UUID")
-                throw PersistenceError.recordNotFound(uuid.uuidString)
-            }
+            if !pirateIslands.isEmpty { return pirateIslands.first }
+            else { throw PersistenceError.recordNotFound(uuid.uuidString) }
         case .failure(let error):
-            print("Error fetching local pirate island with UUID: \(error.localizedDescription)")
-            throw error // Re-throw the original error
+            throw error
+        }
+    }
+}
+
+// MARK: - Async wrapper extension
+extension PirateIslandDataManager {
+    /// Async wrapper around the existing synchronous fetchPirateIslands
+    func fetchPirateIslandsAsync(sortDescriptors: [NSSortDescriptor]? = nil,
+                                 predicate: NSPredicate? = nil,
+                                 fetchLimit: Int? = nil) async throws -> [PirateIsland] {
+        try await withCheckedThrowingContinuation { continuation in
+            let result = self.fetchPirateIslands(sortDescriptors: sortDescriptors,
+                                                 predicate: predicate,
+                                                 fetchLimit: fetchLimit)
+            switch result {
+            case .success(let islands):
+                continuation.resume(returning: islands)
+            case .failure(let error):
+                continuation.resume(throwing: error)
+            }
         }
     }
 }

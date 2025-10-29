@@ -12,6 +12,7 @@ import os
 import OSLog // For better logging in production, though print is fine for debugging
 
 
+@MainActor
 class AppDayOfWeekRepository: ObservableObject {
     @State private var errorMessage: String?
     private var currentAppDayOfWeek: AppDayOfWeek?
@@ -250,33 +251,65 @@ class AppDayOfWeekRepository: ObservableObject {
     
     // MARK: - AppDayOfWeekRepository fetchSchedules
     func fetchSchedules(for island: PirateIsland) async -> [AppDayOfWeek] {
-        print("THREAD_LOG: AppDayOfWeekRepository.fetchSchedules - START - Is Main Thread: \(Thread.isMainThread), Current Thread: \(Thread.current)")
+        print("AppDayOfWeekRepository.fetchSchedules - START")
         
-        let predicate = NSPredicate(format: "pIsland == %@", island)
-        do {
-            let result = try await PersistenceController.shared.fetchSchedules(for: predicate)
-            print("THREAD_LOG: AppDayOfWeekRepository.fetchSchedules - END - Successfully fetched \(result.count) schedules. Is Main Thread: \(Thread.isMainThread), Current Thread: \(Thread.current)")
-            return result
-        } catch {
-            print("THREAD_LOG: AppDayOfWeekRepository.fetchSchedules - ERROR - Error fetching schedules: \(error.localizedDescription). Is Main Thread: \(Thread.isMainThread), Current Thread: \(Thread.current)")
-            return []
+        let backgroundContext = PersistenceController.shared.container.newBackgroundContext()
+        let islandObjectID = island.objectID
+
+        return await withCheckedContinuation { continuation in
+            backgroundContext.perform {
+                do {
+                    guard let islandInContext = try backgroundContext.existingObject(with: islandObjectID) as? PirateIsland else {
+                        continuation.resume(returning: [])
+                        return
+                    }
+
+                    let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
+                    fetchRequest.predicate = NSPredicate(format: "pIsland == %@", islandInContext)
+
+                    let schedules = try backgroundContext.fetch(fetchRequest)
+                    print("AppDayOfWeekRepository.fetchSchedules - END - Fetched \(schedules.count) schedules")
+                    continuation.resume(returning: schedules)
+                } catch {
+                    print("AppDayOfWeekRepository.fetchSchedules - ERROR - \(error.localizedDescription)")
+                    continuation.resume(returning: [])
+                }
+            }
         }
     }
+
+
     
     // Your other fetchSchedules function (overload)
     func fetchSchedules(for island: PirateIsland, day: DayOfWeek) async -> [AppDayOfWeek] {
-        print("THREAD_LOG: AppDayOfWeekRepository.fetchSchedules (with day) - START - Is Main Thread: \(Thread.isMainThread), Current Thread: \(Thread.current)")
+        print("AppDayOfWeekRepository.fetchSchedules (with day) - START")
         
-        let predicate = NSPredicate(format: "pIsland == %@ AND day == %@", island, day.rawValue)
-        do {
-            let result = try await PersistenceController.shared.fetchSchedules(for: predicate)
-            print("THREAD_LOG: AppDayOfWeekRepository.fetchSchedules (with day) - END - Successfully fetched \(result.count) schedules. Is Main Thread: \(Thread.isMainThread), Current Thread: \(Thread.current)")
-            return result
-        } catch {
-            print("THREAD_LOG: AppDayOfWeekRepository.fetchSchedules (with day) - ERROR - Error fetching schedules: \(error.localizedDescription). Is Main Thread: \(Thread.isMainThread), Current Thread: \(Thread.current)")
-            return []
+        let backgroundContext = PersistenceController.shared.container.newBackgroundContext()
+        let islandObjectID = island.objectID
+        let dayValue = day.rawValue
+
+        return await withCheckedContinuation { continuation in
+            backgroundContext.perform {
+                do {
+                    guard let islandInContext = try backgroundContext.existingObject(with: islandObjectID) as? PirateIsland else {
+                        continuation.resume(returning: [])
+                        return
+                    }
+
+                    let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
+                    fetchRequest.predicate = NSPredicate(format: "pIsland == %@ AND day == %@", islandInContext, dayValue)
+
+                    let schedules = try backgroundContext.fetch(fetchRequest)
+                    print("AppDayOfWeekRepository.fetchSchedules (with day) - END - Fetched \(schedules.count) schedules")
+                    continuation.resume(returning: schedules)
+                } catch {
+                    print("AppDayOfWeekRepository.fetchSchedules (with day) - ERROR - \(error.localizedDescription)")
+                    continuation.resume(returning: [])
+                }
+            }
         }
     }
+
     
     func deleteRecord(for appDayOfWeek: AppDayOfWeek) async {
         print("AppDayOfWeekRepository - Deleting record for AppDayOfWeek: \(appDayOfWeek.appDayOfWeekID ?? "Unknown")")
@@ -365,41 +398,36 @@ class AppDayOfWeekRepository: ObservableObject {
         return fetchedIslands
     }
     
-    // MARK: - Updated fetchAllIslands Method
-    
+   
     // MARK: - New fetchAllIslands Method
-    func fetchAllIslands(forDay day: String) async throws -> [NSManagedObjectID] { // Changed return type!
+    func fetchAllIslands(forDay day: String) async throws -> [NSManagedObjectID] {
         let backgroundContext = PersistenceController.shared.container.newBackgroundContext()
         
-        let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "ANY appDayOfWeeks.day == %@", day.lowercased())
+        let dayLowercased = day.lowercased() // Sendable primitive
         
-        // It's still good to prefetch relationships if you intend to access them
-        // immediately after rehydration on the main context.
-        fetchRequest.relationshipKeyPathsForPrefetching = ["appDayOfWeeks", "appDayOfWeeks.matTimes"]
-        
-        os_log("Executing fetch request for PirateIslands: %@", log: logger, String(describing: fetchRequest))
-        
-        return try await backgroundContext.perform {
-            let islands = try backgroundContext.fetch(fetchRequest)
-            
-            let filteredIslands = islands.filter { island in
-                guard let appDayOfWeeks = island.appDayOfWeeks as? Set<AppDayOfWeek> else { return false }
-                return appDayOfWeeks.contains(where: { appDayOfWeek in
-                    guard appDayOfWeek.day.lowercased() == day.lowercased() else { return false }
-                    return (appDayOfWeek.matTimes?.count ?? 0) > 0
-                })
+        return try await withCheckedThrowingContinuation { continuation in
+            backgroundContext.perform {
+                do {
+                    let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
+                    fetchRequest.predicate = NSPredicate(format: "ANY appDayOfWeeks.day == %@", dayLowercased)
+                    fetchRequest.relationshipKeyPathsForPrefetching = ["appDayOfWeeks", "appDayOfWeeks.matTimes"]
+                    
+                    let islands = try backgroundContext.fetch(fetchRequest)
+                    
+                    let filteredIslands = islands.filter { island in
+                        guard let appDayOfWeeks = island.appDayOfWeeks as? Set<AppDayOfWeek> else { return false }
+                        return appDayOfWeeks.contains { appDayOfWeek in
+                            guard appDayOfWeek.day.lowercased() == dayLowercased else { return false }
+                            return (appDayOfWeek.matTimes?.count ?? 0) > 0
+                        }
+                    }
+                    
+                    print("Fetched and filtered islands count: \(filteredIslands.count). Returning ObjectIDs.")
+                    continuation.resume(returning: filteredIslands.map { $0.objectID })
+                } catch {
+                    continuation.resume(throwing: error)
+                }
             }
-            
-            print("Fetched and filtered islands count in repository: \(filteredIslands.count). Returning ObjectIDs.")
-            
-            // Do NOT print island properties here, as they are on the background context.
-            // for island in filteredIslands {
-            //     print("    Repository fetched PirateIsland: \(island.islandName ?? "Unnamed"), Lat: \(island.latitude), Lon: \(island.longitude), ID: \(island.objectID)")
-            // }
-            
-            // ✅ Crucial change: Return objectIDs
-            return filteredIslands.map { $0.objectID }
         }
     }
 }
