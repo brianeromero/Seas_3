@@ -14,42 +14,44 @@ import CoreData
 class FirestoreSyncManager {
     static let shared = FirestoreSyncManager()
     
-    func syncInitialFirestoreData() {
+    func syncInitialFirestoreData() async {
         guard Auth.auth().currentUser != nil else {
             print("❌ No user is signed in. Firestore access is restricted.")
             return
         }
-        
-        Task {
-            do {
-                try await createFirestoreCollection() // This creates/checks collections
-                
-                let db = Firestore.firestore()
-                
-                // Get all Firestore document IDs for pirateIslands
-                let pirateIslandSnapshot = try await db.collection("pirateIslands").getDocuments()
-                let pirateIslandFirestoreIDs = pirateIslandSnapshot.documents.map { $0.documentID }
-                await downloadFirestoreRecordsToLocal(collectionName: "pirateIslands", records: pirateIslandFirestoreIDs)
-                
-                // Get all Firestore document IDs for reviews
-                let reviewsSnapshot = try await db.collection("reviews").getDocuments()
-                let reviewsFirestoreIDs = reviewsSnapshot.documents.map { $0.documentID }
-                await downloadFirestoreRecordsToLocal(collectionName: "reviews", records: reviewsFirestoreIDs)
-                
-                // Continue for AppDayOfWeek and MatTime (ensuring order if dependencies exist)
-                let appDayOfWeekSnapshot = try await db.collection("AppDayOfWeek").getDocuments()
-                let appDayOfWeekFirestoreIDs = appDayOfWeekSnapshot.documents.map { $0.documentID }
-                await downloadFirestoreRecordsToLocal(collectionName: "AppDayOfWeek", records: appDayOfWeekFirestoreIDs)
-                
-                let matTimesSnapshot = try await db.collection("MatTime").getDocuments() // Note: your collection name is "MatTime" not "matTimes"
-                let matTimesFirestoreIDs = matTimesSnapshot.documents.map { $0.documentID }
-                await downloadFirestoreRecordsToLocal(collectionName: "MatTime", records: matTimesFirestoreIDs)
-                
-            } catch {
-                print("❌ Firestore sync error: \(error.localizedDescription)")
-            }
+
+        do {
+            try await createFirestoreCollection() // This creates/checks collections
+            
+            let db = Firestore.firestore()
+            
+            // PirateIslands
+            let pirateIslandSnapshot = try await db.collection("pirateIslands").getDocuments()
+            let pirateIslandFirestoreIDs = pirateIslandSnapshot.documents.map { $0.documentID }
+            await downloadFirestoreRecordsToLocal(collectionName: "pirateIslands", records: pirateIslandFirestoreIDs)
+            
+            // Reviews
+            let reviewsSnapshot = try await db.collection("reviews").getDocuments()
+            let reviewsFirestoreIDs = reviewsSnapshot.documents.map { $0.documentID }
+            await downloadFirestoreRecordsToLocal(collectionName: "reviews", records: reviewsFirestoreIDs)
+            
+            // AppDayOfWeek
+            let appDayOfWeekSnapshot = try await db.collection("AppDayOfWeek").getDocuments()
+            let appDayOfWeekFirestoreIDs = appDayOfWeekSnapshot.documents.map { $0.documentID }
+            await downloadFirestoreRecordsToLocal(collectionName: "AppDayOfWeek", records: appDayOfWeekFirestoreIDs)
+            
+            // MatTime
+            let matTimesSnapshot = try await db.collection("MatTime").getDocuments()
+            let matTimesFirestoreIDs = matTimesSnapshot.documents.map { $0.documentID }
+            await downloadFirestoreRecordsToLocal(collectionName: "MatTime", records: matTimesFirestoreIDs)
+            
+            print("✅ Initial Firestore sync complete")
+            
+        } catch {
+            print("❌ Firestore sync error: \(error.localizedDescription)")
         }
     }
+
     
     private func createFirestoreCollection() async throws {
         let collectionsToCheck = [
@@ -831,12 +833,125 @@ class FirestoreSyncManager {
             print("Error syncing appDayOfWeek records: \(error.localizedDescription)")
         }
     }
-    
-    
-    
-
 }
 
 
     
     
+
+
+extension FirestoreSyncManager {
+    // Keep active listener handles so you can detach them when needed
+    private static var listenerRegistrations: [ListenerRegistration] = []
+
+    @MainActor
+    func startFirestoreListeners() {
+        print("🟢 Starting Firestore listeners for all collections")
+        listenToCollection("pirateIslands", handler: Self.handlePirateIslandChange)
+        listenToCollection("reviews", handler: Self.handleReviewChange)
+        listenToCollection("AppDayOfWeek", handler: Self.handleAppDayOfWeekChange)
+        listenToCollection("MatTime", handler: Self.handleMatTimeChange)
+    }
+
+
+    func stopFirestoreListeners() {
+        print("🔴 Stopping all Firestore listeners")
+        for registration in Self.listenerRegistrations {
+            registration.remove()
+        }
+        Self.listenerRegistrations.removeAll()
+    }
+
+    // MARK: - Generic listener
+    @MainActor
+    private func listenToCollection(
+        _ collectionName: String,
+        handler: @escaping (DocumentChange, NSManagedObjectContext) -> Void
+    ) {
+        let db = Firestore.firestore()
+        let context = PersistenceController.shared.container.newBackgroundContext()
+
+        let listener = db.collection(collectionName).addSnapshotListener { snapshot, error in
+            if let error = error {
+                print("❌ Firestore listener error for \(collectionName): \(error.localizedDescription)")
+                return
+            }
+
+            guard let snapshot = snapshot else { return }
+
+            for change in snapshot.documentChanges {
+                context.perform {
+                    handler(change, context)
+                    do {
+                        try context.save()
+                    } catch {
+                        print("❌ Error saving context for \(collectionName) listener: \(error.localizedDescription)")
+                    }
+                }
+            }
+        }
+
+        Self.listenerRegistrations.append(listener)
+    }
+
+}
+
+extension FirestoreSyncManager {
+    // MARK: - Handlers for document changes
+
+    static func handlePirateIslandChange(_ change: DocumentChange, _ context: NSManagedObjectContext) {
+        switch change.type {
+        case .added, .modified:
+            try? syncPirateIslandStatic(docSnapshot: change.document, context: context)
+        case .removed:
+            deleteEntity(ofType: PirateIsland.self, idString: change.document.documentID, keyPath: \.islandID, context: context)
+        }
+    }
+
+    static func handleReviewChange(_ change: DocumentChange, _ context: NSManagedObjectContext) {
+        switch change.type {
+        case .added, .modified:
+            try? syncReviewStatic(docSnapshot: change.document, context: context)
+        case .removed:
+            deleteEntity(ofType: Review.self, idString: change.document.documentID, keyPath: \.reviewID, context: context)
+        }
+    }
+
+    static func handleAppDayOfWeekChange(_ change: DocumentChange, _ context: NSManagedObjectContext) {
+        switch change.type {
+        case .added, .modified:
+            try? syncAppDayOfWeekStatic(docSnapshot: change.document, context: context)
+        case .removed:
+            deleteEntity(ofType: AppDayOfWeek.self, idString: change.document.documentID, keyPath: \.appDayOfWeekID, context: context)
+        }
+    }
+
+    static func handleMatTimeChange(_ change: DocumentChange, _ context: NSManagedObjectContext) {
+        switch change.type {
+        case .added, .modified:
+            try? syncMatTimeStatic(docSnapshot: change.document, context: context)
+        case .removed:
+            deleteEntity(ofType: MatTime.self, idString: change.document.documentID, keyPath: \.id, context: context)
+        }
+    }
+
+    // MARK: - Generic delete helper
+    private static func deleteEntity<T: NSManagedObject, V>(
+        ofType type: T.Type,
+        idString: String,
+        keyPath: KeyPath<T, V>,
+        context: NSManagedObjectContext
+    ) {
+        guard let uuid = UUID(uuidString: idString) else { return }
+        
+        let fetchRequest = NSFetchRequest<T>(entityName: String(describing: type))
+        fetchRequest.predicate = NSPredicate(format: "%K == %@", NSExpression(forKeyPath: keyPath).keyPath, uuid as CVarArg)
+        fetchRequest.fetchLimit = 1
+
+        if let object = try? context.fetch(fetchRequest).first {
+            context.delete(object)
+            print("🗑️ Deleted \(type) with ID \(idString) due to Firestore removal.")
+        }
+    }
+
+}

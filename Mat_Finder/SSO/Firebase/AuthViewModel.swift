@@ -815,7 +815,7 @@ class AuthViewModel: ObservableObject {
         }
     }
 
-    // Add this new method for Google Sign-In
+    /// SIGN IN WITH GOOGLE
     @MainActor
     func signInWithGoogle(presenting viewController: UIViewController) async {
         logger.debug("AuthViewModel: Google sign-in started.")
@@ -843,6 +843,34 @@ class AuthViewModel: ObservableObject {
             }
         }
     }
+    
+    
+    
+    /// SIGN IN WITH APPLE
+
+    func signInWithApple() {
+        let coordinator = AppleSignInCoordinator()
+        coordinator.startSignInWithAppleFlow { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let authResult):
+                    guard let user = authResult.user.email else { return }
+                    print("✅ Apple Sign-In success for \(user)")
+                    
+                    Task { // async call
+                        await self?.handleUserLogin(firebaseUser: authResult.user)
+                    }
+                    
+                case .failure(let error):
+                    print("❌ Apple Sign-In failed: \(error.localizedDescription)")
+                    self?.formState.alertMessage = error.localizedDescription
+                    self?.formState.showAlert = true
+
+                }
+            }
+        }
+    }
+    
     
     
     // Sign out user from Firebase with a completion handler
@@ -1072,31 +1100,6 @@ class AuthViewModel: ObservableObject {
         self.userIsLoggedIn = false
     }
 
-    /// SIGN IN WITH APPLE
-
-    func signInWithApple() {
-        let coordinator = AppleSignInCoordinator()
-        coordinator.startSignInWithAppleFlow { [weak self] result in
-            DispatchQueue.main.async {
-                switch result {
-                case .success(let authResult):
-                    guard let user = authResult.user.email else { return }
-                    print("✅ Apple Sign-In success for \(user)")
-                    
-                    Task { // async call
-                        await self?.handleUserLogin(firebaseUser: authResult.user)
-                    }
-                    
-                case .failure(let error):
-                    print("❌ Apple Sign-In failed: \(error.localizedDescription)")
-                    self?.formState.alertMessage = error.localizedDescription
-                    self?.formState.showAlert = true
-
-                }
-            }
-        }
-    }
-    
 }
 
 extension User {

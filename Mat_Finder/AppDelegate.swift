@@ -129,7 +129,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         configureGoogleAds()
 
         // ✅ 6. Safe to sync Firestore after Firebase is fully initialized
-        FirestoreSyncManager.shared.syncInitialFirestoreData()
+        Task {
+            await FirestoreSyncManager.shared.syncInitialFirestoreData()
+            FirestoreSyncManager.shared.startFirestoreListeners()
+        }
+
+
 
         // ✅ 7. Defer Keychain test to avoid premature access
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
