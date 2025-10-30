@@ -324,7 +324,7 @@ class FirestoreSyncManager {
             }
         }
         
-        let context = PersistenceController.shared.container.newBackgroundContext()
+        let context = await PersistenceController.shared.container.newBackgroundContext()
         let db = Firestore.firestore()
         let collectionRef = db.collection(collectionName)
         

@@ -41,6 +41,7 @@ public class PirateIslandDataManager: ObservableObject {
             }
             do {
                 let pirateIslands = try self.viewContext.fetch(fetchRequest)
+                print("💾 PirateIslandDataManager: fetched \(pirateIslands.count) islands: \(pirateIslands.map { $0.islandName ?? "Unknown" })")
                 result = .success(pirateIslands)
             } catch let error {
                 result = .failure(.failedFetchingIslands(error))

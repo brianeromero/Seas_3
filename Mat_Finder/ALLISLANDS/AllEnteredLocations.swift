@@ -11,7 +11,6 @@ import MapKit
 struct AllEnteredLocations: View {
     @ObservedObject var viewModel: AllEnteredLocationsViewModel
     @State private var selectedDay: DayOfWeek? = .monday
-    @Environment(\.managedObjectContext) private var viewContext
     @State private var showModal = false
     @State private var selectedIsland: PirateIsland?
     @State private var selectedAppDayOfWeek: AppDayOfWeek?
@@ -19,34 +18,36 @@ struct AllEnteredLocations: View {
     @StateObject private var enterZipCodeViewModel: EnterZipCodeViewModel
     @StateObject private var appDayOfWeekViewModel: AppDayOfWeekViewModel
 
-    
     @Binding var navigationPath: NavigationPath
 
-
-    // Modified initializer to accept viewModel and navigationPath
-    init(viewModel: AllEnteredLocationsViewModel, navigationPath: Binding<NavigationPath>) {
-        self._viewModel = ObservedObject(wrappedValue: viewModel)
+    // MARK: - Modified initializer
+    init(navigationPath: Binding<NavigationPath>) {
         self._navigationPath = navigationPath
 
-        // Initialize the internal StateObjects that AllEnteredLocations manages itself
+        // 1️⃣ Create the DataManager using the shared Core Data context
+        let dataManager = PirateIslandDataManager(viewContext: PersistenceController.shared.viewContext)
+
+        // 2️⃣ Create the main ViewModel with that data manager
+        let mainViewModel = AllEnteredLocationsViewModel(dataManager: dataManager)
+        self._viewModel = ObservedObject(wrappedValue: mainViewModel)
+
+        // 3️⃣ Initialize the StateObjects for other view models
         let sharedPersistenceController = PersistenceController.shared
         let appDayOfWeekRepository = AppDayOfWeekRepository(persistenceController: sharedPersistenceController)
 
-        let zipCodeViewModel = EnterZipCodeViewModel(
+        let zipCodeVM = EnterZipCodeViewModel(
             repository: appDayOfWeekRepository,
             persistenceController: sharedPersistenceController
         )
-        _enterZipCodeViewModel = StateObject(wrappedValue: zipCodeViewModel)
+        _enterZipCodeViewModel = StateObject(wrappedValue: zipCodeVM)
 
         _appDayOfWeekViewModel = StateObject(wrappedValue: AppDayOfWeekViewModel(
             repository: appDayOfWeekRepository,
-            enterZipCodeViewModel: zipCodeViewModel
+            enterZipCodeViewModel: zipCodeVM
         ))
     }
 
-
     var body: some View {
-        // REMOVED NavigationView to avoid nested navigation stacks within the global NavigationStack
         VStack {
             if !viewModel.isDataLoaded {
                 ProgressView("Loading Open Mats...")
@@ -59,29 +60,23 @@ struct AllEnteredLocations: View {
                 Text("No Open Mats found.")
                     .padding()
             } else {
-                // Use MapCameraPosition from the ViewModel
                 Map(position: $viewModel.region) {
                     ForEach(viewModel.pirateMarkers) { marker in
                         if let island = marker.pirateIsland {
                             Annotation(marker.title ?? "Unknown Island", coordinate: marker.coordinate) {
-                                IslandAnnotationView(island: island, handleIslandTap: {
+                                IslandAnnotationView(island: island) {
                                     handleIslandTap(island: island)
-                                })
+                                }
                             }
                             .annotationTitles(.hidden)
                         }
                     }
                 }
-                .onAppear {
-                    viewModel.logTileInformation()
-                    // viewModel.updateRegion() // This is already called by updatePirateMarkers, no need to call again here
-                }
+                .onAppear { viewModel.logTileInformation() }
             }
         }
-        
         .navigationTitle("All Gyms")
         .onAppear {
-            // Ensure data is fetched if it hasn't been loaded yet or if there was a previous error
             if !viewModel.isDataLoaded && viewModel.errorMessage == nil {
                 print("📍 AllEnteredLocations: Initial fetchPirateIslands triggered.")
                 viewModel.fetchPirateIslands()
@@ -102,7 +97,6 @@ struct AllEnteredLocations: View {
                 navigationPath: $navigationPath
             )
         }
-
     }
 
     private func handleIslandTap(island: PirateIsland?) {
@@ -111,15 +105,3 @@ struct AllEnteredLocations: View {
         showModal = true
     }
 }
-
-/*
-struct AllEnteredLocations_Previews: PreviewProvider {
-    static var previews: some View {
-        let persistenceController = PersistenceController.preview
-        let context = persistenceController.viewContext
-        return AllEnteredLocations()
-            .environment(\.managedObjectContext, context) // Context is automatically passed through environment
-            .previewDisplayName("All Entered Locations Preview")
-    }
-}
-*/

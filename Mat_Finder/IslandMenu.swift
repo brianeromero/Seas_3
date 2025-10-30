@@ -304,7 +304,6 @@ struct IslandMenu: View {
         case .allLocations:
             return AnyView(
                 AllEnteredLocations(
-                    viewModel: allEnteredLocationsViewModel, // Use the instance from EnvironmentObject
                     navigationPath: $navigationPath // Pass the binding for navigationPath
                 )
                 .onAppear {

@@ -447,17 +447,25 @@ struct ViewReviewforIsland: View {
                 return
             }
 
+            // ✅ Capture only the objectID, not the whole NSManagedObject
+            let islandObjectID = island.objectID
+
             let fetchedReviews = try await context.perform {
+                guard let safeIsland = try? context.existingObject(with: islandObjectID) as? PirateIsland else {
+                    throw NSError(domain: "CoreData", code: 200, userInfo: [NSLocalizedDescriptionKey: "Failed to rehydrate PirateIsland for fetch"])
+                }
+
                 let request = Review.fetchRequest() as! NSFetchRequest<Review>
-                request.predicate = NSPredicate(format: "island == %@", island)
+                request.predicate = NSPredicate(format: "island == %@", safeIsland)
                 request.sortDescriptors = [
                     NSSortDescriptor(key: selectedSortType.sortKey, ascending: selectedSortType.ascending)
                 ]
                 return try context.fetch(request)
             }
 
+            // Fetch average rating safely using objectID as well
             let fetchedAvgRating = await ReviewUtils.fetchAverageRating(
-                for: island,
+                forObjectID: islandObjectID,
                 in: context,
                 callerFunction: "ViewReviewforIsland.loadReviews"
             )

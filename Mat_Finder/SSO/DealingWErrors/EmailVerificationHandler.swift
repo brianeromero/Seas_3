@@ -14,7 +14,7 @@ class EmailVerificationHandler {
         print("Handle Email Verification URL: \(url.absoluteString)")
         Analytics.logEvent("email_verification", parameters: ["url": url.absoluteString])
         
-        let context = PersistenceController.shared.container.viewContext
+        let context = await PersistenceController.shared.container.viewContext
         let request = UserInfo.fetchRequest() as NSFetchRequest<UserInfo>
         let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
 

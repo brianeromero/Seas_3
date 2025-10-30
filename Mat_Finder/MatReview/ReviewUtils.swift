@@ -14,126 +14,105 @@ import OSLog
 
 
 struct ReviewUtils {
-    // This function should be async to ensure Core Data operations are performed correctly
-    // on the context's queue, preventing thread violations.
+ 
     static func fetchAverageRating(for island: PirateIsland, in context: NSManagedObjectContext, callerFunction: String = #function) async -> Int16 {
-        // REMOVE Thread.isMainThread and Thread.current direct checks in async functions
-        // print("THREAD_LOG: ReviewUtils.fetchAverageRating - START - Is Main Thread: \(Thread.isMainThread), Current Thread: \(Thread.current)")
-        //os_log("Called fetchAverageRating from function: %@ (caller: %@), in file: %@, line: %d, for island: %@",
-               // log: logger, type: .info, #function, callerFunction, #file, #line, island.islandName ?? "Unknown")
+        let islandID = island.objectID // Capture the objectID outside the closure
 
-        // Crucial: Use context.perform to ensure Core Data operations happen on the context's queue
         return await context.perform {
-            // REMOVE Thread.isMainThread and Thread.current direct checks here too
-            // print("THREAD_LOG: ReviewUtils.fetchAverageRating - INSIDE perform block - Is Main Thread: \(Thread.isMainThread), Current Thread: \(Thread.current)")
-            
-            // Fix: Explicitly specify the generic type for NSFetchRequest
-            let fetchRequest: NSFetchRequest<Review> = NSFetchRequest<Review>(entityName: "Review") // Fix: Specify entityName
-            fetchRequest.predicate = NSPredicate(format: "island == %@", island)
+            // Rehydrate the island inside the context's queue
+            guard let islandInContext = try? context.existingObject(with: islandID) as? PirateIsland else {
+                os_log("❌ Failed to rehydrate PirateIsland (caller: %@)", log: logger, type: .error, callerFunction)
+                return 0
+            }
+
+            let fetchRequest: NSFetchRequest<Review> = NSFetchRequest<Review>(entityName: "Review")
+            fetchRequest.predicate = NSPredicate(format: "island == %@", islandInContext)
 
             do {
                 let reviewsArray = try context.fetch(fetchRequest)
-               // os_log("Fetched %d reviews for island: %@ (caller: %@)",
-                   //     log: logger, type: .info, reviewsArray.count, island.islandName ?? "Unknown", callerFunction)
+                guard !reviewsArray.isEmpty else { return 0 }
 
-                guard !reviewsArray.isEmpty else {
-                   // os_log("No reviews found for island: %@ (caller: %@)",
-                          //  log: logger, type: .info, island.islandName ?? "Unknown", callerFunction)
-                    return 0
-                }
-
-                let totalStars = reviewsArray.map { Double($0.stars) }.reduce(0, +)
-                let average = totalStars / Double(reviewsArray.count)
-                let roundedAverage = Int16(round(average)) // Round to nearest whole number for Int16
-
-             //   os_log("Average rating calculated: %.2f for island: %@ (caller: %@)",
-                      //  log: logger, type: .info, average, island.islandName ?? "Unknown", callerFunction)
-                
-                // REMOVE Thread.isMainThread and Thread.current direct checks here too
-                // print("THREAD_LOG: ReviewUtils.fetchAverageRating - END perform block. Is Main Thread: \(Thread.isMainThread), Current Thread: \(Thread.current)")
-                return roundedAverage
+                let totalStars = reviewsArray.reduce(0.0) { $0 + Double($1.stars) }
+                return Int16(round(totalStars / Double(reviewsArray.count)))
             } catch {
-              //  os_log("Error fetching reviews for island %@ (caller: %@): %@",
-                //        log: logger, type: .error, island.islandName ?? "Unknown", callerFunction, error.localizedDescription)
-                // REMOVE Thread.isMainThread and Thread.current direct checks here too
-                // print("THREAD_LOG: ReviewUtils.fetchAverageRating - ERROR in perform block: \(error.localizedDescription). Is Main Thread: \(Thread.isMainThread), Current Thread: \(Thread.current)")
+                os_log("❌ Error fetching reviews (caller: %@): %@", log: logger, type: .error, callerFunction, error.localizedDescription)
                 return 0
             }
         }
     }
 
-    // This property seems unused or incorrectly placed. If it's a global flag
-    // it should be managed carefully, perhaps as part of a ViewModel.
-    // static var isReviewsFetched = false // Consider if this is truly needed here.
+    
+    
+    static func fetchAverageRating(
+        forObjectID islandObjectID: NSManagedObjectID,
+        in context: NSManagedObjectContext,
+        callerFunction: String = #function
+    ) async -> Int16 {
+        return await context.perform {
+            guard let island = try? context.existingObject(with: islandObjectID) as? PirateIsland else {
+                os_log("❌ Failed to rehydrate PirateIsland (caller: %@)", log: logger, type: .error, callerFunction)
+                return 0
+            }
 
-    // The `getReviews` function seems to be for processing already-fetched `Any?` data,
-    // not for initiating a fetch. It can remain synchronous as it doesn't touch
-    // the Core Data context directly.
+            let fetchRequest: NSFetchRequest<Review> = NSFetchRequest(entityName: "Review")
+            fetchRequest.predicate = NSPredicate(format: "island == %@", island)
+
+            do {
+                let reviews = try context.fetch(fetchRequest)
+                guard !reviews.isEmpty else { return 0 }
+
+                let totalStars = reviews.reduce(0.0) { $0 + Double($1.stars) }
+                return Int16(round(totalStars / Double(reviews.count)))
+            } catch {
+                os_log("❌ Error fetching average rating (caller: %@): %@", log: logger, type: .error, callerFunction, error.localizedDescription)
+                return 0
+            }
+        }
+    }
+
+     
     static func getReviews(from reviews: Any?, callerFunction: String = #function) -> [Review] {
-     //   os_log("Called getReviews from function: %@ (caller: %@), in file: %@, line: %d",
-         //       log: logger, type: .info, #function, callerFunction, #file, #line)
-
+ 
         if let orderedReviews = reviews as? NSOrderedSet {
-         //   os_log("Processing reviews from NSOrderedSet, count: %d (caller: %@)",
-            //        log: logger, type: .info, orderedReviews.count, callerFunction)
-            return orderedReviews.compactMap { $0 as? Review }
+             return orderedReviews.compactMap { $0 as? Review }
                 .sorted(by: { $0.createdTimestamp > $1.createdTimestamp })
         }
 
         if let setReviews = reviews as? NSSet {
-  //          os_log("Processing reviews from NSSet, count: %d (caller: %@)",
-         //           log: logger, type: .info, setReviews.count, callerFunction)
-            return setReviews.allObjects.compactMap { $0 as? Review }
+             return setReviews.allObjects.compactMap { $0 as? Review }
                 .sorted(by: { $0.createdTimestamp > $1.createdTimestamp })
         }
 
-    //    os_log("No valid review data found, returning empty array (caller: %@)",
-//                log: logger, type: .info, callerFunction)
-        return []
+         return []
     }
 
-    // You might also want an async version to fetch the reviews themselves
-    static func fetchReviews(for island: PirateIsland, in context: NSManagedObjectContext, callerFunction: String = #function) async -> [Review] {
-        // REMOVE Thread.isMainThread and Thread.current direct checks here too
-        // print("THREAD_LOG: ReviewUtils.fetchReviews - START - Is Main Thread: \(Thread.isMainThread), Current Thread: \(Thread.current)")
+     static func fetchReviews(for island: PirateIsland, in context: NSManagedObjectContext, callerFunction: String = #function) async -> [Review] {
+        let islandID = island.objectID
+
         return await context.perform {
-            // REMOVE Thread.isMainThread and Thread.current direct checks here too
-            // print("THREAD_LOG: ReviewUtils.fetchReviews - INSIDE perform block - Is Main Thread: \(Thread.isMainThread), Current Thread: \(Thread.current)")
+            guard let islandInContext = try? context.existingObject(with: islandID) as? PirateIsland else {
+                os_log("❌ Failed to rehydrate PirateIsland (caller: %@)", log: logger, type: .error, callerFunction)
+                return []
+            }
+
+            let fetchRequest: NSFetchRequest<Review> = NSFetchRequest(entityName: "Review")
+            fetchRequest.predicate = NSPredicate(format: "island == %@", islandInContext)
+            fetchRequest.sortDescriptors = [NSSortDescriptor(key: "createdTimestamp", ascending: false)]
+
             do {
-                // Fix: Explicitly specify the generic type for NSFetchRequest
-                let fetchRequest: NSFetchRequest<Review> = NSFetchRequest<Review>(entityName: "Review") // Fix: Specify entityName
-                fetchRequest.predicate = NSPredicate(format: "island == %@", island)
-                fetchRequest.sortDescriptors = [NSSortDescriptor(key: "createdTimestamp", ascending: false)]
                 let reviews = try context.fetch(fetchRequest)
-                // print("THREAD_LOG: ReviewUtils.fetchReviews - FETCH SUCCESS. Fetched \(reviews.count) reviews. Is Main Thread: \(Thread.isMainThread), Current Thread: \(Thread.current)")
                 return reviews
             } catch {
-                // print("THREAD_LOG: ReviewUtils.fetchReviews - ERROR in perform block: \(error.localizedDescription). Is Main Thread: \(Thread.isMainThread), Current Thread: \(Thread.current)")
+                os_log("❌ Error fetching reviews (caller: %@): %@", log: logger, type: .error, callerFunction, error.localizedDescription)
                 return []
             }
         }
     }
-    
-    // This `fetchReviews()` with no parameters is problematic.
-    // If it's meant to initiate a global fetch, it must also be async
-    // and handle Core Data contexts correctly. It's likely better to
-    // remove this specific function or rename it to clarify its purpose
-    // and ensure it uses a Core Data context.
-    // For now, I'll recommend removing it as it conflicts with `fetchReviews(for:in:)`.
-    /*
-    static func fetchReviews() {
-        os_log("Fetching reviews from the source...", log: logger, type: .info)
-        os_log("Start fetching reviews from network/database...", log: logger, type: .info)
-        DispatchQueue.global().async {
-            sleep(2)
-            os_log("Finished fetching reviews", log: logger, type: .info)
-        }
-    }
-    */
+
+     
 
     static func openInMaps(latitude: Double, longitude: Double, islandName: String, islandLocation: String) {
-    //    os_log("Called openInMaps from function: %@, in file: %@, line: %d, for island: %@ at coordinates: %.6f, %.6f", log: logger, type: .info, #function, #file, #line, islandName, latitude, longitude)
-        
+ 
         guard latitude != 0, longitude != 0 else {
             os_log("Invalid coordinates, not opening maps", log: logger, type: .error)
             return

@@ -97,14 +97,6 @@ struct AppRootView: View {
                         .onAppear {
                             print("AppRootView: Showing Initial Splash (PirateIslandView)")
 
-/*                            // ✅ Request ATT permission using async/await on MainActor
-                            if #available(iOS 14, *) {
-                                Task { @MainActor in
-                                    print("Requesting ATT permission...")
-                                    await IDFAHelper.requestIDFAPermission()
-                                }
-                            }
-*/
                             // Continue splash animation
                             DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                                 withAnimation(.easeInOut(duration: 1)) {
@@ -298,7 +290,6 @@ struct AppRootDestinationView: View {
             
         case .allLocations:
             AllEnteredLocations(
-                viewModel: allEnteredLocationsViewModel,
                 navigationPath: $navigationPath
             )
             .onAppear {

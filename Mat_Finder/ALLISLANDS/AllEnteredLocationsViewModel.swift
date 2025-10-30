@@ -64,6 +64,8 @@ class AllEnteredLocationsViewModel: NSObject, ObservableObject, NSFetchedResults
     }
 
     private func updatePirateMarkers(with islands: [PirateIsland]) {
+        print("updatePirateMarkers called with \(islands.count) islands")
+
         guard !islands.isEmpty else {
             print("No pirate islands available to create markers.")
             self.pirateMarkers = []
