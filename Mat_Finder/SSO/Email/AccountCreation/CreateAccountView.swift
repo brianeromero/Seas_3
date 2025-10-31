@@ -810,20 +810,3 @@ struct CreateAccountView: View {
     }
 
 }
-
-// Preview
-struct CreateAccountView_Previews: PreviewProvider {
-    @State static var selectedTabIndex = 0
-
-    static var previews: some View {
-        CreateAccountView(
-            islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.shared),
-            isUserProfileActive: .constant(true),
-            persistenceController: PersistenceController.shared,
-            selectedTabIndex: $selectedTabIndex,
-            emailManager: UnifiedEmailManager.shared
-        )
-        .environmentObject(AuthenticationState(hashPassword: HashPassword()))
-        .environment(\.managedObjectContext, PersistenceController.shared.container.viewContext)
-    }
-}

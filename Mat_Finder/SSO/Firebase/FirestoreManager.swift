@@ -7,6 +7,7 @@ import Foundation
 import FirebaseCore
 import FirebaseAuth
 import FirebaseFirestore
+import os
 
 public class FirestoreManager {
     public static let shared = FirestoreManager()
@@ -134,48 +135,39 @@ public class FirestoreManager {
     
     
     
-    // MARK: - Example method
+    // MARK: - Save PirateIsland to Firestore
     func saveIslandToFirestore(
-        island: PirateIsland,
+        islandData: FirestoreIslandData,
         selectedCountry: Country,
         createdByUser: User
     ) async throws {
         if disabled { return }
-        print("Saving island to Firestore: \(island.safeIslandName)")
 
-        guard let islandName = island.islandName, !islandName.isEmpty,
-              let islandLocation = island.islandLocation, !islandLocation.isEmpty else {
-            print("Invalid data: Island name or location is missing")
-            return
-        }
+        let islandRef = db.collection("pirateIslands").document(islandData.id)
 
-        let islandIDString = island.islandID?.uuidString ?? UUID().uuidString
-        let createdByUserIDString = createdByUser.id
-
-        let islandRef = db.collection("pirateIslands").document(islandIDString)
-
-        let islandData: [String: Any] = [
-            "id": islandIDString,
-            "name": island.safeIslandName,
-            "location": island.safeIslandLocation,
-            "country": selectedCountry.name.common,
-            "createdByUserId": island.createdByUserId ?? "Unknown User",
+        let data: [String: Any] = [
+            "id": islandData.id,
+            "name": islandData.name,
+            "location": islandData.location,
+            "country": islandData.country,
+            "createdByUserId": islandData.createdByUserId,
+            "createdTimestamp": islandData.createdTimestamp,
+            "lastModifiedByUserId": islandData.lastModifiedByUserId,
+            "lastModifiedTimestamp": islandData.lastModifiedTimestamp,
+            "latitude": islandData.latitude,
+            "longitude": islandData.longitude,
+            "gymWebsite": islandData.gymWebsite,
             "createdBy": [
-                "id": createdByUserIDString,
+                "id": createdByUser.id,
                 "name": createdByUser.userName,
                 "email": createdByUser.email
-            ],
-            "createdTimestamp": island.createdTimestamp ?? Date(),
-            "lastModifiedByUserId": island.lastModifiedByUserId ?? "",
-            "lastModifiedTimestamp": island.lastModifiedTimestamp ?? Date(),
-            "latitude": island.latitude,
-            "longitude": island.longitude,
-            "gymWebsite": island.gymWebsite?.absoluteString ?? ""
+            ]
         ]
 
-        try await islandRef.setData(islandData, merge: true)
-        print("Island saved successfully to Firestore")
+        try await islandRef.setData(data, merge: true)
+        os_log("✅ Saved PirateIsland %@ to Firestore", log: .default, type: .info, islandData.name)
     }
+
 
     // MARK: - Collection Management
     enum Collection: String {

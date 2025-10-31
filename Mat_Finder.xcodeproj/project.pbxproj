@@ -324,6 +324,7 @@
 				Email/UnifiedEmailManager.swift,
 				Firebase/AuthViewModel.swift,
 				Firebase/EmailSignOn.swift,
+				Firebase/FirestoreIslandData.swift,
 				Firebase/FirestoreManager.swift,
 				Firebase/FirestoreSyncManager.swift,
 				Firebase/HashedPassword.swift,

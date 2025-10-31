@@ -13,11 +13,13 @@ struct CountryAddressFormat {
 }
 
 let countryAddressFormats: [String: CountryAddressFormat] = addressFieldRequirements.reduce(into: [:]) { result, entry in
-    result[entry.key] = CountryAddressFormat(
+    let countryCode = entry.key.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
+    result[countryCode] = CountryAddressFormat(
         requiredFields: entry.value,
-        postalCodeValidationRegex: ValidationUtility.postalCodeRegexPatterns[entry.key]
+        postalCodeValidationRegex: ValidationUtility.postalCodeRegexPatterns[countryCode]
     )
 }
+
 
 func getPostalCodeValidationRegex(for country: String) -> String? {
     return ValidationUtility.postalCodeRegexPatterns[country]
@@ -538,18 +540,18 @@ struct IslandFormSections: View {
         return isValid
     }
 
-    func getAddressFieldsSafely(for countryName: String?) -> [AddressFieldType] {
-        guard let countryName = countryName else {
-            return defaultAddressFieldRequirements // Return default fields if country name is nil
+    func getAddressFieldsSafely(for countryCode: String?) -> [AddressFieldType] {
+        guard let countryCode = countryCode?.uppercased().trimmingCharacters(in: .whitespacesAndNewlines) else {
+            return defaultAddressFieldRequirements
         }
-
-        do {
-            return try getAddressFields(for: countryName)
-        } catch {
-            os_log("Error getting address fields for country: %@", log: OSLog.default, type: .error, countryName)
+        if let format = countryAddressFormats[countryCode] {
+            return format.requiredFields
+        } else {
+            os_log("⚠️ No specific address format found for %@", countryCode)
             return defaultAddressFieldRequirements
         }
     }
+
 
     private func validateForm() {
         print("validateForm()456 called: islandName = \(islandName)")
@@ -614,12 +616,13 @@ struct IslandFormSections: View {
             return !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         }
 
-        // Validate overall form state
+        // ✅ Validate overall form state
         isFormValid = islandNameValid && addressFieldsValid
+
+        // ✅ FIX: Automatically hide or show “Required fields are missing”
+        showValidationMessage = !addressFieldsValid && islandNameValid
     }
 
-
-    
     private func getErrorMessage(for field: AddressFieldType, country: String) -> String {
         return "\(field.rawValue.capitalized) is required for \(country)."
     }
@@ -959,234 +962,3 @@ extension String {
     }
 }
 
-
-// Preview
-struct IslandFormSections_Previews: PreviewProvider {
-    static var previews: some View {
-        VStack {
-            // Empty form
-            IslandFormSectionPreview(
-                islandName: .constant(""),
-                street: .constant(""),
-                city: .constant(""),
-                state: .constant(""),
-                postalCode: .constant(""),
-                province: .constant(""),
-                neighborhood: .constant(""),
-                complement: .constant(""),
-                apartment: .constant(""),
-                additionalInfo: .constant(""),
-                gymWebsite: .constant(""),
-                gymWebsiteURL: .constant(nil),
-                showAlert: .constant(false),
-                alertMessage: .constant(""),
-                selectedCountry: .constant(Country(name: .init(common: "United States"), cca2: "US", flag: "")),
-                islandDetails: .constant(IslandDetails(selectedCountry: Country(name: .init(common: "United States"), cca2: "US", flag: ""))),
-                profileViewModel: ProfileViewModel(viewContext: PersistenceController.shared.container.viewContext),
-                department: .constant(""),
-                parish: .constant(""),
-                district: .constant(""),
-                entity: .constant(""),
-                municipality: .constant(""),
-                division: .constant(""),
-                emirate: .constant(""),
-                zone: .constant(""),
-                block: .constant(""),
-                island: .constant("")
-            )
-            .previewDisplayName("Empty Form")
-            
-            // Filled form (US)
-            IslandFormSectionPreview(
-                islandName: .constant("My Gym"),
-                street: .constant("123 Main St"),
-                city: .constant("Anytown"),
-                state: .constant("CA"),
-                postalCode: .constant("12345"),
-                province: .constant("California"),
-                neighborhood: .constant("Neighborhood A"),
-                complement: .constant(""),
-                apartment: .constant("Apt 101"),
-                additionalInfo: .constant("Open 24/7"),
-                gymWebsite: .constant("example.com"),
-                gymWebsiteURL: .constant(URL(string: "https://example.com")),
-                showAlert: .constant(false),
-                alertMessage: .constant(""),
-                selectedCountry: .constant(Country(name: .init(common: "United States"), cca2: "US", flag: "")),
-                islandDetails: .constant(IslandDetails(
-                    islandName: "My Gym",
-                    street: "123 Main St",
-                    city: "Anytown",
-                    state: "CA",
-                    postalCode: "12345",
-                    selectedCountry: Country(name: .init(common: "United States"), cca2: "US", flag: "")
-                )),
-                profileViewModel: ProfileViewModel(viewContext: PersistenceController.shared.container.viewContext),
-                department: .constant("Department A"),
-                parish: .constant("Parish X"),
-                district: .constant("District 1"),
-                entity: .constant("Entity Z"),
-                municipality: .constant("Municipality A"),
-                division: .constant("Division B"),
-                emirate: .constant("Emirate C"),
-                zone: .constant("Zone 1"),
-                block: .constant("Block 5"),
-                island: .constant("Island XYZ")
-            )
-            .previewDisplayName("Filled Form (US)")
-            
-            // Filled form (Canada)
-            IslandFormSectionPreview(
-                islandName: .constant("My Gym"),
-                street: .constant("123 Main St"),
-                city: .constant("Anytown"),
-                state: .constant("ON"),
-                postalCode: .constant("M5V"),
-                province: .constant("Ontario"),
-                neighborhood: .constant("Neighborhood B"),
-                complement: .constant(""),
-                apartment: .constant("Apt 202"),
-                additionalInfo: .constant("Open 9am to 5pm"),
-                gymWebsite: .constant("example.com"),
-                gymWebsiteURL: .constant(URL(string: "https://example.com")),
-                showAlert: .constant(false),
-                alertMessage: .constant(""),
-                selectedCountry: .constant(Country(name: .init(common: "Canada"), cca2: "CA", flag: "")),
-                islandDetails: .constant(IslandDetails(
-                    islandName: "My Gym",
-                    street: "123 Main St",
-                    city: "Anytown",
-                    state: "ON",
-                    postalCode: "M5V",
-                    selectedCountry: Country(name: .init(common: "Canada"), cca2: "CA", flag: "")
-                )),
-                profileViewModel: ProfileViewModel(viewContext: PersistenceController.shared.container.viewContext),
-                department: .constant("Department B"),
-                parish: .constant("Parish Y"),
-                district: .constant("District 2"),
-                entity: .constant("Entity W"),
-                municipality: .constant("Municipality B"),
-                division: .constant("Division A"),
-                emirate: .constant("Emirate D"),
-                zone: .constant("Zone 2"),
-                block: .constant("Block 10"),
-                island: .constant("Island ABC")
-            )
-            .previewDisplayName("Filled Form (Canada)")
-            
-            // Invalid form
-            IslandFormSectionPreview(
-                islandName: .constant("My Gym"),
-                street: .constant(""),
-                city: .constant(""),
-                state: .constant(""),
-                postalCode: .constant(""),
-                province: .constant(""),
-                neighborhood: .constant(""),
-                complement: .constant(""),
-                apartment: .constant(""),
-                additionalInfo: .constant(""),
-                gymWebsite: .constant("example.com"),
-                gymWebsiteURL: .constant(URL(string: "https://example.com")),
-                showAlert: .constant(false),
-                alertMessage: .constant(""),
-                selectedCountry: .constant(Country(name: .init(common: "United States"), cca2: "US", flag: "")),
-                islandDetails: .constant(IslandDetails(
-                    islandName: "My Gym",
-                    selectedCountry: Country(name: .init(common: "United States"), cca2: "US", flag: "")
-                )),
-                profileViewModel: ProfileViewModel(viewContext: PersistenceController.shared.container.viewContext),
-                department: .constant(""),
-                parish: .constant(""),
-                district: .constant(""),
-                entity: .constant(""),
-                municipality: .constant(""),
-                division: .constant(""),
-                emirate: .constant(""),
-                zone: .constant(""),
-                block: .constant(""),
-                island: .constant("")
-            )
-            .previewDisplayName("Invalid Form")
-        }
-    }
-}
-
-struct IslandFormSectionPreview: View {
-    var islandName: Binding<String>
-    var street: Binding<String>
-    var city: Binding<String>
-    var state: Binding<String>
-    var postalCode: Binding<String>
-    var province: Binding<String>
-    var neighborhood: Binding<String>
-    var complement: Binding<String>
-    var apartment: Binding<String>
-    var additionalInfo: Binding<String>
-    var gymWebsite: Binding<String>
-    var gymWebsiteURL: Binding<URL?>
-    var showAlert: Binding<Bool>
-    var alertMessage: Binding<String>
-    var selectedCountry: Binding<Country?>
-    var islandDetails: Binding<IslandDetails>
-    var profileViewModel: ProfileViewModel
-
-    // Add bindings for the new fields
-    var department: Binding<String>
-    var parish: Binding<String>
-    var district: Binding<String>
-    var entity: Binding<String>
-    var municipality: Binding<String>
-    var division: Binding<String>
-    var emirate: Binding<String>
-    var zone: Binding<String>
-    var block: Binding<String>
-    var island: Binding<String>
-
-    var body: some View {
-        IslandFormSections(
-            viewModel: PirateIslandViewModel(persistenceController: PersistenceController.shared),
-            profileViewModel: profileViewModel,
-            countryService: CountryService(),
-            islandName: islandName,
-            street: street,
-            city: city,
-            state: state,
-            postalCode: postalCode,
-            islandDetails: islandDetails,
-            selectedCountry: selectedCountry,
-            gymWebsite: gymWebsite,
-            gymWebsiteURL: gymWebsiteURL,
-            
-            // Correct argument order:
-            province: province,
-            neighborhood: neighborhood,
-            complement: complement,
-            apartment: apartment,
-            region: .constant(""),
-            county: .constant(""),
-            governorate: .constant(""),
-            additionalInfo: additionalInfo,
-            
-            // New fields
-            department: department,
-            parish: parish,
-            district: district,
-            entity: entity,
-            municipality: municipality,
-            division: division,
-            emirate: emirate,
-            zone: zone,
-            block: block,
-            island: island,
-            
-            // Remaining parameters
-            isIslandNameValid: .constant(true),
-            islandNameErrorMessage: .constant(""),
-            isFormValid: .constant(true),
-            showAlert: showAlert,
-            alertMessage: alertMessage,
-            formState: .constant(FormState()) // Ensure formState is last
-        )
-    }
-}

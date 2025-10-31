@@ -12,22 +12,22 @@ import FirebaseCore
 import FirebaseAuth
 
 @MainActor
-class PersistenceController: ObservableObject {
-    
+final class PersistenceController: ObservableObject {
+
     // MARK: - Singleton Instance
-    static let shared = PersistenceController()
-    
+    static let shared = PersistenceController() // ✅ Fix: allow access outside @MainActor
+
     // MARK: - Core Data & Firestore
     let container: NSPersistentContainer
     let firestoreManager: FirestoreManager
-    
+
     var viewContext: NSManagedObjectContext { container.viewContext }
-    
+
     // MARK: - Preview Provider
     static var preview: PersistenceController = {
         let result = PersistenceController(inMemory: true)
         let viewContext = result.container.viewContext
-        
+
         let dummyIsland = PirateIsland(context: viewContext)
         dummyIsland.islandID = UUID()
         dummyIsland.islandName = "Preview Island"
@@ -40,39 +40,40 @@ class PersistenceController: ObservableObject {
         dummyIsland.latitude = 34.0522
         dummyIsland.longitude = -118.2437
         dummyIsland.gymWebsite = URL(string: "https://example.com")
-        
+
         let dummyAppDayOfWeek = AppDayOfWeek(context: viewContext)
         dummyAppDayOfWeek.id = UUID()
         dummyAppDayOfWeek.day = DayOfWeek.monday.rawValue
         dummyAppDayOfWeek.pIsland = dummyIsland
-        
+
         do { try viewContext.save() }
         catch { fatalError("Unresolved error \(error)") }
-        
+
         return result
     }()
-    
+
     // MARK: - Initializer
     private init(inMemory: Bool = false) {
         self.firestoreManager = FirestoreManager.shared
         container = NSPersistentContainer(name: "Mat_Finder")
-        
+
         if inMemory {
             container.persistentStoreDescriptions.first?.url = URL(fileURLWithPath: "/dev/null")
             FirestoreManager.shared.disabled = true
         }
-        
+
         container.loadPersistentStores { description, error in
             if let error = error as NSError? {
                 fatalError("Unresolved error \(error), \(error.userInfo)")
             }
         }
-        
+
         viewContext.automaticallyMergesChangesFromParent = true
         viewContext.perform {
             print("✅ ViewContext access is safe — running on \(Thread.isMainThread ? "Main Thread" : "Background Thread")")
         }
     }
+
     
     // MARK: - Core Data Methods
     func fetch<T: NSManagedObject>(_ request: NSFetchRequest<T>) async throws -> [T] {
@@ -84,17 +85,23 @@ class PersistenceController: ObservableObject {
         return T(entity: entity, insertInto: viewContext)
     }
 
+    // MARK: - Save Context
+    @MainActor
     func saveContext() async throws {
-        if viewContext.hasChanges {
-            do {
-                try viewContext.save()
-            } catch {
-                viewContext.rollback()
-                throw error
-            }
+        guard viewContext.hasChanges else {
+            print("💤 No Core Data changes to save — skipping saveContext()")
+            return
+        }
+
+        do {
+            try viewContext.save()
+            print("💾 Successfully saved context on main actor.")
+        } catch {
+            viewContext.rollback()
+            print("❌ Core Data save failed: \(error.localizedDescription)")
+            throw error
         }
     }
-
     
     // MARK: - PirateIsland CRUD
     func fetchAllPirateIslands() async throws -> [PirateIsland] {
@@ -193,11 +200,25 @@ class PersistenceController: ObservableObject {
         ]
         guard let entityName = entityMap[collectionName] else { return nil }
         let request = NSFetchRequest<NSManagedObject>(entityName: entityName)
-        request.predicate = NSPredicate(format: "id == %@ OR islandID == %@", recordId.uuidString, recordId.uuidString)
+        
+        // Use the correct property name for each entity
+        switch collectionName {
+        case "pirateIslands":
+            request.predicate = NSPredicate(format: "islandID == %@", recordId as CVarArg)
+        case "reviews":
+            request.predicate = NSPredicate(format: "reviewID == %@", recordId as CVarArg)
+        case "matTimes":
+            request.predicate = NSPredicate(format: "id == %@", recordId as CVarArg) // Use actual MatTime ID property
+        case "appDayOfWeeks":
+            request.predicate = NSPredicate(format: "appDayOfWeekID == %@", recordId as CVarArg)
+        default:
+            return nil
+        }
+
         request.fetchLimit = 1
         return try viewContext.fetch(request).first
     }
-    
+
     // MARK: - Generic Record Fetchers
     // For entities where the UUID is optional (UUID?)
     func fetchLocalRecords<T: NSManagedObject>(
