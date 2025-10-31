@@ -8,6 +8,7 @@
 import Foundation
 import Combine
 
+
 enum CountryServiceError: Error, LocalizedError {
     case invalidURL
     case decodingError
@@ -17,16 +18,11 @@ enum CountryServiceError: Error, LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .invalidURL:
-            return "Invalid URL"
-        case .decodingError:
-            return "Error decoding data"
-        case .googleAPIError:
-            return "Google API error"
-        case .restCountriesAPIError:
-            return "Rest Countries API error"
-        case .unknownError:
-            return "Unknown error"
+        case .invalidURL: return "Invalid URL"
+        case .decodingError: return "Error decoding country data"
+        case .googleAPIError: return "Google API error"
+        case .restCountriesAPIError: return "RestCountries API error"
+        case .unknownError: return "Unknown error"
         }
     }
 }
@@ -38,57 +34,47 @@ class CountryService: NSObject, ObservableObject, URLSessionDelegate {
     @Published var isLoading: Bool = false
     @Published var error: Error?
 
-    // Load Google API Key from Config.plist
     private let googleAPIKey: String? = ConfigLoader.loadConfigValues()?.GoogleApiKey
     
-    lazy var session: URLSession = {
+    private lazy var session: URLSession = {
         URLSession(configuration: .default, delegate: self, delegateQueue: nil)
     }()
 
+    // MARK: - Fetch Countries
     func fetchCountries() async {
         await MainActor.run { [weak self] in
             self?.isLoading = true
+            self?.error = nil
         }
-        
-        // Try fetching from restcountries.com
-        guard let url = URL(string: "https://restcountries.com/v3.1/all") else {
-            await MainActor.run { [weak self] in
-                self?.error = URLError(.badURL)
-                self?.isLoading = false
-            }
-            await fetchCountriesFromGoogleAPI() // Call Google API if RestCountries API fails
+
+        // RestCountries API URL (specify fields)
+        guard let url = URL(string: "https://restcountries.com/v3.1/all?fields=name,cca2,flags") else {
+            await handleError(CountryServiceError.invalidURL)
             return
         }
 
         do {
             let (data, _) = try await session.data(from: url)
+            
+            // Decode as array of Country
             let fetchedCountries = try JSONDecoder().decode([Country].self, from: data)
-            await MainActor.run { [weak self] in
-                self?.countries = fetchedCountries.sorted { $0.name.common < $1.name.common }
-                self?.isLoading = false
-            }
+            
+            await updateCountries(fetchedCountries)
         } catch {
-            await MainActor.run { [weak self] in
-                if error is DecodingError {
-                    self?.error = CountryServiceError.decodingError
-                } else if error is URLError {
-                    self?.error = CountryServiceError.invalidURL
-                } else {
-                    self?.error = CountryServiceError.unknownError
-                }
-                self?.isLoading = false
-            }
-            await fetchCountriesFromGoogleAPI() // Call Google API if RestCountries API fails
+            print("RestCountries fetch failed: \(error)")
+            // Try Google API as fallback
+            await fetchCountriesFromGoogleAPI()
         }
     }
-    
+
+    // MARK: - Google API Fallback
     func fetchCountriesFromGoogleAPI() async {
         guard let apiKey = googleAPIKey else {
-            await handleError(CountryServiceError.unknownError)
+            await handleError(CountryServiceError.googleAPIError)
             return
         }
-
-        guard let url = constructGoogleAPIURL(apiKey: apiKey) else {
+        
+        guard let url = URL(string: "https://maps.googleapis.com/maps/api/geocode/json?address=world&key=\(apiKey)") else {
             await handleError(CountryServiceError.invalidURL)
             return
         }
@@ -96,25 +82,23 @@ class CountryService: NSObject, ObservableObject, URLSessionDelegate {
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
             let countries = try parseGoogleAPIResponse(data: data)
-            await updatePublishedProperties(countries: countries)
+            await updateCountries(countries)
         } catch {
+            print("Google API fetch failed: \(error)")
             await handleError(error)
         }
     }
 
-    private func constructGoogleAPIURL(apiKey: String) -> URL? {
-        return URL(string: "https://maps.googleapis.com/maps/api/geocode/json?address=world&key=\(apiKey)")
-    }
-
     private func parseGoogleAPIResponse(data: Data) throws -> [Country] {
         let response = try JSONDecoder().decode(GeocodingAPIResponse.self, from: data)
-        return response.results.compactMap { result -> Country? in
+        return response.results.compactMap { result in
             guard let countryName = result.addressComponents.first(where: { $0.types.contains("country") })?.longName else { return nil }
             return Country(name: Country.Name(common: countryName), cca2: "", flag: "")
         }
     }
 
-    private func updatePublishedProperties(countries: [Country]) async {
+    // MARK: - Helpers
+    private func updateCountries(_ countries: [Country]) async {
         await MainActor.run { [weak self] in
             self?.countries = countries.sorted { $0.name.common < $1.name.common }
             self?.isLoading = false
@@ -127,8 +111,8 @@ class CountryService: NSObject, ObservableObject, URLSessionDelegate {
                 self?.error = CountryServiceError.invalidURL
             } else if error is DecodingError {
                 self?.error = CountryServiceError.decodingError
-            } else if let countryServiceError = error as? CountryServiceError {
-                self?.error = countryServiceError
+            } else if let countryError = error as? CountryServiceError {
+                self?.error = countryError
             } else {
                 self?.error = CountryServiceError.unknownError
             }
@@ -136,30 +120,37 @@ class CountryService: NSObject, ObservableObject, URLSessionDelegate {
         }
     }
 
-    func urlSession(_ session: URLSession, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
-        if challenge.protectionSpace.host == "restcountries.com" {
-            let credential = URLCredential(trust: challenge.protectionSpace.serverTrust!)
-            completionHandler(.useCredential, credential)
+    // MARK: - URLSession Delegate
+    func urlSession(_ session: URLSession, didReceive challenge: URLAuthenticationChallenge,
+                    completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+        if challenge.protectionSpace.host == "restcountries.com",
+           let trust = challenge.protectionSpace.serverTrust {
+            completionHandler(.useCredential, URLCredential(trust: trust))
         } else {
             completionHandler(.cancelAuthenticationChallenge, nil)
         }
     }
 
-        func getCountry(by name: String) -> Country? {
-            return countries.first { $0.name.common == name }
-        }
+    func getCountry(by name: String) -> Country? {
+        countries.first { $0.name.common == name }
     }
+}
 
-    // Define Geocoding API response structure
-    struct GeocodingAPIResponse: Codable {
-        let results: [GeocodingResult]
-    }
+// MARK: - Geocoding API Structures
+struct GeocodingAPIResponse: Codable {
+    let results: [GeocodingResult]
+}
 
-    struct GeocodingResult: Codable {
-        let addressComponents: [AddressComponent]
-    }
+struct GeocodingResult: Codable {
+    let addressComponents: [AddressComponent]
+}
 
-    struct AddressComponent: Codable {
-        let longName: String
-        let types: [String]
+struct AddressComponent: Codable {
+    let longName: String
+    let types: [String]
+    
+    private enum CodingKeys: String, CodingKey {
+        case longName = "long_name"
+        case types
     }
+}

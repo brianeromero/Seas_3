@@ -22,8 +22,8 @@ public struct AddNewIsland: View {
     @EnvironmentObject var profileViewModel: ProfileViewModel
     @EnvironmentObject var authViewModel: AuthViewModel
     
-    @StateObject var countryService = CountryService.shared // This can remain @StateObject if it's unique to this view's lifecycle
-    
+    @ObservedObject var countryService = CountryService.shared
+
     // State Variables
     @State private var gymWebsiteURL: URL? = nil
     @State private var formState = FormState()
@@ -66,11 +66,17 @@ public struct AddNewIsland: View {
                 )
             }
             .onAppear {
-                loadCountries()
+                Task { await countryService.fetchCountries() }
             }
-            .onChange(of: islandDetails) { _ in validateForm() }
-            .onChange(of: islandDetails.islandName) { _ in validateForm() }
-            .onChange(of: islandDetails.requiredAddressFields) { _ in validateForm() }
+            .onChange(of: countryService.countries) { oldValue, newValue in
+                if let usa = newValue.first(where: { $0.cca2 == "US" }) {
+                    islandDetails.selectedCountry = usa
+                }
+            }
+            .onChange(of: islandDetails) { _, _ in validateForm() }
+            .onChange(of: islandDetails.islandName) { _, _ in validateForm() }
+            .onChange(of: islandDetails.requiredAddressFields) { _, _ in validateForm() }
+
         }
     }
 

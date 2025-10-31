@@ -325,12 +325,7 @@ struct AppRootDestinationView: View {
                 }
             
         case .addNewGym:
-            // ✅ CORRECTED: Remove explicit passing of EnvironmentObjects.
-            // AddNewIsland should declare them as @EnvironmentObject and receive them automatically.
             AddNewIsland(
-                // islandViewModel: pirateIslandViewModel, // REMOVED
-                // profileViewModel: profileViewModel,      // REMOVED
-                // authViewModel: authViewModel,            // REMOVED
                 navigationPath: $navigationPath,
                 islandDetails: $islandDetails // This is a @Binding and needs to be passed explicitly
             )

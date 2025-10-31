@@ -232,7 +232,7 @@ struct AddNewMatTimeSection: View {
                 let backgroundContext = PersistenceController.shared.container.newBackgroundContext()
                 backgroundContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
 
-                // ✅ Generate values before switching to background context
+                // Generate values before switching to background context
                 let generatedName = appDayOfWeekRepository.generateName(for: selectedIsland, day: selectedDay)
                 let generatedAppDayOfWeekID = appDayOfWeekRepository.generateAppDayOfWeekID(for: selectedIsland, day: selectedDay)
 
@@ -263,31 +263,36 @@ struct AddNewMatTimeSection: View {
             let matTimeObjectID = try await saveMatTime(appDayOfWeekID: appDayOfWeekToUseID)
             print("Mat time created successfully with ID: \(matTimeObjectID)")
 
-            if let appDayOfWeekOnMain = try? viewContext.existingObject(with: appDayOfWeekToUseID) as? AppDayOfWeek {
-                viewModel.selectedAppDayOfWeek = appDayOfWeekOnMain
-                viewModel.currentAppDayOfWeek = appDayOfWeekOnMain
-            }
+            // ⚡ All SwiftUI-observed state updates explicitly on MainActor
+            await MainActor.run {
+                if let appDayOfWeekOnMain = try? viewContext.existingObject(with: appDayOfWeekToUseID) as? AppDayOfWeek {
+                    viewModel.selectedAppDayOfWeek = appDayOfWeekOnMain
+                    viewModel.currentAppDayOfWeek = appDayOfWeekOnMain
+                }
 
-            alertTitle = "Success"
-            alertMessage = "New mat time added successfully!"
-            showAlert = true
-            toastMessage = "Mat time added!"
-            showToast = true
-            resetStateVariables()
+                alertTitle = "Success"
+                alertMessage = "New mat time added successfully!"
+                showAlert = true
+                toastMessage = "Mat time added!"
+                showToast = true
+                resetStateVariables()
 
-            // ✅ Only if `self.selectedDay` is optional @State
-            if let currentSelectedDay = self.selectedDay {
-                self.selectedDay = nil
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    self.selectedDay = currentSelectedDay
+                // If selectedDay is optional @State, reset briefly for UI refresh
+                if let currentSelectedDay = self.selectedDay {
+                    self.selectedDay = nil
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        self.selectedDay = currentSelectedDay
+                    }
                 }
             }
 
         } catch {
-            print("❌ Error saving mat time: \(error.localizedDescription)")
-            alertTitle = "Error"
-            alertMessage = "Failed to create or save mat time: \(error.localizedDescription)"
-            showAlert = true
+            await MainActor.run {
+                print("❌ Error saving mat time: \(error.localizedDescription)")
+                alertTitle = "Error"
+                alertMessage = "Failed to create or save mat time: \(error.localizedDescription)"
+                showAlert = true
+            }
         }
 
         isLoading = false

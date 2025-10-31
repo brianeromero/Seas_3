@@ -368,10 +368,16 @@ public struct EditExistingIsland: View {
 
             // 4️⃣ Update UI on MainActor - THIS IS THE CRITICAL PART FOR THE TOAST
             await MainActor.run {
-                self.successToastMessage = "Update saved successfully!" // Set the binding value
-                self.successToastType = .success // <<< NEW: Set the type for success
-                self.showSuccessToast = true                          // Set the binding flag
-                dismiss() // Then dismiss the current view
+                self.successToastMessage = "Update saved successfully!"
+                self.successToastType = .success
+                self.showSuccessToast = true
+
+                // Auto-dismiss after 3 seconds
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                    self.showSuccessToast = false
+                }
+
+                dismiss()
             }
             os_log("Update saved successfully.", log: OSLog.default, type: .info)
 
@@ -380,11 +386,9 @@ public struct EditExistingIsland: View {
             await MainActor.run {
                 showAlert = true
                 alertMessage = "Failed to save Update: \(error.localizedDescription)"
-                self.successToastMessage = "Failed to save gym: \(error.localizedDescription)" // Set toast message for error
-                self.successToastType = .error // <<< NEW: Set the type for error
-                self.showSuccessToast = true // Show toast for error too
-                // If you show an alert for errors, you might not want a toast simultaneously.
-                // Decide which UX you prefer for errors. If you show the alert, maybe don't show the toast.
+                self.successToastMessage = "Failed to save gym: \(error.localizedDescription)"
+                self.successToastType = .error
+                self.showSuccessToast = true
             }
         }
     }
