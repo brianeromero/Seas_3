@@ -46,39 +46,58 @@ public struct AddNewIsland: View {
                 enteredBySection
                 actionButtons
             }
-            .navigationDestination(for: String.self) { islandMenuPath in
-                IslandMenu2(
-                    profileViewModel: profileViewModel, // `profileViewModel` is now @EnvironmentObject
-                    navigationPath: $navigationPath
-                )
-            }
-            .navigationBarTitle("Add New Gym", displayMode: .inline)
-            .alert(isPresented: $showAlert) {
-                Alert(
-                    title: Text(isSuccessAlert ? "Success" : "Error"),
-                    message: Text(alertMessage),
-                    dismissButton: .default(Text("OK")) {
-                        if isSuccessAlert {
-                            navigationPath = NavigationPath()
-                        }
+            .overlay(
+                VStack {
+                    Spacer()
+                    if showToast {
+                        Text(toastMessage)
+                            .padding()
+                            .background(Color.black.opacity(0.8))
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                            .onAppear {
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                                    withAnimation { showToast = false }
+                                }
+                            }
                     }
-
-                )
-            }
-            .onAppear {
-                Task { await countryService.fetchCountries() }
-            }
-            .onChange(of: countryService.countries) { oldValue, newValue in
-                if let usa = newValue.first(where: { $0.cca2 == "US" }) {
-                    islandDetails.selectedCountry = usa
                 }
-            }
-            .onChange(of: islandDetails) { _, _ in validateForm() }
-            .onChange(of: islandDetails.islandName) { _, _ in validateForm() }
-            .onChange(of: islandDetails.requiredAddressFields) { _, _ in validateForm() }
-
+                .padding()
+                .animation(.easeInOut, value: showToast)
+            )
         }
+        .navigationDestination(for: String.self) { islandMenuPath in
+            IslandMenu2(
+                profileViewModel: profileViewModel,
+                navigationPath: $navigationPath
+            )
+        }
+        .navigationBarTitle("Add New Gym", displayMode: .inline)
+        .alert(isPresented: $showAlert) {
+            Alert(
+                title: Text(isSuccessAlert ? "Success" : "Error"),
+                message: Text(alertMessage),
+                dismissButton: .default(Text("OK")) {
+                    if isSuccessAlert {
+                        navigationPath = NavigationPath()
+                    }
+                }
+            )
+        }
+        .onAppear {
+            Task { await countryService.fetchCountries() }
+        }
+        .onChange(of: countryService.countries) { oldValue, newValue in
+            if let usa = newValue.first(where: { $0.cca2 == "US" }) {
+                islandDetails.selectedCountry = usa
+            }
+        }
+        .onChange(of: islandDetails) { _, _ in validateForm() }
+        .onChange(of: islandDetails.islandName) { _, _ in validateForm() }
+        .onChange(of: islandDetails.requiredAddressFields) { _, _ in validateForm() }
     }
+
 
     // MARK: - Subviews
     private var islandFormSection: some View {
@@ -149,29 +168,31 @@ public struct AddNewIsland: View {
         Button("Save") {
             os_log("Save button clicked", log: OSLog.default, type: .info)
             
-            // Ensure getCurrentUser correctly fetches the user
             Task {
-                // Now we await the current user
-                if let currentUser = await authViewModel.getCurrentUser() { // authViewModel is now @EnvironmentObject
-                    if currentUser.name.isEmpty {
-                        self.alertMessage = "Could not find your profile info. Please log in again."
-                        self.showAlert = true
-                        return
-                    }
-                    
-                    // Proceed with saving the island once the user is verified
-                    await saveIsland(currentUser: currentUser) {
-                        // Once the save operation completes, navigate
-                        navigationPath.append("IslandMenu2")
-                    }
-                } else {
+                // Check required fields before saving
+                let requiredFields = islandDetails.requiredAddressFields
+                let missingFields = requiredFields.filter { !isValidField($0) }
+                
+                if missingFields.count > 0 {
+                    toastMessage = "Please fill in all required fields"
+                    showToast = true
+                    return
+                }
+                
+                guard let currentUser = await authViewModel.getCurrentUser() else {
                     self.alertMessage = "You must be logged in to save a new gym."
                     self.showAlert = true
+                    return
+                }
+                
+                await saveIsland(currentUser: currentUser) {
+                    navigationPath.append("IslandMenu2")
                 }
             }
         }
-        .disabled(!isSaveEnabled)
+        .disabled(false) // Always enabled
     }
+
 
 
     private var cancelButton: some View {
@@ -229,13 +250,19 @@ public struct AddNewIsland: View {
         let requiredFields = islandDetails.requiredAddressFields
         print("Required fields: \(requiredFields.map { $0.rawValue })")
 
-        isSaveEnabled = true // Assume the form is valid initially
+        // Always enable Save
+        isSaveEnabled = true
 
-        let finalIsValid = !islandDetails.islandName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        print("Final validation result: \(finalIsValid)")
-        
-        isSaveEnabled = isSaveEnabled && finalIsValid // Update isSaveEnabled
+        // Determine if islandName is empty
+        let islandNameEmpty = islandDetails.islandName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+
+        if islandNameEmpty || requiredFields.contains(where: { !isValidField($0) }) {
+            toastMessage = "Some required fields are missing"
+        } else {
+            toastMessage = ""
+        }
     }
+
 
     private func isValidField(_ field: AddressFieldType) -> Bool {
         guard let keyPath = fieldValues.first(where: { $1 == field })?.0 else {

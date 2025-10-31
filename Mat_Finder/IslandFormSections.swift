@@ -554,73 +554,24 @@ struct IslandFormSections: View {
 
 
     private func validateForm() {
-        print("validateForm()456 called: islandName = \(islandName)")
-
         // Validate island name
-        let islandNameValid = !islandName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        isIslandNameValid = islandNameValid
-        islandNameErrorMessage = islandNameValid ? "" : "Gym name cannot be empty."
+        let islandNameValid = !formState.islandName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        formState.isIslandNameValid = islandNameValid
+        formState.islandNameErrorMessage = islandNameValid ? "" : "Gym name cannot be empty."
 
-        // Validate address fields if islandName is provided
-        let addressFieldsValid = requiredAddressFields.allSatisfy { field in
+        var allFieldsValid = true
+
+        for field in requiredAddressFields {
             let value = getValue(for: field)
-            let errorMessage = "\(field.rawValue.capitalized) is required."
-            switch field {
-            case .street:
-                formState.streetErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
-            case .city:
-                formState.cityErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
-            case .state:
-                formState.stateErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
-            case .province:
-                formState.provinceErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
-            case .postalCode:
-                formState.postalCodeErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
-            case .region:
-                formState.regionErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
-            case .district:
-                formState.districtErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
-            case .department:
-                formState.departmentErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
-            case .governorate:
-                formState.governorateErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
-            case .emirate:
-                formState.emirateErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
-            case .county:
-                formState.countyErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
-            case .neighborhood:
-                formState.neighborhoodErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
-            case .complement:
-                formState.complementErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
-            case .apartment:
-                formState.apartmentErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
-            case .additionalInfo:
-                formState.additionalInfoErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
-            case .multilineAddress:
-                formState.multilineAddressErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
-            case .parish:
-                formState.parishErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
-            case .entity:
-                formState.entityErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
-            case .municipality:
-                formState.municipalityErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
-            case .division:
-                formState.divisionErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
-            case .zone:
-                formState.zoneErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
-            case .island:
-                formState.islandErrorMessage = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? errorMessage : ""
-            default:
-                break
-            }
-            return !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            let isEmpty = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            if isEmpty { allFieldsValid = false }
+
+            // Mutate FormState via wrappedValue if it's a Binding
+            formState.setErrorMessage(for: field, isEmpty: isEmpty)
         }
 
-        // ✅ Validate overall form state
-        isFormValid = islandNameValid && addressFieldsValid
-
-        // ✅ FIX: Automatically hide or show “Required fields are missing”
-        showValidationMessage = !addressFieldsValid && islandNameValid
+        isFormValid = islandNameValid && allFieldsValid
+        showValidationMessage = !allFieldsValid && islandNameValid
     }
 
     private func getErrorMessage(for field: AddressFieldType, country: String) -> String {

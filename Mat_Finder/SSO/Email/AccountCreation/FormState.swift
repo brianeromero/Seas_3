@@ -476,6 +476,36 @@ public struct FormState { // Add 'public' here
         isConfirmPasswordValid = confirmPassword == password
         confirmPasswordErrorMessage = isConfirmPasswordValid ? "" : "Passwords do not match."
     }
+    
+    mutating func setErrorMessage(for field: AddressFieldType, isEmpty: Bool) {
+        let msg = isEmpty ? "\(field.rawValue.capitalized) is required." : ""
+        
+        switch field {
+        case .street: streetErrorMessage = msg
+        case .city: cityErrorMessage = msg
+        case .state: stateErrorMessage = msg
+        case .province: provinceErrorMessage = msg
+        case .postalCode: postalCodeErrorMessage = msg
+        case .region: regionErrorMessage = msg
+        case .district: districtErrorMessage = msg
+        case .department: departmentErrorMessage = msg
+        case .governorate: governorateErrorMessage = msg
+        case .emirate: emirateErrorMessage = msg
+        case .block: blockErrorMessage = msg
+        case .county: countyErrorMessage = msg
+        case .neighborhood: neighborhoodErrorMessage = msg
+        case .complement: complementErrorMessage = msg
+        case .apartment: apartmentErrorMessage = msg
+        case .additionalInfo: additionalInfoErrorMessage = msg
+        case .multilineAddress: multilineAddressErrorMessage = msg
+        case .parish: parishErrorMessage = msg
+        case .entity: entityErrorMessage = msg
+        case .municipality: municipalityErrorMessage = msg
+        case .division: divisionErrorMessage = msg
+        case .zone: zoneErrorMessage = msg
+        case .island: islandErrorMessage = msg
+        }
+    }
 }
 
 enum ValidationRule {
