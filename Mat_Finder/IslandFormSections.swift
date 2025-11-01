@@ -140,32 +140,58 @@ struct IslandFormSections: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Gym Name")
             TextField("Enter Gym Name", text: $islandDetails.islandName)
-                .onChange(of: islandDetails.islandName) { oldName, newValue in // Use the new signature
-                    print("Gym Name Updated: \(newValue)")
-                    validateFields() // Validation based on the updated value
+                .onChange(of: islandDetails.islandName) { oldValue, newValue in
+                    print("🏝️ Gym Name Updated: \(newValue)")
+                    validateFields()
                 }
                 .textFieldStyle(RoundedBorderTextFieldStyle())
 
             // Address Fields View
-            VStack {
-                // Fetch the required fields using the safer method
-                let requiredFields = getAddressFieldsSafely(for: selectedCountry?.cca2)
+            let requiredFields = getAddressFieldsSafely(for: selectedCountry?.cca2)
 
+            VStack {
                 // Dynamically generate address fields
                 ForEach(requiredFields, id: \.self) { field in
                     addressField(for: field)
-                        .textFieldStyle(RoundedBorderTextFieldStyle()) // Apply the textFieldStyle here
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .onChange(of: getValue(for: field)) { oldValue, newValue in
+                            print("✏️ Field '\(field.rawValue)' updated: \(newValue)")
+                            validateFields()
+                        }
                 }
             }
             .padding(.top)
+            .onAppear {
+                print("📋 Required address fields for \(selectedCountry?.cca2 ?? "nil"): \(requiredFields.map { $0.rawValue })")
+            }
 
-            // Only show the validation message if Gym Name is not empty
-            if !islandDetails.islandName.isEmpty && showValidationMessage {
-                Text("Required fields are missing.")
+            // Validation message
+            let missingFields = getMissingRequiredFields(for: selectedCountry?.cca2)
+            if !islandDetails.islandName.isEmpty && showValidationMessage && !missingFields.isEmpty {
+                Text("Required fields are missing: \(missingFields.joined(separator: ", "))")
                     .foregroundColor(.red)
+                    .onAppear {
+                        print("❌ Missing fields: \(missingFields)")
+                    }
             }
         }
     }
+
+    
+    private func getMissingRequiredFields(for countryCode: String?) -> [String] {
+        let requiredFields = getAddressFieldsSafely(for: countryCode)
+        var missingFields: [String] = []
+
+        for field in requiredFields {
+            let value = getValue(for: field).trimmingCharacters(in: .whitespacesAndNewlines)
+            if value.isEmpty {
+                missingFields.append(field.rawValue)
+            }
+        }
+
+        return missingFields
+    }
+
 
 
     // MARK: - Address Field Dynamic Generation
@@ -284,11 +310,11 @@ struct IslandFormSections: View {
     }
     
     var requiredAddressFields: [AddressFieldType] {
-        guard let countryName = selectedCountry?.name.common else {
+        guard let countryCode = selectedCountry?.cca2 else {
             return defaultAddressFieldRequirements
         }
-        
-        return getAddressFieldsSafely(for: countryName)
+
+        return getAddressFieldsSafely(for: countryCode)
     }
 
 
@@ -554,25 +580,34 @@ struct IslandFormSections: View {
 
 
     private func validateForm() {
+        print("validateForm() called: islandName = \(islandName)")
+        
+        // 🧠 Debugging output
+        print("Validating fields for \(selectedCountry?.cca2 ?? "nil")")
+        print("Required fields: \(requiredAddressFields.map { $0.rawValue })")
+
         // Validate island name
-        let islandNameValid = !formState.islandName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        formState.isIslandNameValid = islandNameValid
-        formState.islandNameErrorMessage = islandNameValid ? "" : "Gym name cannot be empty."
+        let islandNameValid = !islandName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        isIslandNameValid = islandNameValid
+        islandNameErrorMessage = islandNameValid ? "" : "Gym name cannot be empty."
 
-        var allFieldsValid = true
+        // Validate address fields if islandName is provided
+        if islandNameValid {
+            var allFieldsValid = true
 
-        for field in requiredAddressFields {
-            let value = getValue(for: field)
-            let isEmpty = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            if isEmpty { allFieldsValid = false }
+            for field in requiredAddressFields {
+                let value = getValue(for: field)
+                let isEmpty = value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                if isEmpty { allFieldsValid = false }
+                formState.setErrorMessage(for: field, isEmpty: isEmpty)
+            }
 
-            // Mutate FormState via wrappedValue if it's a Binding
-            formState.setErrorMessage(for: field, isEmpty: isEmpty)
+            showValidationMessage = !allFieldsValid && islandNameValid
+        } else {
+            showValidationMessage = true
         }
-
-        isFormValid = islandNameValid && allFieldsValid
-        showValidationMessage = !allFieldsValid && islandNameValid
     }
+
 
     private func getErrorMessage(for field: AddressFieldType, country: String) -> String {
         return "\(field.rawValue.capitalized) is required for \(country)."

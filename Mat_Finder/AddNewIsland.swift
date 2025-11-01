@@ -244,24 +244,42 @@ public struct AddNewIsland: View {
     private func validateForm() {
         print("Validating form...123")
         
-        // 🔍 Debug tip: Print the current state of islandDetails
+        // 🔍 Debug: Print current islandDetails
         print("Current islandDetails: \(islandDetails)")
 
         let requiredFields = islandDetails.requiredAddressFields
         print("Required fields: \(requiredFields.map { $0.rawValue })")
 
-        // Always enable Save
+        // Check if islandName is empty
+        let islandNameEmpty = islandDetails.islandName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        print("Island Name empty? \(islandNameEmpty) -> '\(islandDetails.islandName)'")
+
+        // Check each required address field
+        for field in requiredFields {
+            let valid = isValidField(field)
+            print("Field '\(field.rawValue)' valid? \(valid) -> '\(valueForField(field))'")
+        }
+
+        // Enable Save button
         isSaveEnabled = true
 
-        // Determine if islandName is empty
-        let islandNameEmpty = islandDetails.islandName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-
+        // Show toast if anything missing
         if islandNameEmpty || requiredFields.contains(where: { !isValidField($0) }) {
             toastMessage = "Some required fields are missing"
+            print("⚠️ Some required fields are missing! Current state logged above.")
         } else {
             toastMessage = ""
         }
     }
+    
+    
+    private func valueForField(_ field: AddressFieldType) -> String {
+        if let keyPath = fieldValues.first(where: { $1 == field })?.0 {
+            return islandDetails[keyPath: keyPath] as? String ?? ""
+        }
+        return ""
+    }
+
 
 
     private func isValidField(_ field: AddressFieldType) -> Bool {
