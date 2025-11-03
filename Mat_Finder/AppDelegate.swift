@@ -94,11 +94,29 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
 
+        // ✅ 0. Start Network Monitoring immediately
+        _ = NetworkMonitor.shared
+        print("🌐 NetworkMonitor initialized and started.")
+        print("""
+        🔍 [AppDelegate] NetworkMonitor initial state:
+        - isConnected: \(NetworkMonitor.shared.isConnected)
+        - currentPath: \(String(describing: NetworkMonitor.shared.currentPath))
+        - currentStatus: \(String(describing: NetworkMonitor.shared.currentPath?.status))
+        """)
+
+
+        // ✅ Add delayed recheck (2 seconds later)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            print("""
+            🕓 [AppDelegate] Delayed NetworkMonitor check (2s later):
+            - isConnected: \(NetworkMonitor.shared.isConnected)
+            - currentPath: \(String(describing: NetworkMonitor.shared.currentPath))
+            """)
+        }
+
         // ✅ 1. Configure Firebase & App Check FIRST
         configureFirebaseIfNeeded() // This should set `isFirebaseConfigured = true` once done
-        
         print("Current user: \(Auth.auth().currentUser?.uid ?? "nil")")
-
 
         // ✅ 2. Initialize ViewModels that depend on Firebase *after* Firebase is configured
         AuthViewModel._shared = AuthViewModel(
@@ -109,7 +127,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         self.authViewModel = AuthViewModel.shared
 
         self.pirateIslandViewModel = PirateIslandViewModel(persistenceController: PersistenceController.shared)
-
         self.profileViewModel = ProfileViewModel(
             viewContext: PersistenceController.shared.container.viewContext,
             authViewModel: self.authViewModel
@@ -128,12 +145,21 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         configureNotifications(for: application)
         configureGoogleAds()
 
-        // ✅ 6. Safe to sync Firestore after Firebase is fully initialized
+        // ✅ 6a. Safe to sync Firestore after Firebase is fully initialized
         Task {
             await FirestoreSyncManager.shared.syncInitialFirestoreData()
             FirestoreSyncManager.shared.startFirestoreListeners()
         }
 
+        // ✅ 6b. Reactive network listener
+        NotificationCenter.default.addObserver(forName: .networkStatusChanged, object: nil, queue: .main) { _ in
+            Task {
+                if NetworkMonitor.shared.isConnected {
+                    print("🌐 Network restored — resuming pending Firestore sync")
+                    await FirestoreSyncManager.shared.syncInitialFirestoreData()
+                }
+            }
+        }
 
 
         // ✅ 7. Defer Keychain test to avoid premature access
@@ -151,14 +177,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         // ✅ 9. Firebase Auth State Listener (final setup)
         authStateDidChangeListenerHandle = Auth.auth().addStateDidChangeListener { [weak self] auth, user in
             guard let self = self else { return }
-            
-            print("Current user inside listener - ✅ 9. Firebase Auth State Listener (final setup): \(user?.uid ?? "nil")")
 
+            print("Current user inside listener - ✅ 9. Firebase Auth State Listener (final setup): \(user?.uid ?? "nil")")
 
             if let user = user {
                 print("✅ Firebase User is signed in: \(user.email ?? "N/A") (UID: \(user.uid))")
                 self.authViewModel.userSession = user
-                self.authenticationState.isAuthenticated = true // <-- AppDelegate updates isAuthenticated
+                self.authenticationState.isAuthenticated = true
                 self.authenticationState.isLoggedIn = true
             } else {
                 print("❌ Firebase No user is signed in.")

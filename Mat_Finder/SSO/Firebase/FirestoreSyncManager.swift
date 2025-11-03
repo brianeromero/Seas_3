@@ -92,22 +92,35 @@ class FirestoreSyncManager {
         
         
         // ✅ Step 1: Check for network connection before doing anything
+        print("""
+        🌐 [SyncManager:\(syncID)] Checking network status before sync:
+        - isConnected: \(NetworkMonitor.shared.isConnected)
+        - currentPath: \(String(describing: NetworkMonitor.shared.currentPath))
+        - currentStatus: \(String(describing: NetworkMonitor.shared.currentPath?.status))
+        - hasShownNoInternetToast: \(Mirror(reflecting: NetworkMonitor.shared).children.first { $0.label == "hasShownNoInternetToast" }?.value ?? "N/A")
+        """)
+
         guard NetworkMonitor.shared.isConnected else {
-            print("⚠️ [SyncManager] NetworkMonitor reported offline at \(Date()). " +
-                  "Current path status: \(NetworkMonitor.shared.currentPath?.status ?? .requiresConnection)")
-            
-            print("⚠️ [SyncManager] Skipping Firestore sync for \(collectionName). " +
-                  "NetworkMonitor.isConnected = \(NetworkMonitor.shared.isConnected)")
-            
+            print("""
+            ⚠️ [SyncManager:\(syncID)] NetworkMonitor reported offline at \(Date()).
+            Current path status: \(NetworkMonitor.shared.currentPath?.status ?? .requiresConnection)
+            🔕 Firestore sync for \(collectionName) skipped.
+            """)
+
+            // Optional: trigger a visible toast here for debugging
             DispatchQueue.main.async {
-                NotificationCenter.default.post(name: Notification.Name("ShowToast"), object: nil, userInfo: [
-                    "message": "No internet connection. Sync postponed until you're back online.",
-                    "type": ToastView.ToastType.info.rawValue
-                ])
+                NotificationCenter.default.post(
+                    name: .showToast,
+                    object: nil,
+                    userInfo: [
+                        "message": "Offline mode — skipping \(collectionName) sync.",
+                        "type": ToastView.ToastType.info.rawValue
+                    ]
+                )
+                print("📡 [SyncManager:\(syncID)] Posted temporary offline toast.")
             }
             return
         }
-        
         
         // ✅ Step 2: Continue if querySnapshot is valid
         guard let querySnapshot = querySnapshot else {

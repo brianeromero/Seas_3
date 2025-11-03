@@ -67,7 +67,6 @@ struct Mat_FinderApp: App {
     }
 }
 
-
 struct AppRootView: View {
     @EnvironmentObject var authenticationState: AuthenticationState
     @EnvironmentObject var authViewModel: AuthViewModel
@@ -96,8 +95,6 @@ struct AppRootView: View {
                     PirateIslandView(appState: appState)
                         .onAppear {
                             print("AppRootView: Showing Initial Splash (PirateIslandView)")
-
-                            // Continue splash animation
                             DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                                 withAnimation(.easeInOut(duration: 1)) {
                                     showInitialSplash = false
@@ -105,22 +102,20 @@ struct AppRootView: View {
                             }
                         }
                 } else if authenticationState.isAuthenticated {
-                    DebugPrintView("AppRootView: AuthenticationState.isAuthenticated is TRUE. Displaying Authenticated Content.")
+                    DebugPrintView("AppRootView: Authenticated Content")
 
                     if authenticationState.isAdmin || authenticationState.navigateToAdminMenu {
                         AdminMenu()
-                            .onAppear { print("AppRootView: AdminMenu has appeared.") }
-
+                            .onAppear { print("AppRootView: AdminMenu appeared") }
                     } else {
                         IslandMenu2(
                             profileViewModel: profileViewModel,
                             navigationPath: $navigationPath
                         )
-                        .onAppear { print("AppRootView: IslandMenu has appeared.") }
+                        .onAppear { print("AppRootView: IslandMenu appeared") }
                     }
-
                 } else {
-                    DebugPrintView("AppRootView: AuthenticationState.isAuthenticated is FALSE. Displaying LoginView.")
+                    DebugPrintView("AppRootView: LoginView displayed")
                     LoginView(
                         islandViewModel: pirateIslandViewModel,
                         profileViewModel: profileViewModel,
@@ -129,11 +124,10 @@ struct AppRootView: View {
                         isLoggedIn: $authenticationState.isLoggedIn,
                         navigationPath: $navigationPath
                     )
-                    .onAppear { print("AppRootView: LoginView has appeared.") }
+                    .onAppear { print("AppRootView: LoginView appeared") }
                 }
             }
-
-            // ✅ Modern iOS 16+ navigationDestination (no deprecation)
+            // Admin navigation
             .navigationDestination(isPresented: $authenticationState.navigateToAdminMenu) {
                 AdminMenu()
                     .environmentObject(authenticationState)
@@ -143,9 +137,7 @@ struct AppRootView: View {
                     .environmentObject(allEnteredLocationsViewModel)
                     .environmentObject(appDayOfWeekViewModel)
                     .environmentObject(enterZipCodeViewModel)
-                    .onAppear {
-                        print("✅ AppRootView: Navigated to AdminMenu via navigateToAdminMenu binding.")
-                    }
+                    .onAppear { print("✅ Navigated to AdminMenu") }
             }
 
             // Regular AppScreen navigation
@@ -167,37 +159,52 @@ struct AppRootView: View {
             }
         }
         .onChange(of: navigationPath) { oldPath, newPath in
-            print("⚠️ [AppRootView] navigationPath changed from \(oldPath) to \(newPath)")
+            print("⚠️ navigationPath changed from \(oldPath) to \(newPath)")
         }
-        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("ShowToast"))) { notification in
-            if let userInfo = notification.userInfo,
-               let message = userInfo["message"] as? String,
-               let typeString = userInfo["type"] as? String,
-               let type = ToastView.ToastType(rawValue: typeString) {
 
+        // MARK: - Global Toast Listeners
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("ShowToast"))) { notification in
+            guard let userInfo = notification.userInfo,
+                  let message = userInfo["message"] as? String,
+                  let typeRaw = userInfo["type"] as? String,
+                  let type = ToastView.ToastType(rawValue: typeRaw) else { return }
+
+            withAnimation {
                 self.globalToastMessage = message
                 self.globalToastType = type
                 self.globalShowToast = true
+            }
 
-                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                    withAnimation {
-                        self.globalShowToast = false
-                    }
+            // Auto-hide after 3 seconds
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                withAnimation {
+                    self.globalShowToast = false
                 }
             }
         }
+
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("HideToast"))) { _ in
+            withAnimation {
+                self.globalShowToast = false
+            }
+        }
+
+        // MARK: - Overlay Toast
         .overlay(
             Group {
                 if globalShowToast {
                     ToastView(message: globalToastMessage, type: globalToastType)
                         .transition(.move(edge: .top).combined(with: .opacity))
                         .animation(.easeInOut(duration: 0.3), value: globalShowToast)
-                        .offset(y: UIScreen.main.bounds.height * 0.3)
+                        // Use a smaller offset, so it appears near top instead of offscreen
+                        .offset(y: 50)
+                        .zIndex(1)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .ignoresSafeArea(.all, edges: .all)
+            .ignoresSafeArea(edges: .all)
         )
+
     }
 }
 

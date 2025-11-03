@@ -8,12 +8,13 @@
 import Foundation
 
 extension Notification.Name {
-    static let networkStatusChanged = Notification.Name("networkStatusChanged")
-    static let showToast = Notification.Name("showToast")
-    static let contextSaved = Notification.Name("contextSaved")
-    static let firebaseConfigured = Notification.Name("firebaseConfigured")
-    static let signInLinkReceived = Notification.Name("signInLinkReceived")
+    // ✅ Use consistent naming — UpperCamelCase
+    static let networkStatusChanged = Notification.Name("NetworkStatusChanged")
+    static let showToast = Notification.Name("ShowToast")
+    static let hideToast = Notification.Name("HideToast") // <-- added for clarity
+    static let contextSaved = Notification.Name("ContextSaved")
+    static let firebaseConfigured = Notification.Name("FirebaseConfigured")
+    static let signInLinkReceived = Notification.Name("SignInLinkReceived")
     static let fcmTokenReceived = Notification.Name("FCMTokenReceived")
-    static let didSyncPirateIslands = Notification.Name("didSyncPirateIslands")
+    static let didSyncPirateIslands = Notification.Name("DidSyncPirateIslands")
 }
-
