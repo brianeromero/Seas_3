@@ -17,21 +17,17 @@ struct AllEnteredLocations: View {
 
     @StateObject private var enterZipCodeViewModel: EnterZipCodeViewModel
     @StateObject private var appDayOfWeekViewModel: AppDayOfWeekViewModel
+    @StateObject private var userLocationVM = UserLocationMapViewModel.shared
 
     @Binding var navigationPath: NavigationPath
 
-    // MARK: - Modified initializer
     init(navigationPath: Binding<NavigationPath>) {
         self._navigationPath = navigationPath
 
-        // 1️⃣ Create the DataManager using the shared Core Data context
         let dataManager = PirateIslandDataManager(viewContext: PersistenceController.shared.viewContext)
-
-        // 2️⃣ Create the main ViewModel with that data manager
         let mainViewModel = AllEnteredLocationsViewModel(dataManager: dataManager)
         self._viewModel = ObservedObject(wrappedValue: mainViewModel)
 
-        // 3️⃣ Initialize the StateObjects for other view models
         let sharedPersistenceController = PersistenceController.shared
         let appDayOfWeekRepository = AppDayOfWeekRepository(persistenceController: sharedPersistenceController)
 
@@ -50,27 +46,21 @@ struct AllEnteredLocations: View {
     var body: some View {
         VStack {
             if !viewModel.isDataLoaded {
-                ProgressView("Loading Open Mats...")
-                    .padding()
-            } else if let errorMessage = viewModel.errorMessage {
-                Text(errorMessage)
-                    .foregroundColor(.red)
-                    .padding()
+                ProgressView("Loading Open Mats...").padding()
+            } else if let error = viewModel.errorMessage {
+                Text(error).foregroundColor(.red).padding()
             } else if viewModel.pirateMarkers.isEmpty {
-                Text("No Open Mats found.")
-                    .padding()
+                Text("No Open Mats found.").padding()
             } else {
-                Map(position: $viewModel.region) {
+                Map(position: $viewModel.region, interactionModes: .all) {
                     ForEach(viewModel.pirateMarkers) { marker in
                         if let island = marker.pirateIsland {
-                            Annotation(marker.title ?? "Unknown Island", coordinate: marker.coordinate) {
-                                IslandAnnotationView(island: island) {
-                                    handleIslandTap(island: island)
-                                }
+                            Annotation(marker.title ?? "Island", coordinate: marker.coordinate) {
+                                IslandAnnotationView(island: island) { handleIslandTap(island: island) }
                             }
-                            .annotationTitles(.hidden)
                         }
                     }
+                    UserAnnotation()
                 }
                 .onAppear { viewModel.logTileInformation() }
             }
@@ -78,12 +68,15 @@ struct AllEnteredLocations: View {
         .navigationTitle("All Gyms")
         .onAppear {
             if !viewModel.isDataLoaded && viewModel.errorMessage == nil {
-                print("📍 AllEnteredLocations: Initial fetchPirateIslands triggered.")
                 viewModel.fetchPirateIslands()
             }
+            userLocationVM.startLocationServices()
+        }
+        .onReceive(userLocationVM.$userLocation) { location in
+            guard let location = location else { return }
+            viewModel.setRegionToUserLocation(location.coordinate)
         }
         .onReceive(NotificationCenter.default.publisher(for: .didSyncPirateIslands)) { _ in
-            print("📦 AllEnteredLocations: Firestore sync completed. Re-fetching Core Data gyms...")
             viewModel.fetchPirateIslands()
         }
         .sheet(isPresented: $showModal) {

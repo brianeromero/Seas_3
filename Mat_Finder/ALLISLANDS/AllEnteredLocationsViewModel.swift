@@ -12,19 +12,15 @@ import Combine
 import CoreLocation
 import MapKit
 
-class AllEnteredLocationsViewModel: NSObject, ObservableObject, NSFetchedResultsControllerDelegate {
+final class AllEnteredLocationsViewModel: NSObject, ObservableObject {
     @Published var allIslands: [PirateIsland] = []
-    
-    // MARK: - CHANGE THIS LINE
-    // Now uses MapCameraPosition instead of MKCoordinateRegion
-    @Published var region: MapCameraPosition = .automatic // .automatic is a good starting point
-
-
     @Published var pirateMarkers: [CustomMapMarker] = []
     @Published var errorMessage: String?
     @Published var isDataLoaded = false
-    
+    @Published var region: MapCameraPosition = .automatic
+
     private let dataManager: PirateIslandDataManager
+    private var hasSetInitialRegion = false
 
     init(dataManager: PirateIslandDataManager) {
         self.dataManager = dataManager
@@ -33,91 +29,60 @@ class AllEnteredLocationsViewModel: NSObject, ObservableObject, NSFetchedResults
     }
 
     func fetchPirateIslands() {
-        print("Fetching pirate islands...")
-
-        // Start loading
-        DispatchQueue.main.async {
-            self.isDataLoaded = false
-            self.errorMessage = nil
-        }
+        isDataLoaded = false
+        errorMessage = nil
 
         DispatchQueue.global(qos: .userInitiated).async {
             let result = self.dataManager.fetchPirateIslands()
-
-            DispatchQueue.main.async { [weak self] in
-                guard let self = self else { return }
-
+            DispatchQueue.main.async {
                 switch result {
-                case .success(let pirateIslands):
-                    self.allIslands = pirateIslands
-                    self.updatePirateMarkers(with: pirateIslands)
-
+                case .success(let islands):
+                    self.allIslands = islands
+                    self.pirateMarkers = islands.map { island in
+                        CustomMapMarker(
+                            id: island.islandID ?? UUID(),
+                            coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude),
+                            title: island.islandName ?? "Unknown Island",
+                            pirateIsland: island
+                        )
+                    }
+                    self.isDataLoaded = true
+                    self.setRegionToFitMarkersOrDefault()
                 case .failure(let error):
                     self.errorMessage = "Failed to load pirate islands: \(error.localizedDescription)"
-                    print("❌ Error fetching pirate islands: \(error)")
-                    self.pirateMarkers = []  // Ensure markers are empty on failure
-                    self.region = .automatic // Reset map
-                    self.isDataLoaded = true // Done loading even on error
+                    self.pirateMarkers = []
+                    self.region = .automatic
+                    self.isDataLoaded = true
                 }
             }
         }
     }
 
-    private func updatePirateMarkers(with islands: [PirateIsland]) {
-        print("updatePirateMarkers called with \(islands.count) islands")
+    /// Sets the map region to fit all markers if available, otherwise uses a default zoomed-out span
+    func setRegionToFitMarkersOrDefault() {
+        guard !hasSetInitialRegion else { return }
 
-        guard !islands.isEmpty else {
-            print("No pirate islands available to create markers.")
-            self.pirateMarkers = []
-            self.region = .automatic
-            self.isDataLoaded = true
-            return
+        if !pirateMarkers.isEmpty {
+            let coordinates = pirateMarkers.map { $0.coordinate }
+            let mkRegion = MapUtils.calculateRegionToFit(coordinates: coordinates)
+            region = .region(mkRegion)
+        } else {
+            // Default global zoom (~1000 miles)
+            let zoomedOutSpan = MKCoordinateSpan(latitudeDelta: 15.0, longitudeDelta: 15.0)
+            region = .region(MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: 37.7749, longitude: -95.0), span: zoomedOutSpan))
         }
 
-        let markers = islands.map { island in
-            CustomMapMarker(
-                id: island.islandID ?? UUID(),
-                coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude),
-                title: island.islandName ?? "Unknown Island",
-                pirateIsland: island
-            )
-        }
-
-        // Update markers and map region on main thread
-        DispatchQueue.main.async {
-            self.pirateMarkers = markers
-            self.updateRegion()
-
-            // Debug prints
-            print("🗺️ pirateMarkers count after fetch: \(self.pirateMarkers.count)")
-            self.pirateMarkers.forEach { marker in
-                print("📍 \(marker.title ?? "Unknown") - \(marker.coordinate.latitude), \(marker.coordinate.longitude)")
-            }
-
-            // ✅ Only set isDataLoaded after markers and region are updated
-            self.isDataLoaded = true
-        }
+        hasSetInitialRegion = true
     }
 
+    /// Updates the map region based on user location (if we haven’t set it already)
+    func setRegionToUserLocation(_ location: CLLocationCoordinate2D) {
+        guard !hasSetInitialRegion else { return }
 
-    func updateRegion() {
-        guard !pirateMarkers.isEmpty else {
-            // If no markers, set a default camera position or reset to automatic
-            self.region = .automatic
-            return
-        }
-
-        // Get coordinates for all markers
-        let coordinates = pirateMarkers.map { $0.coordinate }
-
-        // Calculate the MKCoordinateRegion to fit all coordinates using your MapUtils
-        let mkRegion = MapUtils.calculateRegionToFit(coordinates: coordinates)
-
-        // MARK: - Convert MKCoordinateRegion to MapCameraPosition
-        self.region = .region(mkRegion)
+        let zoomedOutSpan = MKCoordinateSpan(latitudeDelta: 15.0, longitudeDelta: 15.0)
+        region = .region(MKCoordinateRegion(center: location, span: zoomedOutSpan))
+        hasSetInitialRegion = true
     }
-
-    // MARK: - Logging Methods for Debugging
 
     func logTileInformation() {
         for marker in pirateMarkers {
@@ -126,10 +91,6 @@ class AllEnteredLocationsViewModel: NSObject, ObservableObject, NSFetchedResults
     }
 
     func getPirateIsland(from marker: CustomMapMarker) -> PirateIsland? {
-        // This method is used by the View to get the actual PirateIsland from the marker.
-        // It's good practice to ensure the 'pirateIsland' property on CustomMapMarker
-        // is the source of truth, rather than relying on a separate search.
-        return marker.pirateIsland
+        marker.pirateIsland
     }
 }
-
