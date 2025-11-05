@@ -19,70 +19,65 @@ final class NetworkMonitor: ObservableObject {
     @Published private(set) var isConnected: Bool = false
     private var hasShownNoInternetToast = false
     private(set) var currentPath: NWPath?
-
+    
     private init() {
         print("🌐 [NetworkMonitor] Initializing...")
-
-        // Handle path updates (including initial offline state)
+        
         monitor.pathUpdateHandler = { [weak self] path in
             guard let self = self else { return }
             self.currentPath = path
-            
             let newStatus = path.status == .satisfied
-            let statusChanged = (newStatus != self.isConnected)
-            self.isConnected = newStatus
+            let statusChanged = newStatus != self.isConnected
             
-            // Detailed debug logging
-            print("""
-            🌐 [NetworkMonitor] Path update:
-            - Status: \(newStatus ? "✅ Connected" : "❌ Disconnected")
-            - Expensive: \(path.isExpensive)
-            - Constrained: \(path.isConstrained)
-            - Interfaces: \(path.availableInterfaces.map { "\($0.type)" }.joined(separator: ", "))
-            - Previous isConnected: \(!statusChanged ? "No change" : "Changed")
-            """)
-
             DispatchQueue.main.async {
-                // Reactive network status notification
+                self.isConnected = newStatus
+                
+                // Debug info
+                print("""
+                🌐 [NetworkMonitor] Path update:
+                - Status: \(newStatus ? "✅ Connected" : "❌ Disconnected")
+                - Expensive: \(path.isExpensive)
+                - Constrained: \(path.isConstrained)
+                - Interfaces: \(path.availableInterfaces.map { "\($0.type)" }.joined(separator: ", "))
+                - Status changed: \(statusChanged)
+                """)
+                
+                // Notify observers
                 NotificationCenter.default.post(
                     name: .networkStatusChanged,
                     object: nil,
-                    userInfo: ["isConnected": self.isConnected]
+                    userInfo: ["isConnected": newStatus]
                 )
-
-                // Toast handling
+                
+                // ✅ Use updated ToastThrottler
                 if newStatus {
-                    // Internet restored
                     if self.hasShownNoInternetToast {
-                        NotificationCenter.default.post(name: .hideToast, object: nil)
+                        ToastThrottler.shared.postToast(
+                            for: "network",
+                            action: "restored",
+                            type: .success,
+                            isPersistent: false
+                        )
                         self.hasShownNoInternetToast = false
-                        print("🟢 [NetworkMonitor] Internet restored — hiding toast")
+                        print("🟢 [NetworkMonitor] Internet restored — queued 'Internet restored' toast")
                     }
                 } else {
-                    // Internet lost (including first offline state)
                     if !self.hasShownNoInternetToast {
-                        NotificationCenter.default.post(
-                            name: .showToast,
-                            object: nil,
-                            userInfo: [
-                                "message": "No internet connection. Sync postponed until you're back online.",
-                                "type": ToastView.ToastType.info.rawValue
-                            ]
+                        ToastThrottler.shared.postToast(
+                            for: "network",
+                            action: "lost",
+                            type: .info,
+                            isPersistent: true
                         )
                         self.hasShownNoInternetToast = true
-                        print("🚨 [NetworkMonitor] Internet lost — showing 'No Internet' toast")
+                        print("🚨 [NetworkMonitor] Internet lost — queued persistent 'No Internet' toast")
                     }
                 }
             }
         }
-
+        
         // Start monitoring
         monitor.start(queue: queue)
-        print("✅ [NetworkMonitor] NWPathMonitor started on queue: \(queue.label)")
-    }
-
-    deinit {
-        monitor.cancel()
-        print("🛑 [NetworkMonitor] Deinitialized and stopped monitoring")
+        print("🌐 [NetworkMonitor] Monitoring started.")
     }
 }

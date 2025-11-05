@@ -154,7 +154,12 @@ struct AddNewMatTimeSection: View {
             }
         }
         // MARK: - Apply the new .showToast modifier here
-        .showToast(isPresenting: $showToast, message: toastMessage, type: toastType)
+        .showToast(
+            isPresenting: $showToast,
+            duration: 2.0,
+            alignment: .top,
+            verticalOffset: 0
+        )
     }
     
     func handleSelectedDayChange() {

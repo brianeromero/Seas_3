@@ -63,15 +63,16 @@ struct AddIslandFormView: View {
                 Alert(title: Text("Error"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
             }
             .onAppear(perform: validateForm) // Assuming validateForm exists and updates isSaveEnabled
-            // !!! Replaced .overlay(toastOverlay) with the new .showToast modifier !!!
+            // Updated to match the new ToastModifier signature
             .showToast(
                 isPresenting: $showToast,
-                message: toastMessage,
-                type: .success // Or .custom, .error, .info based on the scenario
-                // You can also add duration: and alignment: here if you want to override defaults
+                duration: 2.0,
+                alignment: .top,
+                verticalOffset: 0
             )
         }
     }
+
     
     // MARK: - Extracted Sections
     private var gymDetailsSection: some View {
