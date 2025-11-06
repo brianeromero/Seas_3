@@ -461,12 +461,15 @@ public class AuthenticationState: ObservableObject {
         print("    isAdmin = \(self.isAdmin)")
         print("    navigateToAdminMenu = \(self.navigateToAdminMenu)")
 
-        // Start listening for the user's document in Firestore after successful login
+        // Start listening for the user's document in Firestore
         FirestoreManager.shared.startListeningForUserDocument()
-        // If you have other initial data you want to sync with listeners on login, call them here too:
-        // FirestoreManager.shared.startListeningForCollection(collection: .appDayOfWeeks) { documents in /* handle */ }
 
+        // ✅ Kick off initial Firestore sync after login
+        Task {
+            await FirestoreSyncManager.shared.syncInitialFirestoreData()
+        }
     }
+
     
     // Implement this function to determine if the user is an admin
     private func determineIfAdmin() -> Bool {

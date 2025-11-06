@@ -146,10 +146,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         configureGoogleAds()
 
         // ✅ 6a. Safe to sync Firestore after Firebase is fully initialized
-        Task {
-            await FirestoreSyncManager.shared.syncInitialFirestoreData()
-            FirestoreSyncManager.shared.startFirestoreListeners()
+        if Auth.auth().currentUser != nil {
+            Task {
+                await FirestoreSyncManager.shared.syncInitialFirestoreData()
+                FirestoreSyncManager.shared.startFirestoreListeners()
+            }
         }
+
 
         // ✅ 6b. Reactive network listener
         NotificationCenter.default.addObserver(forName: .networkStatusChanged, object: nil, queue: .main) { _ in

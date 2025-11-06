@@ -164,7 +164,7 @@ class FirestoreSyncManager {
                 FirestoreSyncManager.log("Local records (\(localRecords.count)): \(localRecords.prefix(5))\(localRecords.count > 5 ? "... (\(localRecords.count - 5) more)" : "")", level: .info, collection: collectionName, syncID: syncID)
 
                 _ = Firestore.firestore().collection(collectionName)
-                let localRecordsNotInFirestore = await Task.detached(priority: .background) { [localRecords] in
+                _ = await Task.detached(priority: .background) { [localRecords] in
                     var missing: [String] = []
                     let db = Firestore.firestore().collection(collectionName)
 
@@ -193,13 +193,13 @@ class FirestoreSyncManager {
 
 
                 let localRecordsWithoutHyphens = Set(localRecords.map { $0.replacingOccurrences(of: "-", with: "") })
-                let firestoreRecordsNotInLocal = firestoreRecords.filter {
+                _ = firestoreRecords.filter {
                     !localRecordsWithoutHyphens.contains($0.replacingOccurrences(of: "-", with: ""))
                 }
 
                 await syncRecords(localRecords: localRecords, firestoreRecords: firestoreRecords, collectionName: collectionName)
                 FirestoreSyncManager.log("syncRecords completed for \(collectionName)", level: .sync, collection: collectionName, syncID: syncID)
-
+/*
                 DispatchQueue.main.async {
                     if !localRecordsNotInFirestore.isEmpty || !firestoreRecordsNotInLocal.isEmpty {
                         ToastThrottler.shared.postToast(
@@ -217,6 +217,7 @@ class FirestoreSyncManager {
                         )
                     }
                 }
+ */
 
             } else {
                 FirestoreSyncManager.log("No local records found. Pulling from Firestore...", level: .warning, collection: collectionName, syncID: syncID)
@@ -390,26 +391,26 @@ class FirestoreSyncManager {
         // Normalize for comparison (Firestore removes hyphens)
         let normalizedFirestoreRecords = firestoreRecords.map { $0.replacingOccurrences(of: "-", with: "") }
         let normalizedLocalRecords = localRecords.map { $0.replacingOccurrences(of: "-", with: "") }
-
+        
         // Identify records that exist locally but not remotely
         let localRecordsNotInFirestore = localRecords.filter { record in
             let normalized = record.replacingOccurrences(of: "-", with: "")
             return !normalizedFirestoreRecords.contains(normalized)
         }
-
+        
         // Identify records that exist remotely but not locally
         let firestoreRecordsNotInLocal = firestoreRecords.filter { record in
             let normalized = record.replacingOccurrences(of: "-", with: "")
             return !normalizedLocalRecords.contains(normalized)
         }
-
+        
         // Log summary header
         Self.log("""
         🔄 Starting sync for **\(collectionName)**:
            • 🆙 \(localRecordsNotInFirestore.count) local → Firestore
            • 📥 \(firestoreRecordsNotInLocal.count) Firestore → Core Data
         """)
-
+        
         // Upload missing local records to Firestore
         if !localRecordsNotInFirestore.isEmpty {
             Self.log("⬆️ Uploading \(localRecordsNotInFirestore.count) missing local \(collectionName) records to Firestore…")
@@ -417,7 +418,7 @@ class FirestoreSyncManager {
         } else {
             Self.log("✅ All \(collectionName) records already exist in Firestore. No upload needed.")
         }
-
+        
         // Download missing Firestore records to Core Data
         if !firestoreRecordsNotInLocal.isEmpty {
             Self.log("⬇️ Downloading \(firestoreRecordsNotInLocal.count) missing Firestore \(collectionName) records into Core Data…")
@@ -425,8 +426,8 @@ class FirestoreSyncManager {
         } else {
             Self.log("✅ All \(collectionName) records already exist locally. No download needed.")
         }
-
-
+        
+        
         // Completion summary
         Self.log("""
         🏁 Finished sync for \(collectionName):
@@ -434,20 +435,52 @@ class FirestoreSyncManager {
            • Downloaded: \(firestoreRecordsNotInLocal.count)
            • Total: \(localRecords.count + firestoreRecords.count)
         """)
-
+        
         // --- Integrity check ---
-        let localCount = localRecords.count
-        let firestoreCount = firestoreRecords.count
-
-        Self.log("Integrity check: local=\(localCount), firestore=\(firestoreCount)", level: .sync, collection: collectionName)
-
-        if abs(localCount - firestoreCount) > 0 {
-            Self.log("Count mismatch after sync — consider verifying orphaned records", level: .warning, collection: collectionName)
-        } else {
-            Self.log("Counts match — integrity check passed", level: .success, collection: collectionName)
+        // **1. Re-fetch the current local count for an accurate check.**
+        let currentLocalRecords = try? await PersistenceController.shared.fetchLocalRecords(forCollection: collectionName)
+        let finalLocalCount = currentLocalRecords?.count ?? 0
+        let initialFirestoreCount = firestoreRecords.count // This count is still accurate
+        
+        let countDifference = abs(finalLocalCount - initialFirestoreCount)
+        
+        Self.log("Integrity check: local=\(finalLocalCount), firestore=\(initialFirestoreCount)", level: .sync, collection: collectionName)
+        
+        DispatchQueue.main.async { // Post the final outcome on the main thread
+            if countDifference > 0 {
+                // CONDITION 3a: Sync failed to reconcile counts.
+                Self.log("Count mismatch after sync — consider verifying orphaned records", level: .warning, collection: collectionName)
+                ToastThrottler.shared.postToast(
+                    for: collectionName,
+                    action: "Needs sync", // The true "needs sync" state, triggered by count mismatch
+                    type: .info,
+                    isPersistent: false
+                )
+            } else {
+                // CONDITION 2b: Counts match (Syncd or Already Syncd)
+                Self.log("Counts match — integrity check passed", level: .success, collection: collectionName)
+                
+                let action: String
+                let type: ToastView.ToastType
+                
+                // If there was nothing to upload AND nothing to download, it was already synced.
+                if localRecordsNotInFirestore.isEmpty && firestoreRecordsNotInLocal.isEmpty {
+                    action = "Already Synced - All records confirmed"
+                    type = .success
+                } else {
+                    action = "Synced successfully" // Changes were made, and the counts now match.
+                    type = .success
+                }
+                
+                ToastThrottler.shared.postToast(
+                    for: collectionName,
+                    action: action,
+                    type: type,
+                    isPersistent: false
+                )
+            }
         }
     }
-
 
     @MainActor
     private func downloadFirestoreRecordsToLocal(collectionName: String, records: [String]) async {
@@ -458,15 +491,17 @@ class FirestoreSyncManager {
         
         Self.log("📥 Starting Firestore → Core Data sync for **\(collectionName)** (\(records.count) total records)")
         
-        // Initial info toast
+        // Initial info toast (optional)
+        /*
         ToastThrottler.shared.postToast(
             for: collectionName,
             action: "Downloading \(records.count) from cloud",
             type: .info,
             isPersistent: false
         )
+        */
         
-        // Offload the heavy loop to a background task
+        // Offload heavy sync work
         let result = await Task.detached(priority: .background) { () -> (downloadedCount: Int, errorCount: Int) in
             let context = await PersistenceController.shared.container.newBackgroundContext()
             let db = Firestore.firestore()
@@ -541,9 +576,9 @@ class FirestoreSyncManager {
             return (downloadedCount, errorCount)
         }.value
         
-        // Post final toast + summary on MainActor
-        let summary: String
-        let toastType: ToastView.ToastType
+        // ✅ Declare variables before use
+        var summary: String
+        var toastType: ToastView.ToastType
         
         if result.downloadedCount > 0 && result.errorCount == 0 {
             summary = "✅ Downloaded all \(result.downloadedCount) records"
@@ -556,23 +591,31 @@ class FirestoreSyncManager {
             toastType = .error
         }
         
+        // Optionally suppress unused variable warning if toast is commented out
+        _ = summary
+        _ = toastType
+        
+        /*
         ToastThrottler.shared.postToast(
             for: collectionName,
             action: summary,
             type: toastType,
             isPersistent: false
         )
+        */
         
         Self.log("🏁 Firestore sync complete for \(collectionName): \(result.downloadedCount) succeeded | \(result.errorCount) failed")
     }
 
     
     // MARK: - Static helpers for Firestore sync
-    
     // ---------------------------
     // PirateIsland
     // ---------------------------
-    private static func syncPirateIslandStatic(docSnapshot: DocumentSnapshot, context: NSManagedObjectContext) throws {
+    private static func syncPirateIslandStatic(
+        docSnapshot: DocumentSnapshot,
+        context: NSManagedObjectContext
+    ) throws {
         let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
         
         guard let uuid = UUID(uuidString: docSnapshot.documentID) else {
@@ -616,11 +659,12 @@ class FirestoreSyncManager {
         }
         
         if let pi = pirateIsland {
-            pi.islandName = docSnapshot.get("name") as? String
+            // ⚠️ FIX: Add nil-coalescing for islandName and createdTimestamp
+            pi.islandName = docSnapshot.get("name") as? String ?? "Unknown Island"
             pi.islandLocation = docSnapshot.get("location") as? String
             pi.country = docSnapshot.get("country") as? String
             pi.createdByUserId = docSnapshot.get("createdByUserId") as? String
-            pi.createdTimestamp = (docSnapshot.get("createdTimestamp") as? Timestamp)?.dateValue()
+            pi.createdTimestamp = (docSnapshot.get("createdTimestamp") as? Timestamp)?.dateValue() ?? Date()
             
             if let urlString = docSnapshot.get("gymWebsite") as? String {
                 pi.gymWebsite = URL(string: urlString)
@@ -878,14 +922,17 @@ class FirestoreSyncManager {
         }
         
         if let pi = pirateIsland {
-            pi.islandName = docSnapshot.get("name") as? String
+            // ✅ FIX: Added nil-coalescing (??) for non-optional properties (islandName, createdTimestamp)
+            pi.islandName = docSnapshot.get("name") as? String ?? "Unknown Island"
             pi.islandLocation = docSnapshot.get("location") as? String
             pi.country = docSnapshot.get("country") as? String
             pi.createdByUserId = docSnapshot.get("createdByUserId") as? String
-            pi.createdTimestamp = (docSnapshot.get("createdTimestamp") as? Timestamp)?.dateValue()
+            pi.createdTimestamp = (docSnapshot.get("createdTimestamp") as? Timestamp)?.dateValue() ?? Date()
+            
             if let urlString = docSnapshot.get("gymWebsite") as? String {
                 pi.gymWebsite = URL(string: urlString)
             }
+            
             pi.latitude = docSnapshot.get("latitude") as? Double ?? 0.0
             pi.longitude = docSnapshot.get("longitude") as? Double ?? 0.0
             pi.lastModifiedByUserId = docSnapshot.get("lastModifiedByUserId") as? String
@@ -898,8 +945,6 @@ class FirestoreSyncManager {
             )
         }
     }
-
-    
     
     private func syncReview(docSnapshot: DocumentSnapshot, context: NSManagedObjectContext) throws {
         var review = fetchReviewByID(docSnapshot.documentID, in: context)
