@@ -104,7 +104,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         - currentStatus: \(String(describing: NetworkMonitor.shared.currentPath?.status))
         """)
 
-
         // ✅ Add delayed recheck (2 seconds later)
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
             print("""
@@ -148,22 +147,19 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         // ✅ 6a. Safe to sync Firestore after Firebase is fully initialized
         if Auth.auth().currentUser != nil {
             Task {
-                await FirestoreSyncManager.shared.syncInitialFirestoreData()
-                FirestoreSyncManager.shared.startFirestoreListeners()
+                await FirestoreSyncCoordinator.shared.startAppSync()
             }
         }
-
 
         // ✅ 6b. Reactive network listener
         NotificationCenter.default.addObserver(forName: .networkStatusChanged, object: nil, queue: .main) { _ in
             Task {
                 if NetworkMonitor.shared.isConnected {
                     print("🌐 Network restored — resuming pending Firestore sync")
-                    await FirestoreSyncManager.shared.syncInitialFirestoreData()
+                    await FirestoreSyncCoordinator.shared.startAppSync()
                 }
             }
         }
-
 
         // ✅ 7. Defer Keychain test to avoid premature access
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {

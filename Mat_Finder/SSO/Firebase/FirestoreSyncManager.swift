@@ -44,6 +44,28 @@ extension FirestoreSyncManager {
 
 
 
+// MARK: - Sync Coordinator
+actor FirestoreSyncCoordinator {
+    static let shared = FirestoreSyncCoordinator()
+    private var isSyncInProgress = false
+
+    func startAppSync() async {
+        guard !isSyncInProgress else {
+            FirestoreSyncManager.log("🚫 Sync already in progress — skipping duplicate call.", level: .warning)
+            return
+        }
+
+        isSyncInProgress = true
+        defer { isSyncInProgress = false }
+
+        await FirestoreSyncManager.shared.syncInitialFirestoreData()
+
+        await MainActor.run {
+            FirestoreSyncManager.shared.startFirestoreListeners()
+        }
+    }
+}
+
 
 class FirestoreSyncManager {
     static let shared = FirestoreSyncManager()
@@ -62,8 +84,10 @@ class FirestoreSyncManager {
             // --- PirateIslands
             let pirateSnapshot = try await db.collection("pirateIslands").getDocuments()
             let pirateIslandIDs = pirateSnapshot.documents.map { $0.documentID }
+            print("📋 Firestore returned PirateIsland IDs:", pirateIslandIDs) // 👈 Add this line here
             await downloadFirestoreRecordsToLocal(collectionName: "pirateIslands", records: pirateIslandIDs)
             FirestoreSyncManager.log("Downloaded \(pirateIslandIDs.count) pirate islands from Firestore", level: .success, collection: "pirateIslands")
+
             
             // --- Parallelize the rest
             async let reviewsTask: () = downloadCollection(db: db, name: "reviews")
@@ -199,25 +223,7 @@ class FirestoreSyncManager {
 
                 await syncRecords(localRecords: localRecords, firestoreRecords: firestoreRecords, collectionName: collectionName)
                 FirestoreSyncManager.log("syncRecords completed for \(collectionName)", level: .sync, collection: collectionName, syncID: syncID)
-/*
-                DispatchQueue.main.async {
-                    if !localRecordsNotInFirestore.isEmpty || !firestoreRecordsNotInLocal.isEmpty {
-                        ToastThrottler.shared.postToast(
-                            for: collectionName,
-                            action: "needs sync",
-                            type: .error,
-                            isPersistent: false
-                        )
-                    } else {
-                        ToastThrottler.shared.postToast(
-                            for: collectionName,
-                            action: "synced successfully",
-                            type: .success,
-                            isPersistent: false
-                        )
-                    }
-                }
- */
+ 
 
             } else {
                 FirestoreSyncManager.log("No local records found. Pulling from Firestore...", level: .warning, collection: collectionName, syncID: syncID)
@@ -491,17 +497,6 @@ class FirestoreSyncManager {
         
         Self.log("📥 Starting Firestore → Core Data sync for **\(collectionName)** (\(records.count) total records)")
         
-        // Initial info toast (optional)
-        /*
-        ToastThrottler.shared.postToast(
-            for: collectionName,
-            action: "Downloading \(records.count) from cloud",
-            type: .info,
-            isPersistent: false
-        )
-        */
-        
-        // Offload heavy sync work
         let result = await Task.detached(priority: .background) { () -> (downloadedCount: Int, errorCount: Int) in
             let context = await PersistenceController.shared.container.newBackgroundContext()
             let db = Firestore.firestore()
@@ -510,17 +505,31 @@ class FirestoreSyncManager {
             var downloadedCount = 0
             var errorCount = 0
             let batchSaveInterval = 10
+            let syncID = String(UUID().uuidString.prefix(8))
             
             for record in records {
+                // 🧩 Diagnostic Addition
+                Self.log("🗂️ Found Firestore document ID: \(record)", level: .info, collection: collectionName, syncID: syncID)
+                
                 let docRef = collectionRef.document(record)
+                Self.log("Attempting to fetch Firestore doc: \(record)", level: .download, collection: collectionName, syncID: syncID)
                 
                 do {
                     let docSnapshot = try await docRef.getDocument()
+                    
                     guard docSnapshot.exists else {
-                        Self.log("⚠️ Missing Firestore document \(record) in \(collectionName). Skipping.")
+                        Self.log("⚠️ Firestore document not found or permission denied for: \(record)",
+                                 level: .warning,
+                                 collection: collectionName,
+                                 syncID: syncID)
                         errorCount += 1
                         continue
                     }
+                    
+                    Self.log("✅ Successfully fetched Firestore doc: \(record)",
+                             level: .success,
+                             collection: collectionName,
+                             syncID: syncID)
                     
                     await context.perform {
                         do {
@@ -529,12 +538,15 @@ class FirestoreSyncManager {
                                 try Self.syncPirateIslandStatic(docSnapshot: docSnapshot, context: context)
                             case "reviews":
                                 try Self.syncReviewStatic(docSnapshot: docSnapshot, context: context)
-                            case "MatTime":
+                            case "matTimes":
                                 try Self.syncMatTimeStatic(docSnapshot: docSnapshot, context: context)
-                            case "AppDayOfWeek":
+                            case "appDayOfWeeks":
                                 try Self.syncAppDayOfWeekStatic(docSnapshot: docSnapshot, context: context)
                             default:
-                                Self.log("🚫 Unknown collection type: \(collectionName)")
+                                Self.log("Unknown collection: \(collectionName)",
+                                         level: .warning,
+                                         collection: collectionName,
+                                         syncID: syncID)
                                 errorCount += 1
                                 return
                             }
@@ -543,25 +555,36 @@ class FirestoreSyncManager {
                             
                             if downloadedCount % batchSaveInterval == 0 {
                                 try context.save()
-                                Self.log("💾 Intermediate save after \(downloadedCount) synced records for \(collectionName)")
+                                Self.log("💾 Intermediate save after \(downloadedCount) synced records",
+                                         level: .info,
+                                         collection: collectionName,
+                                         syncID: syncID)
                             }
                             
-                            Self.log("✅ Synced \(collectionName) record: \(record)")
+                            Self.log("✅ Synced \(collectionName) record: \(record)",
+                                     level: .success,
+                                     collection: collectionName,
+                                     syncID: syncID)
                             
                         } catch {
                             context.rollback()
-                            Self.log("❌ Core Data error syncing \(collectionName) record \(record): \(error.localizedDescription)")
+                            Self.log("❌ Core Data error syncing \(collectionName) record \(record): \(error.localizedDescription)",
+                                     level: .error,
+                                     collection: collectionName,
+                                     syncID: syncID)
                             errorCount += 1
                         }
                     }
                     
                 } catch {
-                    Self.log("🔥 Firestore fetch error for \(collectionName) → \(record): \(error.localizedDescription)")
+                    Self.log("❌ Error fetching Firestore doc: \(record) → \(error.localizedDescription)",
+                             level: .error,
+                             collection: collectionName,
+                             syncID: syncID)
                     errorCount += 1
                 }
             }
             
-            // Final save
             await context.perform {
                 if context.hasChanges {
                     do {
@@ -576,7 +599,6 @@ class FirestoreSyncManager {
             return (downloadedCount, errorCount)
         }.value
         
-        // ✅ Declare variables before use
         var summary: String
         var toastType: ToastView.ToastType
         
@@ -591,18 +613,8 @@ class FirestoreSyncManager {
             toastType = .error
         }
         
-        // Optionally suppress unused variable warning if toast is commented out
         _ = summary
         _ = toastType
-        
-        /*
-        ToastThrottler.shared.postToast(
-            for: collectionName,
-            action: summary,
-            type: toastType,
-            isPersistent: false
-        )
-        */
         
         Self.log("🏁 Firestore sync complete for \(collectionName): \(result.downloadedCount) succeeded | \(result.errorCount) failed")
     }
@@ -616,71 +628,75 @@ class FirestoreSyncManager {
         docSnapshot: DocumentSnapshot,
         context: NSManagedObjectContext
     ) throws {
+        let rawID = docSnapshot.documentID
+        let data = docSnapshot.data() ?? [:]
+
+        // Attempt to parse both raw and hyphen-stripped versions as UUIDs
+        let possibleUUIDs = [rawID, rawID.replacingOccurrences(of: "-", with: "")]
+            .compactMap { UUID(uuidString: $0) }
+
+        // --- Fetch existing record if it exists
         let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
-        
-        guard let uuid = UUID(uuidString: docSnapshot.documentID) else {
-            Self.log(
-                "Invalid UUID string: \(docSnapshot.documentID)",
-                level: .error,
-                collection: "pirateIslands"
-            )
-            return
-        }
-        
-        fetchRequest.predicate = NSPredicate(format: "islandID == %@", uuid as CVarArg)
+        fetchRequest.predicate = NSPredicate(format: "islandID IN %@", possibleUUIDs as [NSUUID])
         fetchRequest.fetchLimit = 1
-        
+
         var pirateIsland: PirateIsland?
-        
+
         do {
             pirateIsland = try context.fetch(fetchRequest).first
         } catch {
-            Self.log(
-                "Error fetching PirateIsland by ID: \(error.localizedDescription)",
-                level: .error,
-                collection: "pirateIslands"
-            )
+            Self.log("Error fetching PirateIsland by ID: \(error.localizedDescription)",
+                     level: .error,
+                     collection: "pirateIslands")
         }
-        
+
+        // 🔍 Debug line — confirms whether Core Data found an existing record
+        print("🔎 [syncPirateIslandStatic] Firestore ID: \(rawID) | Found existing local: \(pirateIsland != nil)")
+        Self.log("📄 Firestore data for \(rawID): \(data)", level: .info, collection: "pirateIslands")
+
+        // --- Safely unwrap required fields from Firestore
+        guard
+            let location = data["location"] as? String,
+            let name = data["name"] as? String
+        else {
+            Self.log("⚠️ Missing required fields for PirateIsland \(docSnapshot.documentID). Skipping.",
+                     level: .warning,
+                     collection: "pirateIslands")
+            return
+        }
+
+        // --- Create or update entity
+        let island = pirateIsland ?? PirateIsland(context: context)
         if pirateIsland == nil {
-            pirateIsland = PirateIsland(context: context)
-            pirateIsland?.islandID = uuid
-            Self.log(
-                "Creating new PirateIsland with ID: \(docSnapshot.documentID)",
-                level: .creating,
-                collection: "pirateIslands"
-            )
+            island.islandID = UUID(uuidString: rawID) ?? UUID()
+            Self.log("🆕 Creating new PirateIsland with ID: \(docSnapshot.documentID)",
+                     level: .creating,
+                     collection: "pirateIslands")
         } else {
-            Self.log(
-                "Updating existing PirateIsland with ID: \(docSnapshot.documentID)",
-                level: .updating,
-                collection: "pirateIslands"
-            )
+            Self.log("♻️ Updating existing PirateIsland with ID: \(docSnapshot.documentID)",
+                     level: .updating,
+                     collection: "pirateIslands")
         }
-        
-        if let pi = pirateIsland {
-            // ⚠️ FIX: Add nil-coalescing for islandName and createdTimestamp
-            pi.islandName = docSnapshot.get("name") as? String ?? "Unknown Island"
-            pi.islandLocation = docSnapshot.get("location") as? String
-            pi.country = docSnapshot.get("country") as? String
-            pi.createdByUserId = docSnapshot.get("createdByUserId") as? String
-            pi.createdTimestamp = (docSnapshot.get("createdTimestamp") as? Timestamp)?.dateValue() ?? Date()
-            
-            if let urlString = docSnapshot.get("gymWebsite") as? String {
-                pi.gymWebsite = URL(string: urlString)
-            }
-            
-            pi.latitude = docSnapshot.get("latitude") as? Double ?? 0.0
-            pi.longitude = docSnapshot.get("longitude") as? Double ?? 0.0
-            pi.lastModifiedByUserId = docSnapshot.get("lastModifiedByUserId") as? String
-            pi.lastModifiedTimestamp = (docSnapshot.get("lastModifiedTimestamp") as? Timestamp)?.dateValue()
-            
-            Self.log(
-                "Synced PirateIsland \(docSnapshot.documentID) successfully.",
-                level: .sync,
-                collection: "pirateIslands"
-            )
+
+        // --- Assign values safely (Firestore → Core Data)
+        island.islandName = name
+        island.islandLocation = location
+        island.country = data["country"] as? String ?? "Unknown"
+        island.createdByUserId = data["createdByUserId"] as? String
+        island.createdTimestamp = (data["createdTimestamp"] as? Timestamp)?.dateValue() ?? Date()
+
+        if let urlString = data["gymWebsite"] as? String, !urlString.isEmpty {
+            island.gymWebsite = URL(string: urlString)
         }
+
+        island.latitude = data["latitude"] as? Double ?? 0.0
+        island.longitude = data["longitude"] as? Double ?? 0.0
+        island.lastModifiedByUserId = data["lastModifiedByUserId"] as? String
+        island.lastModifiedTimestamp = (data["lastModifiedTimestamp"] as? Timestamp)?.dateValue()
+
+        Self.log("✅ Synced PirateIsland \(docSnapshot.documentID) successfully.",
+                 level: .sync,
+                 collection: "pirateIslands")
     }
 
     

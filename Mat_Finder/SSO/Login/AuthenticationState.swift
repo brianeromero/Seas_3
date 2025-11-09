@@ -461,12 +461,12 @@ public class AuthenticationState: ObservableObject {
         print("    isAdmin = \(self.isAdmin)")
         print("    navigateToAdminMenu = \(self.navigateToAdminMenu)")
 
-        // Start listening for the user's document in Firestore
+        // ✅ Start listening for the user's document in Firestore
         FirestoreManager.shared.startListeningForUserDocument()
 
-        // ✅ Kick off initial Firestore sync after login
+        // ✅ Kick off initial Firestore sync safely (via coordinator)
         Task {
-            await FirestoreSyncManager.shared.syncInitialFirestoreData()
+            await FirestoreSyncCoordinator.shared.startAppSync()
         }
     }
 
