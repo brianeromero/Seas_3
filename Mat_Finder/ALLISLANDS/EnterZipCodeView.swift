@@ -3,10 +3,14 @@ import CoreLocation
 import MapKit
 import CoreData
 
+
+
 struct EnterZipCodeView: View {
     @ObservedObject var appDayOfWeekViewModel: AppDayOfWeekViewModel
     @ObservedObject var allEnteredLocationsViewModel: AllEnteredLocationsViewModel
     @ObservedObject var enterZipCodeViewModel: EnterZipCodeViewModel
+
+    @ObservedObject private var userLocationMapViewModel = UserLocationMapViewModel.shared
 
     @State private var locationInput: String = ""
     @State private var searchResults: [PirateIsland] = []
@@ -20,21 +24,18 @@ struct EnterZipCodeView: View {
     @State private var selectedDay: DayOfWeek? = .monday
     @State private var selectedRadius: Double = 5.0 // Radius in miles
     
-    @State private var searchCancellable: Task<(), Never>? = nil // To store and cancel the search task
-
+    @State private var searchCancellable: Task<(), Never>? = nil
     @State private var navigationPath = NavigationPath()
-
 
     var body: some View {
         NavigationView {
             VStack {
+                // Location input
                 TextField("Enter Location (Zip Code, Address, City, State)", text: $locationInput)
                     .padding()
                     .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .onChange(of: locationInput) { _, newValue in
-                        // Cancel any pending search
+                    .onChange(of: locationInput) { _, _ in
                         searchCancellable?.cancel()
-                        // Start a new search task after a short delay
                         searchCancellable = Task {
                             try? await Task.sleep(nanoseconds: 750_000_000)
                             if !Task.isCancelled {
@@ -55,13 +56,13 @@ struct EnterZipCodeView: View {
                     region: $region,
                     searchResults: $searchResults
                 )
-                .frame(height: 400) // Consistent map height
+                .frame(height: 400)
 
-                // NEW LOCATION for Radius Picker
+                // Radius Picker
                 RadiusPicker(selectedRadius: $selectedRadius)
                     .padding(.top)
-                    .onChange(of: selectedRadius) { _, newValue in
-                        searchCancellable?.cancel() // Cancel pending search
+                    .onChange(of: selectedRadius) { _, _ in
+                        searchCancellable?.cancel()
                         searchCancellable = Task {
                             try? await Task.sleep(nanoseconds: 750_000_000)
                             if !Task.isCancelled {
@@ -70,17 +71,18 @@ struct EnterZipCodeView: View {
                         }
                     }
 
-                .onChange(of: searchResults) { _, _ in // Using new onChange syntax for searchResults
+                // Auto-update region to first search result
+                .onChange(of: searchResults) { _, _ in
                     if let firstIsland = searchResults.first {
                         self.region.center = CLLocationCoordinate2D(latitude: firstIsland.latitude, longitude: firstIsland.longitude)
                     }
                 }
             }
-            .frame(maxWidth: .infinity) // ✅ Make the VStack stretch full width
+            .frame(maxWidth: .infinity)
             .padding()
             .navigationTitle("Enter Location")
         }
-        .navigationViewStyle(StackNavigationViewStyle()) // ✅ Add this line
+        .navigationViewStyle(StackNavigationViewStyle())
         .sheet(isPresented: $showModal) {
             IslandModalContainer(
                 selectedIsland: $selectedIsland,
@@ -89,13 +91,36 @@ struct EnterZipCodeView: View {
                 showModal: $showModal,
                 enterZipCodeViewModel: enterZipCodeViewModel,
                 selectedAppDayOfWeek: $selectedAppDayOfWeek,
-                navigationPath: $navigationPath // ✅ Add this line
-
+                navigationPath: $navigationPath
             )
+        }
+        .onAppear {
+            print("EnterZipCodeView: onAppear triggered.")
+
+            if let userLocation = userLocationMapViewModel.userLocation {
+                print("Using existing user location.")
+                region.center = userLocation.coordinate
+                Task { try? await search() }
+            } else {
+                print("No user location yet — requesting location.")
+                requestUserLocation()
+            }
+        }
+        .onChange(of: userLocationMapViewModel.userLocation) { _, newValue in
+            if let location = newValue {
+                print("User location updated to \(location.coordinate.latitude), \(location.coordinate.longitude)")
+                region.center = location.coordinate
+                Task { try? await search() }
+            }
         }
     }
 
-    // private func search() remains the same as it contains the core logic
+    // MARK: - Helper Methods
+
+    private func requestUserLocation() {
+        userLocationMapViewModel.requestLocation()
+    }
+
     private func search() async throws {
         let coordinate = try await MapUtils.geocodeAddressWithFallback(locationInput)
 
