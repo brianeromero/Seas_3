@@ -13,16 +13,16 @@ import CoreLocation
 import MapKit
 
 
+
 @MainActor
 class EnterZipCodeViewModel: ObservableObject {
+    // MARK: - Published properties
     @Published var region: MKCoordinateRegion
-    private var repository: AppDayOfWeekRepository
-    private var context: NSManagedObjectContext
     @Published var postalCode: String = ""
-
     @Published var enteredLocation: CustomMapMarker?
     @Published var pirateIslands: [CustomMapMarker] = []
     @Published var address: String = ""
+    
     @Published var currentRadius: Double = 5.0 {
         didSet {
             if let location = locationManager.userLocation {
@@ -32,12 +32,18 @@ class EnterZipCodeViewModel: ObservableObject {
         }
     }
 
+    // MARK: - Private properties
+    private var repository: AppDayOfWeekRepository
+    private var context: NSManagedObjectContext
     private var cancellables = Set<AnyCancellable>()
     private let geocoder = CLGeocoder()
     private let updateQueue = DispatchQueue(label: "com.example.Mat_Finder.updateQueue")
-    let locationManager = UserLocationMapViewModel.shared
     private let earthRadius = 6371.0088 // km
 
+    // MARK: - Location manager
+    let locationManager = UserLocationMapViewModel.shared
+
+    // MARK: - Init
     init(repository: AppDayOfWeekRepository, persistenceController: PersistenceController) {
         self.repository = repository
         self.context = persistenceController.viewContext
@@ -58,6 +64,8 @@ class EnterZipCodeViewModel: ObservableObject {
         locationManager.startLocationServices()
     }
 
+    // MARK: - Helpers
+
     func isValidPostalCode() -> Bool {
         postalCode.count == 5 && postalCode.allSatisfy(\.isNumber)
     }
@@ -67,28 +75,30 @@ class EnterZipCodeViewModel: ObservableObject {
             do {
                 let coordinate = try await MapUtils.geocodeAddressWithFallback(address)
 
-                // Update region
-                self.region = MKCoordinateRegion(
-                    center: coordinate,
-                    span: MKCoordinateSpan(
-                        latitudeDelta: currentRadius / 69.0,
-                        longitudeDelta: currentRadius / 69.0
+                await MainActor.run {
+                    // Update region
+                    self.region = MKCoordinateRegion(
+                        center: coordinate,
+                        span: MKCoordinateSpan(
+                            latitudeDelta: currentRadius / 69.0,
+                            longitudeDelta: currentRadius / 69.0
+                        )
                     )
-                )
 
-                // Update entered location
-                self.enteredLocation = CustomMapMarker(
-                    id: UUID(),
-                    coordinate: coordinate,
-                    title: address,
-                    pirateIsland: nil
-                )
+                    // Update entered location
+                    self.enteredLocation = CustomMapMarker(
+                        id: UUID(),
+                        coordinate: coordinate,
+                        title: address,
+                        pirateIsland: nil
+                    )
 
-                // Fetch nearby islands
-                self.fetchPirateIslandsNear(
-                    CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude),
-                    within: currentRadius * 1609.34
-                )
+                    // Fetch nearby islands
+                    self.fetchPirateIslandsNear(
+                        CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude),
+                        within: currentRadius * 1609.34
+                    )
+                }
             } catch {
                 print("Geocoding error: \(error.localizedDescription)")
             }
@@ -114,7 +124,6 @@ class EnterZipCodeViewModel: ObservableObject {
 
         do {
             let islands = try context.fetch(fetchRequest)
-
             let filteredIslands = islands.filter { island in
                 let islandLocation = CLLocation(latitude: island.latitude, longitude: island.longitude)
                 return islandLocation.distance(from: location) <= radius
