@@ -171,11 +171,7 @@ struct DayDetailView: View {
     }
 }
 
-struct DaysOfWeekView_Previews: PreviewProvider {
-    static var previews: some View {
-        DaysOfWeekView()
-    }
-}
+
 
 // DayPickerView.swift
 
@@ -214,11 +210,5 @@ struct DayPickerView: View {
             }
         }
         .padding()
-    }
-}
-
-struct DayPickerView_Previews: PreviewProvider {
-    static var previews: some View {
-        DayPickerView(selectedDay: .constant(.monday))
     }
 }
