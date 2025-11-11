@@ -704,7 +704,7 @@ class FirestoreSyncManager {
         let gymWebsite = gymWebsiteString != nil ? URL(string: gymWebsiteString!) : nil
 
         // --- Fetch or create local record
-        let fetchRequest = PirateIsland.fetchRequest() as! NSFetchRequest<PirateIsland>
+        let fetchRequest = PirateIsland.fetchRequest() 
         fetchRequest.predicate = NSPredicate(format: "islandID == %@", docSnapshot.documentID)
         let results = try context.fetch(fetchRequest)
         let island = results.first ?? PirateIsland(context: context)

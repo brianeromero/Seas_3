@@ -9,6 +9,8 @@ import CoreLocation
 import Foundation
 import MapKit
 
+
+// MARK: - IslandMapView (Modern Map API)
 struct IslandMapView: View {
     @ObservedObject var viewModel: AppDayOfWeekViewModel
     @Binding var selectedIsland: PirateIsland?
@@ -17,167 +19,139 @@ struct IslandMapView: View {
     @Binding var selectedDay: DayOfWeek?
     @ObservedObject var allEnteredLocationsViewModel: AllEnteredLocationsViewModel
     @ObservedObject var enterZipCodeViewModel: EnterZipCodeViewModel
-    @Binding var region: MKCoordinateRegion
+
+    // Modern MapKit API bindings
+    @Binding var cameraPosition: MapCameraPosition
     @Binding var searchResults: [PirateIsland]
-    
+
+    var onMapRegionChange: (MKCoordinateRegion) -> Void
+
     @State private var navigationPath = NavigationPath()
-
+    @State private var mapUpdateTask: Task<(), Never>? = nil
 
     var body: some View {
-        ZStack {
-            Map(coordinateRegion: $region, annotationItems: searchResults) { island in
-                MapAnnotation(coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude)) {
-                    VStack {
-                        Text(island.islandName ?? "Unknown Title")
-                            .font(.caption)
-                            .padding(5)
-                            // --- THIS IS THE KEY CHANGE ---
-                            .background(Color(.systemBackground)) // Adapts to light/dark mode
-                            .cornerRadius(5)
-                            .foregroundColor(.primary) // Ensure text is adaptive
-                        CustomMarkerView()
-                    }
-                    .onTapGesture {
-                        handleTap(island: island)
+        Map(position: $cameraPosition) {
+            ForEach(searchResults, id: \.islandID) { island in
+                Annotation(
+                    island.islandName ?? "Unknown Title",
+                    coordinate: CLLocationCoordinate2D(
+                        latitude: island.latitude,
+                        longitude: island.longitude
+                    )
+                ) {
+                    AnnotationMarkerView(island: island, handleTap: handleTap)
+                }
+            }
+        }
+        .frame(height: 400)
+        .edgesIgnoringSafeArea(.all)
+        .onMapCameraChange(frequency: .continuous) { context in
+            let region = context.region
+            mapUpdateTask?.cancel()
+            mapUpdateTask = Task {
+                try? await Task.sleep(nanoseconds: 400_000_000)
+                if !Task.isCancelled {
+                    await MainActor.run {
+                        // Directly update markers for current center + span
+                        enterZipCodeViewModel.updateMarkersForCenter(region.center, span: region.span)
                     }
                 }
             }
-            .frame(height: 400)
-            .edgesIgnoringSafeArea(.all)
         }
+
         .sheet(isPresented: $showModal) {
-            if let island = selectedIsland {
-                IslandModalView(
-                    customMapMarker: CustomMapMarker.forPirateIsland(island),
-                    islandName: island.islandName ?? "Unknown",
-                    islandLocation: island.islandLocation ?? "Unknown",
-                    formattedCoordinates: island.formattedCoordinates,
-                    createdTimestamp: island.formattedTimestamp,
-                    formattedTimestamp: island.formattedTimestamp,
-                    gymWebsite: island.gymWebsite,
-                    dayOfWeekData: island.daysOfWeekArray.compactMap { DayOfWeek(rawValue: $0.day) },
-                    selectedAppDayOfWeek: $selectedAppDayOfWeek,
-                    selectedIsland: $selectedIsland,
-                    viewModel: viewModel,
-                    selectedDay: $selectedDay,
-                    showModal: $showModal,
-                    enterZipCodeViewModel: self.enterZipCodeViewModel,
-                    navigationPath: $navigationPath // <-- Add this
-                )
-            } else {
-                Text("No Gym Selected")
-                    .padding()
-                    .foregroundColor(.primary)
-            }
+            IslandModalContainer(
+                selectedIsland: $selectedIsland,
+                viewModel: viewModel,
+                selectedDay: $selectedDay,
+                showModal: $showModal,
+                enterZipCodeViewModel: enterZipCodeViewModel,
+                selectedAppDayOfWeek: $selectedAppDayOfWeek,
+                navigationPath: $navigationPath
+            )
         }
     }
 
-    func handleTap(island: PirateIsland) {
-        self.selectedIsland = island
-        self.showModal = true
+    private func handleTap(island: PirateIsland) {
+        selectedIsland = island
+        showModal = true
     }
-
 }
 
-
-struct IslandMapContent: View {
-    var islands: [PirateIsland]
-    @Binding var selectedIsland: PirateIsland?
-    @Binding var showModal: Bool
-    @Binding var selectedAppDayOfWeek: AppDayOfWeek?
-    @Binding var selectedDay: DayOfWeek? // Changed to optional
-    @ObservedObject var viewModel: AppDayOfWeekViewModel
-    var enterZipCodeViewModel: EnterZipCodeViewModel
+// MARK: - AnnotationMarkerView (Custom Marker)
+struct AnnotationMarkerView: View {
+    let island: PirateIsland
+    let handleTap: (PirateIsland) -> Void
 
     var body: some View {
-        VStack(alignment: .leading) {
-            if islands.isEmpty {
-                Text("No Gyms available.")
-                    .padding()
-            } else {
-                ForEach(islands, id: \.islandID) { island in
-                    VStack(alignment: .leading) {
-                        Text("Gym: \(island.islandName ?? "Unknown Name")")
-                        Text("Location: \(island.islandLocation ?? "Unknown Location")")
-
-                        if island.latitude != 0 && island.longitude != 0 {
-                            IslandMapViewMap(
-                                coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude),
-                                islandName: island.islandName ?? "Unknown Name",
-                                islandLocation: island.islandLocation ?? "Unknown Location",
-                                onTap: { tappedIsland in
-                                    self.selectedIsland = tappedIsland
-                                },
-                                island: island
-                            )
-                            .frame(height: 400)
-                            .padding()
-                        } else {
-                            Text("Gym location not available")
-                        }
-                    }
-                    .padding()
-                }
-
-                if let selectedIsland = selectedIsland {
-                    NavigationLink(
-                        destination: ViewScheduleForIsland(
-                            viewModel: viewModel,
-                            island: selectedIsland
-                        )
-                    ) {
-                        Text("View Schedule")
-                    }
-                }
-            }
+        VStack {
+            Text(island.islandName ?? "Unknown Title")
+                .font(.caption)
+                .padding(5)
+                .background(Color(.systemBackground))
+                .cornerRadius(5)
+                .foregroundColor(.primary)
+            CustomMarkerView()
+        }
+        .onTapGesture {
+            handleTap(island)
         }
     }
 }
 
-
-struct CustomMarker: Identifiable {
-    let id = UUID()
-    var coordinate: CLLocationCoordinate2D
-}
-
+// MARK: - IslandMapViewMap (For Single Island)
 struct IslandMapViewMap: View {
+    // ✅ Use the modern API as well for consistency
+    @State private var cameraPosition: MapCameraPosition
     var coordinate: CLLocationCoordinate2D
     var islandName: String
     var islandLocation: String
     var onTap: (PirateIsland) -> Void
     var island: PirateIsland
-
     @State private var showConfirmationDialog = false
 
+    init(
+        coordinate: CLLocationCoordinate2D,
+        islandName: String,
+        islandLocation: String,
+        onTap: @escaping (PirateIsland) -> Void,
+        island: PirateIsland
+    ) {
+        self.coordinate = coordinate
+        self.islandName = islandName
+        self.islandLocation = islandLocation
+        self.onTap = onTap
+        self.island = island
+
+        _cameraPosition = State(initialValue: .region(MKCoordinateRegion(
+            center: coordinate,
+            span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
+        )))
+    }
+
     var body: some View {
-        Map(
-            coordinateRegion: .constant(MKCoordinateRegion(
-                center: coordinate,
-                span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
-            )),
-            annotationItems: [CustomMarker(coordinate: coordinate)]
-        ) { marker in
-            MapAnnotation(coordinate: marker.coordinate) {
+        Map(position: $cameraPosition) {
+            Annotation(islandName, coordinate: coordinate) {
                 VStack {
                     Text(islandName)
                         .font(.caption)
                         .padding(5)
-                        // --- THIS IS THE KEY CHANGE ---
-                        .background(Color(.systemBackground)) // Adapts to light/dark mode
+                        .background(Color(.systemBackground))
                         .cornerRadius(5)
-                        .foregroundColor(.primary) // Ensure text is adaptive
+                        .foregroundColor(.primary)
                     CustomMarkerView()
                 }
                 .onTapGesture {
                     onTap(island)
+                    showConfirmationDialog = true
                 }
             }
         }
         .edgesIgnoringSafeArea(.all)
         .alert(isPresented: $showConfirmationDialog) {
             Alert(
-                title: Text("Open in Maps?").foregroundColor(.primary), // Ensure alert title text is adaptive
-                message: Text("Do you want to open \(islandName) in Maps?").foregroundColor(.primary), // Ensure alert message text is adaptive
+                title: Text("Open in Maps?"),
+                message: Text("Do you want to open \(islandName) in Maps?"),
                 primaryButton: .default(Text("Open")) {
                     ReviewUtils.openInMaps(
                         latitude: coordinate.latitude,
@@ -191,72 +165,3 @@ struct IslandMapViewMap: View {
         }
     }
 }
-
-/*
-struct IslandMapView_Previews: PreviewProvider {
-    static var previews: some View {
-        let persistenceController = PersistenceController.preview
-        
-        let island1 = PirateIsland(context: persistenceController.container.viewContext)
-        island1.islandName = "Gym 1"
-        island1.islandLocation = "123 Main St"
-        island1.latitude = 37.7749
-        island1.longitude = -122.4194
-        island1.createdTipmestamp = Date()
-        island1.gymWebsite = URL(string: "https://gym1.com")
-        
-        let island2 = PirateIsland(context: persistenceController.container.viewContext)
-        island2.islandName = "Gym 2"
-        island2.islandLocation = "456 Elm St"
-        island2.latitude = 37.7859
-        island2.longitude = -122.4364
-        island2.createdTimestamp = Date()
-        island2.gymWebsite = URL(string: "https://gym2.com")
-        
-        let dataManager = PirateIslandDataManager(viewContext: persistenceController.container.viewContext)
-        let allEnteredLocationsViewModel = AllEnteredLocationsViewModel(dataManager: dataManager)
-        let enterZipCodeViewModel = EnterZipCodeViewModel(
-            repository: AppDayOfWeekRepository.shared,
-            persistenceController: persistenceController
-        )
-        let appDayOfWeekViewModel = AppDayOfWeekViewModel(
-            selectedIsland: island1,
-            repository: AppDayOfWeekRepository.shared,
-            enterZipCodeViewModel: enterZipCodeViewModel
-        )
-        
-        return Group {
-            IslandMapView(
-                viewModel: appDayOfWeekViewModel,
-                selectedIsland: .constant(island1),
-                showModal: .constant(false),
-                selectedAppDayOfWeek: .constant(nil),
-                selectedDay: .constant(nil),
-                allEnteredLocationsViewModel: allEnteredLocationsViewModel,
-                enterZipCodeViewModel: enterZipCodeViewModel,
-                region: .constant(MKCoordinateRegion(
-                    center: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
-                    span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
-                )),
-                searchResults: .constant([island1, island2])
-            )
-            .previewDisplayName("Gym Map View")
-            
-            IslandMapViewMap(
-                coordinate: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
-                islandName: "Gym 1",
-                islandLocation: "123 Main St",
-                onTap: { _ in },
-                island: island1
-            )
-            .previewDisplayName("Gym Map View Map")
-            
-            CustomMarkerView()
-                .previewLayout(.sizeThatFits)
-                .padding()
-                .background(Color.white)
-                .previewDisplayName("Custom Marker View")
-        }
-    }
-}
-*/

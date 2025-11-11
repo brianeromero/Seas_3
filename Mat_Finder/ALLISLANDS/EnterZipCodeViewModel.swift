@@ -147,3 +147,20 @@ class EnterZipCodeViewModel: ObservableObject {
         self.region = MKCoordinateRegion(center: userLocation.coordinate, span: span)
     }
 }
+
+// MARK: - Helper
+extension EnterZipCodeViewModel {
+    @MainActor
+    func updateMarkersForCenter(_ center: CLLocationCoordinate2D, span: MKCoordinateSpan) {
+        let radiusMeters = MapUtils.estimateVisibleRadius(from: span)
+
+        fetchPirateIslandsNear(
+            CLLocation(latitude: center.latitude, longitude: center.longitude),
+            within: radiusMeters
+        )
+
+        // 👇 Keep the map region synced with what the user is viewing
+        self.region = MKCoordinateRegion(center: center, span: span)
+    }
+
+}

@@ -3,7 +3,9 @@ import CoreLocation
 import MapKit
 import CoreData
 
-
+import SwiftUI
+import MapKit
+import CoreLocation
 
 struct EnterZipCodeView: View {
     @ObservedObject var appDayOfWeekViewModel: AppDayOfWeekViewModel
@@ -14,16 +16,18 @@ struct EnterZipCodeView: View {
 
     @State private var locationInput: String = ""
     @State private var searchResults: [PirateIsland] = []
-    @State private var region: MKCoordinateRegion = MKCoordinateRegion(
-        center: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
-        span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
+    @State private var cameraPosition: MapCameraPosition = .region(
+        MKCoordinateRegion(
+            center: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
+            span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
+        )
     )
+
     @State private var selectedIsland: PirateIsland? = nil
     @State private var showModal: Bool = false
     @State private var selectedAppDayOfWeek: AppDayOfWeek? = nil
     @State private var selectedDay: DayOfWeek? = .monday
-    @State private var selectedRadius: Double = 5.0 // Radius in miles
-    
+    @State private var selectedRadius: Double = 5.0 // miles
     @State private var searchCancellable: Task<(), Never>? = nil
     @State private var navigationPath = NavigationPath()
 
@@ -45,18 +49,15 @@ struct EnterZipCodeView: View {
                     }
 
                 // Map View
-                IslandMapView(
-                    viewModel: appDayOfWeekViewModel,
-                    selectedIsland: $selectedIsland,
-                    showModal: $showModal,
-                    selectedAppDayOfWeek: $selectedAppDayOfWeek,
-                    selectedDay: $selectedDay,
-                    allEnteredLocationsViewModel: allEnteredLocationsViewModel,
-                    enterZipCodeViewModel: enterZipCodeViewModel,
-                    region: $region,
-                    searchResults: $searchResults
-                )
-                .frame(height: 400)
+                mapSection
+                    .frame(height: 400)
+                    // 👇 Add this modifier to listen for updated markers
+                    .onReceive(enterZipCodeViewModel.$pirateIslands) { markers in
+                        // Convert markers back into PirateIsland objects for display
+                        let updatedIslands = markers.compactMap { $0.pirateIsland }
+                        self.searchResults = updatedIslands
+                    }
+
 
                 // Radius Picker
                 RadiusPicker(selectedRadius: $selectedRadius)
@@ -70,13 +71,6 @@ struct EnterZipCodeView: View {
                             }
                         }
                     }
-
-                // Auto-update region to first search result
-                .onChange(of: searchResults) { _, _ in
-                    if let firstIsland = searchResults.first {
-                        self.region.center = CLLocationCoordinate2D(latitude: firstIsland.latitude, longitude: firstIsland.longitude)
-                    }
-                }
             }
             .frame(maxWidth: .infinity)
             .padding()
@@ -99,7 +93,7 @@ struct EnterZipCodeView: View {
 
             if let userLocation = userLocationMapViewModel.userLocation {
                 print("Using existing user location.")
-                region.center = userLocation.coordinate
+                updateCamera(to: userLocation.coordinate)
                 Task { try? await search() }
             } else {
                 print("No user location yet — requesting location.")
@@ -109,13 +103,40 @@ struct EnterZipCodeView: View {
         .onChange(of: userLocationMapViewModel.userLocation) { _, newValue in
             if let location = newValue {
                 print("User location updated to \(location.coordinate.latitude), \(location.coordinate.longitude)")
-                region.center = location.coordinate
+                updateCamera(to: location.coordinate)
                 Task { try? await search() }
             }
         }
     }
 
-    // MARK: - Helper Methods
+    // MARK: - Map Section extracted to avoid compile timeout
+    private var mapSection: some View {
+        IslandMapView(
+            viewModel: appDayOfWeekViewModel,
+            selectedIsland: $selectedIsland,
+            showModal: $showModal,
+            selectedAppDayOfWeek: $selectedAppDayOfWeek,
+            selectedDay: $selectedDay,
+            allEnteredLocationsViewModel: allEnteredLocationsViewModel,
+            enterZipCodeViewModel: enterZipCodeViewModel,
+            cameraPosition: $cameraPosition,
+            searchResults: $searchResults,
+            onMapRegionChange: { region in
+                enterZipCodeViewModel.updateMarkersForCenter(region.center, span: region.span)
+            }
+        )
+    }
+
+    // MARK: - Helpers
+
+    private func updateCamera(to coordinate: CLLocationCoordinate2D) {
+        cameraPosition = .region(
+            MKCoordinateRegion(
+                center: coordinate,
+                span: MKCoordinateSpan(latitudeDelta: selectedRadius * 0.01, longitudeDelta: selectedRadius * 0.01)
+            )
+        )
+    }
 
     private func requestUserLocation() {
         userLocationMapViewModel.requestLocation()
@@ -125,36 +146,44 @@ struct EnterZipCodeView: View {
         let coordinate = try await MapUtils.geocodeAddressWithFallback(locationInput)
 
         await MainActor.run {
-            self.region = MKCoordinateRegion(
-                center: coordinate,
-                span: MKCoordinateSpan(
-                    latitudeDelta: self.selectedRadius * 0.01,
-                    longitudeDelta: self.selectedRadius * 0.01
-                )
-            )
+            updateCamera(to: coordinate)
         }
 
         await MainActor.run {
-            self.enterZipCodeViewModel.fetchPirateIslandsNear(
+            enterZipCodeViewModel.fetchPirateIslandsNear(
                 CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude),
-                within: self.selectedRadius * 1609.34
+                within: selectedRadius * 1609.34
             )
         }
 
         let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
 
-        let filtered = self.enterZipCodeViewModel.pirateIslands.compactMap { $0.pirateIsland }.filter {
-            let marker = CustomMapMarker(
-                id: UUID(),
-                coordinate: CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude),
-                title: $0.islandName ?? "",
-                pirateIsland: $0
-            )
-            return marker.distance(from: location) <= self.selectedRadius * 1609.34
-        }
+        let filtered = enterZipCodeViewModel.pirateIslands
+            .compactMap { $0.pirateIsland }
+            .filter {
+                let marker = CustomMapMarker(
+                    id: UUID(),
+                    coordinate: CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude),
+                    title: $0.islandName ?? "",
+                    pirateIsland: $0
+                )
+                return marker.distance(from: location) <= selectedRadius * 1609.34
+            }
 
         await MainActor.run {
-            self.searchResults = filtered
+            searchResults = filtered
+        }
+
+        // ✅ Auto-fit camera to show all results
+        if !filtered.isEmpty {
+            let coordinates = filtered.map {
+                CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)
+            }
+
+            let region = MapUtils.calculateRegionToFit(coordinates: coordinates)
+            await MainActor.run {
+                self.cameraPosition = .region(region)
+            }
         }
     }
 }
