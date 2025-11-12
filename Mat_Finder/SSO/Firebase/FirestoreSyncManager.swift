@@ -799,7 +799,6 @@ class FirestoreSyncManager {
         }
     }
 
-    
     // ---------------------------
     // MatTime
     // ---------------------------
@@ -855,8 +854,14 @@ class FirestoreSyncManager {
                 let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
                 fetchRequest.predicate = NSPredicate(format: "appDayOfWeekID == %@", appDayOfWeekRef.documentID)
                 fetchRequest.fetchLimit = 1
+
                 if let appDayOfWeek = try? context.fetch(fetchRequest).first {
                     mt.appDayOfWeek = appDayOfWeek
+
+                    // 🔹 Ensure UUID exists in id attribute
+                    if appDayOfWeek.id == nil {
+                        appDayOfWeek.id = UUID(uuidString: appDayOfWeekRef.documentID) ?? UUID()
+                    }
                 }
             }
 
@@ -868,7 +873,6 @@ class FirestoreSyncManager {
         }
     }
 
-    
     // ---------------------------
     // AppDayOfWeek
     // ---------------------------
@@ -897,6 +901,9 @@ class FirestoreSyncManager {
                 level: .creating,
                 collection: "AppDayOfWeek"
             )
+
+            // 🔹 Assign UUID to id attribute
+            ado?.id = UUID(uuidString: docSnapshot.documentID) ?? UUID()
         } else {
             Self.log(
                 "Updating existing AppDayOfWeek with ID: \(docSnapshot.documentID)",
@@ -942,7 +949,6 @@ class FirestoreSyncManager {
             )
         }
     }
-
     
     
     // MARK: - Helper functions

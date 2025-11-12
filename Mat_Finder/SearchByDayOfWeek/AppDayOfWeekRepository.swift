@@ -430,4 +430,34 @@ class AppDayOfWeekRepository: ObservableObject {
             }
         }
     }
+    
+    // MARK: - NEW: fetchSchedulesObjectIDs for a specific island
+    func fetchSchedulesObjectIDs(for island: PirateIsland) async -> [NSManagedObjectID] {
+        let backgroundContext = PersistenceController.shared.container.newBackgroundContext()
+        let islandObjectID = island.objectID
+        
+        return await withCheckedContinuation { continuation in
+            backgroundContext.perform {
+                do {
+                    guard let islandInContext = try backgroundContext.existingObject(with: islandObjectID) as? PirateIsland else {
+                        continuation.resume(returning: [])
+                        return
+                    }
+                    
+                    let request: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
+                    request.predicate = NSPredicate(format: "pIsland == %@", islandInContext)
+                    request.returnsObjectsAsFaults = false
+                    request.includesPropertyValues = false // we only need objectIDs
+                    
+                    let results = try backgroundContext.fetch(request)
+                    let objectIDs = results.map { $0.objectID }
+                    continuation.resume(returning: objectIDs)
+                } catch {
+                    print("fetchSchedulesObjectIDs error: \(error.localizedDescription)")
+                    continuation.resume(returning: [])
+                }
+            }
+        }
+    }
 }
+

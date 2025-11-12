@@ -22,10 +22,10 @@ struct IslandModalView: View {
     
     @Binding var navigationPath: NavigationPath
 
-
     var isLoading: Bool {
         islandSchedules.isEmpty && !scheduleExists || isLoadingData
     }
+
     let customMapMarker: CustomMapMarker?
     @State private var scheduleExists: Bool = false
     @State private var islandSchedules: [(PirateIsland, [MatTime])] = []
@@ -35,8 +35,8 @@ struct IslandModalView: View {
     let createdTimestamp: String
     let formattedTimestamp: String
     let gymWebsite: URL?
-
     let dayOfWeekData: [DayOfWeek]
+
     @Binding var selectedIsland: PirateIsland?
     @ObservedObject var viewModel: AppDayOfWeekViewModel
     @Binding var selectedAppDayOfWeek: AppDayOfWeek?
@@ -58,7 +58,6 @@ struct IslandModalView: View {
         showModal: Binding<Bool>,
         enterZipCodeViewModel: EnterZipCodeViewModel,
         navigationPath: Binding<NavigationPath>
-        
     ) {
         self.customMapMarker = customMapMarker
         self.islandName = islandName
@@ -75,7 +74,6 @@ struct IslandModalView: View {
         self._showModal = showModal
         self.enterZipCodeViewModel = enterZipCodeViewModel
         self._navigationPath = navigationPath
-
     }
 
     var body: some View {
@@ -107,18 +105,25 @@ struct IslandModalView: View {
                 isLoadingData = false
                 return
             }
+
             Task {
                 await viewModel.loadSchedules(for: island)
-                scheduleExists = !viewModel.schedules.isEmpty
 
-                let fetchedAvgRating = await ReviewUtils.fetchAverageRating(for: island, in: viewContext, callerFunction: "IslandModalView.onAppear")
-                let fetchedReviews = await ReviewUtils.fetchReviews(for: island, in: viewContext, callerFunction: "IslandModalView.onAppear")
+                // Fetch asynchronously
+                async let fetchedAvgRating = ReviewUtils.fetchAverageRating(for: island, in: viewContext, callerFunction: "IslandModalView.onAppear")
+                async let fetchedReviews = ReviewUtils.fetchReviews(for: island, in: viewContext, callerFunction: "IslandModalView.onAppear")
 
+                // Await results first
+                let avgRating = Double(await fetchedAvgRating)
+                let reviews = await fetchedReviews
+
+                // Update UI state on MainActor synchronously
                 await MainActor.run {
-                    self.currentAverageStarRating = Double(fetchedAvgRating)
-                    self.currentReviews = fetchedReviews
+                    scheduleExists = !viewModel.schedules.isEmpty
+                    currentAverageStarRating = avgRating
+                    currentReviews = reviews
+                    isLoadingData = false
                 }
-                isLoadingData = false
             }
         }
     }
@@ -132,7 +137,7 @@ struct IslandModalView: View {
                 .padding()
                 .background(Color(.systemBackground))
                 .cornerRadius(10)
-        } else if let island = selectedIsland, selectedDay != nil { // Use 'island' directly in the if-let
+        } else if let island = selectedIsland, selectedDay != nil {
             modalContent(island: island)
         } else {
             Text("Error: selectedIsland or selectedDay is nil.")
@@ -157,7 +162,7 @@ struct IslandModalView: View {
 
             websiteSection
 
-            scheduleSection(for: island) // Pass island to schedule section
+            scheduleSection(for: island)
 
             reviewsSection
 
@@ -197,10 +202,7 @@ struct IslandModalView: View {
         Group {
             if scheduleExists {
                 NavigationLink(
-                    destination: ViewScheduleForIsland(
-                        viewModel: viewModel,
-                        island: island // Use the passed island
-                    )
+                    destination: ViewScheduleForIsland(viewModel: viewModel, island: island)
                 ) {
                     Text("View Schedule")
                         .foregroundColor(.accentColor)
@@ -211,7 +213,7 @@ struct IslandModalView: View {
             }
         }
     }
-    
+
     private var reviewsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             if !currentReviews.isEmpty {
@@ -223,24 +225,21 @@ struct IslandModalView: View {
                         .foregroundColor(.primary)
                 }
 
-                // Fix for "Cannot convert value of type 'PirateIsland' to expected argument type 'String'"
-                // You need to pass the objectID.uriRepresentation().absoluteString
-                NavigationLink(value: AppScreen.viewAllReviews(selectedIsland!.objectID.uriRepresentation().absoluteString)) {
+                NavigationLink(
+                    value: AppScreen.viewAllReviews(selectedIsland!.objectID.uriRepresentation().absoluteString)
+                ) {
                     Text("View All Reviews")
                         .font(.headline)
                         .foregroundColor(.accentColor)
                 }
                 .buttonStyle(.plain)
-
             } else {
                 Text("No reviews available.")
                     .foregroundColor(.secondary)
 
-                // Fix for "Cannot find 'island' in scope"
-                // You should be using `selectedIsland` here.
-                // Also ensure it's safely unwrapped or checked, although `!` is used here
-                // assuming `selectedIsland` won't be nil in this context.
-                NavigationLink(value: AppScreen.review(selectedIsland!.objectID.uriRepresentation().absoluteString)) {
+                NavigationLink(
+                    value: AppScreen.review(selectedIsland!.objectID.uriRepresentation().absoluteString)
+                ) {
                     HStack {
                         Text("Be the first to write a review!")
                         Image(systemName: "pencil.and.ellipsis.rectangle")
@@ -253,7 +252,7 @@ struct IslandModalView: View {
         }
         .padding(.top, 20)
     }
-    
+
     private var closeButton: some View {
         Button(action: {
             showModal = false

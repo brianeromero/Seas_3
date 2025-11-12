@@ -217,37 +217,24 @@ struct AddNewMatTimeSection: View {
 
     @MainActor
     func handleAddNewMatTime(selectedIsland: PirateIsland, selectedDay: DayOfWeek) async {
-        print("About to add mat time with:")
-        print("- selectedDay: \(selectedDay.displayName)")
-        print("- selectedIsland: \(selectedIsland.islandName ?? "nil")")
-        print("- selectedAppDayOfWeek (pre-process): \(viewModel.selectedAppDayOfWeek?.day ?? "nil")")
-
-        isLoading = true
+        await MainActor.run { isLoading = true }
 
         do {
             let appDayOfWeekToUseID: NSManagedObjectID
 
             if let existingAppDayOfWeek = viewModel.selectedAppDayOfWeek {
                 appDayOfWeekToUseID = existingAppDayOfWeek.objectID
-                print("Using existing AppDayOfWeek with ID: \(appDayOfWeekToUseID)")
             } else {
-                print("No existing AppDayOfWeek, creating a new one...")
-
                 let selectedIslandID = selectedIsland.objectID
                 let backgroundContext = PersistenceController.shared.container.newBackgroundContext()
                 backgroundContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
 
-                // Generate values before switching to background context
                 let generatedName = appDayOfWeekRepository.generateName(for: selectedIsland, day: selectedDay)
                 let generatedAppDayOfWeekID = appDayOfWeekRepository.generateAppDayOfWeekID(for: selectedIsland, day: selectedDay)
 
                 appDayOfWeekToUseID = try await backgroundContext.perform {
                     guard let islandOnBG = try? backgroundContext.existingObject(with: selectedIslandID) as? PirateIsland else {
-                        throw NSError(
-                            domain: "CoreDataError",
-                            code: 202,
-                            userInfo: [NSLocalizedDescriptionKey: "Failed to rehydrate selectedIsland in background context."]
-                        )
+                        throw NSError(domain: "CoreDataError", code: 202, userInfo: [NSLocalizedDescriptionKey: "Failed to rehydrate selectedIsland in background context."])
                     }
 
                     let newAppDayOfWeek = AppDayOfWeek(context: backgroundContext)
@@ -261,14 +248,11 @@ struct AddNewMatTimeSection: View {
                     try backgroundContext.save()
                     return newAppDayOfWeek.objectID
                 }
-
-                print("✅ New AppDayOfWeek created for \(selectedDay.displayName)")
             }
 
-            let matTimeObjectID = try await saveMatTime(appDayOfWeekID: appDayOfWeekToUseID)
-            print("Mat time created successfully with ID: \(matTimeObjectID)")
+            _ = try await saveMatTime(appDayOfWeekID: appDayOfWeekToUseID)
 
-            // ⚡ All SwiftUI-observed state updates explicitly on MainActor
+            // ✅ All SwiftUI updates explicitly on MainActor
             await MainActor.run {
                 if let appDayOfWeekOnMain = try? viewContext.existingObject(with: appDayOfWeekToUseID) as? AppDayOfWeek {
                     viewModel.selectedAppDayOfWeek = appDayOfWeekOnMain
@@ -281,27 +265,19 @@ struct AddNewMatTimeSection: View {
                 toastMessage = "Mat time added!"
                 showToast = true
                 resetStateVariables()
-
-                // If selectedDay is optional @State, reset briefly for UI refresh
-                if let currentSelectedDay = self.selectedDay {
-                    self.selectedDay = nil
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        self.selectedDay = currentSelectedDay
-                    }
-                }
             }
 
         } catch {
             await MainActor.run {
-                print("❌ Error saving mat time: \(error.localizedDescription)")
                 alertTitle = "Error"
                 alertMessage = "Failed to create or save mat time: \(error.localizedDescription)"
                 showAlert = true
             }
         }
 
-        isLoading = false
+        await MainActor.run { isLoading = false }
     }
+
 
     
     func validateInput() -> Bool {
@@ -433,7 +409,6 @@ struct AddNewMatTimeSection: View {
             throw error
         }
     }
-
 
     
     func deleteMatTime(_ matTime: MatTime) {

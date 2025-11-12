@@ -688,38 +688,48 @@ final class AppDayOfWeekViewModel: ObservableObject {
         }
     }
 
+    
     // MARK: - Load Schedules
     @MainActor
     func loadSchedules(for island: PirateIsland) async {
-        print("LOAD_SCHEDULES: START")
-
-        let appDayOfWeeks = await repository.fetchSchedules(for: island)
-
-        print("LOAD_SCHEDULES: After fetchSchedules")
-
+        print("LOAD_SCHEDULES: START for island: \(island.islandName ?? "Unknown")")
+        
+        // Step 1: Fetch objectIDs from repository
+        let objectIDs: [NSManagedObjectID] = await repository.fetchSchedulesObjectIDs(for: island)
+        
+        // Step 2: Convert to main-thread objects and group by DayOfWeek
         var schedulesDict: [DayOfWeek: [AppDayOfWeek]] = [:]
-
-        for appDayOfWeek in appDayOfWeeks {
-            if appDayOfWeek.day.isEmpty {
-                print("Warning: AppDayOfWeek has no day set.")
+        var invalidDays: [String] = []
+        
+        for objectID in objectIDs {
+            // Safely fetch main-thread object
+            guard let appDayOfWeek = try? viewContext.existingObject(with: objectID) as? AppDayOfWeek else {
+                print("Warning: Could not load AppDayOfWeek for objectID: \(objectID)")
                 continue
             }
-
-            do {
-                guard let day = DayOfWeek(rawValue: appDayOfWeek.day.lowercased()) else {
-                    throw DayOfWeekError.invalidDayValue
-                }
+            
+            let dayString = appDayOfWeek.day.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            
+            if dayString.isEmpty {
+                print("Warning: AppDayOfWeek has no day set. Skipping entry: \(appDayOfWeek)")
+                continue
+            }
+            
+            if let day = DayOfWeek(rawValue: dayString) {
                 schedulesDict[day, default: []].append(appDayOfWeek)
-            } catch DayOfWeekError.invalidDayValue {
-                print("Error loading schedules: Invalid day value '\(appDayOfWeek.day)'")
-            } catch {
-                print("Unexpected error loading schedules: \(error)")
+            } else {
+                invalidDays.append(appDayOfWeek.day)
             }
         }
-
-        // Update published property
+        
+        // Step 3: Log any invalid day values
+        if !invalidDays.isEmpty {
+            print("Error loading schedules: Invalid day values found: \(invalidDays)")
+        }
+        
+        // Step 4: Update published property
         self.schedules = schedulesDict
-        print("LOAD_SCHEDULES: END - Loaded schedules: \(schedules.count) entries.")
+        print("LOAD_SCHEDULES: END - Loaded schedules for \(schedulesDict.keys.count) days")
     }
 
     
