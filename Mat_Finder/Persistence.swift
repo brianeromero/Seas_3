@@ -200,17 +200,20 @@ final class PersistenceController: ObservableObject {
         ]
         guard let entityName = entityMap[collectionName] else { return nil }
         let request = NSFetchRequest<NSManagedObject>(entityName: entityName)
-        
-        // Use the correct property name for each entity
+
+        // Normalize both forms of the ID
+        let idString = recordId.uuidString
+        let idNoHyphen = idString.replacingOccurrences(of: "-", with: "")
+
         switch collectionName {
         case "pirateIslands":
-            request.predicate = NSPredicate(format: "islandID == %@", recordId as CVarArg)
+            request.predicate = NSPredicate(format: "islandID == %@ OR islandID == %@", idString, idNoHyphen)
         case "reviews":
-            request.predicate = NSPredicate(format: "reviewID == %@", recordId as CVarArg)
+            request.predicate = NSPredicate(format: "reviewID == %@ OR reviewID == %@", idString, idNoHyphen)
         case "matTimes":
-            request.predicate = NSPredicate(format: "id == %@", recordId as CVarArg) // Use actual MatTime ID property
+            request.predicate = NSPredicate(format: "id == %@ OR id == %@", idString, idNoHyphen)
         case "appDayOfWeeks":
-            request.predicate = NSPredicate(format: "appDayOfWeekID == %@", recordId as CVarArg)
+            request.predicate = NSPredicate(format: "appDayOfWeekID == %@ OR appDayOfWeekID == %@", idString, idNoHyphen)
         default:
             return nil
         }
@@ -218,6 +221,7 @@ final class PersistenceController: ObservableObject {
         request.fetchLimit = 1
         return try viewContext.fetch(request).first
     }
+
 
     // MARK: - Generic Record Fetchers
     // For entities where the UUID is optional (UUID?)
