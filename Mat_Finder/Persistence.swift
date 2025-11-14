@@ -68,11 +68,16 @@ final class PersistenceController: ObservableObject {
             }
         }
 
+        // 🔥 REQUIRED FIXES — prevent SwiftUI "background thread publishing" errors
+        container.viewContext.automaticallyMergesChangesFromParent = true
+        container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+
         viewContext.automaticallyMergesChangesFromParent = true
         viewContext.perform {
             print("✅ ViewContext access is safe — running on \(Thread.isMainThread ? "Main Thread" : "Background Thread")")
         }
     }
+
 
     
     // MARK: - Core Data Methods
