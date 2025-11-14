@@ -49,6 +49,7 @@ final class AppDayOfWeekViewModel: ObservableObject {
     @Published var showError = false
     @Published var selectedAppDayOfWeek: AppDayOfWeek?
 
+
     @State private var showAlert = false
     @State private var alertTitle = ""
     @State private var alertMessage = ""
@@ -690,47 +691,31 @@ final class AppDayOfWeekViewModel: ObservableObject {
 
     
     // MARK: - Load Schedules
+
     @MainActor
     func loadSchedules(for island: PirateIsland) async {
-        print("LOAD_SCHEDULES: START for island: \(island.islandName ?? "Unknown")")
-        
-        // Step 1: Fetch objectIDs from repository
-        let objectIDs: [NSManagedObjectID] = await repository.fetchSchedulesObjectIDs(for: island)
-        
-        // Step 2: Convert to main-thread objects and group by DayOfWeek
-        var schedulesDict: [DayOfWeek: [AppDayOfWeek]] = [:]
-        var invalidDays: [String] = []
-        
-        for objectID in objectIDs {
-            // Safely fetch main-thread object
-            guard let appDayOfWeek = try? viewContext.existingObject(with: objectID) as? AppDayOfWeek else {
-                print("Warning: Could not load AppDayOfWeek for objectID: \(objectID)")
-                continue
-            }
-            
-            let dayString = appDayOfWeek.day.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-            
-            if dayString.isEmpty {
-                print("Warning: AppDayOfWeek has no day set. Skipping entry: \(appDayOfWeek)")
-                continue
-            }
-            
-            if let day = DayOfWeek(rawValue: dayString) {
-                schedulesDict[day, default: []].append(appDayOfWeek)
-            } else {
-                invalidDays.append(appDayOfWeek.day)
-            }
+        guard let day = selectedDay else { return }
+        print("LOAD_SCHEDULES: START for island: \(island.islandName ?? "Unknown") and day: \(day.displayName)")
+
+        // Safely get island's AppDayOfWeeks
+        guard let appDayOfWeeks = island.appDayOfWeeks as? Set<AppDayOfWeek> else {
+            print("No AppDayOfWeeks for this island")
+            matTimesForDay[day] = []
+            return
         }
-        
-        // Step 3: Log any invalid day values
-        if !invalidDays.isEmpty {
-            print("Error loading schedules: Invalid day values found: \(invalidDays)")
-        }
-        
-        // Step 4: Update published property
-        self.schedules = schedulesDict
-        print("LOAD_SCHEDULES: END - Loaded schedules for \(schedulesDict.keys.count) days")
+
+        // Filter by selected day
+        let matTimes: [MatTime] = appDayOfWeeks
+            .filter { $0.day.lowercased() == day.rawValue.lowercased() }
+            .compactMap { $0.matTimes?.allObjects as? [MatTime] }
+            .flatMap { $0 }
+            .sorted { ($0.createdTimestamp ?? Date()) < ($1.createdTimestamp ?? Date()) }
+
+        // Assign to dictionary for the selected day
+        matTimesForDay[day] = matTimes
+        print("Loaded \(matTimes.count) mat times for \(day.displayName) at \(island.islandName ?? "Unknown")")
     }
+
 
     
     // MARK: - Load All Schedules

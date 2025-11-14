@@ -879,7 +879,6 @@ class FirestoreSyncManager {
         }
     }
 
-
     // ---------------------------
     // MatTime
     // ---------------------------
@@ -889,25 +888,17 @@ class FirestoreSyncManager {
     ) {
         context.perform {
             let fetchRequest: NSFetchRequest<MatTime> = MatTime.fetchRequest()
-
-            // Use UUID directly
-            guard let uuid = UUID(uuidString: docSnapshot.documentID) else {
-                Self.log(
-                    "Invalid UUID for MatTime: \(docSnapshot.documentID)",
-                    level: .error,
-                    collection: "MatTime"
-                )
-                return
-            }
+            
+            // --- Convert Firestore ID → deterministic UUID
+            let uuid = UUID.fromStringID(docSnapshot.documentID)
             fetchRequest.predicate = NSPredicate(format: "id == %@", uuid as CVarArg)
             fetchRequest.fetchLimit = 1
-
+            
             do {
-                // Fetch or create
                 let matTime = try context.fetch(fetchRequest).first ?? MatTime(context: context)
                 matTime.id = uuid
-
-                // Map Firestore fields
+                
+                // Map fields
                 matTime.type = docSnapshot.get("type") as? String
                 matTime.time = docSnapshot.get("time") as? String
                 matTime.gi = docSnapshot.get("gi") as? Bool ?? false
@@ -918,41 +909,30 @@ class FirestoreSyncManager {
                 matTime.goodForBeginners = docSnapshot.get("goodForBeginners") as? Bool ?? false
                 matTime.kids = docSnapshot.get("kids") as? Bool ?? false
                 matTime.createdTimestamp = (docSnapshot.get("createdTimestamp") as? Timestamp)?.dateValue()
-
-                // Link AppDayOfWeek
+                
+                // --- Link AppDayOfWeek
                 if let appDayOfWeekRef = docSnapshot.get("appDayOfWeek") as? DocumentReference {
+                    let dayUUID = UUID.fromStringID(appDayOfWeekRef.documentID)
                     let dayFetch: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
-                    if let dayUUID = UUID(uuidString: appDayOfWeekRef.documentID) {
-                        dayFetch.predicate = NSPredicate(format: "id == %@", dayUUID as CVarArg)
-                        dayFetch.fetchLimit = 1
-
-                        if let appDayOfWeek = try? context.fetch(dayFetch).first {
-                            matTime.appDayOfWeek = appDayOfWeek
-                            if appDayOfWeek.id == nil {
-                                appDayOfWeek.id = dayUUID
-                            }
-                        } else {
-                            Self.log(
-                                "⚠️ Could not find AppDayOfWeek for MatTime \(docSnapshot.documentID)",
-                                level: .warning,
-                                collection: "MatTime"
-                            )
-                        }
+                    dayFetch.predicate = NSPredicate(format: "appDayOfWeekID == %@", dayUUID.uuidString)
+                    dayFetch.fetchLimit = 1
+                    
+                    if let appDayOfWeek = try? context.fetch(dayFetch).first {
+                        matTime.appDayOfWeek = appDayOfWeek
+                    } else {
+                        Self.log(
+                            "⚠️ Could not find AppDayOfWeek for MatTime \(docSnapshot.documentID) with UUID \(dayUUID)",
+                            level: .warning,
+                            collection: "MatTime"
+                        )
                     }
                 }
-
-                // Save context if needed
+                
                 if context.hasChanges {
                     try context.save()
                     Self.log(
                         "✅ Synced MatTime \(docSnapshot.documentID)",
                         level: .success,
-                        collection: "MatTime"
-                    )
-                } else {
-                    Self.log(
-                        "ℹ️ No changes for MatTime \(docSnapshot.documentID), skipping save.",
-                        level: .info,
                         collection: "MatTime"
                     )
                 }
@@ -965,7 +945,7 @@ class FirestoreSyncManager {
             }
         }
     }
-
+    
 
     // ---------------------------
     // AppDayOfWeek
@@ -976,75 +956,72 @@ class FirestoreSyncManager {
     ) {
         context.performAndWait {
             do {
+                // --- Convert Firestore ID → deterministic UUID string
+                let adoUUID = UUID.fromStringID(docSnapshot.documentID)
+
+                // --- Fetch existing AppDayOfWeek
                 let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
-                
-                // 🔹 Use Firestore document ID directly as string key
-                fetchRequest.predicate = NSPredicate(format: "appDayOfWeekID == %@", docSnapshot.documentID)
+                fetchRequest.predicate = NSPredicate(format: "appDayOfWeekID == %@", adoUUID.uuidString)
                 fetchRequest.fetchLimit = 1
-                
-                // Fetch or create
-                let ado = (try context.fetch(fetchRequest).first) ?? AppDayOfWeek(context: context)
-                
-                // Assign the Firestore ID as the primary key string
-                ado.appDayOfWeekID = docSnapshot.documentID
-                
-                // Map fields
+
+                let ado: AppDayOfWeek
+                if let existing = try context.fetch(fetchRequest).first {
+                    ado = existing
+                } else {
+                    ado = AppDayOfWeek(context: context)
+                    ado.appDayOfWeekID = adoUUID.uuidString
+                }
+
+                // --- Map fields
                 ado.day = docSnapshot.get("day") as? String ?? ""
                 ado.name = docSnapshot.get("name") as? String
                 ado.createdTimestamp = (docSnapshot.get("createdTimestamp") as? Timestamp)?.dateValue()
-                
-                // Link to PirateIsland if present
+
+                // --- Link PirateIsland
                 if let pIslandData = docSnapshot.get("pIsland") as? [String: Any],
-                   let pirateIslandID = pIslandData["islandID"] as? String {
+                   let pirateIslandIDString = pIslandData["islandID"] as? String {
+                    let pirateIslandUUID = UUID.fromStringID(pirateIslandIDString)
                     let islandFetch: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
-                    islandFetch.predicate = NSPredicate(format: "islandID == %@", pirateIslandID)
+                    islandFetch.predicate = NSPredicate(format: "islandID == %@", pirateIslandUUID as CVarArg)
                     islandFetch.fetchLimit = 1
+
                     if let pirateIsland = try? context.fetch(islandFetch).first {
                         ado.pIsland = pirateIsland
                     } else {
                         FirestoreSyncManager.log(
-                            "⚠️ PirateIsland with ID \(pirateIslandID) not found for AppDayOfWeek \(docSnapshot.documentID)",
+                            "⚠️ PirateIsland with ID \(pirateIslandIDString) not found for AppDayOfWeek \(docSnapshot.documentID)",
                             level: .warning,
                             collection: "AppDayOfWeek"
                         )
                     }
                 }
 
-                // Link MatTimes by their IDs
+                // --- Link MatTimes without duplicates
                 if let matTimesArray = docSnapshot.get("matTimes") as? [String] {
                     for matTimeID in matTimesArray {
+                        let matUUID = UUID.fromStringID(matTimeID)
                         let matFetch: NSFetchRequest<MatTime> = MatTime.fetchRequest()
-                        matFetch.predicate = NSPredicate(format: "idString == %@", matTimeID)
+                        matFetch.predicate = NSPredicate(format: "id == %@", matUUID as CVarArg)
                         matFetch.fetchLimit = 1
+
                         if let matTime = try? context.fetch(matFetch).first {
-                            ado.addToMatTimes(matTime)
+                            if ((ado.matTimes?.contains(matTime)) == nil) {
+                                ado.addToMatTimes(matTime)
+                            }
                         }
                     }
                 }
-                
-                // Save context if changes
+
+                // --- Save changes
                 if context.hasChanges {
-                    do {
-                        try context.save()
-                        FirestoreSyncManager.log(
-                            "✅ Synced AppDayOfWeek \(docSnapshot.documentID) by string ID",
-                            level: .success,
-                            collection: "AppDayOfWeek"
-                        )
-                    } catch {
-                        FirestoreSyncManager.log(
-                            "❌ Failed to save AppDayOfWeek \(docSnapshot.documentID): \(error)",
-                            level: .error,
-                            collection: "AppDayOfWeek"
-                        )
-                    }
-                } else {
+                    try context.save()
                     FirestoreSyncManager.log(
-                        "ℹ️ No changes detected for AppDayOfWeek \(docSnapshot.documentID)",
-                        level: .info,
+                        "✅ Synced AppDayOfWeek \(docSnapshot.documentID) with deterministic UUID",
+                        level: .success,
                         collection: "AppDayOfWeek"
                     )
                 }
+
             } catch {
                 FirestoreSyncManager.log(
                     "❌ Failed to fetch or process AppDayOfWeek \(docSnapshot.documentID): \(error)",
@@ -1054,8 +1031,6 @@ class FirestoreSyncManager {
             }
         }
     }
-
-
 }
 
 extension FirestoreSyncManager {
