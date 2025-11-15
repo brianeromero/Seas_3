@@ -70,84 +70,37 @@ actor FirestoreSyncCoordinator {
 class FirestoreSyncManager {
     static let shared = FirestoreSyncManager()
 
+    @MainActor
     func syncInitialFirestoreData() async {
         guard Auth.auth().currentUser != nil else {
-            FirestoreSyncManager.log(
-                "No user is signed in. Firestore access is restricted.",
-                level: .error
-            )
+            Self.log("No signed-in user. Skipping Firestore sync.", level: .warning)
             return
         }
 
         do {
-            // Step 0: Ensure collections exist first
-            try await createFirestoreCollection()
+            try await createFirestoreCollection() // setup/check step
 
             let db = Firestore.firestore()
+            let collections = [
+                "pirateIslands",
+                "AppDayOfWeek",
+                "MatTime",
+                "reviews"
+            ]
 
-            // --- Step 1: Fetch Pirate Islands
-            let pirateSnapshot = try await db.collection("pirateIslands").getDocuments()
-            let pirateIslandIDs = pirateSnapshot.documents.map { $0.documentID }
-            print("📋 Firestore returned PirateIsland IDs:", pirateIslandIDs)
-            await downloadFirestoreRecordsToLocal(
-                collectionName: "pirateIslands",
-                records: pirateIslandIDs
-            )
-            FirestoreSyncManager.log(
-                "Downloaded \(pirateIslandIDs.count) pirate islands from Firestore",
-                level: .success,
-                collection: "pirateIslands"
-            )
+            for collectionName in collections {
+                do {
+                    try await downloadCollection(db: db, name: collectionName)
+                } catch {
+                    Self.log("Failed to download \(collectionName): \(error.localizedDescription)", level: .error, collection: collectionName)
+                    // Continue with next collection
+                }
+            }
 
-            // --- Step 2: Fetch AppDayOfWeek (must come before MatTime)
-            let appDaySnapshot = try await db.collection("AppDayOfWeek").getDocuments()
-            let appDayOfWeekIDs = appDaySnapshot.documents.map { $0.documentID }
-            await downloadFirestoreRecordsToLocal(
-                collectionName: "AppDayOfWeek",
-                records: appDayOfWeekIDs
-            )
-            FirestoreSyncManager.log(
-                "Downloaded \(appDayOfWeekIDs.count) AppDayOfWeek records from Firestore",
-                level: .success,
-                collection: "AppDayOfWeek"
-            )
-
-            // --- Step 3: Fetch MatTime (depends on AppDayOfWeek)
-            let matTimeSnapshot = try await db.collection("MatTime").getDocuments()
-            let matTimeIDs = matTimeSnapshot.documents.map { $0.documentID }
-            await downloadFirestoreRecordsToLocal(
-                collectionName: "MatTime",
-                records: matTimeIDs
-            )
-            FirestoreSyncManager.log(
-                "Downloaded \(matTimeIDs.count) MatTime records from Firestore",
-                level: .success,
-                collection: "MatTime"
-            )
-
-            // --- Step 4: Fetch Reviews (depends on PirateIsland)
-            let reviewSnapshot = try await db.collection("reviews").getDocuments()
-            let reviewIDs = reviewSnapshot.documents.map { $0.documentID }
-            await downloadFirestoreRecordsToLocal(
-                collectionName: "reviews",
-                records: reviewIDs
-            )
-            FirestoreSyncManager.log(
-                "Downloaded \(reviewIDs.count) reviews from Firestore",
-                level: .success,
-                collection: "reviews"
-            )
-
-            FirestoreSyncManager.log(
-                "✅ Initial Firestore sync complete",
-                level: .success
-            )
+            Self.log("Initial Firestore sync complete", level: .finished)
 
         } catch {
-            FirestoreSyncManager.log(
-                "Firestore sync error: \(error.localizedDescription)",
-                level: .error
-            )
+            Self.log("Firestore setup/check error: \(error.localizedDescription)", level: .error)
         }
     }
 
@@ -156,8 +109,13 @@ class FirestoreSyncManager {
         let snapshot = try await db.collection(name).getDocuments()
         let ids = snapshot.documents.map { $0.documentID }
         await downloadFirestoreRecordsToLocal(collectionName: name, records: ids)
-        FirestoreSyncManager.log("Downloaded \(ids.count) records from Firestore collection \(name)", level: .download, collection: name)
+        FirestoreSyncManager.log(
+            "Downloaded \(ids.count) records from Firestore collection \(name)",
+            level: .download,
+            collection: name
+        )
     }
+
 
     private func createFirestoreCollection() async throws {
         let collectionsToCheck = [
@@ -404,12 +362,17 @@ class FirestoreSyncManager {
                     ]
                 case "AppDayOfWeek":
                     guard let appDayOfWeek = localRecord as? AppDayOfWeek else { continue }
+
+                    let id = appDayOfWeek.appDayOfWeekID ?? ""
+
                     recordData = [
-                        "id": appDayOfWeek.appDayOfWeekID ?? "",
+                        "id": id,                      // ← Firestore primary ID
+                        "appDayOfWeekID": id,          // ← Must match Core Data primary ID
                         "day": appDayOfWeek.day,
                         "name": appDayOfWeek.name ?? "",
                         "createdTimestamp": appDayOfWeek.createdTimestamp ?? Date()
                     ]
+
                 default:
                     continue
                 }
@@ -601,7 +564,7 @@ class FirestoreSyncManager {
                 case "MatTime":
                     Self.syncMatTimeStatic(docSnapshot: docSnapshot, context: context)
                 case "AppDayOfWeek":
-                    Self.syncAppDayOfWeekStatic(docSnapshot: docSnapshot, context: context)
+                    try Self.syncAppDayOfWeekStatic(docSnapshot: docSnapshot, context: context)
                 default:
                     await MainActor.run {
                         Self.log("⚠️ Unknown collection: \(collectionName)",
@@ -912,16 +875,20 @@ class FirestoreSyncManager {
                 
                 // --- Link AppDayOfWeek
                 if let appDayOfWeekRef = docSnapshot.get("appDayOfWeek") as? DocumentReference {
-                    let dayUUID = UUID.fromStringID(appDayOfWeekRef.documentID)
+                    let docID = appDayOfWeekRef.documentID
                     let dayFetch: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
-                    dayFetch.predicate = NSPredicate(format: "appDayOfWeekID == %@", dayUUID.uuidString)
+                    dayFetch.predicate = NSPredicate(
+                        format: "appDayOfWeekID == %@ OR appDayOfWeekID == %@",
+                        docID,
+                        UUID.fromStringID(docID).uuidString
+                    )
                     dayFetch.fetchLimit = 1
-                    
+
                     if let appDayOfWeek = try? context.fetch(dayFetch).first {
                         matTime.appDayOfWeek = appDayOfWeek
                     } else {
                         Self.log(
-                            "⚠️ Could not find AppDayOfWeek for MatTime \(docSnapshot.documentID) with UUID \(dayUUID)",
+                            "⚠️ Could not find AppDayOfWeek for MatTime \(docSnapshot.documentID) with ID \(docID)",
                             level: .warning,
                             collection: "MatTime"
                         )
@@ -947,87 +914,98 @@ class FirestoreSyncManager {
     }
     
 
+
     // ---------------------------
     // AppDayOfWeek
     // ---------------------------
     private static func syncAppDayOfWeekStatic(
         docSnapshot: DocumentSnapshot,
         context: NSManagedObjectContext
-    ) {
-        context.performAndWait {
-            do {
-                // --- Convert Firestore ID → deterministic UUID string
-                let adoUUID = UUID.fromStringID(docSnapshot.documentID)
+    ) throws {
+        context.performAndWait { // background context OK
+            let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
+            let docID = docSnapshot.documentID
+            fetchRequest.predicate = NSPredicate(format: "appDayOfWeekID == %@", docID)
+            fetchRequest.fetchLimit = 1
 
-                // --- Fetch existing AppDayOfWeek
-                let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
-                fetchRequest.predicate = NSPredicate(format: "appDayOfWeekID == %@", adoUUID.uuidString)
-                fetchRequest.fetchLimit = 1
+            let ado: AppDayOfWeek
+            if let existingADO = try? context.fetch(fetchRequest).first {
+                ado = existingADO
+            } else {
+                ado = AppDayOfWeek(context: context)
+                ado.appDayOfWeekID = docID
+            }
 
-                let ado: AppDayOfWeek
-                if let existing = try context.fetch(fetchRequest).first {
-                    ado = existing
+            // --- Map Firestore fields
+            ado.day = docSnapshot.get("day") as? String ?? ""
+
+            // Use proper field, or default to "islandName - day"
+            if let nameFromFirestore = docSnapshot.get("name") as? String {
+                ado.name = nameFromFirestore
+            } else if let islandName = (docSnapshot.get("pIsland") as? [String: Any])?["islandName"] as? String {
+                ado.name = "\(islandName) - \(ado.day)"
+            } else {
+                ado.name = ado.day
+            }
+
+            // --- Timestamps
+            if let ts = docSnapshot.get("createdTimestamp") as? Timestamp {
+                ado.createdTimestamp = ts.dateValue()
+            } else if ado.createdTimestamp == nil {
+                ado.createdTimestamp = Date()
+            }
+
+            // --- Link PirateIsland
+            if let pIslandData = docSnapshot.get("pIsland") as? [String: Any],
+               let pirateIslandIDString = pIslandData["islandID"] as? String {
+
+                let pirateIslandUUID = UUID.fromStringID(pirateIslandIDString)
+                let islandFetch: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
+                islandFetch.predicate = NSPredicate(format: "islandID == %@", pirateIslandUUID as CVarArg)
+                islandFetch.fetchLimit = 1
+
+                let pirateIsland: PirateIsland
+                if let existingIsland = try? context.fetch(islandFetch).first {
+                    pirateIsland = existingIsland
                 } else {
-                    ado = AppDayOfWeek(context: context)
-                    ado.appDayOfWeekID = adoUUID.uuidString
+                    pirateIsland = PirateIsland(context: context)
+                    pirateIsland.islandID = pirateIslandUUID
+                    pirateIsland.islandName = pIslandData["islandName"] as? String ?? pIslandData["name"] as? String
+                    pirateIsland.islandLocation = pIslandData["islandLocation"] as? String ?? pIslandData["location"] as? String
+                    pirateIsland.country = pIslandData["country"] as? String
+                    pirateIsland.createdTimestamp = (pIslandData["createdTimestamp"] as? Timestamp)?.dateValue() ?? Date()
+                    pirateIsland.latitude = pIslandData["latitude"] as? Double ?? 0.0
+                    pirateIsland.longitude = pIslandData["longitude"] as? Double ?? 0.0
+                    if let urlString = pIslandData["gymWebsite"] as? String {
+                        pirateIsland.gymWebsite = URL(string: urlString)
+                    }
                 }
 
-                // --- Map fields
-                ado.day = docSnapshot.get("day") as? String ?? ""
-                ado.name = docSnapshot.get("name") as? String
-                ado.createdTimestamp = (docSnapshot.get("createdTimestamp") as? Timestamp)?.dateValue()
+                ado.pIsland = pirateIsland
+            }
 
-                // --- Link PirateIsland
-                if let pIslandData = docSnapshot.get("pIsland") as? [String: Any],
-                   let pirateIslandIDString = pIslandData["islandID"] as? String {
-                    let pirateIslandUUID = UUID.fromStringID(pirateIslandIDString)
-                    let islandFetch: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
-                    islandFetch.predicate = NSPredicate(format: "islandID == %@", pirateIslandUUID as CVarArg)
-                    islandFetch.fetchLimit = 1
+            // --- Save
+            if context.hasChanges {
+                do {
+                    try context.save()
 
-                    if let pirateIsland = try? context.fetch(islandFetch).first {
-                        ado.pIsland = pirateIsland
-                    } else {
+                    // Dispatch logging to main thread to avoid publishing from background
+                    DispatchQueue.main.async {
                         FirestoreSyncManager.log(
-                            "⚠️ PirateIsland with ID \(pirateIslandIDString) not found for AppDayOfWeek \(docSnapshot.documentID)",
-                            level: .warning,
+                            "✅ Synced AppDayOfWeek \(docID)",
+                            level: .success,
+                            collection: "AppDayOfWeek"
+                        )
+                    }
+                } catch {
+                    DispatchQueue.main.async {
+                        FirestoreSyncManager.log(
+                            "❌ Failed saving AppDayOfWeek \(docID): \(error.localizedDescription)",
+                            level: .error,
                             collection: "AppDayOfWeek"
                         )
                     }
                 }
-
-                // --- Link MatTimes without duplicates
-                if let matTimesArray = docSnapshot.get("matTimes") as? [String] {
-                    for matTimeID in matTimesArray {
-                        let matUUID = UUID.fromStringID(matTimeID)
-                        let matFetch: NSFetchRequest<MatTime> = MatTime.fetchRequest()
-                        matFetch.predicate = NSPredicate(format: "id == %@", matUUID as CVarArg)
-                        matFetch.fetchLimit = 1
-
-                        if let matTime = try? context.fetch(matFetch).first {
-                            if ((ado.matTimes?.contains(matTime)) == nil) {
-                                ado.addToMatTimes(matTime)
-                            }
-                        }
-                    }
-                }
-
-                // --- Save changes
-                if context.hasChanges {
-                    try context.save()
-                    FirestoreSyncManager.log(
-                        "✅ Synced AppDayOfWeek \(docSnapshot.documentID) with deterministic UUID",
-                        level: .success,
-                        collection: "AppDayOfWeek"
-                    )
-                }
-
-            } catch {
-                FirestoreSyncManager.log(
-                    "❌ Failed to fetch or process AppDayOfWeek \(docSnapshot.documentID): \(error)",
-                    level: .error,
-                    collection: "AppDayOfWeek"
-                )
             }
         }
     }
@@ -1066,23 +1044,35 @@ extension FirestoreSyncManager {
 
         let listener = db.collection(collectionName).addSnapshotListener { snapshot, error in
             if let error = error {
-                Self.log("Listener error: \(error.localizedDescription)",
-                         level: .error,
-                         collection: collectionName)
+                DispatchQueue.main.async { // Ensure log is on main thread
+                    Self.log("Listener error: \(error.localizedDescription)",
+                             level: .error,
+                             collection: collectionName)
+                }
                 return
             }
 
             guard let snapshot = snapshot else { return }
 
             for change in snapshot.documentChanges {
-                context.perform {
+                context.perform { // background context work
                     handler(change, context)
+
                     do {
                         try context.save()
+
+                        // Any logs or UI notifications must be dispatched to main
+                        DispatchQueue.main.async {
+                            Self.log("✅ Saved context after listener change for \(collectionName)",
+                                     level: .success,
+                                     collection: collectionName)
+                        }
                     } catch {
-                        Self.log("Error saving context for listener: \(error.localizedDescription)",
-                                 level: .error,
-                                 collection: collectionName)
+                        DispatchQueue.main.async {
+                            Self.log("❌ Error saving context for listener: \(error.localizedDescription)",
+                                     level: .error,
+                                     collection: collectionName)
+                        }
                     }
                 }
             }
@@ -1090,8 +1080,6 @@ extension FirestoreSyncManager {
 
         Self.listenerRegistrations.append(listener)
     }
-
-
 }
 
 extension FirestoreSyncManager {
@@ -1118,7 +1106,7 @@ extension FirestoreSyncManager {
     static func handleAppDayOfWeekChange(_ change: DocumentChange, _ context: NSManagedObjectContext) {
         switch change.type {
         case .added, .modified:
-            syncAppDayOfWeekStatic(docSnapshot: change.document, context: context)
+            try? syncAppDayOfWeekStatic(docSnapshot: change.document, context: context)
         case .removed:
             deleteEntity(ofType: AppDayOfWeek.self, idString: change.document.documentID, keyPath: \.appDayOfWeekID, context: context)
         }

@@ -121,8 +121,8 @@ final class PersistenceController: ObservableObject {
         latitude: Double, longitude: Double, gymWebsiteURL: URL?
     ) async throws -> PirateIsland {
         let request: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
-        request.predicate = NSPredicate(format: "islandID == %@", islandID.uuidString)
-        
+        request.predicate = NSPredicate(format: "islandID == %@", islandID as CVarArg)
+
         if let existing = try await fetch(request).first {
             existing.islandName = name
             existing.islandLocation = location
