@@ -450,6 +450,7 @@ public class AuthenticationState: ObservableObject {
     // MARK: - Post-login actions
     @MainActor
     func loginCompletedSuccessfully() {
+        // Update authentication state
         isAuthenticated = (userInfo != nil || currentUser != nil || socialUser != nil)
         isLoggedIn = isAuthenticated
         isAdmin = determineIfAdmin()
@@ -461,13 +462,10 @@ public class AuthenticationState: ObservableObject {
         print("    isAdmin = \(self.isAdmin)")
         print("    navigateToAdminMenu = \(self.navigateToAdminMenu)")
 
-        // ✅ Start listening for the user's document in Firestore
+        // Start listening for the user's document in Firestore
         FirestoreManager.shared.startListeningForUserDocument()
 
-        // ✅ Kick off initial Firestore sync safely (via coordinator)
-        Task {
-            await FirestoreSyncCoordinator.shared.startAppSync()
-        }
+        // ✅ **Do NOT start app sync here** — let the Auth state listener handle it
     }
 
     

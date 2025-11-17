@@ -50,6 +50,12 @@ actor FirestoreSyncCoordinator {
     private var isSyncInProgress = false
 
     func startAppSync() async {
+        // ✅ Only sync if a user is logged in
+        guard Auth.auth().currentUser != nil else {
+            FirestoreSyncManager.log("⚠️ No user signed in — skipping sync.", level: .info)
+            return
+        }
+
         guard !isSyncInProgress else {
             FirestoreSyncManager.log("🚫 Sync already in progress — skipping duplicate call.", level: .warning)
             return
@@ -59,7 +65,6 @@ actor FirestoreSyncCoordinator {
         defer { isSyncInProgress = false }
 
         await FirestoreSyncManager.shared.syncInitialFirestoreData()
-
         await MainActor.run {
             FirestoreSyncManager.shared.startFirestoreListeners()
         }
@@ -925,7 +930,13 @@ class FirestoreSyncManager {
         context.performAndWait { // background context OK
             let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
             let docID = docSnapshot.documentID
-            fetchRequest.predicate = NSPredicate(format: "appDayOfWeekID == %@", docID)
+            let uuidVersion = UUID.fromStringID(docID).uuidString
+
+            fetchRequest.predicate = NSPredicate(
+                format: "appDayOfWeekID == %@ OR appDayOfWeekID == %@",
+                docID,
+                uuidVersion
+            )
             fetchRequest.fetchLimit = 1
 
             let ado: AppDayOfWeek
@@ -937,7 +948,16 @@ class FirestoreSyncManager {
             }
 
             // --- Map Firestore fields
-            ado.day = docSnapshot.get("day") as? String ?? ""
+            if let day = docSnapshot.get("day") as? String, !day.isEmpty {
+                ado.day = day
+            } else {
+                FirestoreSyncManager.log(
+                    "❌ Invalid AppDayOfWeek (missing day) — skipping",
+                    level: .error,
+                    collection: "AppDayOfWeek"
+                )
+                return
+            }
 
             // Use proper field, or default to "islandName - day"
             if let nameFromFirestore = docSnapshot.get("name") as? String {

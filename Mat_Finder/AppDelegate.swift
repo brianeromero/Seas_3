@@ -144,22 +144,24 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         configureNotifications(for: application)
         configureGoogleAds()
 
-        // ✅ 6a. Safe to sync Firestore after Firebase is fully initialized
-        if Auth.auth().currentUser != nil {
+        
+        // ✅ 6. Reactive network listener
+        NotificationCenter.default.addObserver(forName: .networkStatusChanged, object: nil, queue: .main) { [weak self] _ in
             Task {
-                await FirestoreSyncCoordinator.shared.startAppSync()
-            }
-        }
+                guard let self = self else { return }
 
-        // ✅ 6b. Reactive network listener
-        NotificationCenter.default.addObserver(forName: .networkStatusChanged, object: nil, queue: .main) { _ in
-            Task {
                 if NetworkMonitor.shared.isConnected {
-                    print("🌐 Network restored — resuming pending Firestore sync")
-                    await FirestoreSyncCoordinator.shared.startAppSync()
+                    // ✅ Only sync if a user is signed in
+                    if Auth.auth().currentUser != nil {
+                        print("🌐 Network restored — resuming pending Firestore sync")
+                        await FirestoreSyncCoordinator.shared.startAppSync()
+                    } else {
+                        print("🌐 Network restored — no user signed in, skipping sync")
+                    }
                 }
             }
         }
+
 
         // ✅ 7. Defer Keychain test to avoid premature access
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
@@ -177,15 +179,21 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         authStateDidChangeListenerHandle = Auth.auth().addStateDidChangeListener { [weak self] auth, user in
             guard let self = self else { return }
 
-            print("Current user inside listener - ✅ 9. Firebase Auth State Listener (final setup): \(user?.uid ?? "nil")")
+            print("Current user inside listener: \(user?.uid ?? "nil")")
 
             if let user = user {
-                print("✅ Firebase User is signed in: \(user.email ?? "N/A") (UID: \(user.uid))")
+                print("✅ Firebase User signed in: \(user.email ?? "N/A") (UID: \(user.uid))")
                 self.authViewModel.userSession = user
                 self.authenticationState.isAuthenticated = true
                 self.authenticationState.isLoggedIn = true
+
+                // 🔹 Trigger Firestore sync safely (single source of truth)
+                Task {
+                    await FirestoreSyncCoordinator.shared.startAppSync()
+                }
+
             } else {
-                print("❌ Firebase No user is signed in.")
+                print("❌ Firebase No user signed in")
                 self.authViewModel.userSession = nil
                 self.authenticationState.isAuthenticated = false
                 self.authenticationState.isLoggedIn = false
