@@ -471,7 +471,7 @@ final class AppDayOfWeekViewModel: ObservableObject {
 
     // MARK: - Update Or Create MatTime
     func updateOrCreateMatTime(
-        _ existingMatTimeID: NSManagedObjectID?, // <-- Now takes an ID
+        _ existingMatTimeID: NSManagedObjectID?,
         time: String,
         type: String,
         gi: Bool,
@@ -481,30 +481,32 @@ final class AppDayOfWeekViewModel: ObservableObject {
         restrictionDescription: String,
         goodForBeginners: Bool,
         kids: Bool,
-        for appDayOfWeekID: NSManagedObjectID // <-- Now takes an ID
-    ) async throws -> NSManagedObjectID { // <-- Now returns an ID
-        // 1. Get a new background context for this write operation
+        for appDayOfWeekID: NSManagedObjectID
+    ) async throws -> NSManagedObjectID {
+
         let backgroundContext = PersistenceController.shared.container.newBackgroundContext()
+        backgroundContext.automaticallyMergesChangesFromParent = false
+        backgroundContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
 
-        let matTimeID = try await backgroundContext.perform { // Perform all Core Data operations on this context
-            print("Using updateOrCreateMatTime, updating/creating MatTime for AppDayOfWeek with ID: \(appDayOfWeekID)")
+        let matTimeID = try await backgroundContext.perform {
+            print("Updating/creating MatTime for AppDayOfWeek ID: \(appDayOfWeekID)")
 
-            // Rehydrate appDayOfWeek on this background context
             guard let appDayOfWeek = try backgroundContext.existingObject(with: appDayOfWeekID) as? AppDayOfWeek else {
-                throw NSError(domain: "CoreDataError", code: 200, userInfo: [NSLocalizedDescriptionKey: "Failed to rehydrate AppDayOfWeek in background context."])
+                throw NSError(
+                    domain: "CoreDataError",
+                    code: 200,
+                    userInfo: [NSLocalizedDescriptionKey: "Failed to rehydrate AppDayOfWeek"]
+                )
             }
 
-            appDayOfWeek.name = appDayOfWeek.day // This is fine as it's on the right context
-            let matTime: MatTime
+            appDayOfWeek.name = appDayOfWeek.day
 
-            if let existingID = existingMatTimeID {
-                // Rehydrate existingMatTime on this background context
-                guard let existing = try backgroundContext.existingObject(with: existingID) as? MatTime else {
-                    throw NSError(domain: "CoreDataError", code: 201, userInfo: [NSLocalizedDescriptionKey: "Failed to rehydrate existing MatTime in background context."])
-                }
+            let matTime: MatTime
+            if let existingID = existingMatTimeID,
+               let existing = try backgroundContext.existingObject(with: existingID) as? MatTime {
                 matTime = existing
             } else {
-                matTime = MatTime(context: backgroundContext) // Create on background context
+                matTime = MatTime(context: backgroundContext)
                 matTime.configure(
                     time: time,
                     type: type,
@@ -523,28 +525,28 @@ final class AppDayOfWeekViewModel: ObservableObject {
                 matTime.id = UUID()
             }
 
-            if existingMatTimeID == nil { // If it's a new MatTime
-                appDayOfWeek.addToMatTimes(matTime) // Add to relationship on background context
-                print("Added new MatTime to AppDayOfWeek in background context.")
+            if existingMatTimeID == nil {
+                appDayOfWeek.addToMatTimes(matTime)
+                print("Added new MatTime to AppDayOfWeek.")
             }
 
-            if backgroundContext.hasChanges {
-                try backgroundContext.save() // Save the background context
-                print("Background context saved successfully for MatTime and AppDayOfWeek.")
-            }
-
-            // Return the objectID, not the object itself
+            try backgroundContext.save()
             return matTime.objectID
         }
 
-        // Call refreshMatTimes if it needs to update UI based on these changes.
-        // Ensure refreshMatTimes is thread-safe or calls MainActor.run for UI updates.
+        // ✅ Safe UI updates on MainActor
+        await MainActor.run {
+            PersistenceController.shared.viewContext.refreshAllObjects()
+        }
+
         await refreshMatTimes()
+
         return matTimeID
     }
 
 
     // MARK: - Refresh MatTimes
+    @MainActor
     func refreshMatTimes() async {
         print("Refreshing MatTimes")
         if let selectedIsland = selectedIsland, let unwrappedSelectedDay = selectedDay {
