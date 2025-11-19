@@ -232,7 +232,8 @@ struct AddNewMatTimeSection: View {
                 let generatedName = appDayOfWeekRepository.generateName(for: selectedIsland, day: selectedDay)
                 let generatedAppDayOfWeekID = appDayOfWeekRepository.generateAppDayOfWeekID(for: selectedIsland, day: selectedDay)
 
-                appDayOfWeekToUseID = try await backgroundContext.perform {
+                // Perform only synchronous background work here
+                appDayOfWeekToUseID = try backgroundContext.performAndWait {
                     guard let islandOnBG = try? backgroundContext.existingObject(with: selectedIslandID) as? PirateIsland else {
                         throw NSError(domain: "CoreDataError", code: 202, userInfo: [NSLocalizedDescriptionKey: "Failed to rehydrate selectedIsland in background context."])
                     }
@@ -247,6 +248,17 @@ struct AddNewMatTimeSection: View {
 
                     try backgroundContext.save()
                     return newAppDayOfWeek.objectID
+                }
+
+                // Merge changes into main context after background save
+                await MainActor.run {
+                    viewContext.performAndWait {
+                        do {
+                            try viewContext.save()
+                        } catch {
+                            print("Error saving main context after background save: \(error)")
+                        }
+                    }
                 }
             }
 

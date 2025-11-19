@@ -855,10 +855,12 @@ class FirestoreSyncManager {
         context: NSManagedObjectContext
     ) {
         context.perform {
-            let fetchRequest: NSFetchRequest<MatTime> = MatTime.fetchRequest()
+            let docID = docSnapshot.documentID
             
             // --- Convert Firestore ID → deterministic UUID
-            let uuid = UUID.fromStringID(docSnapshot.documentID)
+            let uuid: UUID = UUID(uuidString: docID) ?? UUID.fromStringID(docID)
+            
+            let fetchRequest: NSFetchRequest<MatTime> = MatTime.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "id == %@", uuid as CVarArg)
             fetchRequest.fetchLimit = 1
             
@@ -879,45 +881,41 @@ class FirestoreSyncManager {
                 matTime.createdTimestamp = (docSnapshot.get("createdTimestamp") as? Timestamp)?.dateValue()
                 
                 // --- Link AppDayOfWeek
-                if let appDayOfWeekRef = docSnapshot.get("appDayOfWeek") as? DocumentReference {
-                    let docID = appDayOfWeekRef.documentID
+                if let appDayRef = docSnapshot.get("appDayOfWeek") as? DocumentReference {
+                    let rawID = appDayRef.documentID
+                    let normalizedID = UUID(uuidString: rawID)?.uuidString ?? rawID
+                    
+                    // 🔍 DEBUG PRINT
+                    print("🟣 MatTime -> Firestore AppDayOfWeek ID received: rawID=\(rawID), normalizedID=\(normalizedID)")
+                    
                     let dayFetch: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
                     dayFetch.predicate = NSPredicate(
                         format: "appDayOfWeekID == %@ OR appDayOfWeekID == %@",
-                        docID,
-                        UUID.fromStringID(docID).uuidString
+                        normalizedID,
+                        rawID
                     )
                     dayFetch.fetchLimit = 1
-
-                    if let appDayOfWeek = try? context.fetch(dayFetch).first {
-                        matTime.appDayOfWeek = appDayOfWeek
+                    
+                    if let appDay = try? context.fetch(dayFetch).first {
+                        matTime.appDayOfWeek = appDay
                     } else {
-                        Self.log(
-                            "⚠️ Could not find AppDayOfWeek for MatTime \(docSnapshot.documentID) with ID \(docID)",
-                            level: .warning,
-                            collection: "MatTime"
-                        )
+                        print("⚠️ MatTime \(docID) could not link AppDayOfWeek. Tried rawID=\(rawID), normalizedID=\(normalizedID)")
                     }
                 }
                 
                 if context.hasChanges {
                     try context.save()
-                    Self.log(
-                        "✅ Synced MatTime \(docSnapshot.documentID)",
-                        level: .success,
-                        collection: "MatTime"
-                    )
                 }
             } catch {
                 Self.log(
-                    "❌ Failed syncing MatTime \(docSnapshot.documentID): \(error)",
+                    "❌ Failed syncing MatTime \(docID): \(error)",
                     level: .error,
                     collection: "MatTime"
                 )
             }
         }
     }
-    
+
 
 
     // ---------------------------
@@ -1054,17 +1052,16 @@ extension FirestoreSyncManager {
 
 
     // MARK: - Generic listener
-    @MainActor
-    private func listenToCollection(
+    @MainActor private func listenToCollection(
         _ collectionName: String,
         handler: @escaping (DocumentChange, NSManagedObjectContext) -> Void
     ) {
         let db = Firestore.firestore()
-        let context = PersistenceController.shared.container.newBackgroundContext()
+        let backgroundContext = PersistenceController.shared.container.newBackgroundContext()
 
         let listener = db.collection(collectionName).addSnapshotListener { snapshot, error in
             if let error = error {
-                DispatchQueue.main.async { // Ensure log is on main thread
+                Task { @MainActor in
                     Self.log("Listener error: \(error.localizedDescription)",
                              level: .error,
                              collection: collectionName)
@@ -1075,21 +1072,31 @@ extension FirestoreSyncManager {
             guard let snapshot = snapshot else { return }
 
             for change in snapshot.documentChanges {
-                context.perform { // background context work
-                    handler(change, context)
+                backgroundContext.perform {
+                    handler(change, backgroundContext)
 
                     do {
-                        try context.save()
+                        try backgroundContext.save()
 
-                        // Any logs or UI notifications must be dispatched to main
-                        DispatchQueue.main.async {
-                            Self.log("✅ Saved context after listener change for \(collectionName)",
-                                     level: .success,
-                                     collection: collectionName)
+                        // Merge background changes to main context
+                        Task { @MainActor in
+                            let mainContext = PersistenceController.shared.container.viewContext
+                            mainContext.performAndWait {
+                                do {
+                                    try mainContext.save()
+                                    Self.log("✅ Merged background changes for \(collectionName)",
+                                             level: .success,
+                                             collection: collectionName)
+                                } catch {
+                                    Self.log("❌ Error saving main context: \(error.localizedDescription)",
+                                             level: .error,
+                                             collection: collectionName)
+                                }
+                            }
                         }
                     } catch {
-                        DispatchQueue.main.async {
-                            Self.log("❌ Error saving context for listener: \(error.localizedDescription)",
+                        Task { @MainActor in
+                            Self.log("❌ Error saving background context for listener: \(error.localizedDescription)",
                                      level: .error,
                                      collection: collectionName)
                         }
@@ -1100,6 +1107,7 @@ extension FirestoreSyncManager {
 
         Self.listenerRegistrations.append(listener)
     }
+
 }
 
 extension FirestoreSyncManager {

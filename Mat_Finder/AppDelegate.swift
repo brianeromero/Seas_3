@@ -148,7 +148,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         // ✅ 6. Reactive network listener
         NotificationCenter.default.addObserver(forName: .networkStatusChanged, object: nil, queue: .main) { [weak self] _ in
             Task {
-                guard let self = self else { return }
+                guard self != nil else { return }
 
                 if NetworkMonitor.shared.isConnected {
                     // ✅ Only sync if a user is signed in
