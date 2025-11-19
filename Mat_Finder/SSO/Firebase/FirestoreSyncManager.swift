@@ -843,11 +843,8 @@ class FirestoreSyncManager {
         docSnapshot: DocumentSnapshot,
         context: NSManagedObjectContext
     ) {
-        #if DEBUG
-        if context.concurrencyType != .privateQueueConcurrencyType {
-            print("❌ ERROR: syncMatTimeStatic called with MAIN context! Must use background context!")
-        }
-        #endif
+
+        var logBlock: (() -> Void)? = nil
 
         context.perform {
             let docID = docSnapshot.documentID
@@ -861,7 +858,7 @@ class FirestoreSyncManager {
                 let matTime = try context.fetch(fetchRequest).first ?? MatTime(context: context)
                 matTime.id = uuid
 
-                // Map fields
+                // Mapping
                 matTime.type = docSnapshot.get("type") as? String
                 matTime.time = docSnapshot.get("time") as? String
                 matTime.gi = docSnapshot.get("gi") as? Bool ?? false
@@ -873,7 +870,7 @@ class FirestoreSyncManager {
                 matTime.kids = docSnapshot.get("kids") as? Bool ?? false
                 matTime.createdTimestamp = (docSnapshot.get("createdTimestamp") as? Timestamp)?.dateValue()
 
-                // Link AppDayOfWeek
+                // AppDayOfWeek linking
                 if let appDayRef = docSnapshot.get("appDayOfWeek") as? DocumentReference {
                     let rawID = appDayRef.documentID
                     let normalizedID = UUID(uuidString: rawID)?.uuidString ?? rawID
@@ -888,46 +885,41 @@ class FirestoreSyncManager {
 
                     if let appDay = try? context.fetch(dayFetch).first {
                         matTime.appDayOfWeek = appDay
-                    } else {
-                        Task { @MainActor in
-                            print("⚠️ MatTime \(docID) could not link AppDayOfWeek.")
-                        }
                     }
                 }
 
-                // Save background context
+                // Save
                 if context.hasChanges {
                     do {
                         try context.save()
-                        Task { @MainActor in
-                            Self.log(
-                                "✅ Synced MatTime \(docID)",
-                                level: .success,
-                                collection: "MatTime"
-                            )
+                        logBlock = {
+                            Self.log("✅ Synced MatTime \(docID)",
+                                     level: .success,
+                                     collection: "MatTime")
                         }
                     } catch {
-                        Task { @MainActor in
-                            Self.log(
-                                "❌ Failed saving MatTime \(docID): \(error.localizedDescription)",
-                                level: .error,
-                                collection: "MatTime"
-                            )
+                        logBlock = {
+                            Self.log("❌ Failed saving MatTime \(docID): \(error.localizedDescription)",
+                                     level: .error,
+                                     collection: "MatTime")
                         }
                     }
                 }
-
             } catch {
-                Task { @MainActor in
-                    Self.log(
-                        "❌ Failed syncing MatTime \(docID): \(error)",
-                        level: .error,
-                        collection: "MatTime"
-                    )
+                logBlock = {
+                    Self.log("❌ Failed syncing MatTime \(docSnapshot.documentID): \(error)",
+                             level: .error,
+                             collection: "MatTime")
                 }
             }
         }
+
+        // 🌟 MAIN-ACTOR logging, after core data work is done
+        if let logBlock {
+            Task { @MainActor in logBlock() }
+        }
     }
+
 
 
     // ---------------------------
@@ -1006,6 +998,7 @@ class FirestoreSyncManager {
                     if let existingIsland = try context.fetch(islandFetch).first {
                         island = existingIsland
                     } else {
+                        // Create new island
                         island = PirateIsland(context: context)
                         island.islandID = pirateUUID
                         island.islandName = pIslandData["islandName"] as? String ?? pIslandData["name"] as? String
@@ -1026,7 +1019,8 @@ class FirestoreSyncManager {
                 if context.hasChanges {
                     do {
                         try context.save()
-                        // --- Log on main thread
+
+                        // Log on main thread
                         Task { @MainActor in
                             FirestoreSyncManager.log(
                                 "✅ Synced AppDayOfWeek \(docID)",

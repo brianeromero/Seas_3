@@ -225,9 +225,12 @@ struct IslandModalView: View {
                         .foregroundColor(.primary)
                 }
 
-                NavigationLink(
-                    value: AppScreen.viewAllReviews(selectedIsland!.objectID.uriRepresentation().absoluteString)
-                ) {
+                Button {
+                    if let island = selectedIsland {
+                        navigationPath.append(AppScreen.viewAllReviews(island.objectID.uriRepresentation().absoluteString))
+                        showModal = false
+                    }
+                } label: {
                     Text("View All Reviews")
                         .font(.headline)
                         .foregroundColor(.accentColor)
@@ -237,9 +240,12 @@ struct IslandModalView: View {
                 Text("No reviews available.")
                     .foregroundColor(.secondary)
 
-                NavigationLink(
-                    value: AppScreen.review(selectedIsland!.objectID.uriRepresentation().absoluteString)
-                ) {
+                Button {
+                    if let island = selectedIsland {
+                        navigationPath.append(AppScreen.review(island.objectID.uriRepresentation().absoluteString))
+                        showModal = false
+                    }
+                } label: {
                     HStack {
                         Text("Be the first to write a review!")
                         Image(systemName: "pencil.and.ellipsis.rectangle")
@@ -252,6 +258,7 @@ struct IslandModalView: View {
         }
         .padding(.top, 20)
     }
+
 
     private var closeButton: some View {
         Button(action: {
