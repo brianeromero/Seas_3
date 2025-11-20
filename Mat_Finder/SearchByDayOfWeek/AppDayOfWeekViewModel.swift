@@ -483,14 +483,16 @@ final class AppDayOfWeekViewModel: ObservableObject {
         kids: Bool,
         for appDayOfWeekID: NSManagedObjectID
     ) async throws -> NSManagedObjectID {
-        
+
         let backgroundContext = PersistenceController.shared.container.newBackgroundContext()
-        backgroundContext.automaticallyMergesChangesFromParent = false
+        backgroundContext.automaticallyMergesChangesFromParent = true
         backgroundContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
-        
+
+        // --- Perform background work
         let matTimeID = try await backgroundContext.perform { () -> NSManagedObjectID in
             print("Updating/creating MatTime for AppDayOfWeek ID: \(appDayOfWeekID)")
-            
+
+            // Fetch AppDayOfWeek
             guard let appDayOfWeek = try backgroundContext.existingObject(with: appDayOfWeekID) as? AppDayOfWeek else {
                 throw NSError(
                     domain: "CoreDataError",
@@ -498,9 +500,9 @@ final class AppDayOfWeekViewModel: ObservableObject {
                     userInfo: [NSLocalizedDescriptionKey: "Failed to rehydrate AppDayOfWeek"]
                 )
             }
-            
             appDayOfWeek.name = appDayOfWeek.day
-            
+
+            // Determine MatTime instance
             let matTime: MatTime
             if let existingID = existingMatTimeID,
                let existing = try backgroundContext.existingObject(with: existingID) as? MatTime {
@@ -520,30 +522,33 @@ final class AppDayOfWeekViewModel: ObservableObject {
                 )
                 matTime.createdTimestamp = Date()
             }
-            
-            // ✅ Mutate safely in background
+
+            // Mutate safely in background
             backgroundContext.performAndWait {
                 if matTime.id == nil {
                     matTime.id = UUID()
                 }
-                
+
                 if existingMatTimeID == nil {
                     appDayOfWeek.addToMatTimes(matTime)
                 }
             }
-            
+
             // Save background context
             try backgroundContext.save()
+
+            // Return the objectID for main thread use
             return matTime.objectID
         }
-        
-        // ✅ Refresh main context safely
+
+        // --- Merge into main context on MainActor (outside background closure)
         await MainActor.run {
-            PersistenceController.shared.viewContext.refreshAllObjects()
+            try? PersistenceController.shared.viewContext.save()
         }
-        
-        await refreshMatTimes() // already MainActor, no need to wrap in Task
-        
+
+        // --- Refresh SwiftUI view safely on main actor
+        await refreshMatTimes()
+
         return matTimeID
     }
 

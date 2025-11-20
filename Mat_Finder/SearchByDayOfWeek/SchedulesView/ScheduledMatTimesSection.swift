@@ -32,65 +32,73 @@ struct ScheduledMatTimesSection: View {
     private let fetchQueue = DispatchQueue(label: "fetch-queue")
 
     var body: some View {
-        // Removed `Section(header: Text("Scheduled Mat Times"))` to eliminate the large header space.
-        // The navigation title or surrounding context should provide sufficient information.
-        Group { // Use Group to contain conditional views
+        Group {
             if let error = error {
                 Text("⚠️ \(error)")
-                    .foregroundColor(.red) // Keep red for errors, but ensure it's readable
+                    .foregroundColor(.red)
             } else if !matTimes.isEmpty {
-                MatTimesList(day: day, matTimes: matTimes,
-                             onEdit: { matTime in
-                                 showEditSheet(for: matTime)
-                             },
-                             onDelete: { matTime in
-                                 deleteMatTime(matTime)
-                             })
+                MatTimesList(
+                    day: day,
+                    matTimes: matTimes,
+                    onEdit: { matTime in
+                        showEditSheet(for: matTime)
+                    },
+                    onDelete: { matTime in
+                        deleteMatTime(matTime)
+                    }
+                )
             } else {
                 Text("No mat times have been entered for \(day.rawValue.capitalized) at \(island.islandName ?? "this gym").")
-                    .foregroundColor(.secondary) // Use secondary for descriptive text
+                    .foregroundColor(.secondary)
             }
         }
+        // 🔥 Only one initial fetch
         .onAppear {
-            fetchMatTimes(day: self.day)
+            fetchMatTimes(day: selectedDay ?? day)
         }
-        .onChange(of: selectedDay) { _, _ in
-            fetchMatTimes(day: self.selectedDay ?? self.day)
+        // 🔥 Fetch when selected day changes
+        .onChange(of: selectedDay) { _, newDay in
+            fetchMatTimes(day: newDay ?? day)
         }
+        // 🔥 Fetch if island changes
         .onChange(of: island) { _, _ in
-            fetchMatTimes(day: self.selectedDay ?? self.day)
+            fetchMatTimes(day: selectedDay ?? day)
         }
         .alert(isPresented: $showSuccessAlert) {
-            Alert(title: Text("Success"),
-                  message: Text(successMessage ?? "Update completed successfully."),
-                  dismissButton: .default(Text("OK")) {
-                      successMessage = nil
-                  })
+            Alert(
+                title: Text("Success"),
+                message: Text(successMessage ?? "Update completed successfully."),
+                dismissButton: .default(Text("OK")) {
+                    successMessage = nil
+                }
+            )
         }
         .alert(isPresented: $showErrorAlert) {
-            Alert(title: Text("Error"),
-                  message: Text(error ?? "Something went wrong."),
-                  dismissButton: .default(Text("OK")) {
-                      error = nil
-                  })
+            Alert(
+                title: Text("Error"),
+                message: Text(error ?? "Something went wrong."),
+                dismissButton: .default(Text("OK")) {
+                    error = nil
+                }
+            )
         }
         .sheet(isPresented: $showEditModal) {
             if let editingMatTime = editingMatTime {
                 EditMatTimeView(matTime: editingMatTime) { updatedMatTime in
                     Task {
                         do {
-                            // Ensure save operation is performed on the correct context's queue
                             try context.save()
                             try await viewModel.updateMatTime(updatedMatTime)
+
                             await MainActor.run {
                                 showEditModal = false
                                 successMessage = "Mat time updated!"
                                 showSuccessAlert = true
                                 fetchMatTimes(day: selectedDay ?? day)
                             }
-                        } catch let caughtError {
+                        } catch {
                             await MainActor.run {
-                                error = "Failed to save changes: \(caughtError.localizedDescription)"
+                                self.error = "Failed to save changes: \(error.localizedDescription)"
                                 showErrorAlert = true
                             }
                         }
@@ -99,6 +107,7 @@ struct ScheduledMatTimesSection: View {
             }
         }
     }
+
 
     func showEditSheet(for matTime: MatTime) {
         editingMatTime = matTime
@@ -134,12 +143,25 @@ struct ScheduledMatTimesSection: View {
     }
 
     func filterMatTimes(_ matTimes: [MatTime], for day: DayOfWeek, and island: PirateIsland) -> [MatTime] {
-        return matTimes.filter {
-            guard let appDayOfWeek = $0.appDayOfWeek else { return false }
-            return appDayOfWeek.pIsland?.islandID == island.islandID &&
-            appDayOfWeek.day.caseInsensitiveCompare(day.rawValue) == .orderedSame // Ensure day is not nil
+        guard let islandUUID = island.islandID else { return [] }
+
+        let normalized = islandUUID.uuidString.replacingOccurrences(of: "-", with: "")
+
+        return matTimes.filter { matTime in
+            guard let appDay = matTime.appDayOfWeek,
+                  let pIsland = appDay.pIsland,
+                  let pIslandUUID = pIsland.islandID
+            else { return false }
+
+            let pNorm = pIslandUUID.uuidString.replacingOccurrences(of: "-", with: "")
+
+            let sameIsland = (normalized == pNorm)
+            let sameDay = appDay.day.caseInsensitiveCompare(day.rawValue) == .orderedSame
+
+            return sameIsland && sameDay
         }
     }
+
 
     func sortMatTimes(_ matTimes: [MatTime]) -> [MatTime] {
         return matTimes.sorted { $0.time ?? "" < $1.time ?? "" }

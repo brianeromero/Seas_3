@@ -889,22 +889,31 @@ class FirestoreSyncManager {
                 }
 
                 // Save
-                if context.hasChanges {
-                    do {
-                        try context.save()
-                        logBlock = {
-                            Self.log("✅ Synced MatTime \(docID)",
-                                     level: .success,
-                                     collection: "MatTime")
+                        if context.hasChanges {
+                            do {
+                                // 1. Save the changes to the Persistent Store from the background thread
+                                try context.save()
+
+                                // 2. CRITICAL FIX: Force the main context to update on the Main Actor
+                                Task { @MainActor in
+                                    try PersistenceController.shared.viewContext.save() // This safely merges changes
+                                    
+                                    // Log success AFTER the main context has been saved/merged
+                                    Self.log("✅ Synced MatTime \(docSnapshot.documentID)",
+                                             level: .success,
+                                             collection: "MatTime")
+                                }
+                                
+                            } catch {
+                                // Handle the save error
+                                let docID = docSnapshot.documentID
+                                Task { @MainActor in
+                                    Self.log("❌ Failed saving MatTime \(docID): \(error.localizedDescription)",
+                                             level: .error,
+                                             collection: "MatTime")
+                                }
+                            }
                         }
-                    } catch {
-                        logBlock = {
-                            Self.log("❌ Failed saving MatTime \(docID): \(error.localizedDescription)",
-                                     level: .error,
-                                     collection: "MatTime")
-                        }
-                    }
-                }
             } catch {
                 logBlock = {
                     Self.log("❌ Failed syncing MatTime \(docSnapshot.documentID): \(error)",
@@ -919,7 +928,6 @@ class FirestoreSyncManager {
             Task { @MainActor in logBlock() }
         }
     }
-
 
 
     // ---------------------------
@@ -1028,6 +1036,7 @@ class FirestoreSyncManager {
                                 collection: "AppDayOfWeek"
                             )
                         }
+
                     } catch {
                         Task { @MainActor in
                             FirestoreSyncManager.log(
