@@ -34,6 +34,10 @@ enum AppScreen: Hashable, Identifiable, Codable {
     case disclaimer
     case faq
     
+    
+    case viewSchedule(String) // new case
+
+    
     var id: String {
         switch self {
         case .review(let id): return "review-\(id)"
@@ -55,6 +59,11 @@ enum AppScreen: Hashable, Identifiable, Codable {
         case .aboutus: return "aboutus"
         case .disclaimer: return "disclaimer"
         case .faq: return "faq"
+            
+        case .viewSchedule(let id): return "viewSchedule-\(id)"
+
+            
+            
         }
     }
 
@@ -66,6 +75,9 @@ enum AppScreen: Hashable, Identifiable, Codable {
         
         // New CodingKeys
         case aboutus, disclaimer, faq
+        
+        case viewSchedule
+
     }
 
     init(from decoder: Decoder) throws {
@@ -104,6 +116,8 @@ enum AppScreen: Hashable, Identifiable, Codable {
             self = .disclaimer
         } else if container.contains(.faq) {
             self = .faq
+        } else if let id = try container.decodeIfPresent(String.self, forKey: .viewSchedule) {
+            self = .viewSchedule(id)
         } else {
             throw DecodingError.dataCorruptedError(forKey: .review, in: container, debugDescription: "Unknown AppScreen case")
         }
@@ -148,6 +162,8 @@ enum AppScreen: Hashable, Identifiable, Codable {
             try container.encodeNil(forKey: .disclaimer)
         case .faq:
             try container.encodeNil(forKey: .faq)
+        case .viewSchedule(let id):
+            try container.encode(id, forKey: .viewSchedule)
         }
     }
 }

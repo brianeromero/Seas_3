@@ -13,9 +13,7 @@ import CoreData
 public class AppDayOfWeek: NSManagedObject {
 
     public static func == (lhs: AppDayOfWeek, rhs: AppDayOfWeek) -> Bool {
-        lhs.id == rhs.id &&
-        lhs.day == rhs.day &&
-        lhs.name == rhs.name &&
-        lhs.appDayOfWeekID == rhs.appDayOfWeekID
+        lhs.objectID == rhs.objectID
     }
 }
+

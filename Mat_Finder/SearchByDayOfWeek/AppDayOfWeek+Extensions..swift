@@ -7,6 +7,8 @@
 
 import Foundation
 import SwiftUI
+import CoreData
+
 
 extension AppDayOfWeek {
     func isSelected(for day: DayOfWeek) -> Bool {
@@ -54,5 +56,19 @@ extension AppDayOfWeek {
         matTimes: \(matTimesCount),
         createdTimestamp: \(createdTimestampString)
         """
+    }
+}
+
+
+extension AppDayOfWeek {
+    /// Returns the mat times sorted by time string
+    var matTimesArray: [MatTime] {
+        (matTimes as? Set<MatTime>)?
+            .sorted { ($0.time ?? "") < ($1.time ?? "") } ?? []
+    }
+    
+    /// True when this AppDayOfWeek actually has mat times
+    var hasMatTimes: Bool {
+        !matTimesArray.isEmpty
     }
 }

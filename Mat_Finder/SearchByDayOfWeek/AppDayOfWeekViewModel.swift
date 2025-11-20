@@ -702,27 +702,30 @@ final class AppDayOfWeekViewModel: ObservableObject {
     // MARK: - Load Schedules
 
     @MainActor
-    func loadSchedules(for island: PirateIsland) async {
-        guard let day = selectedDay else { return }
+    func loadSchedules(for island: PirateIsland) async -> Bool {
+        guard let day = selectedDay else { return false }
         print("LOAD_SCHEDULES: START for island: \(island.islandName ?? "Unknown") and day: \(day.displayName)")
 
-        // Safely get island's AppDayOfWeeks
         guard let appDayOfWeeks = island.appDayOfWeeks as? Set<AppDayOfWeek> else {
-            print("No AppDayOfWeeks for this island")
             matTimesForDay[day] = []
-            return
+            schedules[day] = []
+            return false
         }
 
-        // Filter by selected day
-        let matTimes: [MatTime] = appDayOfWeeks
-            .filter { $0.day.lowercased() == day.rawValue.lowercased() }
+        let dayAppDayOfWeeks = appDayOfWeeks.filter { $0.day.lowercased() == day.rawValue.lowercased() }
+
+        let matTimes: [MatTime] = dayAppDayOfWeeks
             .compactMap { $0.matTimes?.allObjects as? [MatTime] }
             .flatMap { $0 }
             .sorted { ($0.createdTimestamp ?? Date()) < ($1.createdTimestamp ?? Date()) }
 
-        // Assign to dictionary for the selected day
         matTimesForDay[day] = matTimes
+        schedules[day] = Array(dayAppDayOfWeeks)
+            .sorted { ($0.createdTimestamp ?? Date()) < ($1.createdTimestamp ?? Date()) }
+
         print("Loaded \(matTimes.count) mat times for \(day.displayName) at \(island.islandName ?? "Unknown")")
+
+        return !matTimes.isEmpty
     }
 
 

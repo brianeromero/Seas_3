@@ -16,16 +16,18 @@ struct IslandModalView: View {
     @Binding var showModal: Bool
     @State private var isLoadingData: Bool = false
     @State private var showReview: Bool = false
-
+    
     @State private var currentAverageStarRating: Double = 0.0
     @State private var currentReviews: [Review] = []
     
     @Binding var navigationPath: NavigationPath
-
+    @State private var showNoScheduleAlert = false
+    
+    
     var isLoading: Bool {
         islandSchedules.isEmpty && !scheduleExists || isLoadingData
     }
-
+    
     let customMapMarker: CustomMapMarker?
     @State private var scheduleExists: Bool = false
     @State private var islandSchedules: [(PirateIsland, [MatTime])] = []
@@ -36,12 +38,12 @@ struct IslandModalView: View {
     let formattedTimestamp: String
     let gymWebsite: URL?
     let dayOfWeekData: [DayOfWeek]
-
+    
     @Binding var selectedIsland: PirateIsland?
     @ObservedObject var viewModel: AppDayOfWeekViewModel
     @Binding var selectedAppDayOfWeek: AppDayOfWeek?
     @ObservedObject private var authViewModel = AuthViewModel.shared
-
+    
     init(
         customMapMarker: CustomMapMarker?,
         islandName: String,
@@ -75,7 +77,7 @@ struct IslandModalView: View {
         self.enterZipCodeViewModel = enterZipCodeViewModel
         self._navigationPath = navigationPath
     }
-
+    
     var body: some View {
         NavigationView {
             ZStack {
@@ -84,7 +86,7 @@ struct IslandModalView: View {
                     .onTapGesture {
                         showModal = false
                     }
-
+                
                 // Conditional content based on loading state and data availability
                 contentView
             }
@@ -101,25 +103,39 @@ struct IslandModalView: View {
         .interactiveDismissDisabled(false)
         .onAppear {
             isLoadingData = true
-            guard let island = selectedIsland else {
+            guard selectedIsland != nil else {
                 isLoadingData = false
                 return
             }
-
+            
             Task {
-                await viewModel.loadSchedules(for: island)
-
+                guard let island = selectedIsland else {
+                    isLoadingData = false
+                    return
+                }
+                
+                // Load schedules and get whether the selected day has mat times
+                let hasSchedule = await viewModel.loadSchedules(for: island)
+                
                 // Fetch asynchronously
-                async let fetchedAvgRating = ReviewUtils.fetchAverageRating(for: island, in: viewContext, callerFunction: "IslandModalView.onAppear")
-                async let fetchedReviews = ReviewUtils.fetchReviews(for: island, in: viewContext, callerFunction: "IslandModalView.onAppear")
-
-                // Await results first
+                async let fetchedAvgRating = ReviewUtils.fetchAverageRating(
+                    for: island,
+                    in: viewContext,
+                    callerFunction: "IslandModalView.onAppear"
+                )
+                async let fetchedReviews = ReviewUtils.fetchReviews(
+                    for: island,
+                    in: viewContext,
+                    callerFunction: "IslandModalView.onAppear"
+                )
+                
+                // Await results
                 let avgRating = Double(await fetchedAvgRating)
                 let reviews = await fetchedReviews
-
-                // Update UI state on MainActor synchronously
+                
+                // Update UI state on MainActor
                 await MainActor.run {
-                    scheduleExists = !viewModel.schedules.isEmpty
+                    scheduleExists = hasSchedule
                     currentAverageStarRating = avgRating
                     currentReviews = reviews
                     isLoadingData = false
@@ -127,9 +143,9 @@ struct IslandModalView: View {
             }
         }
     }
-
+    
     // MARK: - Extracted Subviews and NavigationLink Destinations
-
+    
     @ViewBuilder
     private var contentView: some View {
         if isLoadingData {
@@ -148,26 +164,26 @@ struct IslandModalView: View {
                 .cornerRadius(10)
         }
     }
-
+    
     private func modalContent(island: PirateIsland) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(islandName)
                 .font(.system(size: 14))
                 .bold()
                 .foregroundColor(.primary)
-
+            
             Text(islandLocation)
                 .font(.system(size: 12))
                 .foregroundColor(.secondary)
-
+            
             websiteSection
-
+            
             scheduleSection(for: island)
-
+            
             reviewsSection
-
+            
             Spacer()
-
+            
             closeButton
         }
         .padding()
@@ -175,7 +191,7 @@ struct IslandModalView: View {
         .cornerRadius(10)
         .frame(width: UIScreen.main.bounds.width * 0.8, height: UIScreen.main.bounds.height * 0.6)
     }
-
+    
     private var websiteSection: some View {
         Group {
             if let gymWebsite = gymWebsite {
@@ -197,22 +213,43 @@ struct IslandModalView: View {
             }
         }
     }
-
+    
     private func scheduleSection(for island: PirateIsland) -> some View {
-        Group {
-            if scheduleExists {
-                NavigationLink(
-                    destination: ViewScheduleForIsland(viewModel: viewModel, island: island)
+        let hasSchedules = (island.appDayOfWeeks as? Set<AppDayOfWeek>)?
+            .contains(where: { $0.hasMatTimes }) ?? false
+        
+        return AnyView(
+            content(for: island, hasSchedules: hasSchedules)
+                .alert(
+                    "Schedule Not Available",
+                    isPresented: $showNoScheduleAlert
                 ) {
-                    Text("View Schedule")
-                        .foregroundColor(.accentColor)
+                    Button("OK", role: .cancel) { }
+                } message: {
+                    Text("There are no AppDayOfWeek records with MatTimes associated with this island.")
                 }
-            } else {
-                Text("No schedules found for this Gym.")
-                    .foregroundColor(.secondary)
+        )
+    }
+    
+    @ViewBuilder
+    private func content(for island: PirateIsland, hasSchedules: Bool) -> some View {
+        if hasSchedules {
+            NavigationLink(
+                destination: ViewScheduleForIsland(viewModel: viewModel, island: island)
+            ) {
+                Text("View Schedule")
+                    .foregroundColor(.accentColor)
+            }
+        } else {
+            Button {
+                showNoScheduleAlert = true
+            } label: {
+                Text("View Schedule")
+                    .foregroundColor(.accentColor)
             }
         }
     }
+
 
     private var reviewsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
