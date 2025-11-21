@@ -101,8 +101,16 @@ public struct AddNewIsland: View {
             )
         }
         .onAppear {
+            // Fetch countries
             Task { await countryService.fetchCountries() }
+            
+            // Load profile
+            Task {
+                await profileViewModel.loadProfile()
+                validateForm()
+            }
         }
+
         .onChange(of: countryService.countries) { oldValue, newValue in
             if let usa = newValue.first(where: { $0.cca2 == "US" }) {
                 islandDetails.selectedCountry = usa
@@ -171,11 +179,17 @@ public struct AddNewIsland: View {
                 .font(.headline)
                 .foregroundColor(.primary)
 
-            Text(profileViewModel.name)
-                .font(.body)
-                .foregroundColor(.primary)
+            if profileViewModel.isProfileLoaded {
+                Text(profileViewModel.name.isEmpty ? "Unknown" : profileViewModel.name)
+                    .font(.body)
+                    .foregroundColor(.primary)
+            } else {
+                ProgressView() // small loading indicator
+                    .scaleEffect(0.75, anchor: .leading)
+            }
         }
     }
+
 
 
     private var actionButtons: some View {

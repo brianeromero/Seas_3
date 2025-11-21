@@ -156,7 +156,8 @@ struct IslandMenu2: View {
             HStack {
                 Spacer()
                 Text("Mat_Finder")
-                    .font(.system(size: 20, weight: .bold))
+                    .font(.title)
+                    .fontWeight(.bold)
                     .foregroundColor(.primary)
                 Spacer()
             }
