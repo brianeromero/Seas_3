@@ -84,18 +84,18 @@ struct IslandFormSections: View {
     @Binding var formState: FormState
 
     var body: some View {
-        VStack(spacing: 10) {
+        VStack(alignment: .leading, spacing: 20) {
             // Country Picker Section
             countryPickerSection
             
             // Island Details Section
             islandDetailsSection
-                .padding()
             
             // Website Section
             websiteSection
         }
-        .padding()
+        .padding(.horizontal)   // consistent padding
+        .padding(.top)
         .onAppear {
             Task { await countryService.fetchCountries() }
         }
@@ -109,7 +109,9 @@ struct IslandFormSections: View {
         if countryService.isLoading {
             AnyView(ProgressView("Loading countries..."))
         } else if countryService.countries.isEmpty {
-            AnyView(Text("No countries found."))
+            AnyView(Text("No countries found.")
+                .font(.caption)
+                .foregroundColor(.secondary))
         } else {
             AnyView(UnifiedCountryPickerView(
                 countryService: countryService,
@@ -139,7 +141,11 @@ struct IslandFormSections: View {
     var islandDetailsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Gym Name")
+                .font(.headline)
+
             TextField("Enter Gym Name", text: $islandDetails.islandName)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .font(.body)
                 .onChange(of: islandDetails.islandName) { oldValue, newValue in
                     print("🏝️ Gym Name Updated: \(newValue)")
                     validateFields()
@@ -149,7 +155,7 @@ struct IslandFormSections: View {
             // Address Fields View
             let requiredFields = getAddressFieldsSafely(for: selectedCountry?.cca2)
 
-            VStack {
+            VStack(alignment: .leading, spacing: 12) {
                 // Dynamically generate address fields
                 ForEach(requiredFields, id: \.self) { field in
                     addressField(for: field)
@@ -169,6 +175,7 @@ struct IslandFormSections: View {
             let missingFields = getMissingRequiredFields(for: selectedCountry?.cca2)
             if !islandDetails.islandName.isEmpty && showValidationMessage && !missingFields.isEmpty {
                 Text("Required fields are missing: \(missingFields.joined(separator: ", "))")
+                    .font(.caption)
                     .foregroundColor(.red)
                     .onAppear {
                         print("❌ Missing fields: \(missingFields)")
@@ -254,11 +261,12 @@ struct IslandFormSections: View {
             Text("Instagram/Facebook/Website")
                 .font(.headline)
             TextField("Enter Instagram/Facebook/Website", text: $islandDetails.gymWebsite)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .font(.body)
                 // Fix 3: Update onChange syntax
                 .onChange(of: islandDetails.gymWebsite) { oldWebsite, newWebsite in // Use the new signature
                     processWebsiteURL(newWebsite)
                 }
-                .textFieldStyle(RoundedBorderTextFieldStyle())
         }
     }
 

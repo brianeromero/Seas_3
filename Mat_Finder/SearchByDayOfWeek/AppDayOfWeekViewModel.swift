@@ -271,7 +271,7 @@ final class AppDayOfWeekViewModel: ObservableObject {
                         }
                         
                         // Rehydrate PirateIsland
-                        guard let selectedIslandOnBG = try backgroundContext.existingObject(with: selectedIslandID) as? PirateIsland else {
+                        guard try backgroundContext.existingObject(with: selectedIslandID) is PirateIsland else {
                             throw NSError(domain: "AppDayOfWeekViewModel", code: 2,
                                           userInfo: [NSLocalizedDescriptionKey: "Failed to rehydrate selectedIsland in background context."])
                         }

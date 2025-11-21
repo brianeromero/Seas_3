@@ -76,10 +76,16 @@ public struct AddNewIsland: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {
+                VStack(spacing: 2) {
                 Text("Add New Gym")
                     .font(.title)
                     .fontWeight(.bold)
                     .foregroundColor(.primary)
+                Text("Fill in all required fields below")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                }
             }
         }
 
@@ -160,23 +166,31 @@ public struct AddNewIsland: View {
 
 
     private var enteredBySection: some View {
-        Section(header: Text("Entered By")) {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Entered By")
+                .font(.headline)
+                .foregroundColor(.primary)
+
             Text(profileViewModel.name)
+                .font(.body)
                 .foregroundColor(.primary)
         }
     }
 
+
     private var actionButtons: some View {
-        VStack {
+        VStack(spacing: 14) {
             saveButton
             cancelButton
         }
+        .padding(.top, 20)
     }
 
+
     private var saveButton: some View {
-        Button("Save") {
+        Button(action: {
             os_log("Save button clicked", log: OSLog.default, type: .info)
-            
+
             Task {
                 // Check required fields before saving
                 let requiredFields = islandDetails.requiredAddressFields
@@ -198,19 +212,37 @@ public struct AddNewIsland: View {
                     navigationPath.append("IslandMenu2")
                 }
             }
+        }) {
+            Text("Save")
+                .font(.headline)
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(Color.accentColor)
+                .foregroundColor(.white)
+                .cornerRadius(12)
+                .shadow(color: Color.black.opacity(0.15), radius: 4, x: 0, y: 2)
         }
-        .disabled(false) // Always enabled
     }
 
 
 
     private var cancelButton: some View {
-        Button("Cancel") {
+        Button(action: {
             os_log("Cancel button clicked", log: OSLog.default, type: .info)
             clearFields()
             dismiss()
+        }) {
+            Text("Cancel")
+                .font(.headline)
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(Color(.systemGray6))
+                .foregroundColor(.red)
+                .cornerRadius(12)
+                .shadow(color: Color.black.opacity(0.08), radius: 3, x: 0, y: 1)
         }
     }
+
 
     // MARK: - Helper Methods
 
