@@ -269,10 +269,11 @@ struct IslandModalView: View {
                     }
                 } label: {
                     Text("View All Reviews")
-                        .font(.headline)
-                        .foregroundColor(.accentColor)
+                        .foregroundColor(.accentColor) // match View Schedule color
+                        .font(.system(size: 12))       // match View Schedule size
                 }
                 .buttonStyle(.plain)
+
             } else {
                 Text("No reviews available.")
                     .foregroundColor(.secondary)
