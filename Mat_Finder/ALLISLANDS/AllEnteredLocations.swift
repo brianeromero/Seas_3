@@ -65,13 +65,22 @@ struct AllEnteredLocations: View {
                 .onAppear { viewModel.logTileInformation() }
             }
         }
-        .navigationTitle("All Gyms")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text("All Gyms")
+                    .font(.title)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+            }
+        }
         .onAppear {
             if !viewModel.isDataLoaded && viewModel.errorMessage == nil {
                 viewModel.fetchPirateIslands()
             }
             userLocationVM.startLocationServices()
         }
+
         .onReceive(userLocationVM.$userLocation) { location in
             guard let location = location else { return }
             viewModel.setRegionToUserLocation(location.coordinate)

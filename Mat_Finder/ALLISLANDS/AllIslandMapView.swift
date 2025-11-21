@@ -89,20 +89,24 @@ struct ConsolidatedIslandMapView: View {
                     }
             }
         }
-        .navigationTitle("Gyms Near Me")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text("Gyms Near Me")
+                    .font(.title)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+            }
+        }
         .overlay(overlayContentView())
         .onAppear(perform: onAppear)
         .onChange(of: locationManager.userLocation) { _, newValue in
             onChangeUserLocation(newValue)
         }
-        // ❌ REMOVE: This is no longer necessary as Map updates cameraPosition directly
-        // .onChange(of: equatableRegion) { _, newValue in
-        //     updateMarkers(for: newValue.region)
-        // }
-        // The marker update logic for the radius change is now inside onChangeSelectedRadius
         .onChange(of: selectedRadius) { _, newValue in
             onChangeSelectedRadius(newValue)
         }
+
     }
 
     // MARK: - Map

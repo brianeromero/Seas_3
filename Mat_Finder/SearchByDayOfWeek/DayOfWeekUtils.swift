@@ -177,15 +177,12 @@ struct DayDetailView: View {
 
 import SwiftUI
 
+
 struct DayPickerView: View {
     @Binding var selectedDay: DayOfWeek?
 
     var body: some View {
-        VStack(alignment: .leading) {
-            Text("Day of the Week")
-                .font(.headline)
-                .padding(.leading, 16)
-
+        VStack {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack {
                     ForEach(DayOfWeek.allCases, id: \.self) { day in
@@ -210,5 +207,15 @@ struct DayPickerView: View {
             }
         }
         .padding()
+        // MARK: Navigation bar styling to match "Gyms Near Me"
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text("Day of the Week")
+                    .font(.title) // same size as "Gyms Near Me"
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+            }
+        }
     }
 }

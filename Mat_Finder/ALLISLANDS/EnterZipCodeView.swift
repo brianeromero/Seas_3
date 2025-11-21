@@ -51,13 +51,10 @@ struct EnterZipCodeView: View {
                 // Map View
                 mapSection
                     .frame(height: 400)
-                    // 👇 Add this modifier to listen for updated markers
                     .onReceive(enterZipCodeViewModel.$pirateIslands) { markers in
-                        // Convert markers back into PirateIsland objects for display
                         let updatedIslands = markers.compactMap { $0.pirateIsland }
                         self.searchResults = updatedIslands
                     }
-
 
                 // Radius Picker
                 RadiusPicker(selectedRadius: $selectedRadius)
@@ -74,7 +71,23 @@ struct EnterZipCodeView: View {
             }
             .frame(maxWidth: .infinity)
             .padding()
-            .navigationTitle("Enter Location")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    VStack(spacing: 2) {
+                        Text("Enter Location")
+                            .font(.title) // Using .title is closer to the image's size for the main title
+                            .fontWeight(.bold)
+                            .foregroundColor(.primary)
+
+                        Text("(e.g., Disneyland, Rio De Janeiro, Culinary Institute of America)")
+                            .font(.caption) // Using .caption or .footnote for the smaller subtitle text
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                }
+
+            }
         }
         .navigationViewStyle(StackNavigationViewStyle())
         .sheet(isPresented: $showModal) {
@@ -108,6 +121,7 @@ struct EnterZipCodeView: View {
             }
         }
     }
+
 
     // MARK: - Map Section extracted to avoid compile timeout
     private var mapSection: some View {

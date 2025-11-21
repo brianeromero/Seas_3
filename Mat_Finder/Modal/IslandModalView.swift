@@ -239,16 +239,21 @@ struct IslandModalView: View {
             ) {
                 Text("View Schedule")
                     .foregroundColor(.accentColor)
+                    .font(.system(size: 12)) // force same size as other links
             }
+            .buttonStyle(.plain) // remove default NavigationLink styling
         } else {
             Button {
                 showNoScheduleAlert = true
             } label: {
                 Text("View Schedule")
                     .foregroundColor(.accentColor)
+                    .font(.system(size: 12))
             }
+            .buttonStyle(.plain)
         }
     }
+
 
 
     private var reviewsSection: some View {
