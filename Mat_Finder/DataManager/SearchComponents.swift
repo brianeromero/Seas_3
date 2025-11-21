@@ -22,7 +22,7 @@ enum NavigationDestination {
 
 struct SearchHeader: View {
     var body: some View {
-        Text("Search by: gym name, postal code, or address/location")
+        Text("Search by: Gym name, Postal Code, or Address/Location")
             .font(.headline)
             .padding(.bottom, 4)
             .foregroundColor(.gray)

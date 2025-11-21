@@ -112,12 +112,20 @@ struct DaysOfWeekFormView: View {
                 .listStyle(PlainListStyle())
             }
         }
-        .navigationTitle("Gym Schedules")
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Text("Select Gym to View/Add Schedule")
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
+            ToolbarItem(placement: .principal) {
+                VStack(spacing: 2) {
+                    Text("Gym Schedules")
+                        .font(.title)
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary)
+
+                    Text("Select Gym to View/Add Schedule")
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                        .multilineTextAlignment(.center)
+                }
             }
         }
         .onAppear {

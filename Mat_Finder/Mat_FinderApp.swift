@@ -282,6 +282,16 @@ struct AppRootDestinationView: View {
             
         case .searchReviews:
             ViewReviewSearch(selectedIsland: .constant(nil), titleString: "Search Gym Reviews", navigationPath: $navigationPath)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .principal) {
+                        Text("All Gyms")
+                            .font(.title)
+                            .fontWeight(.bold)
+                            .foregroundColor(.primary)
+                    }
+                }
+
             
         case .profile:
             ProfileView(

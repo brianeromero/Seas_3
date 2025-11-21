@@ -295,76 +295,7 @@ struct ViewReviewforIsland: View {
         .padding()
     }
 
-    /*
-    private func destinationView(for screen: AppScreen) -> some View {
-        switch screen {
-        case .review(let islandIDString):
-            os_log("Navigating to GymMatReviewView for islandID: %@", log: logger, type: .info, islandIDString)
-
-            guard let url = URL(string: islandIDString),
-                  let objectID = viewContext.persistentStoreCoordinator?.managedObjectID(forURIRepresentation: url) else {
-                return AnyView(Text("Error: Invalid Island ID for review."))
-            }
-
-            do {
-                let island = try viewContext.existingObject(with: objectID) as? PirateIsland
-                if let island = island {
-                    return AnyView(GymMatReviewView(
-                        localSelectedIsland: .constant(island),
-                        callerFile: #file,
-                        callerFunction: #function
-                    ))
-                } else {
-                    return AnyView(Text("Error: Island not found for review."))
-                }
-            } catch {
-                return AnyView(Text("Error fetching island: \(error.localizedDescription)"))
-            }
-
-        case .selectGymForReview:
-            return AnyView(GymMatReviewSelect(
-                selectedIsland: $selectedIslandInternal,
-                navigationPath: $navigationPath
-            ))
-
-        case .viewAllReviews(let islandIDString):
-            os_log("Navigating to ViewReviewforIsland for islandID: %@", log: logger, type: .info, islandIDString)
-
-            guard let url = URL(string: islandIDString),
-                  let objectID = viewContext.persistentStoreCoordinator?.managedObjectID(forURIRepresentation: url) else {
-                return AnyView(Text("Error: Invalid Island ID for all reviews."))
-            }
-
-            do {
-                let island = try viewContext.existingObject(with: objectID) as? PirateIsland
-                if let island = island {
-                    return AnyView(ViewReviewforIsland(
-                        showReview: .constant(true),
-                        selectedIsland: island,
-                        navigationPath: $navigationPath
-                    ))
-                } else {
-                    return AnyView(Text("Error: Island not found for all reviews."))
-                }
-            } catch {
-                return AnyView(Text("Error fetching island: \(error.localizedDescription)"))
-            }
-
-        case .searchReviews:
-            return AnyView(ViewReviewSearch(selectedIsland: $selectedIslandInternal, titleString: "Search Gym Reviews", navigationPath: $navigationPath))
-
-        // --- Handle all other cases here with a default placeholder ---
-        case .profile, .allLocations, .currentLocation, .postalCode, .dayOfWeek,
-             .addNewGym, .updateExistingGyms, .addOrEditScheduleOpenMat, .faqDisclaimer:
-            return AnyView(Text("Navigation to \(screen.id) is not handled in ViewReviewforIsland."))
-
-        case .editExistingIsland(_):
-            <#code#>
-        }
-    }
-
-     */
-
+ 
     private func handleOnAppear() {
         os_log("ViewReviewforIsland onAppear - island: %@", log: logger, type: .info, selectedIslandInternal?.islandName ?? "nil")
         guard selectedIslandInternal != nil else { return }

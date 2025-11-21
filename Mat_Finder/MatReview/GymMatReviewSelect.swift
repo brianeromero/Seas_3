@@ -87,7 +87,7 @@ struct GymMatReviewSelect: View {
 
     var body: some View {
         VStack(alignment: .leading) {
-            Text("Search by: gym name, zip code, or address/location")
+            Text("Search by: Gym name, Postal Code, or Address/Location")
                 .font(.headline)
                 .foregroundColor(.gray)
                 .padding(.leading)
@@ -115,7 +115,15 @@ struct GymMatReviewSelect: View {
             .listStyle(.plain)
 
         }
-        .navigationTitle("Select Gym to Review")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text("Select Gym to Review")
+                    .font(.title)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+            }
+        }
         .alert(isPresented: $viewModel.showNoMatchAlert) {
             Alert(
                 title: Text("No Match Found"),

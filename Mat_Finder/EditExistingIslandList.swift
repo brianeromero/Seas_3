@@ -112,7 +112,7 @@ struct EditExistingIslandListContent: View {
                     selectedIsland: $selectedIsland,
                     searchText: $viewModel.searchQuery,
                     navigationDestination: .editExistingIsland,
-                    title: "Edit Gyms",
+                    title: "",
                     onIslandChange: { _ in }, // You might want to remove this if not needed
                     navigationPath: $navigationPath,
                     showSuccessToast: $showSuccessToast,        // Pass global binding down
@@ -122,7 +122,15 @@ struct EditExistingIslandListContent: View {
             }
         }
         .background(Color(.systemBackground))
-        .navigationTitle("Edit Gyms")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text("Edit Gyms")
+                    .font(.title)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+            }
+        }
         .onAppear {
             // ✅ CRITICAL: Force a re-filter when this view appears.
             // This ensures the list is up-to-date even if a Core Data notification

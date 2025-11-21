@@ -73,7 +73,16 @@ public struct AddNewIsland: View {
                 navigationPath: $navigationPath
             )
         }
-        .navigationBarTitle("Add New Gym", displayMode: .inline)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text("Add New Gym")
+                    .font(.title)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+            }
+        }
+
         .alert(isPresented: $showAlert) {
             Alert(
                 title: Text(isSuccessAlert ? "Success" : "Error"),
