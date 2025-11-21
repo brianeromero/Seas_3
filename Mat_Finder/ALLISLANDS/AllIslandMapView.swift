@@ -119,7 +119,11 @@ struct ConsolidatedIslandMapView: View {
             
             // ⭐️ NEW: Annotation replaces MapAnnotation and uses ForEach
             ForEach(pirateMarkers) { marker in
-                Annotation(marker.title ?? "", coordinate: marker.coordinate) {
+                Annotation(
+                    "", // empty string, MapKit shows nothing by default
+                    coordinate: marker.coordinate,
+                    anchor: .center
+                ) {
                     mapAnnotationView(for: marker)
                 }
             }

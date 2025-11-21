@@ -215,7 +215,7 @@ struct MapViewContainer: View {
 
         Map(position: $cameraPosition) {
             ForEach(currentIslands) { island in
-                Annotation("Gym", coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude), anchor: .center) {
+                Annotation("", coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude), anchor: .center) {
                     IslandAnnotationView(island: island) {
                         handleIslandTap(island)
                     }

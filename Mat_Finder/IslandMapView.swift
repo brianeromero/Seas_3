@@ -33,11 +33,9 @@ struct IslandMapView: View {
         Map(position: $cameraPosition) {
             ForEach(searchResults, id: \.islandID) { island in
                 Annotation(
-                    island.islandName ?? "Unknown Title",
-                    coordinate: CLLocationCoordinate2D(
-                        latitude: island.latitude,
-                        longitude: island.longitude
-                    )
+                    "", // empty string, nothing will show
+                    coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude),
+                    anchor: .center
                 ) {
                     AnnotationMarkerView(island: island, handleTap: handleTap)
                 }
@@ -131,7 +129,11 @@ struct IslandMapViewMap: View {
 
     var body: some View {
         Map(position: $cameraPosition) {
-            Annotation(islandName, coordinate: coordinate) {
+            Annotation(
+                "", // empty string — satisfies compiler, nothing is shown by MapKit
+                coordinate: coordinate,
+                anchor: .center
+            ) {
                 VStack {
                     Text(islandName)
                         .font(.caption)

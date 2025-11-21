@@ -55,9 +55,16 @@ struct AllEnteredLocations: View {
                 Map(position: $viewModel.region, interactionModes: .all) {
                     ForEach(viewModel.pirateMarkers) { marker in
                         if let island = marker.pirateIsland {
-                            Annotation(marker.title ?? "Island", coordinate: marker.coordinate) {
-                                IslandAnnotationView(island: island) { handleIslandTap(island: island) }
+                            Annotation(
+                                "", // empty string, nothing will show
+                                coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude),
+                                anchor: .center
+                            ) {
+                                IslandAnnotationView(island: island) {
+                                    handleIslandTap(island: island)
+                                }
                             }
+
                         }
                     }
                     UserAnnotation()
