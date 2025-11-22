@@ -76,7 +76,7 @@ struct AddNewMatTimeSection: View {
         
         return result
     }
-    
+
     var body: some View {
         ZStack {
             VStack(alignment: .leading) {
@@ -90,8 +90,18 @@ struct AddNewMatTimeSection: View {
                         print("Selected time changed to: \(formatDateToString(newValue))")
                     }
                 
-                MatTypeTogglesView(gi: $gi, noGi: $noGi, openMat: $openMat, goodForBeginners: $goodForBeginners, kids: $kids)
-                RestrictionsView(restrictions: $restrictions, restrictionDescriptionInput: $restrictionDescriptionInput)
+                MatTypeTogglesView(
+                    gi: $gi,
+                    noGi: $noGi,
+                    openMat: $openMat,
+                    goodForBeginners: $goodForBeginners,
+                    kids: $kids
+                )
+                
+                RestrictionsView(
+                    restrictions: $restrictions,
+                    restrictionDescriptionInput: $restrictionDescriptionInput
+                )
                 
                 if !daySelected {
                     Text("Select a Day to View or Add Daily Mat Times.")
@@ -101,6 +111,7 @@ struct AddNewMatTimeSection: View {
                 Spacer()
                 
                 if let existingMatTime = matTime {
+                    // ===== Update + Delete Buttons =====
                     HStack {
                         Button(action: {
                             // Pass the ObjectID to updateMatTime
@@ -123,7 +134,9 @@ struct AddNewMatTimeSection: View {
                                 .cornerRadius(8)
                         }
                     }
+                    
                 } else {
+                    // ===== Add New Mat Time Button =====
                     Button(action: addNewMatTime) {
                         Text("Add New Mat Time")
                             .padding()
@@ -133,34 +146,41 @@ struct AddNewMatTimeSection: View {
                     }
                     .disabled(isAddNewMatTimeDisabled)
                 }
-            }
-            // MARK: - onChange DEP-17 Fix
-            .onChange(of: selectedDay) { oldValue, newValue in // Updated signature
-                handleSelectedDayChange()
-            }
-            // MARK: - onChange DEP-17 Fix
-            .onChange(of: viewModel.selectedAppDayOfWeek) { oldValue, newValue in // Updated signature
-                print("Selected AppDayOfWeek changed to: \(String(describing: newValue?.day))")
-            }
-            .alert(isPresented: $showAlert) {
-                Alert(title: Text(alertTitle), message: Text(alertMessage))
-            }
-            // Removed the old onChange(of: showToast) block.
-            // The ToastModifier handles the timer internally.
+            } // END VStack
+            
+            // MARK: - OnAppear
             .onAppear {
                 if let existing = matTime {
                     populateFieldsFromMatTime(existing)
                 }
             }
-        }
-        // MARK: - Apply the new .showToast modifier here
+            
+            // MARK: - onChange Fixes
+            .onChange(of: selectedDay) { oldValue, newValue in
+                handleSelectedDayChange()
+            }
+            .onChange(of: viewModel.selectedAppDayOfWeek) { oldValue, newValue in
+                print("Selected AppDayOfWeek changed to: \(String(describing: newValue?.day))")
+            }
+        } // END ZStack
+        
+        // MARK: - Toast Modifier ON OUTER VIEW
         .showToast(
             isPresenting: $showToast,
             duration: 2.0,
             alignment: .top,
             verticalOffset: 0
         )
+        
+        // MARK: - ALERT MOVED OUTSIDE
+        .alert(isPresented: $showAlert) {
+            Alert(
+                title: Text(alertTitle),
+                message: Text(alertMessage)
+            )
+        }
     }
+
     
     func handleSelectedDayChange() {
         guard let selectedDay = selectedDay else { return }

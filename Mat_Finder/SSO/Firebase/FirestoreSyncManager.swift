@@ -74,17 +74,17 @@ actor FirestoreSyncCoordinator {
 
 class FirestoreSyncManager {
     static let shared = FirestoreSyncManager()
-
+    
     @MainActor
     func syncInitialFirestoreData() async {
         guard Auth.auth().currentUser != nil else {
             Self.log("No signed-in user. Skipping Firestore sync.", level: .warning)
             return
         }
-
+        
         do {
             try await createFirestoreCollection() // setup/check step
-
+            
             let db = Firestore.firestore()
             let collections = [
                 "pirateIslands",
@@ -92,7 +92,7 @@ class FirestoreSyncManager {
                 "MatTime",
                 "reviews"
             ]
-
+            
             for collectionName in collections {
                 do {
                     try await downloadCollection(db: db, name: collectionName)
@@ -101,15 +101,15 @@ class FirestoreSyncManager {
                     // Continue with next collection
                 }
             }
-
+            
             Self.log("Initial Firestore sync complete", level: .finished)
-
+            
         } catch {
             Self.log("Firestore setup/check error: \(error.localizedDescription)", level: .error)
         }
     }
-
-
+    
+    
     private func downloadCollection(db: Firestore, name: String) async throws {
         let snapshot = try await db.collection(name).getDocuments()
         let ids = snapshot.documents.map { $0.documentID }
@@ -120,8 +120,8 @@ class FirestoreSyncManager {
             collection: name
         )
     }
-
-
+    
+    
     private func createFirestoreCollection() async throws {
         let collectionsToCheck = [
             "pirateIslands",
@@ -129,11 +129,11 @@ class FirestoreSyncManager {
             "AppDayOfWeek", // ⬅️ AppDayOfWeek must come before MatTime
             "MatTime"
         ]
-
+        
         for collectionName in collectionsToCheck {
             do {
                 let querySnapshot = try await Firestore.firestore().collection(collectionName).getDocuments()
-
+                
                 if collectionName == "MatTime" || collectionName == "AppDayOfWeek" {
                     if querySnapshot.documents.isEmpty {
                         FirestoreSyncManager.log("No documents found in collection \(collectionName).", level: .warning, collection: collectionName)
@@ -142,7 +142,7 @@ class FirestoreSyncManager {
                         FirestoreSyncManager.log("Document IDs: \(querySnapshot.documents.map { $0.documentID })", level: .info, collection: collectionName)
                     }
                 }
-
+                
                 await self.checkLocalRecordsAndCreateFirestoreRecordsIfNecessary(collectionName: collectionName, querySnapshot: querySnapshot)
             } catch {
                 FirestoreSyncManager.log("Error checking Firestore records for \(collectionName): \(error)", level: .error, collection: collectionName)
@@ -150,7 +150,7 @@ class FirestoreSyncManager {
             }
         }
     }
-
+    
     
     private func checkLocalRecordsAndCreateFirestoreRecordsIfNecessary(
         collectionName: String,
@@ -160,7 +160,7 @@ class FirestoreSyncManager {
         
         FirestoreSyncManager.log("Starting sync for \(collectionName)", level: .upload, collection: collectionName, syncID: syncID)
         FirestoreSyncManager.log("Initiating record check for collection: \(collectionName)", level: .upload, collection: collectionName, syncID: syncID)
-
+        
         // ✅ Step 1: Check for network connection
         FirestoreSyncManager.log("""
         Checking network status before sync:
@@ -170,10 +170,10 @@ class FirestoreSyncManager {
         - hasShownNoInternetToast: \(Mirror(reflecting: NetworkMonitor.shared)
             .children.first { $0.label == "hasShownNoInternetToast" }?.value ?? "N/A")
         """, level: .info, collection: collectionName, syncID: syncID)
-
+        
         guard NetworkMonitor.shared.isConnected else {
             FirestoreSyncManager.log("Network offline. Skipping \(collectionName) sync.", level: .warning, collection: collectionName, syncID: syncID)
-
+            
             DispatchQueue.main.async {
                 ToastThrottler.shared.postToast(
                     for: collectionName,
@@ -184,34 +184,34 @@ class FirestoreSyncManager {
             }
             return
         }
-
+        
         // ✅ Step 2: Ensure querySnapshot is valid
         guard let querySnapshot = querySnapshot else {
             FirestoreSyncManager.log("Query snapshot is nil for \(collectionName). Cannot proceed.", level: .error, collection: collectionName, syncID: syncID)
             return
         }
-
+        
         FirestoreSyncManager.log("Query snapshot received for \(collectionName)", level: .success, collection: collectionName, syncID: syncID)
-
+        
         let firestoreRecords = querySnapshot.documents.compactMap { $0.documentID }
         FirestoreSyncManager.log("Firestore records (\(firestoreRecords.count)): \(firestoreRecords.prefix(5))\(firestoreRecords.count > 5 ? "... (\(firestoreRecords.count - 5) more)" : "")", level: .download, collection: collectionName, syncID: syncID)
-
+        
         do {
             if let localRecords = try await PersistenceController.shared.fetchLocalRecords(forCollection: collectionName) {
                 FirestoreSyncManager.log("Local records (\(localRecords.count)): \(localRecords.prefix(5))\(localRecords.count > 5 ? "... (\(localRecords.count - 5) more)" : "")", level: .info, collection: collectionName, syncID: syncID)
-
+                
                 _ = Firestore.firestore().collection(collectionName)
                 _ = await Task.detached(priority: .background) { [localRecords] in
                     var missing: [String] = []
                     let db = Firestore.firestore().collection(collectionName)
-
+                    
                     for chunk in localRecords.chunked(into: 10) {
                         let idsWithVariants = chunk.flatMap { id in [id, id.replacingOccurrences(of: "-", with: "")] }
-
+                        
                         do {
                             let snapshot = try await db.whereField("id", in: idsWithVariants).getDocuments()
                             let foundIDs = snapshot.documents.compactMap { $0.documentID }
-
+                            
                             for record in chunk where !foundIDs.contains(where: { $0 == record || $0.replacingOccurrences(of: "-", with: "") == $0 }) {
                                 missing.append(record)
                             }
@@ -224,26 +224,26 @@ class FirestoreSyncManager {
                             )
                         }
                     }
-
+                    
                     return missing
                 }.value
-
-
+                
+                
                 let localRecordsWithoutHyphens = Set(localRecords.map { $0.replacingOccurrences(of: "-", with: "") })
                 _ = firestoreRecords.filter {
                     !localRecordsWithoutHyphens.contains($0.replacingOccurrences(of: "-", with: ""))
                 }
-
+                
                 await syncRecords(localRecords: localRecords, firestoreRecords: firestoreRecords, collectionName: collectionName)
                 FirestoreSyncManager.log("syncRecords completed for \(collectionName)", level: .sync, collection: collectionName, syncID: syncID)
- 
-
+                
+                
             } else {
                 FirestoreSyncManager.log("No local records found. Pulling from Firestore...", level: .warning, collection: collectionName, syncID: syncID)
-
+                
                 await syncRecords(localRecords: [], firestoreRecords: firestoreRecords, collectionName: collectionName)
                 FirestoreSyncManager.log("syncRecords completed for \(collectionName) (no local records)", level: .sync, collection: collectionName, syncID: syncID)
-
+                
                 DispatchQueue.main.async {
                     ToastThrottler.shared.postToast(
                         for: collectionName,
@@ -253,10 +253,10 @@ class FirestoreSyncManager {
                     )
                 }
             }
-
+            
         } catch {
             FirestoreSyncManager.log("Critical error fetching local records: \(error.localizedDescription)", level: .error, collection: collectionName, syncID: syncID)
-
+            
             DispatchQueue.main.async {
                 ToastThrottler.shared.postToast(
                     for: collectionName,
@@ -266,26 +266,26 @@ class FirestoreSyncManager {
                 )
             }
         }
-
+        
         FirestoreSyncManager.log("Finished checking local records for \(collectionName)", level: .finished, collection: collectionName, syncID: syncID)
     }
-
-
+    
+    
     private func uploadLocalRecordsToFirestore(collectionName: String, records: [String]) async {
         let db = Firestore.firestore()
         let collectionRef = db.collection(collectionName)
-
+        
         Self.log("Starting upload of \(records.count) local \(collectionName) records to Firestore", level: .upload, collection: collectionName)
-
+        
         guard !records.isEmpty else {
             Self.log("No local \(collectionName) records to upload.", level: .info, collection: collectionName)
             return
         }
-
+        
         let (uploadedCount, errorCount) = await Task.detached(priority: .background) { () -> (Int, Int) in
             var uploaded = 0
             var errors = 0
-
+            
             for record in records {
                 guard let recordUUID = UUID(uuidString: record) else {
                     errors += 1
@@ -299,7 +299,7 @@ class FirestoreSyncManager {
                     }
                     continue
                 }
-
+                
                 // Fetch local record safely on MainActor
                 let localRecord: AnyObject? = await MainActor.run {
                     try? PersistenceController.shared.fetchLocalRecord(
@@ -307,7 +307,7 @@ class FirestoreSyncManager {
                         recordId: recordUUID
                     )
                 }
-
+                
                 guard let localRecord else {
                     errors += 1
                     await MainActor.run {
@@ -320,7 +320,7 @@ class FirestoreSyncManager {
                     }
                     continue
                 }
-
+                
                 // Map Core Data object to dictionary
                 var recordData: [String: Any] = [:]
                 switch collectionName {
@@ -367,9 +367,9 @@ class FirestoreSyncManager {
                     ]
                 case "AppDayOfWeek":
                     guard let appDayOfWeek = localRecord as? AppDayOfWeek else { continue }
-
+                    
                     let id = appDayOfWeek.appDayOfWeekID ?? ""
-
+                    
                     recordData = [
                         "id": id,                      // ← Firestore primary ID
                         "appDayOfWeekID": id,          // ← Must match Core Data primary ID
@@ -377,13 +377,13 @@ class FirestoreSyncManager {
                         "name": appDayOfWeek.name ?? "",
                         "createdTimestamp": appDayOfWeek.createdTimestamp ?? Date()
                     ]
-
+                    
                 default:
                     continue
                 }
-
+                
                 let docRef = collectionRef.document(record)
-
+                
                 do {
                     try await docRef.setData(recordData)
                     uploaded += 1
@@ -401,14 +401,14 @@ class FirestoreSyncManager {
                     Self.log("Error uploading local record \(record) to Firestore: \(error.localizedDescription)", level: .error, collection: collectionName)
                 }
             }
-
+            
             return (uploaded, errors)
         }.value
-
+        
         let finalLevel: LogLevel = errorCount > 0 ? .warning : .finished
         Self.log("Finished uploading local \(collectionName) records — succeeded: \(uploadedCount), failed: \(errorCount)", level: finalLevel, collection: collectionName)
     }
-
+    
     
     // MARK: - Main download & sync coordinator
     private func syncRecords(localRecords: [String], firestoreRecords: [String], collectionName: String) async {
@@ -505,7 +505,7 @@ class FirestoreSyncManager {
             }
         }
     }
-
+    
     @MainActor
     private func downloadFirestoreRecordsToLocal(collectionName: String, records: [String]) async {
         guard !records.isEmpty else {
@@ -536,7 +536,7 @@ class FirestoreSyncManager {
                          collection: collectionName,
                          syncID: syncID)
             }
-
+            
             let docRef = collectionRef.document(record)
             
             do {
@@ -669,8 +669,8 @@ class FirestoreSyncManager {
         
         Self.log("🏁 Firestore sync complete for \(collectionName): \(downloadedCount) succeeded | \(errorCount) failed")
     }
-
-
+    
+    
     // MARK: - Static helpers for Firestore sync
     // ---------------------------
     // PirateIsland
@@ -681,10 +681,10 @@ class FirestoreSyncManager {
     ) {
         let data = docSnapshot.data() ?? [:]
         guard !data.isEmpty else { return }
-
+        
         let islandName = data["islandName"] as? String ?? data["name"] as? String
         let islandLocation = data["islandLocation"] as? String ?? data["location"] as? String
-
+        
         guard let name = islandName, let location = islandLocation else {
             Task { @MainActor in
                 FirestoreSyncManager.log(
@@ -695,7 +695,7 @@ class FirestoreSyncManager {
             }
             return
         }
-
+        
         let country = data["country"] as? String
         let createdByUserId = data["createdByUserId"] as? String
         let lastModifiedByUserId = data["lastModifiedByUserId"] as? String
@@ -705,7 +705,7 @@ class FirestoreSyncManager {
         let longitude = data["longitude"] as? Double ?? 0.0
         let gymWebsiteString = data["gymWebsite"] as? String
         let gymWebsite = gymWebsiteString != nil ? URL(string: gymWebsiteString!) : nil
-
+        
         context.perform {
             let fetchRequest = PirateIsland.fetchRequest()
             if let uuid = UUID(uuidString: docSnapshot.documentID) {
@@ -713,11 +713,11 @@ class FirestoreSyncManager {
             } else {
                 fetchRequest.predicate = NSPredicate(format: "islandIDString == %@", docSnapshot.documentID)
             }
-
+            
             do {
                 let results = try context.fetch(fetchRequest)
                 let island = results.first ?? PirateIsland(context: context)
-
+                
                 island.islandID = UUID(uuidString: docSnapshot.documentID)
                 island.islandName = name
                 island.islandLocation = location
@@ -729,7 +729,7 @@ class FirestoreSyncManager {
                 island.latitude = latitude
                 island.longitude = longitude
                 island.gymWebsite = gymWebsite
-
+                
                 if context.hasChanges {
                     try context.save()
                     Task { @MainActor in
@@ -759,7 +759,7 @@ class FirestoreSyncManager {
             }
         }
     }
-
+    
     // ---------------------------
     // Review
     // ---------------------------
@@ -770,27 +770,27 @@ class FirestoreSyncManager {
         context.perform {
             let data = docSnapshot.data() ?? [:]
             guard !data.isEmpty else { return }
-
+            
             let documentID = docSnapshot.documentID
             let reviewUUID: UUID = UUID(uuidString: documentID) ?? UUID.fromStringID(documentID)
-
+            
             let fetchRequest = Review.fetchRequest() as! NSFetchRequest<Review>
             fetchRequest.predicate = NSPredicate(format: "reviewID == %@", reviewUUID as CVarArg)
             fetchRequest.fetchLimit = 1
-
+            
             let review = (try? context.fetch(fetchRequest).first) ?? Review(context: context)
             review.reviewID = reviewUUID
             review.stars = (data["stars"] as? Int16) ?? Int16(data["stars"] as? Int ?? 0)
             review.review = data["review"] as? String ?? ""
             review.userName = data["userName"] as? String ?? data["name"] as? String ?? "Anonymous"
             review.createdTimestamp = (data["createdTimestamp"] as? Timestamp)?.dateValue() ?? Date()
-
+            
             if let islandIDString = data["islandID"] as? String {
                 let islandUUID = UUID(uuidString: islandIDString) ?? UUID.fromStringID(islandIDString)
                 let islandFetch: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
                 islandFetch.predicate = NSPredicate(format: "islandID == %@", islandUUID as CVarArg)
                 islandFetch.fetchLimit = 1
-
+                
                 if let island = try? context.fetch(islandFetch).first {
                     review.island = island
                 } else {
@@ -803,7 +803,7 @@ class FirestoreSyncManager {
                     }
                 }
             }
-
+            
             if context.hasChanges {
                 do {
                     try context.save()
@@ -834,8 +834,7 @@ class FirestoreSyncManager {
             }
         }
     }
-
-
+    
     // ---------------------------
     // MatTime
     // ---------------------------
@@ -843,21 +842,20 @@ class FirestoreSyncManager {
         docSnapshot: DocumentSnapshot,
         context: NSManagedObjectContext
     ) {
-
         var logBlock: (() -> Void)? = nil
-
+        
         context.perform {
             let docID = docSnapshot.documentID
             let uuid: UUID = UUID(uuidString: docID) ?? UUID.fromStringID(docID)
-
+            
             let fetchRequest: NSFetchRequest<MatTime> = MatTime.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "id == %@", uuid as CVarArg)
             fetchRequest.fetchLimit = 1
-
+            
             do {
                 let matTime = try context.fetch(fetchRequest).first ?? MatTime(context: context)
                 matTime.id = uuid
-
+                
                 // Mapping
                 matTime.type = docSnapshot.get("type") as? String
                 matTime.time = docSnapshot.get("time") as? String
@@ -869,12 +867,12 @@ class FirestoreSyncManager {
                 matTime.goodForBeginners = docSnapshot.get("goodForBeginners") as? Bool ?? false
                 matTime.kids = docSnapshot.get("kids") as? Bool ?? false
                 matTime.createdTimestamp = (docSnapshot.get("createdTimestamp") as? Timestamp)?.dateValue()
-
+                
                 // AppDayOfWeek linking
                 if let appDayRef = docSnapshot.get("appDayOfWeek") as? DocumentReference {
                     let rawID = appDayRef.documentID
                     let normalizedID = UUID(uuidString: rawID)?.uuidString ?? rawID
-
+                    
                     let dayFetch: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
                     dayFetch.predicate = NSPredicate(
                         format: "appDayOfWeekID == %@ OR appDayOfWeekID == %@",
@@ -882,38 +880,32 @@ class FirestoreSyncManager {
                         rawID
                     )
                     dayFetch.fetchLimit = 1
-
+                    
                     if let appDay = try? context.fetch(dayFetch).first {
                         matTime.appDayOfWeek = appDay
                     }
                 }
-
+                
                 // Save
-                        if context.hasChanges {
-                            do {
-                                // 1. Save the changes to the Persistent Store from the background thread
-                                try context.save()
-
-                                // 2. CRITICAL FIX: Force the main context to update on the Main Actor
-                                Task { @MainActor in
-                                    try PersistenceController.shared.viewContext.save() // This safely merges changes
-                                    
-                                    // Log success AFTER the main context has been saved/merged
-                                    Self.log("✅ Synced MatTime \(docSnapshot.documentID)",
-                                             level: .success,
-                                             collection: "MatTime")
-                                }
-                                
-                            } catch {
-                                // Handle the save error
-                                let docID = docSnapshot.documentID
-                                Task { @MainActor in
-                                    Self.log("❌ Failed saving MatTime \(docID): \(error.localizedDescription)",
-                                             level: .error,
-                                             collection: "MatTime")
-                                }
-                            }
+                if context.hasChanges {
+                    // 1. Removed the save call, letting the main context handle the merge
+                    
+                    // 2. CRITICAL FIX: Force the main context to update on the Main Actor
+                    Task {
+                        @MainActor in
+                        do {
+                            try PersistenceController.shared.viewContext.save()
+                            Self.log("✅ Synced MatTime \(docSnapshot.documentID)",
+                                     level: .success,
+                                     collection: "MatTime")
+                        } catch {
+                            let docID = docSnapshot.documentID
+                            Self.log("❌ Failed saving MatTime \(docID): \(error.localizedDescription)",
+                                     level: .error,
+                                     collection: "MatTime")
                         }
+                    }
+                }
             } catch {
                 logBlock = {
                     Self.log("❌ Failed syncing MatTime \(docSnapshot.documentID): \(error)",
@@ -922,14 +914,14 @@ class FirestoreSyncManager {
                 }
             }
         }
-
+        
         // 🌟 MAIN-ACTOR logging, after core data work is done
         if let logBlock {
             Task { @MainActor in logBlock() }
         }
     }
-
-
+    
+    
     // ---------------------------
     // AppDayOfWeek
     // ---------------------------
@@ -943,19 +935,19 @@ class FirestoreSyncManager {
             print("❌ ERROR: syncAppDayOfWeekStatic called with MAIN context! Must use background context!")
         }
         #endif
-
+        
         context.perform {
             let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
             let docID = docSnapshot.documentID
             let uuidVersion = UUID.fromStringID(docID).uuidString
-
+            
             fetchRequest.predicate = NSPredicate(
                 format: "appDayOfWeekID == %@ OR appDayOfWeekID == %@",
                 docID,
                 uuidVersion
             )
             fetchRequest.fetchLimit = 1
-
+            
             do {
                 let ado: AppDayOfWeek
                 if let existing = try context.fetch(fetchRequest).first {
@@ -964,7 +956,7 @@ class FirestoreSyncManager {
                     ado = AppDayOfWeek(context: context)
                     ado.appDayOfWeekID = docID
                 }
-
+                
                 // --- Map Firestore fields
                 guard let day = docSnapshot.get("day") as? String, !day.isEmpty else {
                     Task { @MainActor in
@@ -977,7 +969,7 @@ class FirestoreSyncManager {
                     return
                 }
                 ado.day = day
-
+                
                 if let nameFromFS = docSnapshot.get("name") as? String {
                     ado.name = nameFromFS
                 } else if let islandName = (docSnapshot.get("pIsland") as? [String: Any])?["islandName"] as? String {
@@ -985,23 +977,23 @@ class FirestoreSyncManager {
                 } else {
                     ado.name = day
                 }
-
+                
                 if let ts = docSnapshot.get("createdTimestamp") as? Timestamp {
                     ado.createdTimestamp = ts.dateValue()
                 } else if ado.createdTimestamp == nil {
                     ado.createdTimestamp = Date()
                 }
-
+                
                 // --- Link PirateIsland
                 if let pIslandData = docSnapshot.get("pIsland") as? [String: Any],
                    let pirateIslandIDString = pIslandData["islandID"] as? String {
-
+                    
                     let pirateUUID = UUID.fromStringID(pirateIslandIDString)
-
+                    
                     let islandFetch: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
                     islandFetch.predicate = NSPredicate(format: "islandID == %@", pirateUUID as CVarArg)
                     islandFetch.fetchLimit = 1
-
+                    
                     let island: PirateIsland
                     if let existingIsland = try context.fetch(islandFetch).first {
                         island = existingIsland
@@ -1019,15 +1011,17 @@ class FirestoreSyncManager {
                             island.gymWebsite = URL(string: urlString)
                         }
                     }
-
+                    
                     ado.pIsland = island
                 }
-
+                
                 // --- Save background context only
                 if context.hasChanges {
                     do {
-                        try context.save()
-
+                        try context.performAndWait {
+                            try context.save()
+                        }
+                        
                         // Log on main thread
                         Task { @MainActor in
                             FirestoreSyncManager.log(
@@ -1036,7 +1030,7 @@ class FirestoreSyncManager {
                                 collection: "AppDayOfWeek"
                             )
                         }
-
+                        
                     } catch {
                         Task { @MainActor in
                             FirestoreSyncManager.log(
@@ -1047,7 +1041,6 @@ class FirestoreSyncManager {
                         }
                     }
                 }
-
             } catch {
                 Task { @MainActor in
                     FirestoreSyncManager.log(

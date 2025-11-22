@@ -15,9 +15,10 @@ struct IslandModalContainer: View {
     @Binding var showModal: Bool
     @ObservedObject var enterZipCodeViewModel: EnterZipCodeViewModel
     @Binding var selectedAppDayOfWeek: AppDayOfWeek?
-    @State private var isLoading = true
     @Binding var navigationPath: NavigationPath
 
+    // NEW — smooth fade/scale for the modal
+    @State private var animateModal: Bool = false
 
     var body: some View {
         if let selectedIsland = selectedIsland {
@@ -26,7 +27,7 @@ struct IslandModalContainer: View {
                 islandName: selectedIsland.islandName ?? "",
                 islandLocation: selectedIsland.islandLocation ?? "",
                 formattedCoordinates: selectedIsland.formattedCoordinates,
-                createdTimestamp: selectedIsland.createdTimestamp?.description ?? "No timestamp available", // Safely unwrapping
+                createdTimestamp: selectedIsland.createdTimestamp?.description ?? "No timestamp available",
                 formattedTimestamp: selectedIsland.formattedTimestamp,
                 gymWebsite: selectedIsland.gymWebsite,
                 dayOfWeekData: [],
@@ -36,9 +37,18 @@ struct IslandModalContainer: View {
                 selectedDay: $selectedDay,
                 showModal: $showModal,
                 enterZipCodeViewModel: enterZipCodeViewModel,
-                navigationPath: $navigationPath // ✅ Add this
-
+                navigationPath: $navigationPath
             )
+            .opacity(animateModal ? 1 : 0)
+            .scaleEffect(animateModal ? 1 : 0.92)
+            .onAppear {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    animateModal = true
+                }
+            }
+            .onDisappear {
+                animateModal = false
+            }
         } else {
             EmptyView()
         }

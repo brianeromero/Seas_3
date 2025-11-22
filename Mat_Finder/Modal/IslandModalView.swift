@@ -23,7 +23,6 @@ struct IslandModalView: View {
     @Binding var navigationPath: NavigationPath
     @State private var showNoScheduleAlert = false
     
-    
     var isLoading: Bool {
         islandSchedules.isEmpty && !scheduleExists || isLoadingData
     }
@@ -79,61 +78,52 @@ struct IslandModalView: View {
     }
     
     var body: some View {
-        NavigationView {
-            ZStack {
-                Color.black.opacity(0.4)
-                    .edgesIgnoringSafeArea(.all)
-                    .onTapGesture {
-                        showModal = false
-                    }
-                
-                // Conditional content based on loading state and data availability
-                contentView
-            }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Dismiss") {
-                        showModal = false
-                    }
+        ZStack {
+            // Dimmed background
+            Color.black.opacity(0.4)
+                .edgesIgnoringSafeArea(.all)
+                .onTapGesture {
+                    showModal = false
+                }
+            
+            contentView
+        }
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button("Dismiss") {
+                    showModal = false
                 }
             }
-            .navigationTitle(selectedIsland?.islandName ?? "Island Details")
-            .navigationBarTitleDisplayMode(.inline)
         }
+        .navigationTitle(selectedIsland?.islandName ?? "Island Details")
+        .navigationBarTitleDisplayMode(.inline)
         .interactiveDismissDisabled(false)
         .onAppear {
             isLoadingData = true
-            guard selectedIsland != nil else {
+            
+            guard let island = selectedIsland else {
                 isLoadingData = false
                 return
             }
             
             Task {
-                guard let island = selectedIsland else {
-                    isLoadingData = false
-                    return
-                }
-                
-                // Load schedules and get whether the selected day has mat times
                 let hasSchedule = await viewModel.loadSchedules(for: island)
                 
-                // Fetch asynchronously
                 async let fetchedAvgRating = ReviewUtils.fetchAverageRating(
                     for: island,
                     in: viewContext,
                     callerFunction: "IslandModalView.onAppear"
                 )
+                
                 async let fetchedReviews = ReviewUtils.fetchReviews(
                     for: island,
                     in: viewContext,
                     callerFunction: "IslandModalView.onAppear"
                 )
                 
-                // Await results
                 let avgRating = Double(await fetchedAvgRating)
                 let reviews = await fetchedReviews
                 
-                // Update UI state on MainActor
                 await MainActor.run {
                     scheduleExists = hasSchedule
                     currentAverageStarRating = avgRating
@@ -143,8 +133,9 @@ struct IslandModalView: View {
             }
         }
     }
+
     
-    // MARK: - Extracted Subviews and NavigationLink Destinations
+    // MARK: - Content Views
     
     @ViewBuilder
     private var contentView: some View {
@@ -159,6 +150,7 @@ struct IslandModalView: View {
             Text("Error: selectedIsland or selectedDay is nil.")
                 .font(.system(size: 14))
                 .bold()
+                .fontDesign(.rounded)
                 .padding()
                 .background(Color(.systemBackground))
                 .cornerRadius(10)
@@ -168,13 +160,11 @@ struct IslandModalView: View {
     private func modalContent(island: PirateIsland) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(islandName)
-                .font(.system(size: 14))
-                .bold()
+                .font(.system(size: 14, weight: .bold))
+                .fontDesign(.rounded)
                 .foregroundColor(.primary)
             
-            Text(islandLocation)
-                .font(.system(size: 12))
-                .foregroundColor(.secondary)
+            locationSection
             
             websiteSection
             
@@ -189,7 +179,20 @@ struct IslandModalView: View {
         .padding()
         .background(Color(.systemBackground))
         .cornerRadius(10)
-        .frame(width: UIScreen.main.bounds.width * 0.8, height: UIScreen.main.bounds.height * 0.6)
+        .frame(width: UIScreen.main.bounds.width * 0.8,
+               height: UIScreen.main.bounds.height * 0.6)
+    }
+    
+    private var locationSection: some View {
+        Button(action: { openInMaps(address: islandLocation) }) {
+            Text(islandLocation)
+                .font(.system(size: 14, weight: .semibold))
+                .fontDesign(.rounded)
+                .foregroundColor(.accentColor)
+                .multilineTextAlignment(.leading)
+                .underline() // optional, makes it look like a link
+        }
+        .buttonStyle(.plain)
     }
     
     private var websiteSection: some View {
@@ -197,17 +200,20 @@ struct IslandModalView: View {
             if let gymWebsite = gymWebsite {
                 HStack {
                     Text("Website:")
-                        .font(.system(size: 12))
+                        .font(.system(size: 16))
+                        .fontDesign(.rounded)
                         .foregroundColor(.primary)
                     Spacer()
                     Link("Visit Website", destination: gymWebsite)
-                        .font(.system(size: 12))
+                        .font(.system(size: 16, weight: .semibold))
+                        .fontDesign(.rounded)
                         .foregroundColor(.accentColor)
                 }
                 .padding(.top, 10)
             } else {
                 Text("No website available.")
-                    .font(.system(size: 12))
+                    .font(.system(size: 16, weight: .semibold))
+                    .fontDesign(.rounded)
                     .foregroundColor(.secondary)
                     .padding(.top, 10)
             }
@@ -226,7 +232,7 @@ struct IslandModalView: View {
                 ) {
                     Button("OK", role: .cancel) { }
                 } message: {
-                    Text("There are no AppDayOfWeek records with MatTimes associated with this island.")
+                    Text("There are no scheduled mat times associated with this gym.")
                 }
         )
     }
@@ -238,30 +244,32 @@ struct IslandModalView: View {
                 destination: ViewScheduleForIsland(viewModel: viewModel, island: island)
             ) {
                 Text("View Schedule")
+                    .font(.system(size: 16, weight: .semibold))
+                    .fontDesign(.rounded)
                     .foregroundColor(.accentColor)
-                    .font(.system(size: 12)) // force same size as other links
             }
-            .buttonStyle(.plain) // remove default NavigationLink styling
+            .buttonStyle(.plain)
         } else {
             Button {
                 showNoScheduleAlert = true
             } label: {
                 Text("View Schedule")
+                    .font(.system(size: 16, weight: .semibold))
+                    .fontDesign(.rounded)
                     .foregroundColor(.accentColor)
-                    .font(.system(size: 12))
             }
             .buttonStyle(.plain)
         }
     }
-
-
-
+    
     private var reviewsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             if !currentReviews.isEmpty {
                 HStack {
                     Text("Average Rating:")
                         .foregroundColor(.primary)
+                        .font(.system(size: 16, weight: .semibold))
+                        .fontDesign(.rounded)
                     Spacer()
                     Text(String(format: "%.1f", currentAverageStarRating))
                         .foregroundColor(.primary)
@@ -274,13 +282,16 @@ struct IslandModalView: View {
                     }
                 } label: {
                     Text("View All Reviews")
-                        .foregroundColor(.accentColor) // match View Schedule color
-                        .font(.system(size: 12))       // match View Schedule size
+                        .foregroundColor(.accentColor)
+                        .font(.system(size: 16, weight: .semibold))
+                        .fontDesign(.rounded)
                 }
                 .buttonStyle(.plain)
 
             } else {
                 Text("No reviews available.")
+                    .font(.system(size: 16, weight: .semibold))
+                    .fontDesign(.rounded)
                     .foregroundColor(.secondary)
 
                 Button {
@@ -293,7 +304,8 @@ struct IslandModalView: View {
                         Text("Be the first to write a review!")
                         Image(systemName: "pencil.and.ellipsis.rectangle")
                     }
-                    .font(.headline)
+                    .font(.system(size: 16, weight: .semibold))
+                    .fontDesign(.rounded)
                     .foregroundColor(.accentColor)
                 }
                 .buttonStyle(.plain)
@@ -302,18 +314,32 @@ struct IslandModalView: View {
         .padding(.top, 20)
     }
 
-
     private var closeButton: some View {
         Button(action: {
             showModal = false
         }) {
             Text("Close")
                 .font(.system(size: 12))
+                .fontDesign(.rounded)
                 .padding(10)
                 .background(Color.red)
                 .foregroundColor(.white)
                 .cornerRadius(5)
                 .padding(.horizontal, 10)
+        }
+    }
+    
+    private func openInMaps(address: String) {
+        let encoded = address.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        
+        if let googleURL = URL(string: "comgooglemaps://?q=\(encoded)"),
+           UIApplication.shared.canOpenURL(googleURL) {
+            UIApplication.shared.open(googleURL)
+            return
+        }
+
+        if let appleURL = URL(string: "http://maps.apple.com/?address=\(encoded)") {
+            UIApplication.shared.open(appleURL)
         }
     }
 }

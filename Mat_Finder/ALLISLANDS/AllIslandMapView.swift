@@ -10,10 +10,6 @@ import os
 import OSLog
 
 
-
-// Equatable wrapper for MKCoordinateRegion
-// We'll keep this structure to allow programmatic change handlers if needed,
-// but the Map view itself will use MapCameraPosition.
 struct EquatableMKCoordinateRegion: Equatable {
     var region: MKCoordinateRegion
 

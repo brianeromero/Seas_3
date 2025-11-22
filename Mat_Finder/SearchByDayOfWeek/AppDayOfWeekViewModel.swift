@@ -250,7 +250,7 @@ final class AppDayOfWeekViewModel: ObservableObject {
         // Use the repository to save the AppDayOfWeek data
         repository.updateAppDayOfWeek(appDayOfWeek, with: island, dayOfWeek: dayOfWeek, context: viewContext)
     }
-
+    
     func saveAppDayOfWeekToFirestore(
         selectedIslandID: NSManagedObjectID,
         selectedDay: DayOfWeek,
@@ -314,7 +314,7 @@ final class AppDayOfWeekViewModel: ObservableObject {
             }
         }
     }
-
+    
     
     // Assuming this is still in AppDayOfWeekViewModel
     @MainActor // Mark it as MainActor since it accesses @Published properties
@@ -476,15 +476,15 @@ final class AppDayOfWeekViewModel: ObservableObject {
         kids: Bool,
         for appDayOfWeekID: NSManagedObjectID
     ) async throws -> NSManagedObjectID {
-
+        
         let backgroundContext = PersistenceController.shared.container.newBackgroundContext()
         backgroundContext.automaticallyMergesChangesFromParent = true
         backgroundContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
-
+        
         // --- Perform background work
         let matTimeID = try await backgroundContext.perform { () -> NSManagedObjectID in
             print("Updating/creating MatTime for AppDayOfWeek ID: \(appDayOfWeekID)")
-
+            
             // Fetch AppDayOfWeek
             guard let appDayOfWeek = try backgroundContext.existingObject(with: appDayOfWeekID) as? AppDayOfWeek else {
                 throw NSError(
@@ -494,7 +494,7 @@ final class AppDayOfWeekViewModel: ObservableObject {
                 )
             }
             appDayOfWeek.name = appDayOfWeek.day
-
+            
             // Determine MatTime instance
             let matTime: MatTime
             if let existingID = existingMatTimeID,
@@ -515,36 +515,32 @@ final class AppDayOfWeekViewModel: ObservableObject {
                 )
                 matTime.createdTimestamp = Date()
             }
-
+            
             // Mutate safely in background
             backgroundContext.performAndWait {
                 if matTime.id == nil {
                     matTime.id = UUID()
                 }
-
+                
                 if existingMatTimeID == nil {
                     appDayOfWeek.addToMatTimes(matTime)
                 }
             }
-
+            
             // Save background context
             try backgroundContext.save()
-
+            
             // Return the objectID for main thread use
             return matTime.objectID
         }
-
-        // --- Merge into main context on MainActor (outside background closure)
-        await MainActor.run {
-            try? PersistenceController.shared.viewContext.save()
-        }
-
-        // --- Refresh SwiftUI view safely on main actor
+        
+        // --- Merge into main context
+        try? PersistenceController.shared.viewContext.save()
         await refreshMatTimes()
-
+        
+        // Return the saved matTimeID
         return matTimeID
     }
-
 
     // MARK: - Refresh MatTimes
     @MainActor
