@@ -160,8 +160,7 @@ struct ConsolidatedIslandMapView: View {
                         selectedAppDayOfWeek: $selectedAppDayOfWeek,
                         navigationPath: $navigationPath
                     )
-                    .frame(width: UIScreen.main.bounds.width * 0.8,
-                            height: UIScreen.main.bounds.height * 0.6)
+                    .frame(maxWidth: 600, maxHeight: 600)
                     .background(Color(.systemBackground))
                     .cornerRadius(10)
                     .padding()

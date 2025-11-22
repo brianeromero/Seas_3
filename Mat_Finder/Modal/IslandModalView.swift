@@ -9,6 +9,7 @@ import Foundation
 import SwiftUI
 import CoreLocation
 
+
 struct IslandModalView: View {
     @Environment(\.managedObjectContext) var viewContext
     @ObservedObject var enterZipCodeViewModel: EnterZipCodeViewModel
@@ -76,121 +77,128 @@ struct IslandModalView: View {
         self.enterZipCodeViewModel = enterZipCodeViewModel
         self._navigationPath = navigationPath
     }
-    
+
+
     var body: some View {
         ZStack {
-            // Dimmed background
-            Color.black.opacity(0.4)
+            // Dimmed blurred background
+            Rectangle()
+                .fill(.ultraThinMaterial)
                 .edgesIgnoringSafeArea(.all)
-                .onTapGesture {
-                    showModal = false
-                }
-            
+                .onTapGesture { showModal = false }
+
             contentView
         }
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
-                Button("Dismiss") {
-                    showModal = false
-                }
+                Button("Dismiss") { showModal = false }
             }
         }
         .navigationTitle(selectedIsland?.islandName ?? "Island Details")
         .navigationBarTitleDisplayMode(.inline)
         .interactiveDismissDisabled(false)
         .onAppear {
-            isLoadingData = true
+            loadIslandData()
+        }
+    }
+    
+    // MARK: - Async loading
+    private func loadIslandData() {
+        isLoadingData = true
+        
+        guard let island = selectedIsland else {
+            isLoadingData = false
+            return
+        }
+        
+        Task {
+            let hasSchedule = await viewModel.loadSchedules(for: island)
             
-            guard let island = selectedIsland else {
+            async let fetchedAvgRating = ReviewUtils.fetchAverageRating(
+                for: island,
+                in: viewContext,
+                callerFunction: "IslandModalView.onAppear"
+            )
+            
+            async let fetchedReviews = ReviewUtils.fetchReviews(
+                for: island,
+                in: viewContext,
+                callerFunction: "IslandModalView.onAppear"
+            )
+            
+            let avgRating = Double(await fetchedAvgRating)
+            let reviews = await fetchedReviews
+            
+            await MainActor.run {
+                scheduleExists = hasSchedule
+                currentAverageStarRating = avgRating
+                currentReviews = reviews
                 isLoadingData = false
-                return
-            }
-            
-            Task {
-                let hasSchedule = await viewModel.loadSchedules(for: island)
-                
-                async let fetchedAvgRating = ReviewUtils.fetchAverageRating(
-                    for: island,
-                    in: viewContext,
-                    callerFunction: "IslandModalView.onAppear"
-                )
-                
-                async let fetchedReviews = ReviewUtils.fetchReviews(
-                    for: island,
-                    in: viewContext,
-                    callerFunction: "IslandModalView.onAppear"
-                )
-                
-                let avgRating = Double(await fetchedAvgRating)
-                let reviews = await fetchedReviews
-                
-                await MainActor.run {
-                    scheduleExists = hasSchedule
-                    currentAverageStarRating = avgRating
-                    currentReviews = reviews
-                    isLoadingData = false
-                }
             }
         }
     }
 
-    
+
     // MARK: - Content Views
-    
     @ViewBuilder
     private var contentView: some View {
         if isLoadingData {
-            ProgressView("Loading schedules...")
-                .padding()
-                .background(Color(.systemBackground))
-                .cornerRadius(10)
+            ZStack {
+                Rectangle()
+                    .fill(.ultraThinMaterial)
+                    .cornerRadius(12)
+                    .shadow(radius: 10)
+                    .frame(width: 200, height: 80)
+                ProgressView("Loading schedules...")
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .foregroundColor(.primary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if let island = selectedIsland, selectedDay != nil {
             modalContent(island: island)
         } else {
             Text("Error: selectedIsland or selectedDay is nil.")
-                .font(.system(size: 14))
-                .bold()
-                .fontDesign(.rounded)
+                .font(.system(size: 14, weight: .bold))
+                .foregroundColor(.primary)
                 .padding()
-                .background(Color(.systemBackground))
-                .cornerRadius(10)
+                .background(.ultraThinMaterial)
+                .cornerRadius(12)
+                .shadow(radius: 5)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         }
     }
+
     
     private func modalContent(island: PirateIsland) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(islandName)
-                .font(.system(size: 14, weight: .bold))
+                .font(.system(size: 20, weight: .bold))
                 .fontDesign(.rounded)
                 .foregroundColor(.primary)
-            
+
             locationSection
-            
             websiteSection
-            
             scheduleSection(for: island)
-            
             reviewsSection
-            
+
             Spacer()
-            
-            closeButton
         }
         .padding()
         .background(Color(.systemBackground))
         .cornerRadius(10)
-        .frame(width: UIScreen.main.bounds.width * 0.8,
-               height: UIScreen.main.bounds.height * 0.6)
+        .frame(maxWidth: 600, maxHeight: 600)
+        .overlay(alignment: .topTrailing) {
+            closeButton
+        }
     }
+
     
     private var locationSection: some View {
         Button(action: { openInMaps(address: islandLocation) }) {
             Text(islandLocation)
-                .font(.system(size: 14, weight: .semibold))
-                .fontDesign(.rounded)
+                .font(.system(size: 16, weight: .semibold, design: .rounded))
                 .foregroundColor(.accentColor)
-                .multilineTextAlignment(.leading)
-                .underline() // optional, makes it look like a link
+                .underline() // optional, looks more like a typical hyperlink
         }
         .buttonStyle(.plain)
     }
@@ -200,14 +208,16 @@ struct IslandModalView: View {
             if let gymWebsite = gymWebsite {
                 HStack {
                     Text("Website:")
-                        .font(.system(size: 16))
-                        .fontDesign(.rounded)
                         .foregroundColor(.primary)
-                    Spacer()
-                    Link("Visit Website", destination: gymWebsite)
                         .font(.system(size: 16, weight: .semibold))
                         .fontDesign(.rounded)
+
+                    Spacer()
+
+                    Link("Visit Website", destination: gymWebsite)
+                        .font(.system(size: 16, weight: .semibold, design: .rounded))
                         .foregroundColor(.accentColor)
+                        .underline() // optional, looks more like a typical hyperlink
                 }
                 .padding(.top, 10)
             } else {
@@ -219,7 +229,7 @@ struct IslandModalView: View {
             }
         }
     }
-    
+
     private func scheduleSection(for island: PirateIsland) -> some View {
         let hasSchedules = (island.appDayOfWeeks as? Set<AppDayOfWeek>)?
             .contains(where: { $0.hasMatTimes }) ?? false
@@ -237,6 +247,7 @@ struct IslandModalView: View {
         )
     }
     
+
     @ViewBuilder
     private func content(for island: PirateIsland, hasSchedules: Bool) -> some View {
         if hasSchedules {
@@ -247,6 +258,10 @@ struct IslandModalView: View {
                     .font(.system(size: 16, weight: .semibold))
                     .fontDesign(.rounded)
                     .foregroundColor(.accentColor)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(Color.accentColor.opacity(0.1)) // optional visual styling
+                    .cornerRadius(10)
             }
             .buttonStyle(.plain)
         } else {
@@ -257,77 +272,104 @@ struct IslandModalView: View {
                     .font(.system(size: 16, weight: .semibold))
                     .fontDesign(.rounded)
                     .foregroundColor(.accentColor)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(Color.gray.opacity(0.2)) // optional styling for disabled
+                    .cornerRadius(10)
             }
             .buttonStyle(.plain)
         }
     }
     
+
     private var reviewsSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 12) {
+
+            // WHEN REVIEWS EXIST
             if !currentReviews.isEmpty {
                 HStack {
                     Text("Average Rating:")
                         .foregroundColor(.primary)
                         .font(.system(size: 16, weight: .semibold))
                         .fontDesign(.rounded)
+
                     Spacer()
-                    Text(String(format: "%.1f", currentAverageStarRating))
-                        .foregroundColor(.primary)
+
+                    HStack(spacing: 2) {
+                        let starIcons = StarRating.getStars(for: currentAverageStarRating)
+                        ForEach(starIcons, id: \.self) { iconName in
+                            Image(systemName: iconName)
+                                .foregroundColor(.yellow)
+                        }
+                    }
                 }
 
-                Button {
-                    if let island = selectedIsland {
-                        navigationPath.append(AppScreen.viewAllReviews(island.objectID.uriRepresentation().absoluteString))
+                if let island = selectedIsland {
+                    Button {
+                        navigationPath.append(
+                            AppScreen.viewAllReviews(
+                                island.objectID.uriRepresentation().absoluteString
+                            )
+                        )
                         showModal = false
+                    } label: {
+                        Text("View All Reviews")
+                            .font(.system(size: 16, weight: .semibold))
+                            .fontDesign(.rounded)
+                            .foregroundColor(.accentColor)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(Color.accentColor.opacity(0.1))
+                            .cornerRadius(10)
                     }
-                } label: {
-                    Text("View All Reviews")
-                        .foregroundColor(.accentColor)
-                        .font(.system(size: 16, weight: .semibold))
-                        .fontDesign(.rounded)
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
 
             } else {
+                // WHEN NO REVIEWS EXIST
                 Text("No reviews available.")
                     .font(.system(size: 16, weight: .semibold))
                     .fontDesign(.rounded)
                     .foregroundColor(.secondary)
 
-                Button {
-                    if let island = selectedIsland {
-                        navigationPath.append(AppScreen.review(island.objectID.uriRepresentation().absoluteString))
+                if let island = selectedIsland {
+                    Button {
+                        navigationPath.append(
+                            AppScreen.review(
+                                island.objectID.uriRepresentation().absoluteString
+                            )
+                        )
                         showModal = false
-                    }
-                } label: {
-                    HStack {
+                    } label: {
                         Text("Be the first to write a review!")
-                        Image(systemName: "pencil.and.ellipsis.rectangle")
+                            .font(.system(size: 16, weight: .semibold))
+                            .fontDesign(.rounded)
+                            .foregroundColor(.accentColor)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(Color.accentColor.opacity(0.1))
+                            .cornerRadius(10)
                     }
-                    .font(.system(size: 16, weight: .semibold))
-                    .fontDesign(.rounded)
-                    .foregroundColor(.accentColor)
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
         }
         .padding(.top, 20)
     }
 
+
+
     private var closeButton: some View {
-        Button(action: {
+        Button {
             showModal = false
-        }) {
-            Text("Close")
-                .font(.system(size: 12))
-                .fontDesign(.rounded)
-                .padding(10)
-                .background(Color.red)
-                .foregroundColor(.white)
-                .cornerRadius(5)
-                .padding(.horizontal, 10)
+        } label: {
+            Image(systemName: "xmark.circle.fill")
+                .font(.system(size: 24, weight: .semibold))
+                .foregroundColor(.secondary)
+                .padding(8)
         }
     }
+
     
     private func openInMaps(address: String) {
         let encoded = address.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
