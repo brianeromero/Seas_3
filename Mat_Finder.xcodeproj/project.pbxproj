@@ -351,6 +351,7 @@
 				IslandModalContainer.swift,
 				IslandModalView.swift,
 				Tooltip.swift,
+				"View+FloatingModal.swift",
 			);
 			target = 0CF13E402C2A326700D714C0 /* Mat_Finder */;
 		};

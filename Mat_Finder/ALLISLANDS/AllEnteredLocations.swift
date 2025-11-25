@@ -95,7 +95,7 @@ struct AllEnteredLocations: View {
         .onReceive(NotificationCenter.default.publisher(for: .didSyncPirateIslands)) { _ in
             viewModel.fetchPirateIslands()
         }
-        .sheet(isPresented: $showModal) {
+        .floatingModal(isPresented: $showModal) {
             IslandModalContainer(
                 selectedIsland: $selectedIsland,
                 viewModel: appDayOfWeekViewModel,

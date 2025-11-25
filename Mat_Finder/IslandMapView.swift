@@ -57,7 +57,7 @@ struct IslandMapView: View {
             }
         }
 
-        .sheet(isPresented: $showModal) {
+        .floatingModal(isPresented: $showModal) {
             IslandModalContainer(
                 selectedIsland: $selectedIsland,
                 viewModel: viewModel,

@@ -60,7 +60,7 @@ struct DayOfWeekSearchView: View {
                         Task { await radiusChanged() }
                     }
             }
-            .sheet(isPresented: $showModal) {
+            .floatingModal(isPresented: $showModal) {
                 IslandModalContainer(
                     selectedIsland: $selectedIsland,
                     viewModel: viewModel,
@@ -71,6 +71,7 @@ struct DayOfWeekSearchView: View {
                     navigationPath: $navigationPath
                 )
             }
+
             .onAppear {
                 print("DayOfWeekSearchView: onAppear triggered.")
 

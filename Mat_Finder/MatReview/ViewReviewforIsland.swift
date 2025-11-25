@@ -436,7 +436,6 @@ struct ViewReviewforIsland: View {
 
 
 // MARK: - ReviewList
-
 struct ReviewList: View {
     var filteredReviews: [Review]
     @Binding var selectedSortType: SortType
@@ -446,39 +445,49 @@ struct ReviewList: View {
             if !filteredReviews.isEmpty {
                 LazyVStack(alignment: .leading, spacing: 12) {
                     ForEach(filteredReviews, id: \.reviewID) { review in
-                        // This NavigationLink uses the older 'destination:' syntax.
-                        // For full NavigationStack integration, it should push an AppScreen value.
-                        // Keeping it as is for now, but note for future refactoring.
                         NavigationLink(destination: FullReviewView(review: review)) {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text(review.review)
-                                    .font(.body)
-                                    .lineLimit(2)
+                            VStack(alignment: .leading, spacing: 12) {
 
+                                // ⭐ Stars + Date
                                 HStack {
-                                    ForEach(0..<Int(review.stars), id: \.self) { _ in
-                                        Image(systemName: "star.fill")
-                                            .foregroundColor(.yellow)
+                                    HStack(spacing: 4) {
+                                        ForEach(0..<Int(review.stars), id: \.self) { _ in
+                                            Image(systemName: "star.fill")
+                                                .foregroundColor(.yellow)
+                                        }
                                     }
-
                                     Spacer()
-
                                     Text(review.createdTimestamp, style: .date)
                                         .font(.subheadline)
                                         .foregroundColor(.secondary)
                                 }
+
+                                // Review text (preview)
+                                Text(review.review)
+                                    .font(.body)
+                                    .lineLimit(2)
+                                    .fixedSize(horizontal: false, vertical: true)
+
+                                // Reviewer
+                                Text("Reviewer: \(review.userName?.isEmpty == false ? review.userName! : "Anonymous")")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
                             }
                             .padding()
-                            .background(Color(.systemGray6)) // Use system color for background
-                            .cornerRadius(10)
-                            .shadow(radius: 3)
+                            .background(Color(.systemGray6))
+                            .cornerRadius(12)
+                            .shadow(color: Color.black.opacity(0.1), radius: 3, x: 0, y: 2)
                         }
-                        .buttonStyle(PlainButtonStyle()) // Remove default button styling
+                        .buttonStyle(PlainButtonStyle())
                     }
                 }
-                .padding() // This padding will create a margin around the LazyVStack
+                .padding(.horizontal)
+                .padding(.top, 8)
             } else {
                 Text("No reviews available.")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .padding()
             }
         }
     }
@@ -512,33 +521,47 @@ struct SortSection: View {
 
 
 // MARK: - FullReviewView (No changes needed)
-
 struct FullReviewView: View {
     var review: Review
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading) {
-                Text(review.review)
-                    .font(.body)
-                    .padding()
+            VStack(alignment: .leading, spacing: 16) {
 
+                // ⭐ Stars + Date
                 HStack {
-                    ForEach(0..<Int(review.stars), id: \.self) { _ in
-                        Image(systemName: "star.fill")
-                            .foregroundColor(.yellow)
+                    HStack(spacing: 4) {
+                        ForEach(0..<Int(review.stars), id: \.self) { _ in
+                            Image(systemName: "star.fill")
+                                .foregroundColor(.yellow)
+                        }
                     }
-
                     Spacer()
-
                     Text(review.createdTimestamp, style: .date)
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
-                .padding()
+
+                // Review text
+                Text(review.review)
+                    .font(.body)
+                    .fixedSize(horizontal: false, vertical: true) // ensures long text wraps
+
+                // Reviewer
+                Text("Reviewer: \(review.userName?.isEmpty == false ? review.userName! : "Anonymous")")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+
             }
+            .padding()
+            .background(Color(.systemGray6))
+            .cornerRadius(12)
+            .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
+            .padding(.horizontal)
+            .padding(.top, 8)
         }
         .navigationTitle("Full Review")
         .navigationBarTitleDisplayMode(.inline)
     }
 }
+

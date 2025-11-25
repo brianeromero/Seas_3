@@ -90,7 +90,7 @@ struct EnterZipCodeView: View {
             }
         }
         .navigationViewStyle(StackNavigationViewStyle())
-        .sheet(isPresented: $showModal) {
+        .floatingModal(isPresented: $showModal) {
             IslandModalContainer(
                 selectedIsland: $selectedIsland,
                 viewModel: appDayOfWeekViewModel,
@@ -101,6 +101,8 @@ struct EnterZipCodeView: View {
                 navigationPath: $navigationPath
             )
         }
+
+
         .onAppear {
             print("EnterZipCodeView: onAppear triggered.")
 

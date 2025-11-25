@@ -19,10 +19,10 @@ public struct EditExistingIsland: View {
     @Environment(\.dismiss) var dismiss
 
     // MARK: - Observed Objects
-    @ObservedObject var island: PirateIsland // The Core Data object
+    @ObservedObject var island: PirateIsland
     @EnvironmentObject var pirateIslandViewModel: PirateIslandViewModel
     @EnvironmentObject var profileViewModel: ProfileViewModel
-    @EnvironmentObject var authViewModel: AuthViewModel // Keep this
+    @EnvironmentObject var authViewModel: AuthViewModel
 
     @StateObject var islandDetails = IslandDetails()
     @StateObject private var countryService = CountryService()
@@ -33,8 +33,7 @@ public struct EditExistingIsland: View {
     @State private var alertMessage = ""
     @Binding var showSuccessToast: Bool
     @Binding var successToastMessage: String
-    @Binding var successToastType: ToastView.ToastType // <<< NEW: Add this binding
-
+    @Binding var successToastType: ToastView.ToastType
 
     @State private var originalIslandName: String = ""
     @State private var originalMultilineAddress: String = ""
@@ -43,166 +42,196 @@ public struct EditExistingIsland: View {
 
     @State private var createdByName: String = "Loading..."
     @State private var lastModifiedByName: String = "Loading..."
-    @State private var displayedCountryName: String = "" // State to hold the displayed country name
+    @State private var displayedCountryName: String = ""
 
-    // MARK: - Initialization (Update init to include new bindings)
-    init(island: PirateIsland, showSuccessToast: Binding<Bool>, successToastMessage: Binding<String>, successToastType: Binding<ToastView.ToastType>) { // <<< NEW: Update init
+    // MARK: - Initialization
+    init(
+        island: PirateIsland,
+        showSuccessToast: Binding<Bool>,
+        successToastMessage: Binding<String>,
+        successToastType: Binding<ToastView.ToastType>
+    ) {
         _island = ObservedObject(wrappedValue: island)
         _showSuccessToast = showSuccessToast
         _successToastMessage = successToastMessage
-        _successToastType = successToastType // <<< NEW: Initialize the new binding
+        _successToastType = successToastType
     }
 
     // MARK: - Body
     public var body: some View {
-        Form {
-            Section(header: Text("Gym Details")) {
-                TextField("Gym Name", text: $islandDetails.islandName)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-            }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
 
-            // Display the Country
-            Section(header: Text("Country")) {
-                Text(displayedCountryName)
-                    .foregroundColor(.primary)
-            }
+                // Gym Name
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Gym Details")
+                        .font(.headline)
+                    TextField("Gym Name", text: $islandDetails.islandName)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .font(.body) 
+               }
 
-            Section(header: Text("Address")) {
-                TextEditor(text: $islandDetails.multilineAddress)
-                    .frame(minHeight: 100)
-                    .border(Color.gray.opacity(0.5), width: 1)
-                    .cornerRadius(5)
-            }
-
-            Section(header: Text("Website (optional)")) {
-                TextField("Gym Website", text: $islandDetails.gymWebsite)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .keyboardType(.URL)
-                    .onChange(of: islandDetails.gymWebsite) { _, newValue in
-                        if !newValue.isEmpty && !validateURL(newValue) {
-                            alertMessage = "Invalid website URL"
-                            showAlert = true
-                        }
-                    }
-            }
-
-            Section(header: Text("Entered By")) {
-                Text(createdByName)
-                    .foregroundColor(.primary)
-            }
-
-            Section(header: Text("Last Modified By")) {
-                Text(lastModifiedByName)
-                    .foregroundColor(.primary)
-            }
-
-            VStack {
-                Button("Save") {
-                    os_log("Save button clicked", log: OSLog.default, type: .info)
-                    Task { await saveIsland() }
+                // Country
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Country")
+                        .font(.headline)
+                    Text(displayedCountryName)
+                        .foregroundColor(.primary)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .font(.body)
+                    
                 }
+
+                // Address
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Address")
+                        .font(.headline)
+                    TextEditor(text: $islandDetails.multilineAddress)
+                        .frame(minHeight: 100)
+                        .border(Color.gray.opacity(0.5), width: 1)
+                        .cornerRadius(5)
+                }
+
+                // Website
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Website (optional)")
+                        .font(.headline)
+                    TextField("Gym Website", text: $islandDetails.gymWebsite)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .font(.body)
+                        .keyboardType(.URL)
+                        .onChange(of: islandDetails.gymWebsite) { _, newValue in
+                            if !newValue.isEmpty && !validateURL(newValue) {
+                                alertMessage = "Invalid website URL"
+                                showAlert = true
+                            }
+                        }
+                }
+
+                // Entered By
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Entered By")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                    Text(createdByName).foregroundColor(.primary)
+
+                }
+
+                // Last Modified By
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Last Modified By")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                    Text(lastModifiedByName).foregroundColor(.primary)
+                }
+
+                // Action Buttons
+                actionButtons
             }
-            Spacer()
-            VStack {
-                Button("Cancel") {
-                    os_log("Cancel button clicked", log: OSLog.default, type: .info)
-                    clearFields()
-                    dismiss()
+            .padding()
+            .overlay(
+                VStack {
+                    Spacer()
+                    if showSuccessToast {
+                        Text(successToastMessage)
+                            .padding()
+                            .background(Color.black.opacity(0.8))
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                            .onAppear {
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                                    withAnimation { showSuccessToast = false }
+                                }
+                            }
+                    }
+                }
+                .padding()
+                .animation(.easeInOut, value: showSuccessToast)
+            )
+        }
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                VStack(spacing: 2) {
+                    Text("Edit Gym").font(.title).fontWeight(.bold).foregroundColor(.primary)
+                    Text("Ensure all required fields are entered below")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
                 }
             }
         }
-        .navigationBarTitle("Edit Gym", displayMode: .inline)
         .alert(isPresented: $showAlert) {
             Alert(title: Text("Error"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
         }
         .onAppear {
-            os_log("EditExistingIsland Appeared", log: OSLog.default, type: .info)
+            loadIslandData()
+        }
+    }
 
-            // Initialize islandDetails from the Core Data island object
-            islandDetails.islandName = island.islandName ?? ""
-            islandDetails.multilineAddress = island.islandLocation ?? ""
-            islandDetails.latitude = island.latitude
-            islandDetails.longitude = island.longitude
-            islandDetails.gymWebsite = island.gymWebsite?.absoluteString ?? ""
-            islandDetails.islandID = island.islandID
+    // MARK: - Helper Methods
+    private func loadIslandData() {
+        os_log("EditExistingIsland Appeared", log: OSLog.default, type: .info)
 
-            // Initialize the displayedCountryName directly from the island object
-            // FIX for empty country: Check if string is empty after trimming
-            displayedCountryName = island.country?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false ? island.country! : "Unknown"
+        // Initialize islandDetails from Core Data
+        islandDetails.islandName = island.islandName ?? ""
+        islandDetails.multilineAddress = island.islandLocation ?? ""
+        islandDetails.latitude = island.latitude
+        islandDetails.longitude = island.longitude
+        islandDetails.gymWebsite = island.gymWebsite?.absoluteString ?? ""
+        islandDetails.islandID = island.islandID
 
-            // --- ADDED LOGGING FOR INITIAL DISPLAY VALUES ---
-            os_log("Initial Display Values:", log: OSLog.default, type: .info)
-            os_log("  islandDetails.islandName: %{public}@", log: OSLog.default, type: .info, islandDetails.islandName)
-            os_log("  islandDetails.multilineAddress: %{public}@", log: OSLog.default, type: .info, islandDetails.multilineAddress)
-            os_log("  islandDetails.gymWebsite: %{public}@", log: OSLog.default, type: .info, islandDetails.gymWebsite)
-            os_log("  island.country (raw from Core Data): %{public}@", log: OSLog.default, type: .info, island.country ?? "nil")
-            os_log("  displayedCountryName (after processing): %{public}@", log: OSLog.default, type: .info, displayedCountryName)
-            os_log("  island.createdByUserId (raw from Core Data): %{public}@", log: OSLog.default, type: .info, island.createdByUserId ?? "nil")
-            // --- END ADDED LOGGING ---
+        displayedCountryName = island.country?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+            ? island.country!
+            : "Unknown"
 
-            Task {
-                await countryService.fetchCountries()
+        os_log("Initial Display Values:", log: OSLog.default, type: .info)
+        os_log("  islandDetails.islandName: %{public}@", log: OSLog.default, type: .info, islandDetails.islandName)
+        os_log("  islandDetails.multilineAddress: %{public}@", log: OSLog.default, type: .info, islandDetails.multilineAddress)
+        os_log("  islandDetails.gymWebsite: %{public}@", log: OSLog.default, type: .info, islandDetails.gymWebsite)
+        os_log("  island.country: %{public}@", log: OSLog.default, type: .info, island.country ?? "nil")
+        os_log("  displayedCountryName: %{public}@", log: OSLog.default, type: .info, displayedCountryName)
+        os_log("  island.createdByUserId: %{public}@", log: OSLog.default, type: .info, island.createdByUserId ?? "nil")
 
-                if let countryCode = island.country,
-                    let country = countryService.countries.first(where: { $0.cca2 == countryCode }) {
-                    islandDetails.selectedCountry = country
-                } else {
-                    islandDetails.selectedCountry = nil
+        Task {
+            await countryService.fetchCountries()
+
+            if let countryCode = island.country,
+               let country = countryService.countries.first(where: { $0.cca2 == countryCode }) {
+                islandDetails.selectedCountry = country
+            } else {
+                islandDetails.selectedCountry = nil
+            }
+
+            // Store original values
+            originalIslandName = islandDetails.islandName
+            originalMultilineAddress = islandDetails.multilineAddress
+            originalSelectedCountryCCA2 = islandDetails.selectedCountry?.cca2
+            originalGymWebsite = islandDetails.gymWebsite
+
+            // Resolve "Entered By"
+            if let createdByValue = island.createdByUserId {
+                var resolvedName: String?
+                resolvedName = await authViewModel.fetchUserName(forUserID: createdByValue)
+                if resolvedName == nil {
+                    resolvedName = await authViewModel.fetchUserName(forUserName: createdByValue)
                 }
+                await MainActor.run { self.createdByName = resolvedName ?? "Unknown Creator" }
+            } else {
+                await MainActor.run { self.createdByName = "N/A (No creator ID/UserName)" }
+            }
 
-                // Store original values for change detection
-                originalIslandName = islandDetails.islandName
-                originalMultilineAddress = islandDetails.multilineAddress
-                originalSelectedCountryCCA2 = islandDetails.selectedCountry?.cca2
-                originalGymWebsite = islandDetails.gymWebsite
-
-                // --- MODIFIED LOGIC FOR "Entered By" ---
-                if let createdByValue = island.createdByUserId {
-                    os_log("Attempting to resolve 'Entered By' for value: %{public}@", log: OSLog.default, type: .info, createdByValue)
-
-                    var resolvedName: String?
-
-                    // 1. Try to fetch by User ID (UID) first
-                    // This assumes createdByValue *might* be a UID.
-                    os_log("Trying to fetch by User ID (UID): %{public}@", log: OSLog.default, type: .info, createdByValue)
-                    resolvedName = await authViewModel.fetchUserName(forUserID: createdByValue)
-
-                    // 2. If fetching by User ID failed, try to fetch by User Name
-                    // This assumes createdByValue *might* be a username.
-                    if resolvedName == nil {
-                        os_log("Fetching by User ID failed for %{public}%. Trying to fetch by User Name...", log: OSLog.default, type: .info, createdByValue)
-                        resolvedName = await authViewModel.fetchUserName(forUserName: createdByValue)
-                    }
-
-                    await MainActor.run {
-                        self.createdByName = resolvedName ?? "Unknown Creator"
-                        os_log("Created By Name set to: %{public}@", log: OSLog.default, type: .info, self.createdByName)
-                    }
-                } else {
-                    await MainActor.run {
-                        self.createdByName = "N/A (No creator ID/UserName)"
-                        os_log("Created By User ID is nil, setting name to N/A", log: OSLog.default, type: .info)
-                    }
-                }
-                // --- END MODIFIED LOGIC ---
-
-                if let currentUser = authViewModel.currentUser {
-                    await MainActor.run {
-                        self.lastModifiedByName = currentUser.userName
-                        os_log("Last Modified By Name set to current user's username: %{public}@", log: OSLog.default, type: .info, self.lastModifiedByName)
-                    }
-                } else {
-                    await MainActor.run {
-                        self.lastModifiedByName = "Not Logged In"
-                        os_log("Current user is nil, setting Last Modified By to 'Not Logged In'", log: OSLog.default, type: .info)
-                    }
-                }
+            // Last Modified By
+            if let currentUser = authViewModel.currentUser {
+                await MainActor.run { self.lastModifiedByName = currentUser.userName }
+            } else {
+                await MainActor.run { self.lastModifiedByName = "Not Logged In" }
             }
         }
     }
 
     // MARK: - Helper Methods
-
     private func hasChanges() -> Bool {
         let currentIslandName = islandDetails.islandName.trimmingCharacters(in: .whitespacesAndNewlines)
         let currentMultilineAddress = islandDetails.multilineAddress.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -252,10 +281,19 @@ public struct EditExistingIsland: View {
             await MainActor.run {
                 showAlert = true
                 alertMessage = "No changes detected. Please make a change to one of the fields to save."
+                
+                self.successToastMessage = "No changes detected. Please update a field before saving."
+                self.successToastType = .error
+                self.showSuccessToast = true
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                    self.showSuccessToast = false
+                }
             }
             os_log("No changes detected.", log: OSLog.default, type: .info)
-            return
+            return // do NOT dismiss
         }
+
 
         let isIslandNameNonEmpty = !islandDetails.islandName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         let isLocationNonEmpty = !islandDetails.multilineAddress.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -264,43 +302,57 @@ public struct EditExistingIsland: View {
             await MainActor.run {
                 showAlert = true
                 alertMessage = "Please fill in all required fields (Gym Name, Address)."
-                // <<< NEW: Also set toast if you want it for validation errors
+                
+                // Show toast for error
                 self.successToastMessage = "Please fill in all required fields (Gym Name, Address)."
                 self.successToastType = .error
                 self.showSuccessToast = true
-                // <<< END NEW
+                
+                // Auto-hide toast after 3 seconds
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                    self.showSuccessToast = false
+                }
             }
             os_log("Validation failed: required fields missing.", log: OSLog.default, type: .error)
-            return
+            return // <--- IMPORTANT: exit early, do NOT dismiss
         }
+
 
         if !islandDetails.gymWebsite.isEmpty && !validateURL(islandDetails.gymWebsite) {
             await MainActor.run {
                 showAlert = true
                 alertMessage = "Invalid website URL. Please correct it or leave it empty."
-                // <<< NEW: Also set toast if you want it for validation errors
+
                 self.successToastMessage = "Invalid website URL. Please correct it or leave it empty."
                 self.successToastType = .error
                 self.showSuccessToast = true
-                // <<< END NEW
+
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                    self.showSuccessToast = false
+                }
             }
             os_log("Validation failed: invalid website URL.", log: OSLog.default, type: .error)
-            return
+            return // do NOT dismiss
         }
+
 
         guard let currentUserId = authViewModel.currentUser?.userID else {
             await MainActor.run {
                 showAlert = true
                 alertMessage = "User not logged in. Please log in to save."
-                // <<< NEW: Also set toast if you want it for validation errors
+
                 self.successToastMessage = "User not logged in. Please log in to save."
                 self.successToastType = .error
                 self.showSuccessToast = true
-                // <<< END NEW
+
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                    self.showSuccessToast = false
+                }
             }
             os_log("Current user ID is nil.", log: OSLog.default, type: .error)
-            return
+            return // do NOT dismiss
         }
+
         os_log("Current User ID: %{public}@", log: OSLog.default, type: .info, currentUserId)
 
         // Capture values needed for updates outside the Core Data perform block
@@ -401,4 +453,52 @@ public struct EditExistingIsland: View {
         islandDetails.latitude = 0.0
         islandDetails.longitude = 0.0
     }
+    
+    // MARK: - Action Buttons
+    private var actionButtons: some View {
+        VStack(spacing: 14) {
+            saveButton
+            cancelButton
+        }
+        .padding(.top, 20)
+    }
+
+    // Save button with validation and async save
+    private var saveButton: some View {
+        Button(action: {
+            os_log("Save button clicked", log: OSLog.default, type: .info)
+            Task { await saveIsland() }
+        }) {
+            Text("Save")
+                .font(.headline)
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(Color.accentColor)   // Always active
+                .foregroundColor(.white)
+                .cornerRadius(12)
+                .shadow(color: Color.black.opacity(0.15), radius: 4, x: 0, y: 2)
+        }
+    }
+
+    // Cancel button to clear fields and dismiss
+    private var cancelButton: some View {
+        Button(action: {
+            os_log("Cancel button clicked", log: OSLog.default, type: .info)
+            clearFields()
+            dismiss()
+        }) {
+            Text("Cancel")
+                .font(.headline)
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(Color(.systemGray6))
+                .foregroundColor(.red)
+                .cornerRadius(12)
+                .shadow(color: Color.black.opacity(0.08), radius: 3, x: 0, y: 1)
+        }
+    }
+
+    
+    
+    
 }
