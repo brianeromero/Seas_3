@@ -61,9 +61,10 @@ struct EditExistingIslandListContent: View {
     // Fetch all islands; the filtering happens in the ViewModel
     @FetchRequest(
         entity: PirateIsland.entity(),
-        sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.createdTimestamp, ascending: true)]
+        sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.islandName, ascending: true)]
     )
     private var islands: FetchedResults<PirateIsland>
+
 
     // Bindings for the global toast message
     @Binding var showSuccessToast: Bool

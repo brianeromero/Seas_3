@@ -43,6 +43,8 @@ public struct EditExistingIsland: View {
     @State private var createdByName: String = "Loading..."
     @State private var lastModifiedByName: String = "Loading..."
     @State private var displayedCountryName: String = ""
+    
+    
 
     // MARK: - Initialization
     init(

@@ -38,7 +38,7 @@ struct ContentView: View {
     // MARK: - Fetched Results
     @FetchRequest(
         entity: PirateIsland.entity(),
-        sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.createdTimestamp, ascending: true)]
+        sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.islandName, ascending: true)]
     ) private var pirateIslands: FetchedResults<PirateIsland>
 
     // MARK: - Init
