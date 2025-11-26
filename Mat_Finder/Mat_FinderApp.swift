@@ -81,7 +81,7 @@ struct AppRootView: View {
 
     @State private var navigationPath = NavigationPath()
     @State private var showInitialSplash = true
-    
+
     // --- Global Toast State Variables ---
     @State private var globalShowToast: Bool = false
     @State private var globalToastMessage: String = ""
@@ -101,33 +101,20 @@ struct AppRootView: View {
                                 }
                             }
                         }
-                } else if authenticationState.isAuthenticated {
-                    DebugPrintView("AppRootView: Authenticated Content")
-
-                    if authenticationState.isAdmin || authenticationState.navigateToAdminMenu {
-                        AdminMenu()
-                            .onAppear { print("AppRootView: AdminMenu appeared") }
-                    } else {
-                        IslandMenu2(
-                            profileViewModel: profileViewModel,
-                            navigationPath: $navigationPath
-                        )
-                        .onAppear { print("AppRootView: IslandMenu appeared") }
-                    }
+                } else if authenticationState.isAdmin || authenticationState.navigateToAdminMenu {
+                    // Admin users
+                    AdminMenu()
+                        .onAppear { print("AppRootView: AdminMenu appeared") }
                 } else {
-                    DebugPrintView("AppRootView: LoginView displayed")
-                    LoginView(
-                        islandViewModel: pirateIslandViewModel,
+                    // Everyone else (authenticated or not)
+                    IslandMenu2(
                         profileViewModel: profileViewModel,
-                        isSelected: $selectedTabIndex,
-                        navigateToAdminMenu: $authenticationState.navigateToAdminMenu,
-                        isLoggedIn: $authenticationState.isLoggedIn,
                         navigationPath: $navigationPath
                     )
-                    .onAppear { print("AppRootView: LoginView appeared") }
+                    .onAppear { print("AppRootView: IslandMenu appeared") }
                 }
             }
-            // Admin navigation
+            // Admin navigation from anywhere
             .navigationDestination(isPresented: $authenticationState.navigateToAdminMenu) {
                 AdminMenu()
                     .environmentObject(authenticationState)
@@ -140,7 +127,7 @@ struct AppRootView: View {
                     .onAppear { print("✅ Navigated to AdminMenu") }
             }
 
-            // Regular AppScreen navigation
+            // AppScreen navigation
             .navigationDestination(for: AppScreen.self) { screen in
                 AppRootDestinationView(
                     screen: screen,
@@ -161,8 +148,6 @@ struct AppRootView: View {
         .onChange(of: navigationPath) { oldPath, newPath in
             print("⚠️ navigationPath changed from \(oldPath) to \(newPath)")
         }
-
-        // MARK: - Global Toast Listeners
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("ShowToast"))) { notification in
             guard let userInfo = notification.userInfo,
                   let message = userInfo["message"] as? String,
@@ -175,28 +160,19 @@ struct AppRootView: View {
                 self.globalShowToast = true
             }
 
-            // Auto-hide after 3 seconds
             DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                withAnimation {
-                    self.globalShowToast = false
-                }
+                withAnimation { self.globalShowToast = false }
             }
         }
-
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("HideToast"))) { _ in
-            withAnimation {
-                self.globalShowToast = false
-            }
+            withAnimation { self.globalShowToast = false }
         }
-
-        // MARK: - Overlay Toast
         .overlay(
             Group {
                 if globalShowToast {
                     ToastView(message: globalToastMessage, type: globalToastType)
                         .transition(.move(edge: .top).combined(with: .opacity))
                         .animation(.easeInOut(duration: 0.3), value: globalShowToast)
-                        // Use a smaller offset, so it appears near top instead of offscreen
                         .offset(y: 50)
                         .zIndex(1)
                 }
@@ -204,7 +180,6 @@ struct AppRootView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .ignoresSafeArea(edges: .all)
         )
-
     }
 }
 

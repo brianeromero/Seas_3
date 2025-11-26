@@ -13,16 +13,12 @@ import os
 import OSLog // For os_log
 
 
-
-
-// (Keep all your dummy types and definitions as provided previously)
-
 // MARK: - View Definition
 struct IslandMenu2: View {
 
     // MARK: - Environment Variables
     @Environment(\.managedObjectContext) private var viewContext
-    @Environment(\.dismiss) var dismiss // ✅ Correct way to use @Environment(\.dismiss)
+    @Environment(\.dismiss) var dismiss
     @EnvironmentObject var authViewModel: AuthViewModel
     @EnvironmentObject var allEnteredLocationsViewModel: AllEnteredLocationsViewModel
 
@@ -151,7 +147,6 @@ struct IslandMenu2: View {
 
     // MARK: - Body
     var body: some View {
-        // The main content of your menu
         VStack(alignment: .leading, spacing: 0) {
             HStack {
                 Spacer()
@@ -167,7 +162,9 @@ struct IslandMenu2: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     ForEach(menuItemsFlat) { option in
-                        if option == .empty {
+                        if option == .profile && !isLoggedIn {
+                            EmptyView()
+                        } else if option == .empty {
                             if let header = option.dividerHeaderText {
                                 Text(header)
                                     .font(.caption)
@@ -178,10 +175,10 @@ struct IslandMenu2: View {
                                     .padding(.top, 8)
                             }
                         } else {
-                            menuItemView(for: option)
+                            renderMenuItem(option)
                         }
 
-                        if option.needsDivider && option != .empty {
+                        if option.needsDivider && option != .empty && !(option == .profile && !isLoggedIn) {
                             Divider()
                                 .padding(.leading, menuLeadingPadding)
 
@@ -202,24 +199,21 @@ struct IslandMenu2: View {
 
             Spacer()
         }
-        // CHANGE: Apply the background using the .background() modifier on the main VStack
         .background(
-            ZStack { // Use a ZStack within .background if the background itself has multiple layers or specific positioning
+            ZStack {
                 GIFView(name: "flashing2")
                     .frame(width: 500, height: 450)
                     .offset(x: 100, y: -150)
-                    .ignoresSafeArea() // Makes the GIF fill the whole screen behind the content
-                
-                // Add your semi-transparent color background here as well
-                Color.white.opacity(0.1) // This creates the subtle overlay you had before
+                    .ignoresSafeArea()
+
+                Color.white.opacity(0.1)
             }
         )
-        // Keep other modifiers on the main VStack
         .navigationBarHidden(true)
         .setupListeners(
             showToastMessage: $showToastMessage,
             isToastShown: $isToastShown,
-            isLoggedIn: authViewModel.authenticationState.isAuthenticated
+            isLoggedIn: isLoggedIn
         )
         .alert(isPresented: $showAlert) {
             Alert(
@@ -230,72 +224,67 @@ struct IslandMenu2: View {
         }
     }
 
-    // MARK: - Extracted View Builders
+    // MARK: - Render Menu Item
     @ViewBuilder
-    private func menuItemView(for option: IslandMenuOption) -> some View {
-        switch option {
-        case .profile:
-            NavigationLink(value: AppScreen.profile) {
-                menuItemLabel(for: option)
+    private func renderMenuItem(_ option: IslandMenuOption) -> some View {
+        if restrictedItems.contains(option) && !isLoggedIn {
+            Button {
+                alertMessage = "You must be logged in to access this feature."
+                showAlert = true
+            } label: {
+                menuItemLabel(for: option, locked: true)
             }
-        case .allLocations:
-            NavigationLink(value: AppScreen.allLocations) {
-                menuItemLabel(for: option)
+        } else {
+            NavigationLink(value: navigationDestination(for: option)) {
+                menuItemLabel(for: option, locked: false)
             }
-        case .currentLocation:
-            NavigationLink(value: AppScreen.currentLocation) {
-                menuItemLabel(for: option)
-            }
-        case .postalCode:
-            NavigationLink(value: AppScreen.postalCode) {
-                menuItemLabel(for: option)
-            }
-        case .dayOfWeek:
-            NavigationLink(value: AppScreen.dayOfWeek) {
-                menuItemLabel(for: option)
-            }
-        case .addNewGym:
-            NavigationLink(value: AppScreen.addNewGym) {
-                menuItemLabel(for: option)
-            }
-        case .updateExistingGyms:
-            NavigationLink(value: AppScreen.updateExistingGyms) {
-                menuItemLabel(for: option)
-            }
-        case .addOrEditScheduleOpenMat:
-            NavigationLink(value: AppScreen.addOrEditScheduleOpenMat) {
-                menuItemLabel(for: option)
-            }
-        case .searchReviews:
-            NavigationLink(value: AppScreen.searchReviews) {
-                menuItemLabel(for: option)
-            }
-        case .submitReview:
-            NavigationLink(value: AppScreen.selectGymForReview) {
-                menuItemLabel(for: option)
-            }
-        case .faqDisclaimer:
-            NavigationLink(value: AppScreen.faqDisclaimer) {
-                menuItemLabel(for: option)
-            }
-        case .empty:
-            EmptyView()
         }
     }
 
-    private func menuItemLabel(for option: IslandMenuOption) -> some View {
+    // MARK: - Menu Item Label
+    private func menuItemLabel(for option: IslandMenuOption, locked: Bool = false) -> some View {
         HStack {
-            Image(systemName: option.iconName)
-                .font(option == .profile ? .title2 : .body)
-                .frame(width: option == .profile ? nil : 25)
-                .foregroundColor(option == .profile ? .blue : .secondary)
+            if !option.iconName.isEmpty {
+                Image(systemName: option.iconName)
+                    .font(.system(size: 20))  // Use a consistent size
+                    .frame(width: 25)
+                    .foregroundColor(locked ? .secondary : .accentColor) // Use accentColor instead of white
+            }
+
             Text(option.rawValue)
                 .font(.system(size: 20, weight: .bold))
-                .foregroundColor(.primary)
+                .foregroundColor(locked ? .secondary : .primary)
+
             Spacer()
         }
-        .contentShape(Rectangle())
         .padding(.vertical, 10)
         .padding(.leading, menuLeadingPadding)
+    }
+
+    // MARK: - Computed Properties
+    private var isLoggedIn: Bool {
+        authViewModel.authenticationState.isAuthenticated
+    }
+
+    private var restrictedItems: [IslandMenuOption] {
+        [.dayOfWeek, .addNewGym, .updateExistingGyms, .addOrEditScheduleOpenMat]
+    }
+
+    // MARK: - Navigation Destination
+    private func navigationDestination(for option: IslandMenuOption) -> AppScreen {
+        switch option {
+        case .profile: return .profile
+        case .allLocations: return .allLocations
+        case .currentLocation: return .currentLocation
+        case .postalCode: return .postalCode
+        case .dayOfWeek: return .dayOfWeek
+        case .addNewGym: return .addNewGym
+        case .updateExistingGyms: return .updateExistingGyms
+        case .addOrEditScheduleOpenMat: return .addOrEditScheduleOpenMat
+        case .searchReviews: return .searchReviews
+        case .submitReview: return .selectGymForReview
+        case .faqDisclaimer: return .faqDisclaimer
+        case .empty: return .profile
+        }
     }
 }
