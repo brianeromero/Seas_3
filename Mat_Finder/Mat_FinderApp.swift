@@ -183,13 +183,6 @@ struct AppRootView: View {
     }
 }
 
-
-// Your AppRootDestinationView code remains mostly the same,
-// as you're already passing the global toast bindings to it.
-// Just ensure any child views that trigger a local toast *instead* of the global one
-// use their own @State for that local toast, or if they intend to trigger the global,
-// they would use the NotificationCenter to post it.
-
 struct AppRootDestinationView: View {
     let screen: AppScreen
     @Binding var navigationPath: NavigationPath
@@ -410,6 +403,21 @@ struct AppRootDestinationView: View {
                 }
             } else {
                 Text("Error: Invalid Island ID for schedule.")
+            }
+        case .login:
+            LoginView(
+                islandViewModel: pirateIslandViewModel,
+                profileViewModel: profileViewModel,
+                isSelected: .constant(.login),
+                navigateToAdminMenu: $authenticationState.navigateToAdminMenu,
+                isLoggedIn: .constant(authenticationState.isAuthenticated),
+                navigationPath: $navigationPath
+            )
+            .environmentObject(authViewModel)
+            .environmentObject(pirateIslandViewModel)
+            .environmentObject(profileViewModel)
+            .onAppear {
+                print("🧭 Navigating to screen: .login (LoginParentView)")
             }
         }
     }

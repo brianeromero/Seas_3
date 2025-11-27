@@ -12,6 +12,7 @@ import os
 import Foundation // Needed for Hashable, Identifiable, Codable
 
 enum AppScreen: Hashable, Identifiable, Codable {
+    case login             // ← add this
     case review(String)
     case viewAllReviews(String)
     case selectGymForReview
@@ -40,6 +41,7 @@ enum AppScreen: Hashable, Identifiable, Codable {
     
     var id: String {
         switch self {
+        case .login: return "login"
         case .review(let id): return "review-\(id)"
         case .viewAllReviews(let id): return "viewAllReviews-\(id)"
         case .selectGymForReview: return "selectGymForReview"
@@ -77,6 +79,8 @@ enum AppScreen: Hashable, Identifiable, Codable {
         case aboutus, disclaimer, faq
         
         case viewSchedule
+        case login   // ← add this
+
 
     }
 
@@ -164,6 +168,8 @@ enum AppScreen: Hashable, Identifiable, Codable {
             try container.encodeNil(forKey: .faq)
         case .viewSchedule(let id):
             try container.encode(id, forKey: .viewSchedule)
+        case .login:
+            try container.encodeNil(forKey: .login)
         }
     }
 }

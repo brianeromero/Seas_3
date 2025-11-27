@@ -38,12 +38,3 @@ struct PirateIslandView: View {
         }
     }
 }
-
-
-struct PirateIslandView_Previews: PreviewProvider {
-    static var previews: some View {
-        let appState = AppState()
-        appState.showWelcomeScreen = true // or false, depending on the preview you want
-        return PirateIslandView(appState: appState)
-    }
-}

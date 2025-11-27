@@ -81,6 +81,7 @@ struct IslandMenu2: View {
         var id: String { rawValue }
 
         case profile = "Profile"
+        case profileLogin = "Login / Create Account" // <-- add this new case
         case empty = "" // Used as a placeholder for the first header
         case allLocations = "All Locations"
         case currentLocation = "Current Location"
@@ -96,6 +97,7 @@ struct IslandMenu2: View {
         var iconName: String {
             switch self {
             case .profile: return "person.crop.circle"
+            case .profileLogin: return "person.crop.circle.fill.badge.plus" // <-- add here
             case .empty: return ""
             case .allLocations: return "map"
             case .currentLocation: return "location.fill"
@@ -130,20 +132,29 @@ struct IslandMenu2: View {
         }
     }
 
-    let menuItemsFlat: [IslandMenuOption] = [
-        .empty,
-        .allLocations,
-        .currentLocation,
-        .postalCode,
-        .dayOfWeek,
-        .addNewGym,
-        .updateExistingGyms,
-        .addOrEditScheduleOpenMat,
-        .searchReviews,
-        .submitReview,
-        .faqDisclaimer,
-        .profile
-    ]
+
+    // With this computed property:
+    private var menuItemsFlat: [IslandMenuOption] {
+        var items: [IslandMenuOption] = [
+            .empty,
+            .allLocations,
+            .currentLocation,
+            .postalCode,
+            .dayOfWeek,
+            .addNewGym,
+            .updateExistingGyms,
+            .addOrEditScheduleOpenMat,
+            .searchReviews,
+            .submitReview,
+            .faqDisclaimer
+        ]
+        
+        // Dynamically add profile option depending on auth
+        items.append(.profile)  // Only one enum case
+        
+        return items
+    }
+
 
     // MARK: - Body
     var body: some View {
@@ -203,7 +214,7 @@ struct IslandMenu2: View {
             ZStack {
                 GIFView(name: "flashing2")
                     .frame(width: 500, height: 450)
-                    .offset(x: 100, y: -150)
+                    .offset(x: 100, y: -222)
                     .ignoresSafeArea()
 
                 Color.white.opacity(0.1)
@@ -217,29 +228,66 @@ struct IslandMenu2: View {
         )
         .alert(isPresented: $showAlert) {
             Alert(
-                title: Text("Location Error"),
+                title: Text("Login Required"),
                 message: Text(alertMessage),
-                dismissButton: .default(Text("OK"))
+                primaryButton: .default(Text("Go to Login")) {
+                    print("➡️ Alert Go to Login tapped, appending to navigationPath")
+                    navigationPath.append(AppScreen.login)
+                },
+                secondaryButton: .cancel()
             )
         }
+
+
     }
 
-    // MARK: - Render Menu Item
     @ViewBuilder
     private func renderMenuItem(_ option: IslandMenuOption) -> some View {
-        if restrictedItems.contains(option) && !isLoggedIn {
+        if option == .profile {
+            if isLoggedIn {
+                // Logged in → go to ProfileView
+                NavigationLink {
+                    ProfileView(
+                        profileViewModel: profileViewModel,
+                        authViewModel: authViewModel,
+                        selectedTabIndex: .constant(.login),
+                        navigationPath: $navigationPath,
+                        setupGlobalErrorHandler: { }
+                    )
+                } label: {
+                    menuItemLabel(for: option)
+                }
+            } else {
+                // Not logged in → trigger alert
+                Button {
+                    alertMessage = "You must log in to access your profile."
+                    showAlert = true
+                } label: {
+                    menuItemLabel(for: .profileLogin) // Show "Login / Create Account" text
+                }
+            }
+        } else if restrictedItems.contains(option) && !isLoggedIn {
             Button {
-                alertMessage = "You must be logged in to access this feature."
+                // Customize alert message for specific restricted items
+                switch option {
+                case .submitReview:
+                    alertMessage = "You must log in to submit a review."
+                case .dayOfWeek, .addNewGym, .updateExistingGyms, .addOrEditScheduleOpenMat:
+                    alertMessage = "You must be logged in to access this feature."
+                default:
+                    alertMessage = "You must log in to access this feature."
+                }
                 showAlert = true
             } label: {
                 menuItemLabel(for: option, locked: true)
             }
         } else {
             NavigationLink(value: navigationDestination(for: option)) {
-                menuItemLabel(for: option, locked: false)
+                menuItemLabel(for: option)
             }
         }
     }
+
 
     // MARK: - Menu Item Label
     private func menuItemLabel(for option: IslandMenuOption, locked: Bool = false) -> some View {
@@ -267,7 +315,7 @@ struct IslandMenu2: View {
     }
 
     private var restrictedItems: [IslandMenuOption] {
-        [.dayOfWeek, .addNewGym, .updateExistingGyms, .addOrEditScheduleOpenMat]
+        [.dayOfWeek, .addNewGym, .updateExistingGyms, .addOrEditScheduleOpenMat, .submitReview]
     }
 
     // MARK: - Navigation Destination
@@ -285,6 +333,8 @@ struct IslandMenu2: View {
         case .submitReview: return .selectGymForReview
         case .faqDisclaimer: return .faqDisclaimer
         case .empty: return .profile
+        case .profileLogin: return .login
+
         }
     }
 }
