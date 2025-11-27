@@ -214,7 +214,7 @@ struct IslandMenu2: View {
             ZStack {
                 GIFView(name: "flashing2")
                     .frame(width: 500, height: 450)
-                    .offset(x: 100, y: -222)
+                    .offset(x: 100, y: -230)
                     .ignoresSafeArea()
 
                 Color.white.opacity(0.1)

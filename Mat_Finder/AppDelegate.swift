@@ -104,7 +104,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         - currentStatus: \(String(describing: NetworkMonitor.shared.currentPath?.status))
         """)
 
-        // ✅ Add delayed recheck (2 seconds later)
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
             print("""
             🕓 [AppDelegate] Delayed NetworkMonitor check (2s later):
@@ -113,18 +112,17 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
             """)
         }
 
-        // ✅ 1. Configure Firebase & App Check FIRST
-        configureFirebaseIfNeeded() // This should set `isFirebaseConfigured = true` once done
+        // ✅ 1. Configure Firebase & App Check
+        configureFirebaseIfNeeded()
         print("Current user: \(Auth.auth().currentUser?.uid ?? "nil")")
 
-        // ✅ 2. Initialize ViewModels that depend on Firebase *after* Firebase is configured
+        // ✅ 2. Initialize ViewModels that depend on Firebase
         AuthViewModel._shared = AuthViewModel(
             managedObjectContext: PersistenceController.shared.container.viewContext,
             emailManager: UnifiedEmailManager.shared,
             authenticationState: self.authenticationState
         )
         self.authViewModel = AuthViewModel.shared
-
         self.pirateIslandViewModel = PirateIslandViewModel(persistenceController: PersistenceController.shared)
         self.profileViewModel = ProfileViewModel(
             viewContext: PersistenceController.shared.container.viewContext,
@@ -144,41 +142,37 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         configureNotifications(for: application)
         configureGoogleAds()
 
-        
-        // ✅ 6. Reactive network listener
-        NotificationCenter.default.addObserver(forName: .networkStatusChanged, object: nil, queue: .main) { [weak self] _ in
-            Task {
-                guard self != nil else { return }
+        // ✅ 6. Firestore sync at launch — NO login required
+        print("🌟 Starting Firestore sync at app launch (no login required)")
+        Task {
+            await FirestoreSyncCoordinator.shared.startAppSync()
+        }
 
+        // ✅ 7. Reactive network listener — remove login check
+        NotificationCenter.default.addObserver(forName: .networkStatusChanged, object: nil, queue: .main) { _ in
+            Task {
                 if NetworkMonitor.shared.isConnected {
-                    // ✅ Only sync if a user is signed in
-                    if Auth.auth().currentUser != nil {
-                        print("🌐 Network restored — resuming pending Firestore sync")
-                        await FirestoreSyncCoordinator.shared.startAppSync()
-                    } else {
-                        print("🌐 Network restored — no user signed in, skipping sync")
-                    }
+                    print("🌐 Network restored — resuming Firestore sync")
+                    await FirestoreSyncCoordinator.shared.startAppSync()
                 }
             }
         }
 
-
-        // ✅ 7. Defer Keychain test to avoid premature access
+        // ✅ 8. Defer Keychain test
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             self.testKeychainAccessGroup()
         }
 
-        // ✅ 8. IDFA request — delayed to ensure UI is ready
+        // ✅ 9. IDFA request — delayed
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             Task {
                 await IDFAHelper.requestIDFAPermission()
             }
         }
 
-        // ✅ 9. Firebase Auth State Listener (final setup)
+        // ✅ 10. Firebase Auth State Listener — optional, keeps syncing if user logs in later
         authStateDidChangeListenerHandle = Auth.auth().addStateDidChangeListener { [weak self] auth, user in
             guard let self = self else { return }
-
             print("Current user inside listener: \(user?.uid ?? "nil")")
 
             if let user = user {
@@ -187,7 +181,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
                 self.authenticationState.isAuthenticated = true
                 self.authenticationState.isLoggedIn = true
 
-                // 🔹 Trigger Firestore sync safely (single source of truth)
                 Task {
                     await FirestoreSyncCoordinator.shared.startAppSync()
                 }
@@ -198,19 +191,16 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
                 self.authenticationState.isAuthenticated = false
                 self.authenticationState.isLoggedIn = false
                 self.authenticationState.navigateToAdminMenu = false
-                print("DEBUG: authenticationState.isAuthenticated set to \(self.authenticationState.isAuthenticated)")
             }
         }
 
         // 🔟 Start location services
         configureLocationServices()
 
-        // Debug: confirm Google Ads key
         print("GADApplicationIdentifier: \(Bundle.main.object(forInfoDictionaryKey: "GADApplicationIdentifier") ?? "❌ missing")")
 
         return true
     }
-
 
 
     func applicationWillTerminate(_ application: UIApplication) {
