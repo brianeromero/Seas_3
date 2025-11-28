@@ -296,13 +296,13 @@ struct LoginForm: View {
     }
 }
 
-
 // MARK: - LOGIN VIEW
 struct LoginView: View {
-    @Binding var navigationPath: NavigationPath
     @EnvironmentObject var authenticationState: AuthenticationState
+    
     @StateObject private var islandViewModel: PirateIslandViewModel
     @StateObject private var profileViewModel: ProfileViewModel
+    
     @Binding var selectedLoginTab: LoginViewSelection
     @Binding var navigateToAdminMenu: Bool
     @Binding var isLoggedIn: Bool
@@ -312,19 +312,20 @@ struct LoginView: View {
     @State private var errorMessage = ""
     @State private var isSignInEnabled = false
     @State private var showMainContent = false
+    
+    @State private var loginTabSelection: LoginViewSelection = .login
+    @State private var navigationPath = NavigationPath() // ✅ Add internal navigation path
 
     public init(
         islandViewModel: PirateIslandViewModel,
         profileViewModel: ProfileViewModel,
         isSelected: Binding<LoginViewSelection>,
         navigateToAdminMenu: Binding<Bool>,
-        isLoggedIn: Binding<Bool>,
-        navigationPath: Binding<NavigationPath>
+        isLoggedIn: Binding<Bool>
     ) {
         _selectedLoginTab = isSelected
         _navigateToAdminMenu = navigateToAdminMenu
         _isLoggedIn = isLoggedIn
-        _navigationPath = navigationPath
         _islandViewModel = StateObject(wrappedValue: islandViewModel)
         _profileViewModel = StateObject(wrappedValue: profileViewModel)
     }
@@ -334,14 +335,14 @@ struct LoginView: View {
             // Full-screen gradient
             LinearGradient(
                 colors: [
-                    Color(red: 0.1, green: 0.2, blue: 0.25),   // Top color (original heroBackgroundColor)
-                    Color(red: 0.05, green: 0.15, blue: 0.2)   // Slightly darker bottom for depth
+                    Color(red: 0.1, green: 0.2, blue: 0.25),
+                    Color(red: 0.05, green: 0.15, blue: 0.2)
                 ],
                 startPoint: .top,
                 endPoint: .bottom
             )
             .ignoresSafeArea()
-            
+
             VStack(spacing: 0) {
                 if authenticationState.isAuthenticated {
                     IslandMenu2(
@@ -351,11 +352,11 @@ struct LoginView: View {
                 } else {
                     VStack(spacing: 0) {
                         HeroHeaderView(
-                            selectedLoginTab: $selectedLoginTab,
+                            selectedLoginTab: $loginTabSelection,
                             islandViewModel: islandViewModel
                         )
-                        
-                        if selectedLoginTab == .login {
+
+                        if loginTabSelection == .login {
                             LoginForm(
                                 usernameOrEmail: $usernameOrEmail,
                                 password: $password,
@@ -371,14 +372,16 @@ struct LoginView: View {
                             CreateAccountView(
                                 islandViewModel: islandViewModel,
                                 isUserProfileActive: .constant(false),
+                                selectedTabIndex: $selectedLoginTab,
+                                navigationPath: $navigationPath, // ✅ Pass navigationPath
                                 persistenceController: PersistenceController.shared,
-                                selectedTabIndex: .constant(LoginViewSelection.createAccount.rawValue),
+                                countryService: CountryService.shared, // ✅ add countryService
                                 emailManager: UnifiedEmailManager.shared
                             )
                             .transition(.move(edge: .trailing).combined(with: .opacity))
                         }
                     }
-                    .animation(.default, value: selectedLoginTab)
+                    .animation(.default, value: loginTabSelection)
                 }
             }
         }
@@ -386,11 +389,10 @@ struct LoginView: View {
 }
 
 
-
 extension View {
     func setupListeners(showToastMessage: Binding<String>, isToastShown: Binding<Bool>, isLoggedIn: Bool = false) -> some View {
         self.onReceive(NotificationCenter.default.publisher(for: Notification.Name.showToast)) { notification in
-            guard isLoggedIn else { return } // Only show toast if user is logged in (optional logic)
+            guard isLoggedIn else { return }
             if let message = notification.userInfo?["message"] as? String {
                 showToastMessage.wrappedValue = message
                 isToastShown.wrappedValue = true

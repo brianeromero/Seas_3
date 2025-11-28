@@ -57,13 +57,15 @@ struct AccountAuthView: View {
     @State private var isLoginSelected = false
     let emailManager: UnifiedEmailManager
     @ObservedObject var islandViewModel: PirateIslandViewModel
-    @State private var selectedTabIndex = 0
+    @State private var selectedTabIndex: LoginViewSelection = .login
     @State private var isSelected: LoginViewSelection = .login
     @State private var showAlert = false
     @State private var alertMessage = ""
     
     @Binding var navigateToAdminMenu: Bool
     @State private var isLoggedIn: Bool = false
+    @State private var navigationPath = NavigationPath()
+
 
 
     init(islandViewModel: PirateIslandViewModel,
@@ -100,8 +102,9 @@ struct AccountAuthView: View {
                     CreateAccountView(
                         islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.shared),
                         isUserProfileActive: $isUserProfileActive,
-                        persistenceController: PersistenceController.shared,
                         selectedTabIndex: $selectedTabIndex,
+                        navigationPath: $navigationPath, // ✅ add this
+                        persistenceController: PersistenceController.shared,
                         emailManager: UnifiedEmailManager.shared
                     )
                 }

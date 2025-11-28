@@ -35,12 +35,10 @@ struct CreateAccountView: View {
     // Environment and Context
     @EnvironmentObject var authenticationState: AuthenticationState
     @Environment(\.managedObjectContext) private var managedObjectContext // Correctly named
-
+    
     // Navigation and Routing
     @Binding var isUserProfileActive: Bool
-    @Binding var selectedTabIndex: Int
     @State private var shouldNavigateToLogin = false
-    @State private var navigationPath = NavigationPath()
     
     // Form State and Validation
     @State private var formState: FormState = FormState()
@@ -72,7 +70,7 @@ struct CreateAccountView: View {
     @State private var gymWebsiteURL: URL?
     @State private var selectedProtocol = "http://"
     @State private var province = ""
-
+    
     @State private var governorate = ""
     @State private var region = ""
     @State private var county = ""
@@ -111,29 +109,31 @@ struct CreateAccountView: View {
     
     @State private var isButtonDisabled = false
     @State private var localIsLoggedIn = false
-
     
-
+    @Binding var navigationPath: NavigationPath // <- Use parent navigation
+    
+    @Binding var selectedTabIndex: LoginViewSelection
+    
     
     let emailManager: UnifiedEmailManager
     
     init(
         islandViewModel: PirateIslandViewModel,
         isUserProfileActive: Binding<Bool>,
+        selectedTabIndex: Binding<LoginViewSelection>,
+        navigationPath: Binding<NavigationPath>,
         persistenceController: PersistenceController,
-        selectedTabIndex: Binding<Int>,
         countryService: CountryService = .shared,
         emailManager: UnifiedEmailManager
-
     ) {
         self._islandViewModel = ObservedObject(wrappedValue: islandViewModel)
         self._isUserProfileActive = isUserProfileActive
         self._selectedTabIndex = selectedTabIndex
+        self._navigationPath = navigationPath
         self.countryService = countryService
         self.emailManager = emailManager
         _profileViewModel = StateObject(wrappedValue: ProfileViewModel(viewContext: persistenceController.container.viewContext))
     }
-
     
     // Validation logic
     var isIslandNameRequired: Bool {
@@ -141,7 +141,7 @@ struct CreateAccountView: View {
         os_log("Computed property accessed: isIslandNameRequired = %@", type: .debug, isRequired ? "Yes" : "No")
         return isRequired
     }
-
+    
     var areAddressFieldsRequired: Bool {
         let isRequired = isIslandNameRequired && !ValidationUtility.validateIslandForm(
             islandName: islandDetails.islandName,
@@ -152,12 +152,12 @@ struct CreateAccountView: View {
             selectedCountry: selectedCountry,
             gymWebsite: islandDetails.gymWebsite
         ).isValid
-
+        
         os_log("Computed property accessed: areAddressFieldsRequired = %@", type: .debug, isRequired ? "Yes" : "No")
         return isRequired
     }
-
-
+    
+    
     var addressFormIsValid: Bool {
         if islandDetails.islandName.trimmingCharacters(in: .whitespaces).isEmpty {
             os_log("Island name is empty, returning false for address form validation.", type: .debug)
@@ -177,57 +177,56 @@ struct CreateAccountView: View {
             return validation.isValid
         }
     }
-
-
+    
+    // MARK: - Body
     var body: some View {
-        NavigationStack(path: $navigationPath) { // ✅ Use NavigationStack
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    Text("Create Account")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                        .foregroundColor(.primary)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                Text("Create Account")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+                    .padding(.horizontal, 20)
+                
+                if let error = errorMessage {
+                    Text(error)
+                        .foregroundColor(.red)
                         .padding(.horizontal, 20)
-
-                    if let error = errorMessage {
-                        Text(error)
-                            .foregroundColor(.red)
-                            .padding(.horizontal, 20)
-                            .padding(.bottom)
-                    }
-                    
-                    UserInformationView(formState: $formState) // Ensure this view is adaptive
-                    
-                    PasswordField(
-                        password: $formState.password,
-                        isValid: $formState.isPasswordValid,
-                        errorMessage: $formState.passwordErrorMessage,
-                        bypassValidation: $bypassValidation,
-                        validateField: { password in
-                            if let validationMessage = ValidationUtility.validateField(password, type: .password) {
-                                return (false, validationMessage.rawValue)
-                            } else {
-                                return (true, "")
-                            }
+                        .padding(.bottom)
+                }
+                
+                UserInformationView(formState: $formState) // Ensure this view is adaptive
+                
+                PasswordField(
+                    password: $formState.password,
+                    isValid: $formState.isPasswordValid,
+                    errorMessage: $formState.passwordErrorMessage,
+                    bypassValidation: $bypassValidation,
+                    validateField: { password in
+                        if let validationMessage = ValidationUtility.validateField(password, type: .password) {
+                            return (false, validationMessage.rawValue)
+                        } else {
+                            return (true, "")
                         }
-                    )
-                    
-                    ConfirmPasswordField(
-                        confirmPassword: $formState.confirmPassword,
-                        isValid: $formState.isConfirmPasswordValid,
-                        password: $formState.password
-                    )
-                    
-                    BeltSection(belt: $belt, beltOptions: beltOptions, usePickerStyle: true) // Ensure this view is adaptive
-
-                    Section(header: HStack {
-                        Text("Gym Information")
-                            .fontWeight(.bold)
-                            .foregroundColor(.primary) // Adaptive text color
-                        Text("(Optional)")
-                            .foregroundColor(.secondary) // Adaptive subdued text
-                            .opacity(0.7) // Can still use opacity with adaptive colors
                     }
+                )
+                
+                ConfirmPasswordField(
+                    confirmPassword: $formState.confirmPassword,
+                    isValid: $formState.isConfirmPasswordValid,
+                    password: $formState.password
+                )
+                
+                BeltSection(belt: $belt, beltOptions: beltOptions, usePickerStyle: true) // Ensure this view is adaptive
+                
+                Section(header: HStack {
+                    Text("Gym Information")
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary) // Adaptive text color
+                    Text("(Optional)")
+                        .foregroundColor(.secondary) // Adaptive subdued text
+                        .opacity(0.7)
+                }
                     .padding(.horizontal, 20)) {
                         IslandFormSections(
                             viewModel: islandViewModel,
@@ -251,7 +250,7 @@ struct CreateAccountView: View {
                             county: $county,
                             governorate: $governorate,
                             additionalInfo: $additionalInfo,
-
+                            
                             department: $islandDetails.department,
                             parish: $islandDetails.parish,
                             district: $islandDetails.district,
@@ -262,7 +261,7 @@ struct CreateAccountView: View {
                             zone: $islandDetails.zone,
                             block: $islandDetails.block,
                             island: $islandDetails.island,
-
+                            
                             isIslandNameValid: $isIslandNameValid,
                             islandNameErrorMessage: $islandNameErrorMessage,
                             isFormValid: $isFormValid,
@@ -271,108 +270,98 @@ struct CreateAccountView: View {
                             formState: $formState
                         )
                     }
+                
+                Button(action: {
+                    print("Button tapped - isButtonDisabled: \(isButtonDisabled)")
+                    if isButtonDisabled { return }
                     
-                    Button(action: {
-                        print("Button tapped - isButtonDisabled: \(isButtonDisabled)")
-                        if isButtonDisabled {
-                            return
-                        }
-
-                        isButtonDisabled = true
+                    isButtonDisabled = true
+                    
+                    Task {
+                        debugPrint("Create Account Button tapped - validating form")
                         
-                        Task {
-                            debugPrint("Create Account Button tapped - validating form")
+                        if let countryCode = selectedCountry?.cca2 {
+                            let normalizedCountryCode = countryCode.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
+                            print("Normalized Country Code before validation: \(normalizedCountryCode)")
                             
-                            if let countryCode = selectedCountry?.cca2 {
-                                let normalizedCountryCode = countryCode.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
-                                print("Normalized Country Code before validation: \(normalizedCountryCode)")
-                                
-                                do {
-                                    let addressFields = try getAddressFields(for: selectedCountry?.cca2 ?? "")
-                                    print("Address Fields Required: \(addressFields)")
-                                } catch {
-                                    print("Error fetching address fields: \(error)")
-                                }
+                            do {
+                                let addressFields = try getAddressFields(for: selectedCountry?.cca2 ?? "")
+                                print("Address Fields Required: \(addressFields)")
+                            } catch {
+                                print("Error fetching address fields: \(error)")
                             }
-                            
-                            let country = selectedCountry?.name.common ?? ""
-                            
-                            let (isValid, errorMessage) = isValidForm()
-                            if isValid {
-                                createAccount(country: country)
-                            } else {
-                                debugPrint("Form is invalid")
-                                self.errorMessage = errorMessage
-                                self.showValidationMessage = true
-                            }
-                            
-                            isButtonDisabled = false
                         }
-                    }) {
-                        Text("Create Account")
-                            .font(.title)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(
-                                // Use adaptive colors for button background
-                                isButtonDisabled || !isValidForm().isValid
-                                ? Color.secondary.opacity(0.4) // Softer gray for disabled/invalid
-                                : Color.accentColor // Use accent color for active button
-                            )
-                            .foregroundColor(.white) // White text on colored background should be fine
-                            .cornerRadius(8)
-                            .scaleEffect(isButtonDisabled ? 1.0 : 0.98)
-                            .shadow(radius: isButtonDisabled ? 0 : 5)
-                            .opacity(isButtonDisabled || !isValidForm().isValid ? 0.7 : 1) // Slightly less opaque when disabled
-                    }
-                    .disabled(isButtonDisabled || !isValidForm().isValid)
-                    .padding(.bottom)
-                    .padding(.horizontal, 24)
-                    .onAppear {
-                        print("Island Name: '\(islandDetails.islandName)'")
-                        print("Full Address: '\(islandDetails.fullAddress)'")
-                        print("Form State - isUserNameValid: \(formState.isUserNameValid), isEmailValid: \(formState.isEmailValid)")
-                        print("Debug: Initial state - islandName: '\(islandDetails.islandName)', fullAddress: '\(islandDetails.fullAddress)', email: '\(formState.email)', username: '\(formState.userName)'")
-
-                        Task {
-                            await countryService.fetchCountries()
+                        
+                        let country = selectedCountry?.name.common ?? ""
+                        
+                        let (isValid, errorMessage) = isValidForm()
+                        if isValid {
+                            createAccount(country: country)
+                        } else {
+                            debugPrint("Form is invalid")
+                            self.errorMessage = errorMessage
+                            self.showValidationMessage = true
                         }
+                        
+                        isButtonDisabled = false
                     }
-                    .alert(isPresented: $showErrorAlert) {
-                        Alert(
-                            title: Text(successMessage != nil ? "Success" : "Error"),
-                            message: Text(successMessage ?? errorMessage ?? "Unknown error"),
-                            dismissButton: .default(Text("OK")) {
-                                self.shouldNavigateToLogin = successMessage != nil
-                                isUserProfileActive = false
-                                successMessage = nil
-                                errorMessage = nil
-
-                                Task {
-                                    authenticationState.reset()
-                                }
-                            }
+                }) {
+                    Text("Create Account")
+                        .font(.title)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(
+                            isButtonDisabled || !isValidForm().isValid
+                            ? Color.secondary.opacity(0.4)
+                            : Color.accentColor
                         )
-                    }
-
-                    .navigationDestination(isPresented: $shouldNavigateToLogin) {
-                        LoginView(
-                            islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.shared),
-                            profileViewModel: profileViewModel,
-                            isSelected: .constant(LoginViewSelection(rawValue: selectedTabIndex) ?? .login),
-                            navigateToAdminMenu: $authenticationState.navigateToAdminMenu,
-                            isLoggedIn: $localIsLoggedIn,
-                            navigationPath: $navigationPath // ✅ Add this line
-                        )
-                    }
-
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                        .scaleEffect(isButtonDisabled ? 1.0 : 0.98)
+                        .shadow(radius: isButtonDisabled ? 0 : 5)
+                        .opacity(isButtonDisabled || !isValidForm().isValid ? 0.7 : 1)
                 }
-                .padding(.vertical) // Vertical padding for the VStack content
-                .background(Color(uiColor: .systemBackground)) // Ensure the background adapts
-                .ignoresSafeArea() // Extend background to safe areas if desired
-            }
-        }
-    }
+                .disabled(isButtonDisabled || !isValidForm().isValid)
+                .padding(.bottom)
+                .padding(.horizontal, 24)
+                .onAppear {
+                    print("Island Name: '\(islandDetails.islandName)'")
+                    print("Full Address: '\(islandDetails.fullAddress)'")
+                    print("Form State - isUserNameValid: \(formState.isUserNameValid), isEmailValid: \(formState.isEmailValid)")
+                    Task {
+                        await countryService.fetchCountries()
+                    }
+                }
+                .alert(isPresented: $showErrorAlert) {
+                    Alert(
+                        title: Text(successMessage != nil ? "Success" : "Error"),
+                        message: Text(successMessage ?? errorMessage ?? "Unknown error"),
+                        dismissButton: .default(Text("OK")) {
+                            self.shouldNavigateToLogin = successMessage != nil
+                            isUserProfileActive = false
+                            successMessage = nil
+                            errorMessage = nil
+                            
+                            Task { authenticationState.reset() }
+                        }
+                    )
+                }
+                
+                .navigationDestination(isPresented: $shouldNavigateToLogin) {
+                    LoginView(
+                        islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.shared),
+                        profileViewModel: profileViewModel,
+                        isSelected: .constant(LoginViewSelection(rawValue: selectedTabIndex.rawValue) ?? .login),
+                        navigateToAdminMenu: $authenticationState.navigateToAdminMenu,
+                        isLoggedIn: $localIsLoggedIn,
+                    )
+                }
+            } // End VStack
+            .padding(.vertical)
+            .background(Color(uiColor: .systemBackground))
+            .ignoresSafeArea()
+        } // End ScrollView
+    } // End body
     
     
     @ViewBuilder

@@ -411,7 +411,6 @@ struct AppRootDestinationView: View {
                 isSelected: .constant(.login),
                 navigateToAdminMenu: $authenticationState.navigateToAdminMenu,
                 isLoggedIn: .constant(authenticationState.isAuthenticated),
-                navigationPath: $navigationPath
             )
             .environmentObject(authViewModel)
             .environmentObject(pirateIslandViewModel)
