@@ -167,6 +167,16 @@ struct AppRootView: View {
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("HideToast"))) { _ in
             withAnimation { self.globalShowToast = false }
         }
+        
+        
+        // 🔹 Add this
+        .onReceive(NotificationCenter.default.publisher(for: .userLoggedOut)) { _ in
+            print("🔄 AppRootView received logout — resetting navigation")
+            navigationPath = NavigationPath()
+            selectedTabIndex = .login
+            AppRouter.shared.currentScreen = .main
+        }
+
         .overlay(
             Group {
                 if globalShowToast {

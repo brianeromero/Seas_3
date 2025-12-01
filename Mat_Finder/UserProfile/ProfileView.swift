@@ -10,7 +10,6 @@ import FirebaseAuth
 import FirebaseFirestore
 
 
-
 struct ProfileView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @StateObject var profileViewModel: ProfileViewModel
@@ -21,313 +20,274 @@ struct ProfileView: View {
     let setupGlobalErrorHandler: () -> Void
 
     private let beltOptions = ["", "White", "Blue", "Purple", "Brown", "Black"]
+
     @State private var isEditing = false
-    @State private var originalEmail: String = ""
-    @State private var originalUserName: String = ""
-    @State private var originalName: String = ""
-    @State private var originalBelt: String = ""
+    @State private var originalEmail = ""
+    @State private var originalUserName = ""
+    @State private var originalName = ""
+    @State private var originalBelt = ""
     @State private var showMainContent = false
     @State private var navigateToAdminMenu = false
-    @StateObject private var pirateIslandViewModel = PirateIslandViewModel(persistenceController: PersistenceController.shared)
     @State private var showValidationAlert = false
     @State private var validationAlertMessage = ""
     @State private var showSaveAlert = false
     @State private var saveAlertMessage = ""
     @State private var errorMessages: [ValidationType: String?] = [:]
+
     @FocusState private var focusedField: Field?
 
-    // MARK: - Delete Account Section
+    // Delete account
     @State private var confirmDeleteChecked = false
     @State private var deleteMessage: String?
-    @State private var deletePassword: String = ""           // password for reauth
-    @State private var showDeletePasswordField: Bool = false // show password field after first click
+    @State private var deletePassword = ""
+    @State private var showDeletePasswordField = false
 
-    enum Field: Hashable {
-        case email, username, name
-    }
-
-    enum ValidationType {
-        case email, userName, name, password
-    }
+    enum Field: Hashable { case email, username, name }
+    enum ValidationType { case email, userName, name, password }
 
     var body: some View {
         VStack {
             if profileViewModel.isProfileLoaded && showMainContent {
-                VStack {
-                    Rectangle()
-                        .fill(Color(uiColor: .systemGray5))
-                        .frame(height: 150)
-                        .overlay(
-                            Text("Profile")
-                                .font(.largeTitle)
-                                .fontWeight(.bold)
-                                .foregroundColor(.primary)
-                        )
-                    Form {
-                        Section(header: Text("Account Information")) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                HStack {
-                                    Text("Email:")
-                                    TextField("Email", text: $profileViewModel.email)
-                                        .disabled(!isEditing)
-                                        .foregroundColor(isEditing ? .primary : .secondary)
-                                        .focused($focusedField, equals: .email)
-                                        .onChange(of: profileViewModel.email) { oldValue, newValue in
-                                            validateField(.email)
-                                        }
-                                }
-                                if let errorMessage = errorMessages[.email], errorMessage != nil {
-                                    Text(errorMessage!)
-                                        .foregroundColor(.red)
-                                        .font(.footnote)
-                                }
-                            }
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                HStack {
-                                    Text("Username:")
-                                    TextField("Username", text: $profileViewModel.userName)
-                                        .disabled(!isEditing)
-                                        .foregroundColor(isEditing ? .primary : .secondary)
-                                        .focused($focusedField, equals: .username)
-                                        .onChange(of: profileViewModel.userName) { oldValue, newValue in
-                                            validateField(.userName)
-                                        }
-                                }
-                                if let errorMessage = errorMessages[.userName], errorMessage != nil {
-                                    Text(errorMessage!)
-                                        .foregroundColor(.red)
-                                        .font(.footnote)
-                                }
-                            }
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                HStack {
-                                    Text("Name:")
-                                    TextField("Name", text: $profileViewModel.name)
-                                        .disabled(!isEditing)
-                                        .foregroundColor(isEditing ? .primary : .secondary)
-                                        .focused($focusedField, equals: .name)
-                                        .onChange(of: profileViewModel.name) { oldValue, newValue in
-                                            validateField(.name)
-                                        }
-                                }
-                                if let errorMessage = errorMessages[.name], errorMessage != nil {
-                                    Text(errorMessage!)
-                                        .foregroundColor(.red)
-                                        .font(.footnote)
-                                }
-                            }
-                        }
-
-                        Section(header: HStack {
-                            Text("Belt")
-                            Text("(Optional)")
-                                .foregroundColor(.secondary)
-                                .opacity(0.7)
-                        }) {
-                            Menu {
-                                ForEach(beltOptions, id: \.self) { belt in
-                                    Button(belt) { profileViewModel.belt = belt }
-                                }
-                            } label: {
-                                HStack {
-                                    Text(profileViewModel.belt.isEmpty ? "Not selected" : profileViewModel.belt)
-                                    Spacer()
-                                    Image(systemName: "chevron.down")
-                                }
-                            }
-                            .disabled(!isEditing)
-                        }
-
-                        // Delete Account Section
-                        if isEditing {
-                            Section {
-                                VStack(alignment: .leading, spacing: 10) {
-                                    Toggle(isOn: $confirmDeleteChecked) {
-                                        Text("I understand this will permanently delete my account.")
-                                            .font(.subheadline)
-                                            .foregroundColor(.primary)
-                                    }
-
-                                    if confirmDeleteChecked && showDeletePasswordField {
-                                        SecureField("Enter password to confirm", text: $deletePassword)
-                                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                                    }
-
-                                    if let deleteMessage = deleteMessage {
-                                        Text(deleteMessage)
-                                            .foregroundColor(.red)
-                                            .font(.footnote)
-                                    }
-
-                                    Button(action: {
-                                        Task {
-                                            guard confirmDeleteChecked else {
-                                                deleteMessage = "You must check the box to confirm deletion."
-                                                return
-                                            }
-
-                                            // Show password field on first click
-                                            if !showDeletePasswordField {
-                                                showDeletePasswordField = true
-                                                return
-                                            }
-
-                                            deleteMessage = "Deleting profile..."
-                                            do {
-                                                try await authViewModel.deleteUser(recentPassword: deletePassword)
-                                                // Navigate back to login page
-                                                navigationPath.removeLast(navigationPath.count)
-                                                selectedTabIndex = .login
-                                            } catch {
-                                                deleteMessage = "Failed to delete profile: \(error.localizedDescription)"
-                                            }
-                                        }
-                                    }) {
-                                        Text("Delete Account")
-                                            .font(.headline)
-                                            .padding()
-                                            .frame(maxWidth: .infinity)
-                                            .background(confirmDeleteChecked ? Color.red : Color.gray)
-                                            .foregroundColor(.white)
-                                            .cornerRadius(40)
-                                    }
-                                    .disabled(!confirmDeleteChecked)
-                                }
-                                .padding(.vertical, 10)
-                            }
-                        }
-                    }
-
-                    // Sign Out button
-                    Button(action: {
-                        Task {
-                            // Immediately update UI to stop showing profile content / spinner while signing out
-                            await MainActor.run {
-                                showMainContent = false
-                                profileViewModel.isProfileLoaded = false
-                            }
-
-                            do {
-                                // Perform logout (this may await network calls inside)
-                                try await authViewModel.logoutAndClearPath(path: $navigationPath)
-
-                                // After successful logout, clear profile and navigate to login/root on main actor
-                                await MainActor.run {
-                                    profileViewModel.resetProfile()
-                                    navigationPath.removeLast(navigationPath.count) // clear nav stack
-                                    selectedTabIndex = .login
-                                    AppRouter.shared.currentScreen = .main
-                                }
-                            } catch {
-                                // If logout fails, restore a sane UI and show error
-                                await MainActor.run {
-                                    saveAlertMessage = "Failed to sign out: \(error.localizedDescription)"
-                                    showSaveAlert = true
-                                    profileViewModel.resetProfile()
-                                    profileViewModel.isProfileLoaded = false
-                                    showMainContent = false
-                                    selectedTabIndex = .login
-                                    navigationPath.removeLast(navigationPath.count)
-                                    AppRouter.shared.currentScreen = .main
-                                }
-                                print("Error signing out from ProfileView: \(error.localizedDescription)")
-                            }
-
-                        }
-                    }) {
-                        Text("Sign Out")
-                            .font(.headline)
-                            .padding()
-                            .frame(minWidth: 335)
-                            .background(Color.red)
-                            .foregroundColor(.white)
-                            .cornerRadius(40)
-                    }
-                    .disabled(isEditing)
-                    .padding(.top, 20)
-
-
-                }
+                profileContent
             } else {
                 ProgressView("Loading profile...")
-                    .foregroundColor(.primary)
             }
         }
         .navigationTitle("Profile")
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
+        .toolbar { toolbarContent }
+        .onAppear { handleAppear() }
+        .onChange(of: authViewModel.userIsLoggedIn) { _, newValue in
+            handleLoginChange(newValue)
+        }
+        .alert("Save Status", isPresented: $showSaveAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(saveAlertMessage)
+        }
+        .alert("Validation Error", isPresented: $showValidationAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(validationAlertMessage)
+        }
+    }
+}
+
+// MARK: - MAIN CONTENT
+extension ProfileView {
+
+    private var profileContent: some View {
+        VStack {
+            Rectangle()
+                .fill(Color(uiColor: .systemGray5))
+                .frame(height: 150)
+                .overlay(
+                    Text("Profile")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                )
+
+            Form {
+                accountInfoSection
+                beltSection
+
                 if isEditing {
-                    Button("Save") { saveChanges() }
-                } else {
-                    Button("Edit") { toggleEdit() }
+                    deleteAccountSection()
                 }
             }
-            ToolbarItem(placement: .navigationBarLeading) {
-                if isEditing {
-                    Button("Cancel") {
-                        cancelEditing()
-                        isEditing.toggle()
-                    }
-                }
-            }
-        }
-        .onAppear {
-            Task {
-                if !authViewModel.userIsLoggedIn {
-                    // User not logged in – hide content safely
-                    await MainActor.run {
-                        showMainContent = false
-                        profileViewModel.resetProfile()
-                        profileViewModel.isProfileLoaded = false
-                    }
-                    return
-                }
 
-                // Hide main content while loading
-                await MainActor.run { showMainContent = false }
-
-                // Load the profile
-                await profileViewModel.loadProfile()
-
-                // Show main content after load completes
-                await MainActor.run { showMainContent = true }
-            }
-        }
-
-        .onChange(of: authViewModel.userIsLoggedIn) { oldValue, newValue in
-            Task {
-                if newValue {
-                    // Hide main content while reloading
-                    await MainActor.run { showMainContent = false }
-                    
-                    // Load the profile
-                    await profileViewModel.loadProfile()
-                    
-                    // Show content after load completes
-                    await MainActor.run { showMainContent = true }
-                } else {
-                    // User logged out — reset profile safely
-                    await MainActor.run {
-                        showMainContent = false
-                        profileViewModel.resetProfile()
-                    }
-                }
-            }
-        }
-
-        .alert(isPresented: $showSaveAlert) {
-            Alert(title: Text("Save Status"), message: Text(saveAlertMessage), dismissButton: .default(Text("OK")))
-        }
-        .alert(isPresented: $showValidationAlert) {
-            Alert(title: Text("Validation Error"), message: Text(validationAlertMessage), dismissButton: .default(Text("OK")))
+            signOutButton
         }
     }
 
-    // MARK: - Helper Functions
+    // MARK: - Account Info Section
+    private var accountInfoSection: some View {
+        Section(header: Text("Account Information")) {
+            accountField(title: "Email:", text: $profileViewModel.email, error: errorMessages[.email] ?? nil, field: .email)
+            accountField(title: "Username:", text: $profileViewModel.userName, error: errorMessages[.userName] ?? nil, field: .username)
+            accountField(title: "Name:", text: $profileViewModel.name, error: errorMessages[.name] ?? nil, field: .name)
+        }
+    }
+
+    private var beltSection: some View {
+        Section(header: HStack {
+            Text("Belt")
+            Text("(Optional)").foregroundColor(.secondary).opacity(0.7)
+        }) {
+            Menu {
+                ForEach(beltOptions, id: \.self) { belt in
+                    Button(belt) { profileViewModel.belt = belt }
+                }
+            } label: {
+                HStack {
+                    Text(profileViewModel.belt.isEmpty ? "Not selected" : profileViewModel.belt)
+                    Spacer()
+                    Image(systemName: "chevron.down")
+                }
+            }
+            .disabled(!isEditing)
+        }
+    }
+
+    // MARK: - Delete Account Section
+    private func deleteAccountSection() -> some View {
+        Section {
+            VStack(alignment: .leading, spacing: 10) {
+                Toggle(isOn: $confirmDeleteChecked) {
+                    Text("I understand this will permanently delete my account.")
+                        .font(.subheadline)
+                }
+
+                if confirmDeleteChecked && showDeletePasswordField {
+                    SecureField("Enter password to confirm", text: $deletePassword)
+                        .textFieldStyle(.roundedBorder)
+                }
+
+                if let deleteMessage = deleteMessage {
+                    Text(deleteMessage)
+                        .foregroundColor(.red)
+                        .font(.footnote)
+                }
+
+                Button("Delete Account") {
+                    Task {
+                        guard confirmDeleteChecked else {
+                            deleteMessage = "You must check the box to confirm deletion."
+                            return
+                        }
+
+                        // First tap: show password field
+                        if !showDeletePasswordField {
+                            showDeletePasswordField = true
+                            return
+                        }
+
+                        deleteMessage = "Deleting profile..."
+
+                        do {
+                            try await authViewModel.deleteUser(recentPassword: deletePassword)
+
+                            // Reset fields
+                            deletePassword = ""
+                            showDeletePasswordField = false
+
+                            // Clear navigation after delete
+                            await MainActor.run {
+                                navigationPath.removeLast(navigationPath.count)
+                                selectedTabIndex = .login
+                            }
+
+                        } catch {
+                            deleteMessage = "Failed to delete profile: \(error.localizedDescription)"
+                        }
+                    }
+                }
+                .font(.headline)
+                .padding()
+                .frame(maxWidth: .infinity)
+                .background(confirmDeleteChecked ? Color.red : Color.gray)
+                .foregroundColor(.white)
+                .cornerRadius(40)
+                .disabled(!confirmDeleteChecked)
+            }
+            .padding(.vertical, 10)
+        }
+    }
+
+    // MARK: - Sign Out
+    private var signOutButton: some View {
+        Button("Sign Out") {
+            Task {
+                // Immediately hide profile UI and reset view model
+                await MainActor.run {
+                    showMainContent = false
+                    profileViewModel.resetProfile()
+                    profileViewModel.isProfileLoaded = false
+                }
+
+                do {
+                    // Actually sign out + clear path
+                    try await authViewModel.logoutAndClearPath(path: $navigationPath)
+
+                    // 🔄 Tell AppRootView to reset navigation + tab
+                    NotificationCenter.default.post(
+                        name: .userLoggedOut,
+                        object: nil
+                    )
+
+                } catch {
+                    await MainActor.run {
+                        saveAlertMessage = "Failed to sign out: \(error.localizedDescription)"
+                        showSaveAlert = true
+                    }
+                }
+            }
+        }
+        .font(.headline)
+        .padding()
+        .frame(minWidth: 335)
+        .background(Color.red)
+        .foregroundColor(.white)
+        .cornerRadius(40)
+        .disabled(isEditing)
+        .padding(.top, 20)
+    }
+
+
+    // MARK: - Toolbar
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        ToolbarItemGroup(placement: .navigationBarTrailing) {
+            if isEditing {
+                Button("Save") { saveChanges() }
+            } else {
+                Button("Edit") { toggleEdit() }
+            }
+        }
+
+        ToolbarItem(placement: .navigationBarLeading) {
+            if isEditing {
+                Button("Cancel") {
+                    cancelEditing()
+                    isEditing = false
+                }
+            }
+        }
+    }
+
+    // MARK: - On Appear
+    private func handleAppear() {
+        Task {
+            await MainActor.run { showMainContent = false }
+
+            if authViewModel.userIsLoggedIn {
+                await profileViewModel.loadProfile()
+            }
+
+            await MainActor.run {
+                showMainContent = authViewModel.userIsLoggedIn
+            }
+        }
+    }
+
+    private func handleLoginChange(_ loggedIn: Bool) {
+        Task {
+            await MainActor.run { showMainContent = false }
+
+            if loggedIn {
+                await profileViewModel.loadProfile()
+            }
+
+            await MainActor.run { showMainContent = loggedIn }
+        }
+    }
+}
+
+// MARK: - Actions / Validation
+extension ProfileView {
+
     private func toggleEdit() {
-        if isEditing { cancelEditing() } else { startEditing() }
+        if isEditing { cancelEditing() }
+        else { startEditing() }
         isEditing.toggle()
     }
 
@@ -362,8 +322,7 @@ struct ProfileView: View {
         validateField(.userName)
         validateField(.name)
 
-        let hasErrors = errorMessages.values.contains { $0 != nil }
-        if hasErrors {
+        if errorMessages.values.contains(where: { $0 != nil }) {
             validationAlertMessage = "Please fix the validation errors before saving."
             showValidationAlert = true
             return
@@ -388,8 +347,8 @@ struct ProfileView: View {
         }
     }
 
-    private func validateField(_ fieldType: ValidationType) {
-        switch fieldType {
+    private func validateField(_ type: ValidationType) {
+        switch type {
         case .email:
             errorMessages[.email] = profileViewModel.validateEmail(profileViewModel.email)
         case .userName:
@@ -398,6 +357,32 @@ struct ProfileView: View {
             errorMessages[.name] = profileViewModel.validateName(profileViewModel.name)
         case .password:
             errorMessages[.password] = profileViewModel.validatePassword(profileViewModel.newPassword)
+        }
+    }
+
+    // MARK: - Reusable Field
+    @ViewBuilder
+    private func accountField(title: String, text: Binding<String>, error: String?, field: Field) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(title)
+                TextField(title, text: text)
+                    .disabled(!isEditing)
+                    .foregroundColor(isEditing ? .primary : .secondary)
+                    .focused($focusedField, equals: field)
+                    .onChange(of: text.wrappedValue) { oldValue, newValue in
+                        switch field {
+                        case .email: validateField(.email)
+                        case .username: validateField(.userName)
+                        case .name: validateField(.name)
+                        }
+                    }
+            }
+            if let errorMessage = error, !errorMessage.isEmpty {
+                Text(errorMessage)
+                    .foregroundColor(.red)
+                    .font(.footnote)
+            }
         }
     }
 }
