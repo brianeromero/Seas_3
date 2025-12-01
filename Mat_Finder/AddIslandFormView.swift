@@ -204,7 +204,7 @@ struct AddIslandFormView: View {
     private func saveIsland() {
         Task {
             guard let currentUser = await authViewModel.getCurrentUser() else {
-                toastMessage = "You must be logged in to save a gym."
+                toastMessage = "You must be logged in to add a new gym location."
                 showToast = true
                 return
             }

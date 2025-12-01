@@ -9,7 +9,7 @@ import SwiftUI
 import CoreData
 import os
 
-import Foundation // Needed for Hashable, Identifiable, Codable
+
 
 enum AppScreen: Hashable, Identifiable, Codable {
     case login             // ← add this

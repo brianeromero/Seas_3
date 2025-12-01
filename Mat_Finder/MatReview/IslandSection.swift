@@ -29,16 +29,17 @@ struct IslandSection: View {
                 }
                 print("FROM IslandSection2: Initial selected island: \(selectedIsland?.islandName ?? "No island selected initially.")")
             }
-            .onChange(of: islands) { _ in
-                if !islands.isEmpty, selectedIsland == nil {
-                    selectedIsland = islands.first
+            .onChange(of: islands) { oldIslands, newIslands in
+                if !newIslands.isEmpty, selectedIsland == nil {
+                    selectedIsland = newIslands.first
                 }
+                print("Islands updated. Old count: \(oldIslands.count), New count: \(newIslands.count)")
             }
-            .onChange(of: selectedIsland) { newIsland in
-                print("FROM IslandSection3: Selected Gym: \(newIsland?.islandName ?? "No island selected.")")
+            .onChange(of: selectedIsland) { oldIsland, newIsland in
+                print("FROM IslandSection3: Selected Gym changed from \(oldIsland?.islandName ?? "none") to \(newIsland?.islandName ?? "none")")
             }
+
         }
-        // >>> REMOVE THIS LINE <<<
-        // .id(selectedIsland?.islandID ?? UUID()) // This was actively causing re-initializations
+
     }
 }

@@ -230,8 +230,8 @@ struct IslandMenu2: View {
             Alert(
                 title: Text("Login Required"),
                 message: Text(alertMessage),
-                primaryButton: .default(Text("Go to Login")) {
-                    print("➡️ Alert Go to Login tapped, appending to navigationPath")
+                primaryButton: .default(Text("Login In/Create An Account")) {
+                    print("➡️ Alert Create An Account/Login tapped, appending to navigationPath")
                     navigationPath.append(AppScreen.login)
                 },
                 secondaryButton: .cancel()
@@ -260,7 +260,7 @@ struct IslandMenu2: View {
             } else {
                 // Not logged in → trigger alert
                 Button {
-                    alertMessage = "You must log in to access your profile."
+                    alertMessage = "You must be logged in to access your profile. Tap below to log in or create an account."
                     showAlert = true
                 } label: {
                     menuItemLabel(for: .profileLogin) // Show "Login / Create Account" text
@@ -271,11 +271,11 @@ struct IslandMenu2: View {
                 // Customize alert message for specific restricted items
                 switch option {
                 case .submitReview:
-                    alertMessage = "You must log in to submit a review."
+                    alertMessage = "You must be logged in to submit a review. Tap below to log in or create an account."
                 case .dayOfWeek, .addNewGym, .updateExistingGyms, .addOrEditScheduleOpenMat:
-                    alertMessage = "You must be logged in to access this feature."
+                    alertMessage = "You must be logged in to access this feature. Tap below to log in or create an account."
                 default:
-                    alertMessage = "You must log in to access this feature."
+                    alertMessage = "You must be logged in to access this feature. Tap below to log in or create an account."
                 }
                 showAlert = true
             } label: {

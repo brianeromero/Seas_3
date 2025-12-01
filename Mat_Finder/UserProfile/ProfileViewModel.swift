@@ -56,10 +56,13 @@ public class ProfileViewModel: ObservableObject {
     }
 
     // MARK: - Load Profile
+    @MainActor
     func loadProfile() async {
+        // 🔐 SAFETY: Bail immediately if user is not logged in
         guard let userId = authViewModel.currentUser?.userID else {
-            print("⚠️ No logged-in user found in AuthViewModel")
-            isProfileLoaded = true
+            print("⚠️ loadProfile() called but no authenticated user exists.")
+            self.isProfileLoaded = false   // ensure spinner does NOT show indefinitely
+            self.currentUser = nil
             return
         }
 
@@ -67,33 +70,37 @@ public class ProfileViewModel: ObservableObject {
 
         do {
             let document = try await userRef.getDocument()
-            if let data = document.data() {
-                // ✅ Assign values directly to @Published properties
-                self.email = data["email"] as? String ?? ""
-                self.userName = data["userName"] as? String ?? ""
-                self.name = data["name"] as? String ?? ""
-                self.belt = data["belt"] as? String ?? ""
 
-                // ✅ Also update currentUser so it stays in sync
-                self.currentUser = User(
-                    email: self.email,
-                    userName: self.userName,
-                    name: self.name,
-                    belt: self.belt,
-                    userID: userId
-                )
-
-                print("✅ Profile loaded for \(self.email)")
-            } else {
-                print("⚠️ No profile document found in Firestore for userID: \(userId)")
+            guard let data = document.data() else {
+                print("⚠️ No profile document found for userID: \(userId)")
+                self.isProfileLoaded = true
+                return
             }
+
+            // 📝 Assign values directly to @Published properties
+            self.email = data["email"] as? String ?? ""
+            self.userName = data["userName"] as? String ?? ""
+            self.name = data["name"] as? String ?? ""
+            self.belt = data["belt"] as? String ?? ""
+
+            // 🧩 Sync in-memory user model
+            self.currentUser = User(
+                email: self.email,
+                userName: self.userName,
+                name: self.name,
+                belt: self.belt,
+                userID: userId
+            )
+
+            print("✅ Profile loaded for \(self.email)")
         } catch {
             print("❌ Error loading profile: \(error.localizedDescription)")
         }
 
-        // ✅ Always mark as loaded (success or fail)
+        // 🟢 Mark load complete (success or fail)
         self.isProfileLoaded = true
     }
+
 
     // MARK: - Update Profile
     func updateProfile() async throws {
@@ -184,6 +191,10 @@ public class ProfileViewModel: ObservableObject {
     func resetProfile() {
         print("🔄 Resetting profile fields")
         clearFields()
+        // FIX: Explicitly set isProfileLoaded to true to indicate the reset is complete,
+        // which satisfies the body's condition when showMainContent is false.
+        self.isProfileLoaded = true
+        self.currentUser = nil // Good idea to clear this too
     }
 
     private func clearFields() {
@@ -194,5 +205,6 @@ public class ProfileViewModel: ObservableObject {
         showPasswordChange = false
         newPassword = ""
         confirmPassword = ""
+        // isProfileLoaded is set in resetProfile()
     }
 }

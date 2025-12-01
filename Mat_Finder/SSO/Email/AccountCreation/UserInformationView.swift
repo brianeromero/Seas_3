@@ -94,7 +94,7 @@ struct UserInformationView: View {
                 EmptyView()
             }
         }
-        .onChange(of: binding.wrappedValue) { newValue in
+        .onChange(of: binding.wrappedValue) { oldValue, newValue in
             formState.validateField(newValue, type: validationType)
         }
     }

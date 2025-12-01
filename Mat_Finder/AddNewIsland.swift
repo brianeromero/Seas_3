@@ -70,7 +70,7 @@ public struct AddNewIsland: View {
         .navigationDestination(for: String.self) { islandMenuPath in
             IslandMenu2(
                 profileViewModel: profileViewModel,
-                navigationPath: $navigationPath
+                navigationPath: $navigationPath,
             )
         }
         .navigationBarTitleDisplayMode(.inline)
@@ -217,7 +217,7 @@ public struct AddNewIsland: View {
                 }
                 
                 guard let currentUser = await authViewModel.getCurrentUser() else {
-                    self.alertMessage = "You must be logged in to save a new gym."
+                    self.alertMessage = "You must be logged in to add a new gym location."
                     self.showAlert = true
                     return
                 }

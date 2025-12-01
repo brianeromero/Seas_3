@@ -18,7 +18,7 @@ struct AddressFieldView: View {
             TextField("Enter \(field.rawValue.capitalized)", text: binding(for: field))
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding()
-                .onChange(of: binding(for: field).wrappedValue) { newValue in
+                .onChange(of: binding(for: field).wrappedValue) { oldValue, newValue in
                     print("Field \(field.rawValue) updated to: \(newValue)")  // Log field changes
                 }
         }

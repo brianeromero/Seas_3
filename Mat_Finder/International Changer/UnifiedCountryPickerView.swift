@@ -55,9 +55,9 @@ struct UnifiedCountryPickerView: View {
                 }
             }
         }
-        .onChange(of: selectedCountry) { newCountry in
+        .onChange(of: selectedCountry) { oldCountry, newCountry in
             if let country = newCountry {
-                let countryCode = country.cca2 // no need for `if let` since `cca2` is non-optional
+                let countryCode = country.cca2 // non-optional
                 let normalizedCountryCode = countryCode.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
                 print("Normalized Country Code Set: \(normalizedCountryCode)")
                 

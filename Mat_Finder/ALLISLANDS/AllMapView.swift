@@ -73,8 +73,9 @@ struct AllMapView: View {
             updateRegion()
             print("Map appeared with region: \(region)")
         }
-        .onChange(of: CoordinateWrapper(coordinate: region.center)) { newCenter in
-            print("Region center changed to: \(newCenter.coordinate.latitude), \(newCenter.coordinate.longitude)")
+        .onChange(of: CoordinateWrapper(coordinate: region.center)) { oldValue, newValue in
+            print("Region center changed from \(oldValue.coordinate.latitude), \(oldValue.coordinate.longitude) to \(newValue.coordinate.latitude), \(newValue.coordinate.longitude)")
+            
         }
     }
 

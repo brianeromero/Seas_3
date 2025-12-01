@@ -30,7 +30,7 @@ struct UserNameField: View {
             TextField("Enter your username", text: $userName)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding(.horizontal, 20)
-                .onChange(of: userName) { newValue in
+                .onChange(of: userName) { oldValue, newValue in
                     let (newIsValid, newErrorMessage) = validateField(newValue)
                     self.isValid = newIsValid
                     self.errorMessage = newErrorMessage
@@ -64,7 +64,7 @@ struct NameField: View {
             TextField("Enter your name", text: $name)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding(.horizontal, 20)
-                .onChange(of: name) { newValue in
+                .onChange(of: name) { oldValue, newValue in
                     let (newIsValid, newErrorMessage) = validateField(newValue)
                     self.isValid = newIsValid
                     self.errorMessage = newErrorMessage
@@ -104,7 +104,7 @@ struct EmailField: View {
             TextField("Enter your email", text: $email)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding(.horizontal, 20)
-                .onChange(of: email) { newValue in
+                .onChange(of: email) { oldValue, newValue in
                     let (newIsValid, newErrorMessage) = validateField(newValue)
                     self.isValid = newIsValid
                     self.errorMessage = newErrorMessage
@@ -142,7 +142,7 @@ struct PasswordField: View {
                     TextField("Enter your password", text: $password)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .padding(.horizontal, 20)
-                        .onChange(of: password) { newValue in
+                        .onChange(of: password) { oldValue, newValue in
                             let (newIsValid, newErrorMessage) = validateField(newValue)
                             self.isValid = newIsValid
                             self.errorMessage = newErrorMessage
@@ -151,7 +151,7 @@ struct PasswordField: View {
                     SecureField("Enter your password", text: $password)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .padding(.horizontal, 20)
-                        .onChange(of: password) { newValue in
+                        .onChange(of: password) { oldValue, newValue in
                             let (newIsValid, newErrorMessage) = validateField(newValue)
                             self.isValid = newIsValid
                             self.errorMessage = newErrorMessage
@@ -201,14 +201,14 @@ struct ConfirmPasswordField: View {
                     TextField("Confirm your password", text: $confirmPassword)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .padding(.horizontal, 20)
-                        .onChange(of: confirmPassword) { newValue in
+                        .onChange(of: confirmPassword) { oldValue, newValue in
                             isValid = newValue == password
                         }
                 } else {
                     SecureField("Confirm your password", text: $confirmPassword)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .padding(.horizontal, 20)
-                        .onChange(of: confirmPassword) { newValue in
+                        .onChange(of: confirmPassword) { oldValue, newValue in
                             isValid = newValue == password
                         }
                 }

@@ -102,7 +102,7 @@ struct IslandDetailContent: View {
                 Text("Entered By: \(createdByUserId)")
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.bottom, 10)
-                    .onChange(of: createdByUserId) { newValue in
+                    .onChange(of: createdByUserId) { oldValue, newValue in
                         Logger.logCreatedByIdEvent(
                             createdByUserId: newValue,
                             fileName: "IslandDetailView",

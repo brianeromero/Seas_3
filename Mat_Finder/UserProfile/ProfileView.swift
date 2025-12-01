@@ -72,7 +72,7 @@ struct ProfileView: View {
                                         .disabled(!isEditing)
                                         .foregroundColor(isEditing ? .primary : .secondary)
                                         .focused($focusedField, equals: .email)
-                                        .onChange(of: profileViewModel.email) { _ in
+                                        .onChange(of: profileViewModel.email) { oldValue, newValue in
                                             validateField(.email)
                                         }
                                 }
@@ -90,7 +90,7 @@ struct ProfileView: View {
                                         .disabled(!isEditing)
                                         .foregroundColor(isEditing ? .primary : .secondary)
                                         .focused($focusedField, equals: .username)
-                                        .onChange(of: profileViewModel.userName) { _ in
+                                        .onChange(of: profileViewModel.userName) { oldValue, newValue in
                                             validateField(.userName)
                                         }
                                 }
@@ -108,7 +108,7 @@ struct ProfileView: View {
                                         .disabled(!isEditing)
                                         .foregroundColor(isEditing ? .primary : .secondary)
                                         .focused($focusedField, equals: .name)
-                                        .onChange(of: profileViewModel.name) { _ in
+                                        .onChange(of: profileViewModel.name) { oldValue, newValue in
                                             validateField(.name)
                                         }
                                 }
@@ -203,13 +203,38 @@ struct ProfileView: View {
                     // Sign Out button
                     Button(action: {
                         Task {
-                            do {
-                                try await authViewModel.logoutAndClearPath(path: $navigationPath)
-                            } catch {
-                                print("Error signing out from ProfileView: \(error.localizedDescription)")
-                                saveAlertMessage = "Failed to sign out: \(error.localizedDescription)"
-                                showSaveAlert = true
+                            // Immediately update UI to stop showing profile content / spinner while signing out
+                            await MainActor.run {
+                                showMainContent = false
+                                profileViewModel.isProfileLoaded = false
                             }
+
+                            do {
+                                // Perform logout (this may await network calls inside)
+                                try await authViewModel.logoutAndClearPath(path: $navigationPath)
+
+                                // After successful logout, clear profile and navigate to login/root on main actor
+                                await MainActor.run {
+                                    profileViewModel.resetProfile()
+                                    navigationPath.removeLast(navigationPath.count) // clear nav stack
+                                    selectedTabIndex = .login
+                                    AppRouter.shared.currentScreen = .main
+                                }
+                            } catch {
+                                // If logout fails, restore a sane UI and show error
+                                await MainActor.run {
+                                    saveAlertMessage = "Failed to sign out: \(error.localizedDescription)"
+                                    showSaveAlert = true
+                                    profileViewModel.resetProfile()
+                                    profileViewModel.isProfileLoaded = false
+                                    showMainContent = false
+                                    selectedTabIndex = .login
+                                    navigationPath.removeLast(navigationPath.count)
+                                    AppRouter.shared.currentScreen = .main
+                                }
+                                print("Error signing out from ProfileView: \(error.localizedDescription)")
+                            }
+
                         }
                     }) {
                         Text("Sign Out")
@@ -222,6 +247,8 @@ struct ProfileView: View {
                     }
                     .disabled(isEditing)
                     .padding(.top, 20)
+
+
                 }
             } else {
                 ProgressView("Loading profile...")
@@ -248,22 +275,48 @@ struct ProfileView: View {
         }
         .onAppear {
             Task {
-                await profileViewModel.loadProfile()
-                showMainContent = true
-            }
-        }
-        .onChange(of: authViewModel.userIsLoggedIn) { isLoggedIn in
-            if isLoggedIn {
-                Task {
-                    showMainContent = false
-                    await profileViewModel.loadProfile()
-                    showMainContent = true
+                if !authViewModel.userIsLoggedIn {
+                    // User not logged in – hide content safely
+                    await MainActor.run {
+                        showMainContent = false
+                        profileViewModel.resetProfile()
+                        profileViewModel.isProfileLoaded = false
+                    }
+                    return
                 }
-            } else {
-                showMainContent = false
-                profileViewModel.resetProfile()
+
+                // Hide main content while loading
+                await MainActor.run { showMainContent = false }
+
+                // Load the profile
+                await profileViewModel.loadProfile()
+
+                // Show main content after load completes
+                await MainActor.run { showMainContent = true }
             }
         }
+
+        .onChange(of: authViewModel.userIsLoggedIn) { oldValue, newValue in
+            Task {
+                if newValue {
+                    // Hide main content while reloading
+                    await MainActor.run { showMainContent = false }
+                    
+                    // Load the profile
+                    await profileViewModel.loadProfile()
+                    
+                    // Show content after load completes
+                    await MainActor.run { showMainContent = true }
+                } else {
+                    // User logged out — reset profile safely
+                    await MainActor.run {
+                        showMainContent = false
+                        profileViewModel.resetProfile()
+                    }
+                }
+            }
+        }
+
         .alert(isPresented: $showSaveAlert) {
             Alert(title: Text("Save Status"), message: Text(saveAlertMessage), dismissButton: .default(Text("OK")))
         }
