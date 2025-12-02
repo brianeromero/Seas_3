@@ -129,14 +129,14 @@ struct AdminMenu: View {
                         .padding(.vertical, 10)
                         .padding(.leading, 20)
                     }
-
-                    BannerView()
-                        .padding(.top, 30)
-                        .frame(maxWidth: .infinity, alignment: .center)
                 }
                 .padding(.top, 10)
             }
             .background(Color(uiColor: .systemBackground))
+
+            BannerView()
+                .frame(height: 50) // adjust the height as needed
+                .frame(maxWidth: .infinity, alignment: .center)
         }
         .ignoresSafeArea(edges: .bottom)
     }

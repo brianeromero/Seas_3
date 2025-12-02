@@ -135,20 +135,20 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         // ✅ 4. Optional Debug flag
         UserDefaults.standard.set(true, forKey: "AppAuthDebug")
 
-        // ✅ 5. App-specific config/setup
+        // ✅ 5. App-Specific Config & Setup
         configureAppConfigValues()
         configureApplicationAppearance()
         configureGoogleSignIn()
         configureNotifications(for: application)
         configureGoogleAds()
 
-        // ✅ 6. Firestore sync at launch — NO login required
+        // ✅ 6. Firestore Sync At Launch (no login required)
         print("🌟 Starting Firestore sync at app launch (no login required)")
         Task {
             await FirestoreSyncCoordinator.shared.startAppSync()
         }
 
-        // ✅ 7. Reactive network listener — remove login check
+        // ✅ 7. Reactive Network Listener (no login check needed)
         NotificationCenter.default.addObserver(forName: .networkStatusChanged, object: nil, queue: .main) { _ in
             Task {
                 if NetworkMonitor.shared.isConnected {
@@ -158,19 +158,19 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
             }
         }
 
-        // ✅ 8. Defer Keychain test
+        // ✅ 8. Defer Keychain Test
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             self.testKeychainAccessGroup()
         }
 
-        // ✅ 9. IDFA request — delayed
+        // ✅ 9. IDFA Request (delayed)
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             Task {
                 await IDFAHelper.requestIDFAPermission()
             }
         }
 
-        // ✅ 10. Firebase Auth State Listener — optional, keeps syncing if user logs in later
+        // ✅ 10. Firebase Auth State Listener (NO SYNCING HERE)
         authStateDidChangeListenerHandle = Auth.auth().addStateDidChangeListener { [weak self] auth, user in
             guard let self = self else { return }
             print("Current user inside listener: \(user?.uid ?? "nil")")
@@ -180,11 +180,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
                 self.authViewModel.userSession = user
                 self.authenticationState.isAuthenticated = true
                 self.authenticationState.isLoggedIn = true
-
-                Task {
-                    await FirestoreSyncCoordinator.shared.startAppSync()
-                }
-
             } else {
                 print("❌ Firebase No user signed in")
                 self.authViewModel.userSession = nil
@@ -194,7 +189,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
             }
         }
 
-        // 🔟 Start location services
+        // ✅ 11. Start Location Services
         configureLocationServices()
 
         print("GADApplicationIdentifier: \(Bundle.main.object(forInfoDictionaryKey: "GADApplicationIdentifier") ?? "❌ missing")")

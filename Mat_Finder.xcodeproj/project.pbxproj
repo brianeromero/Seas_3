@@ -293,7 +293,6 @@
 		0CDA090D2EA949CC0095AA59 /* Exceptions for "SSO" folder in "Mat_Finder" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				AdMob/AdMobBannerAdd.swift,
 				AdMob/BannerView.swift,
 				AdMob/GoogleAdsHelper.swift,
 				DealingWErrors/AlertModifier.swift,

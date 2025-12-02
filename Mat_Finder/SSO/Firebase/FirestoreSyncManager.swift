@@ -48,16 +48,18 @@ extension FirestoreSyncManager {
 actor FirestoreSyncCoordinator {
     static let shared = FirestoreSyncCoordinator()
     private var isSyncInProgress = false
+    private var hasPerformedInitialSync = false  // ✅ new flag
 
-    func startAppSync() async {
-        // ✅ Only sync if a user is logged in
-        guard Auth.auth().currentUser != nil else {
-            FirestoreSyncManager.log("⚠️ No user signed in — skipping sync.", level: .info)
+    func startAppSync(force: Bool = false) async {
+        // ✅ Skip if already in progress
+        guard !isSyncInProgress else {
+            FirestoreSyncManager.log("🚫 Sync already in progress — skipping duplicate call.", level: .warning)
             return
         }
 
-        guard !isSyncInProgress else {
-            FirestoreSyncManager.log("🚫 Sync already in progress — skipping duplicate call.", level: .warning)
+        // ✅ Skip if initial sync already performed and not forced
+        if hasPerformedInitialSync && !force {
+            FirestoreSyncManager.log("✅ Initial sync already done — skipping.", level: .info)
             return
         }
 
@@ -68,6 +70,8 @@ actor FirestoreSyncCoordinator {
         await MainActor.run {
             FirestoreSyncManager.shared.startFirestoreListeners()
         }
+
+        hasPerformedInitialSync = true
     }
 }
 
@@ -77,38 +81,28 @@ class FirestoreSyncManager {
     
     @MainActor
     func syncInitialFirestoreData() async {
-        guard Auth.auth().currentUser != nil else {
-            Self.log("No signed-in user. Skipping Firestore sync.", level: .warning)
-            return
-        }
-        
+        // ✅ Remove user login check
         do {
             try await createFirestoreCollection() // setup/check step
-            
+
             let db = Firestore.firestore()
-            let collections = [
-                "pirateIslands",
-                "AppDayOfWeek",
-                "MatTime",
-                "reviews"
-            ]
-            
+            let collections = ["pirateIslands", "AppDayOfWeek", "MatTime", "reviews"]
+
             for collectionName in collections {
                 do {
                     try await downloadCollection(db: db, name: collectionName)
                 } catch {
                     Self.log("Failed to download \(collectionName): \(error.localizedDescription)", level: .error, collection: collectionName)
-                    // Continue with next collection
                 }
             }
-            
+
             Self.log("Initial Firestore sync complete", level: .finished)
-            
+
         } catch {
             Self.log("Firestore setup/check error: \(error.localizedDescription)", level: .error)
         }
     }
-    
+
     
     private func downloadCollection(db: Firestore, name: String) async throws {
         let snapshot = try await db.collection(name).getDocuments()

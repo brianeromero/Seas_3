@@ -208,7 +208,9 @@ struct IslandMenu2: View {
             }
             .padding(.top, 10)
 
-            Spacer()
+            BannerView()
+                .frame(height: 50) // adjust the height as needed
+                .frame(maxWidth: .infinity, alignment: .center)
         }
         .background(
             ZStack {
