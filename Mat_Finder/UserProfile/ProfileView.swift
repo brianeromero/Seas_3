@@ -41,6 +41,10 @@ struct ProfileView: View {
     @State private var deleteMessage: String?
     @State private var deletePassword = ""
     @State private var showDeletePasswordField = false
+    
+    
+    @State private var showSignOutConfirmation = false
+
 
     enum Field: Hashable { case email, username, name }
     enum ValidationType { case email, userName, name, password }
@@ -194,43 +198,58 @@ extension ProfileView {
     }
 
     // MARK: - Sign Out
+
     private var signOutButton: some View {
-        Button("Sign Out") {
-            Task {
-                // Immediately hide profile UI and reset view model
-                await MainActor.run {
-                    showMainContent = false
-                    profileViewModel.resetProfile()
-                    profileViewModel.isProfileLoaded = false
-                }
-
-                do {
-                    // Actually sign out + clear path
-                    try await authViewModel.logoutAndClearPath(path: $navigationPath)
-
-                    // 🔄 Tell AppRootView to reset navigation + tab
-                    NotificationCenter.default.post(
-                        name: .userLoggedOut,
-                        object: nil
-                    )
-
-                } catch {
-                    await MainActor.run {
-                        saveAlertMessage = "Failed to sign out: \(error.localizedDescription)"
-                        showSaveAlert = true
+        VStack {
+            Button(action: {
+                showSignOutConfirmation = true
+            }) {
+                Text("Sign Out")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.red)
+                    .foregroundColor(.white)
+                    .cornerRadius(40)
+            }
+            .disabled(isEditing)
+            .padding(.horizontal)
+            .padding(.top, 20)
+        }
+        .alert("Are you sure you want to sign out?",
+               isPresented: $showSignOutConfirmation,
+               actions: {
+                    Button("Sign Out", role: .destructive) {
+                        performSignOut()
                     }
+                    Button("Cancel", role: .cancel) { }
+               },
+               message: {
+                    Text("You will not have access to all features if you sign out.")
+               })
+    }
+
+    
+    private func performSignOut() {
+        Task {
+            await MainActor.run {
+                showMainContent = false
+                profileViewModel.resetProfile()
+                profileViewModel.isProfileLoaded = false
+            }
+
+            do {
+                try await authViewModel.logoutAndClearPath(path: $navigationPath)
+                NotificationCenter.default.post(name: .userLoggedOut, object: nil)
+            } catch {
+                await MainActor.run {
+                    saveAlertMessage = "Failed to sign out: \(error.localizedDescription)"
+                    showSaveAlert = true
                 }
             }
         }
-        .font(.headline)
-        .padding()
-        .frame(minWidth: 335)
-        .background(Color.red)
-        .foregroundColor(.white)
-        .cornerRadius(40)
-        .disabled(isEditing)
-        .padding(.top, 20)
     }
+
 
 
     // MARK: - Toolbar
