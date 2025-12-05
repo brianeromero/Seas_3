@@ -307,8 +307,6 @@ struct GymInformationSection: View {
                 isIslandNameValid: $isIslandNameValid,
                 islandNameErrorMessage: $islandNameErrorMessage,
                 isFormValid: $isFormValid,
-                showAlert: .constant(false),
-                alertMessage: .constant(""),
                 formState: $formState
             )
             .padding(.horizontal, 20)

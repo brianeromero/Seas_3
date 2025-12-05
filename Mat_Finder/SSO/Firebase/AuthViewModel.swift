@@ -166,9 +166,6 @@ class AuthViewModel: ObservableObject {
         }
     }
 
-
-
-
     // MARK: Create Firebase user with email/password
     @MainActor
     func updateCurrentUser(user: FirebaseAuth.User?) async {
@@ -183,112 +180,108 @@ class AuthViewModel: ObservableObject {
             self.userSession = nil
         }
     }
-    
-    func createUser(withEmail email: String, password: String, userName: String, name: String, belt: String?) async throws {
+ 
+    // MARK: - Create user (returns User)
+    func createUser(
+        withEmail email: String,
+        password: String,
+        userName: String,
+        name: String,
+        belt: String? = nil
+    ) async throws -> User {
+        
+        // 1️⃣ Validate input
         guard !email.isEmpty, !password.isEmpty, !userName.isEmpty, !name.isEmpty else {
             throw AuthError.invalidInput
         }
         
         let normalizedEmail = email.lowercased()
         
-        // Ensure the user doesn't exist in either Core Data or Firestore before proceeding
-        if await userAlreadyExists() {
+        // 2️⃣ Check if user exists in Firestore
+        if await userAlreadyExists(email: normalizedEmail, userName: userName) {
             throw AuthError.userAlreadyExists
         }
         
-        // Proceed with user creation in Firestore and Core Data
         do {
-            let authResult = try await auth.createUser(withEmail: normalizedEmail, password: password)
+            // 3️⃣ Create Firebase Auth user
+            let authResult = try await Auth.auth().createUser(withEmail: normalizedEmail, password: password)
+            let userID = authResult.user.uid
             
-            // Create user in Core Data if not found
-            try await createUserInCoreData(authResult.user.uid, email: normalizedEmail, userName: userName, name: name, belt: belt, password: password)
+            // 4️⃣ Create User object for Firestore
+            let newUser = User(
+                email: normalizedEmail,
+                userName: userName,
+                name: name,
+                passwordHash: Data(),
+                salt: Data(),
+                iterations: 0,
+                isVerified: false,
+                belt: belt ?? "",
+                verificationToken: nil,
+                userID: userID
+            )
             
-            // Create Firestore document
-            try await createFirestoreDocument(for: authResult.user.uid, email: normalizedEmail, userName: userName, name: name, belt: belt)
-
-            // Send verification emails
-            //try await sendVerificationEmail(to: normalizedEmail)
-            //try await sendCustomVerificationEmail(to: normalizedEmail, userName: userName, password: password)
+            // 5️⃣ Save to Firestore (await!)
+            try Firestore.firestore()
+                .collection("users")
+                .document(userID)
+                .setData(from: newUser)
+            
+            return newUser
             
         } catch {
             throw AuthError.firebaseError(error)
         }
     }
 
-    func createUserInCoreData(_ userId: String, email: String, userName: String, name: String, belt: String?, password: String) async throws {
-        // Check if the user already exists in Core Data
-        let result = await fetchUserByEmail(email)
-        
-        switch result {
-        case .success(let existingUser):
-            if let existingUser = existingUser {
-                // Handle the case where the user already exists in Core Data
-                try updateUser(existingUser, with: userName, name: name)
-            } else {
-                // Add the user to Core Data if not found
-                try await addUserToCoreData(
-                    with: userId,
-                    email: email,
-                    userName: userName,
-                    name: name,
-                    belt: belt,
-                    password: password // ✅ Pass the plain password for hashing
-                )
-            }
-
-        case .failure(let error):
-            print("❌ Error fetching user: \(error.localizedDescription)")
-            throw error
-        }
-    }
-
-    func userAlreadyExists() async -> Bool {
-        // Check if the user exists in Core Data first
+    
+    // MARK: - Check if user already exists
+    func userAlreadyExists(email: String, userName: String) async -> Bool {
+        // 1️⃣ Check Core Data first
         let fetchRequest: NSFetchRequest<UserInfo> = UserInfo.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "email == %@ OR userName == %@", formState.email, formState.userName)
+        fetchRequest.predicate = NSPredicate(format: "email == %@ OR userName == %@", email, userName)
 
         do {
             let existingUsers = try context.fetch(fetchRequest)
             if !existingUsers.isEmpty {
-                if existingUsers.first?.email == formState.email {
-                    errorMessage = "A user with this email address already exists."
+                if existingUsers.first?.email == email {
+                    self.errorMessage = "A user with this email address already exists."
                 } else {
-                    errorMessage = "A user with this username already exists."
+                    self.errorMessage = "A user with this username already exists."
                 }
                 self.showVerificationAlert = true
                 return true
             }
         } catch {
-            print("Error checking user existence in Core Data: \(error.localizedDescription)")
-            errorMessage = "Error checking user existence."
+            print("❌ Error checking user existence in Core Data: \(error.localizedDescription)")
+            self.errorMessage = "Error checking user existence."
             return true
         }
 
-        // Check if the user exists in Firestore
-        return await userAlreadyExistsInFirestore()
+        // 2️⃣ Check Firestore
+        return await userAlreadyExistsInFirestore(email: email, userName: userName)
     }
-
-    func userAlreadyExistsInFirestore() async -> Bool {
+    
+    // MARK: - Firestore existence check
+    func userAlreadyExistsInFirestore(email: String, userName: String) async -> Bool {
         let firestore = Firestore.firestore()
 
-        // Query 1: Check email
-        let emailQuery = firestore.collection("users").whereField("email", isEqualTo: formState.email)
-        // Query 2: Check username
-        let userNameQuery = firestore.collection("users").whereField("userName", isEqualTo: formState.userName)
-        
+        let emailQuery = firestore.collection("users").whereField("email", isEqualTo: email)
+        let userNameQuery = firestore.collection("users").whereField("userName", isEqualTo: userName)
+
         do {
             async let emailSnapshot = emailQuery.getDocuments()
             async let userNameSnapshot = userNameQuery.getDocuments()
-            
+
             let (emailResult, userNameResult) = try await (emailSnapshot, userNameSnapshot)
-            
             return !emailResult.documents.isEmpty || !userNameResult.documents.isEmpty
         } catch {
-            print("Error checking user existence in Firestore: \(error.localizedDescription)")
-            errorMessage = "Error checking user existence."
+            print("❌ Error checking user existence in Firestore: \(error.localizedDescription)")
+            self.errorMessage = "Error checking user existence."
             return true
         }
     }
+
     
     // Resets all the profile form fields
     func resetProfileForm() {

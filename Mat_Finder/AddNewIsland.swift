@@ -164,8 +164,6 @@ public struct AddNewIsland: View {
             isIslandNameValid: $islandDetails.isIslandNameValid,
             islandNameErrorMessage: $islandDetails.islandNameErrorMessage,
             isFormValid: $isSaveEnabled,
-            showAlert: $showAlert,
-            alertMessage: $alertMessage,
 
             // FormState argument should come last:
             formState: $formState

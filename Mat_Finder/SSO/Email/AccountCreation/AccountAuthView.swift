@@ -57,9 +57,9 @@ struct AccountAuthView: View {
     @State private var isLoginSelected = false
     let emailManager: UnifiedEmailManager
     @ObservedObject var islandViewModel: PirateIslandViewModel
-    @State private var selectedTabIndex: LoginViewSelection = .login
     @State private var isSelected: LoginViewSelection = .login
     @State private var showAlert = false
+    @State private var alertTitle = ""
     @State private var alertMessage = ""
     
     @Binding var navigateToAdminMenu: Bool
@@ -99,20 +99,25 @@ struct AccountAuthView: View {
                         Spacer()
                     }
                 } else if isSelected == .createAccount {
+                    
                     CreateAccountView(
-                        islandViewModel: PirateIslandViewModel(persistenceController: PersistenceController.shared),
-                        isUserProfileActive: $isUserProfileActive,
-                        selectedTabIndex: $selectedTabIndex,
-                        navigationPath: $navigationPath, // ✅ add this
+                        islandViewModel: islandViewModel,
+                        isUserProfileActive: .constant(false),
+                        selectedTabIndex: $isSelected,  // ✅ pass existing state
+                        navigationPath: $navigationPath,
                         persistenceController: PersistenceController.shared,
-                        emailManager: UnifiedEmailManager.shared
+                        emailManager: UnifiedEmailManager.shared,
+                        showAlert: $showAlert,
+                        alertTitle: $alertTitle,       // ✅ pass the binding here
+                        alertMessage: $alertMessage
                     )
+
                 }
             }
             .padding()
             .alert(isPresented: $showAlert) {
                 Alert(
-                    title: Text("Authentication Error"),
+                    title: Text(alertTitle),
                     message: Text(alertMessage),
                     dismissButton: .default(Text("OK"))
                 )

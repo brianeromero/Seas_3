@@ -296,6 +296,30 @@ struct LoginForm: View {
     }
 }
 
+
+enum AccountAlertType {
+    case successAccount
+    case successAccountAndGym
+    case notice
+
+    var title: String {
+        switch self {
+        case .successAccount: return "Congratulations!"
+        case .successAccountAndGym: return "All Set!"
+        case .notice: return "Notice"
+        }
+    }
+
+    var defaultMessage: String {
+        switch self {
+        case .successAccount: return "Your account was created successfully."
+        case .successAccountAndGym: return "Your account and gym have been created."
+        case .notice: return ""
+        }
+    }
+}
+
+
 // MARK: - LOGIN VIEW
 struct LoginView: View {
     @EnvironmentObject var authenticationState: AuthenticationState
@@ -314,7 +338,12 @@ struct LoginView: View {
     @State private var showMainContent = false
     
     @State private var loginTabSelection: LoginViewSelection = .login
-    @State private var navigationPath = NavigationPath() // ✅ Add internal navigation path
+    @State private var navigationPath = NavigationPath()
+    
+    // ✅ Alert now managed here (parent)
+    @State private var showAlert = false
+    @State private var alertTitle = "Notice"      // <-- new
+    @State private var alertMessage = ""
 
     public init(
         islandViewModel: PirateIslandViewModel,
@@ -332,7 +361,7 @@ struct LoginView: View {
     
     var body: some View {
         ZStack {
-            // Full-screen gradient
+            // Background gradient
             LinearGradient(
                 colors: [
                     Color(red: 0.1, green: 0.2, blue: 0.25),
@@ -344,6 +373,7 @@ struct LoginView: View {
             .ignoresSafeArea()
 
             VStack(spacing: 0) {
+
                 if authenticationState.isAuthenticated {
                     IslandMenu2(
                         profileViewModel: profileViewModel,
@@ -372,12 +402,15 @@ struct LoginView: View {
                             CreateAccountView(
                                 islandViewModel: islandViewModel,
                                 isUserProfileActive: .constant(false),
-                                selectedTabIndex: $selectedLoginTab,
-                                navigationPath: $navigationPath, // ✅ Pass navigationPath
+                                selectedTabIndex: $selectedLoginTab,   // ✅ Now exists
+                                navigationPath: $navigationPath,
                                 persistenceController: PersistenceController.shared,
-                                countryService: CountryService.shared, // ✅ add countryService
-                                emailManager: UnifiedEmailManager.shared
+                                emailManager: UnifiedEmailManager.shared,
+                                showAlert: $showAlert,
+                                alertTitle: $alertTitle,       // ✅ pass the binding here
+                                alertMessage: $alertMessage
                             )
+
                             .transition(.move(edge: .trailing).combined(with: .opacity))
                         }
                     }
@@ -385,8 +418,38 @@ struct LoginView: View {
                 }
             }
         }
+
+        // ✅ PLACE THE ALERT HERE — AFTER the main view
+        .alert(isPresented: $showAlert) {
+            Alert(
+                title: Text(alertTitle),
+                message: Text(alertMessage),
+                dismissButton: .default(Text("OK")) {
+                    // This runs only after the user taps OK
+                    handleAlertDismiss()
+                }
+            )
+        }
     }
+    
+    private func handleAlertDismiss() {
+        switch alertTitle {
+        case "Congratulations!":
+            // Account created only
+            authenticationState.isAuthenticated = true
+            // Navigate to the screen you want — for example, maybe just leave the login view hidden:
+            selectedLoginTab = .login // or keep it the same if you show IslandMenu2 after authentication
+        case "All Set!":
+            // Account + Gym created
+            authenticationState.isAuthenticated = true
+            selectedLoginTab = .login
+        default:
+            break
+        }
+    }
+
 }
+
 
 
 extension View {
