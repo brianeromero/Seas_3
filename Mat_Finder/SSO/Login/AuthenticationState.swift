@@ -105,6 +105,23 @@ public class AuthenticationState: ObservableObject {
     @Published public private(set) var hasError = false
 
     @Published public var navigateToAdminMenu = false
+    
+    
+    @Published var navigateUnrestricted: Bool = false
+
+    @Published var accountCreatedSuccessfully: Bool = false
+    
+    // Computed property for AppRootView logic
+    public var didJustCreateAccount: Bool {
+        get { accountCreatedSuccessfully }
+        set {
+            accountCreatedSuccessfully = newValue
+            if newValue {
+                print("🎉 Account was just created")
+            }
+        }
+    }
+
 
 
     // MARK: - Private Properties
@@ -115,8 +132,47 @@ public class AuthenticationState: ObservableObject {
     public init(hashPassword: PasswordHasher, validator: Validator = EmailValidator()) {
         self.hashPassword = hashPassword
         self.validator = validator
+        self.navigateUnrestricted = false
         print("🔧 AuthenticationState initialized with \(type(of: validator)) validator.")
     }
+    
+    
+    // MARK: - Helpers
+
+    /// Call this when an account has been successfully created
+    public func markAccountCreated() {
+        didJustCreateAccount = true
+        isAuthenticated = true
+        isLoggedIn = true
+    }
+
+    /// Call this after showing the "from loginview" screen
+    public func resetAccountCreationFlag() {
+        didJustCreateAccount = false
+    }
+    
+    
+    @MainActor
+    public func reset() {
+        setIsAuthenticated(false)
+        setIsLoggedIn(false)
+        setIsAdmin(false)
+        navigateToAdminMenu = false
+        socialUser = nil
+        userInfo = nil
+        currentUser = nil
+        errorMessage = ""
+        hasError = false
+        accountCreatedSuccessfully = false  // <-- Reset the creation flag
+
+        // Stop any listeners or managers
+        FirestoreManager.shared.stopAllListeners()
+        // LocationManager.shared.stopUpdatingLocation()
+        // LocationManager.shared.resetState()
+
+        print("🔄 AuthenticationState has been fully reset.")
+    }
+
     
     // MARK: - CoreData Login
     /// Attempts login with a local CoreData user and plaintext password
@@ -587,28 +643,6 @@ public class AuthenticationState: ObservableObject {
         hasError = !message.isEmpty
     }
 
-    @MainActor
-    public func reset() {
-        setIsAuthenticated(false)
-        setIsLoggedIn(false)
-        setIsAdmin(false)
-        navigateToAdminMenu = false
-        socialUser = nil
-        userInfo = nil
-        currentUser = nil
-        errorMessage = ""
-        hasError = false
-
-        // IMPORTANT: Call cleanup methods on any managers that hold state or listeners
-        // CORRECTED LINE:
-        FirestoreManager.shared.stopAllListeners() // <--- Change this line
-
-        // If you have a LocationManager singleton:
-        // LocationManager.shared.stopUpdatingLocation() // Implement this in your LocationManager
-        // LocationManager.shared.resetState() // If LocationManager holds internal state
-
-        print("🔄 AuthenticationState has been fully reset.")
-    }
     
     // MARK: - Errors
     public enum AuthenticationError: LocalizedError {

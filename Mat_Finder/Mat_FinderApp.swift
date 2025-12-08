@@ -1,16 +1,18 @@
 import SwiftUI
-import Foundation // Make sure Foundation is imported for Date() and NSLog
+import Foundation
 import CoreData
 import Combine
 import FBSDKCoreKit
 import GoogleSignInSwift
 import GoogleSignIn
-import os.log // Assuming you're still using os_log
+import os.log
 import FirebaseCore
-import FirebaseAuth // Assuming you need this for AuthViewModel.shared
-import FirebaseFirestore // Assuming you need this for Firestore
+import FirebaseAuth
+import FirebaseFirestore
 
-
+private struct IsRestrictedKey: EnvironmentKey {
+    static let defaultValue: Bool = false
+}
 
 @main
 struct Mat_FinderApp: App {
@@ -22,24 +24,35 @@ struct Mat_FinderApp: App {
     @StateObject var enterZipCodeViewModel: EnterZipCodeViewModel
 
     init() {
-        _allEnteredLocationsViewModel = StateObject(wrappedValue: AllEnteredLocationsViewModel(
-            dataManager: PirateIslandDataManager(viewContext: PersistenceController.shared.container.viewContext)
-        ))
-        _appDayOfWeekViewModel = StateObject(wrappedValue: AppDayOfWeekViewModel(
-            selectedIsland: nil,
-            repository: AppDayOfWeekRepository.shared,
-            enterZipCodeViewModel: EnterZipCodeViewModel(
+        _allEnteredLocationsViewModel = StateObject(
+            wrappedValue: AllEnteredLocationsViewModel(
+                dataManager: PirateIslandDataManager(
+                    viewContext: PersistenceController.shared.container.viewContext
+                )
+            )
+        )
+
+        _appDayOfWeekViewModel = StateObject(
+            wrappedValue: AppDayOfWeekViewModel(
+                selectedIsland: nil,
+                repository: AppDayOfWeekRepository.shared,
+                enterZipCodeViewModel: EnterZipCodeViewModel(
+                    repository: AppDayOfWeekRepository.shared,
+                    persistenceController: PersistenceController.shared
+                )
+            )
+        )
+
+        _enterZipCodeViewModel = StateObject(
+            wrappedValue: EnterZipCodeViewModel(
                 repository: AppDayOfWeekRepository.shared,
                 persistenceController: PersistenceController.shared
             )
-        ))
-        _enterZipCodeViewModel = StateObject(wrappedValue: EnterZipCodeViewModel(
-            repository: AppDayOfWeekRepository.shared,
-            persistenceController: PersistenceController.shared
-        ))
+        )
+
         setupGlobalErrorHandler()
     }
-    
+
     var body: some Scene {
         WindowGroup {
             AppRootView(
@@ -53,7 +66,8 @@ struct Mat_FinderApp: App {
             .environmentObject(allEnteredLocationsViewModel)
             .environmentObject(appDayOfWeekViewModel)
             .environmentObject(enterZipCodeViewModel)
-            .environment(\.managedObjectContext, appDelegate.persistenceController.container.viewContext)
+            .environment(\.managedObjectContext,
+                         appDelegate.persistenceController.container.viewContext)
         }
     }
 
@@ -82,39 +96,58 @@ struct AppRootView: View {
     @State private var navigationPath = NavigationPath()
     @State private var showInitialSplash = true
 
-    // --- Global Toast State Variables ---
-    @State private var globalShowToast: Bool = false
-    @State private var globalToastMessage: String = ""
+    // Global Toast
+    @State private var globalShowToast = false
+    @State private var globalToastMessage = ""
     @State private var globalToastType: ToastView.ToastType = .success
-    // --- END Global Toast State Variables ---
 
     var body: some View {
         NavigationStack(path: $navigationPath) {
             Group {
+                // 0. Initial splash screen
                 if showInitialSplash {
                     PirateIslandView(appState: appState)
                         .onAppear {
-                            print("AppRootView: Showing Initial Splash (PirateIslandView)")
+                            print("AppRootView: Showing Initial Splash")
                             DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                                 withAnimation(.easeInOut(duration: 1)) {
                                     showInitialSplash = false
                                 }
                             }
                         }
-                } else if authenticationState.isAdmin || authenticationState.navigateToAdminMenu {
-                    // Admin users
-                    AdminMenu()
-                        .onAppear { print("AppRootView: AdminMenu appeared") }
-                } else {
-                    // Everyone else (authenticated or not)
+
+                // 1. Account Creation Completed → temporary blank screen
+                } else if authenticationState.didJustCreateAccount {
+                    Text("from loginview")
+                        .font(.title)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Color(uiColor: .systemBackground))
+                        .onAppear {
+                            print("AppRootView: Showing post-account-creation screen")
+                        }
+
+                // 2. Signed-in user → UNRESTRICTED IslandMenu2
+                } else if authenticationState.isAuthenticated {
                     IslandMenu2(
                         profileViewModel: profileViewModel,
                         navigationPath: $navigationPath
                     )
-                    .onAppear { print("AppRootView: IslandMenu appeared") }
+                    .environment(\.isRestricted, false)
+                    .onAppear { print("AppRootView: IslandMenu2 (UNRESTRICTED) appeared") }
+
+                // 3. Not signed-in → RESTRICTED IslandMenu2
+                } else {
+                    IslandMenu2(
+                        profileViewModel: profileViewModel,
+                        navigationPath: $navigationPath
+                    )
+                    .environment(\.isRestricted, true)
+                    .onAppear { print("AppRootView: IslandMenu2 (RESTRICTED) appeared") }
                 }
             }
-            // Admin navigation from anywhere
+
+
+            // Admin Navigation
             .navigationDestination(isPresented: $authenticationState.navigateToAdminMenu) {
                 AdminMenu()
                     .environmentObject(authenticationState)
@@ -127,7 +160,7 @@ struct AppRootView: View {
                     .onAppear { print("✅ Navigated to AdminMenu") }
             }
 
-            // AppScreen navigation
+            // AppScreen Navigation
             .navigationDestination(for: AppScreen.self) { screen in
                 AppRootDestinationView(
                     screen: screen,
@@ -145,38 +178,35 @@ struct AppRootView: View {
                 .environmentObject(enterZipCodeViewModel)
             }
         }
-        .onChange(of: navigationPath) { oldPath, newPath in
-            print("⚠️ navigationPath changed from \(oldPath) to \(newPath)")
+        .onChange(of: navigationPath) { old, new in
+            print("⚠️ navigationPath changed from \(old) to \(new)")
         }
-        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("ShowToast"))) { notification in
+        .onReceive(NotificationCenter.default.publisher(for: .init("ShowToast"))) { notification in
             guard let userInfo = notification.userInfo,
                   let message = userInfo["message"] as? String,
                   let typeRaw = userInfo["type"] as? String,
-                  let type = ToastView.ToastType(rawValue: typeRaw) else { return }
+                  let type = ToastView.ToastType(rawValue: typeRaw)
+            else { return }
 
             withAnimation {
-                self.globalToastMessage = message
-                self.globalToastType = type
-                self.globalShowToast = true
+                globalToastMessage = message
+                globalToastType = type
+                globalShowToast = true
             }
 
             DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                withAnimation { self.globalShowToast = false }
+                withAnimation { globalShowToast = false }
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("HideToast"))) { _ in
-            withAnimation { self.globalShowToast = false }
+        .onReceive(NotificationCenter.default.publisher(for: .init("HideToast"))) { _ in
+            withAnimation { globalShowToast = false }
         }
-        
-        
-        // 🔹 Add this
         .onReceive(NotificationCenter.default.publisher(for: .userLoggedOut)) { _ in
             print("🔄 AppRootView received logout — resetting navigation")
             navigationPath = NavigationPath()
             selectedTabIndex = .login
             AppRouter.shared.currentScreen = .main
         }
-
         .overlay(
             Group {
                 if globalShowToast {
@@ -187,11 +217,14 @@ struct AppRootView: View {
                         .zIndex(1)
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .ignoresSafeArea(edges: .all)
+            .frame(maxWidth: .infinity,
+                   maxHeight: .infinity,
+                   alignment: .top)
+            .ignoresSafeArea()
         )
     }
 }
+
 
 struct AppRootDestinationView: View {
     let screen: AppScreen
@@ -421,6 +454,7 @@ struct AppRootDestinationView: View {
                 isSelected: .constant(.login),
                 navigateToAdminMenu: $authenticationState.navigateToAdminMenu,
                 isLoggedIn: .constant(authenticationState.isAuthenticated),
+                navigationPath: $navigationPath  // <-- added this
             )
             .environmentObject(authViewModel)
             .environmentObject(pirateIslandViewModel)
@@ -447,4 +481,10 @@ extension EnvironmentValues {
         get { self[PersistenceControllerKey.self] }
         set { self[PersistenceControllerKey.self] = newValue }
     }
+    
+    var isRestricted: Bool {
+        get { self[IsRestrictedKey.self] }
+        set { self[IsRestrictedKey.self] = newValue }
+    }
+    
 }

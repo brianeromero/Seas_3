@@ -66,6 +66,7 @@ struct AccountAuthView: View {
     @State private var isLoggedIn: Bool = false
     @State private var navigationPath = NavigationPath()
 
+    @State private var currentAlertType: AccountAlertType? = nil
 
 
     init(islandViewModel: PirateIslandViewModel,
@@ -109,7 +110,9 @@ struct AccountAuthView: View {
                         emailManager: UnifiedEmailManager.shared,
                         showAlert: $showAlert,
                         alertTitle: $alertTitle,       // ✅ pass the binding here
-                        alertMessage: $alertMessage
+                        alertMessage: $alertMessage,
+                        currentAlertType: $currentAlertType      // <-- add this
+                        
                     )
 
                 }

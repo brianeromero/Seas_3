@@ -61,6 +61,8 @@ struct CreateAccountView: View {
     @Binding var showAlert: Bool
     @Binding var alertTitle: String   // <-- NEW
     @Binding var alertMessage: String
+    @Binding var currentAlertType: AccountAlertType?   // <-- new binding
+
     
     // Button State
     @State private var isButtonDisabled = false
@@ -81,8 +83,9 @@ struct CreateAccountView: View {
         countryService: CountryService = .shared,
         emailManager: UnifiedEmailManager,
         showAlert: Binding<Bool>,
-        alertTitle: Binding<String>,        // <-- NEW
-        alertMessage: Binding<String>
+        alertTitle: Binding<String>,
+        alertMessage: Binding<String>,
+        currentAlertType: Binding<AccountAlertType?>      // <-- ADD THIS
     ) {
         self._islandViewModel = ObservedObject(wrappedValue: islandViewModel)
         self._isUserProfileActive = isUserProfileActive
@@ -93,9 +96,11 @@ struct CreateAccountView: View {
         _profileViewModel = StateObject(wrappedValue: ProfileViewModel(viewContext: persistenceController.container.viewContext))
         
         self._showAlert = showAlert
-        self._alertTitle = alertTitle        // <-- NEW
+        self._alertTitle = alertTitle
         self._alertMessage = alertMessage
+        self._currentAlertType = currentAlertType      // <-- SET IT HERE
     }
+
 
     // MARK: - Body
     var body: some View {
@@ -245,21 +250,26 @@ struct CreateAccountView: View {
                 belt: belt
             )
 
-            var alertMsg = "Account Created Successfully!"
-
             // Only create gym if island name exists
             if !islandDetails.islandName.isEmpty {
-                let islandName = await createPirateIsland(for: createdUser)
-                if islandName != nil {
-                    alertMsg = "Account Created Successfully and your gym has been added to the database!"
-                }
+                _ = await createPirateIsland(for: createdUser)
             }
 
-            // Show alert on main thread
+            // Show alert on main thread using AccountAlertType
             await MainActor.run {
                 AuthViewModel.shared.currentUser = createdUser
-                alertTitle = "Congratulations!"
-                alertMessage = alertMsg
+
+                // 🚫 NEW — Block automatic navigation
+                authenticationState.navigateUnrestricted = false
+
+                if !islandDetails.islandName.isEmpty {
+                    currentAlertType = .successAccountAndGym
+                } else {
+                    currentAlertType = .successAccount
+                }
+
+                alertTitle = currentAlertType?.title ?? "Notice"
+                alertMessage = currentAlertType?.defaultMessage ?? ""
                 showAlert = true
             }
 
