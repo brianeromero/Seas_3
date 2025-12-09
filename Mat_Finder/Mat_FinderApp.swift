@@ -116,17 +116,7 @@ struct AppRootView: View {
                             }
                         }
 
-                // 1. Account Creation Completed → temporary blank screen
-                } else if authenticationState.didJustCreateAccount {
-                    Text("from loginview")
-                        .font(.title)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(Color(uiColor: .systemBackground))
-                        .onAppear {
-                            print("AppRootView: Showing post-account-creation screen")
-                        }
-
-                // 2. Signed-in user → UNRESTRICTED IslandMenu2
+                // 1. Signed-in user → UNRESTRICTED IslandMenu2
                 } else if authenticationState.isAuthenticated {
                     IslandMenu2(
                         profileViewModel: profileViewModel,
@@ -135,7 +125,7 @@ struct AppRootView: View {
                     .environment(\.isRestricted, false)
                     .onAppear { print("AppRootView: IslandMenu2 (UNRESTRICTED) appeared") }
 
-                // 3. Not signed-in → RESTRICTED IslandMenu2
+                // 2. Not signed-in → RESTRICTED IslandMenu2
                 } else {
                     IslandMenu2(
                         profileViewModel: profileViewModel,
@@ -145,7 +135,6 @@ struct AppRootView: View {
                     .onAppear { print("AppRootView: IslandMenu2 (RESTRICTED) appeared") }
                 }
             }
-
 
             // Admin Navigation
             .navigationDestination(isPresented: $authenticationState.navigateToAdminMenu) {
@@ -207,6 +196,7 @@ struct AppRootView: View {
             selectedTabIndex = .login
             AppRouter.shared.currentScreen = .main
         }
+        // Global toast overlay
         .overlay(
             Group {
                 if globalShowToast {
@@ -312,6 +302,8 @@ struct AppRootDestinationView: View {
                 navigationPath: $navigationPath,
                 setupGlobalErrorHandler: { }
             )
+            .environmentObject(authenticationState)
+
             .onAppear {
                 print("🧭 Navigating to screen: .profile")
             }

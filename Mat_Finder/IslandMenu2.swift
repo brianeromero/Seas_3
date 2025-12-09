@@ -21,6 +21,7 @@ struct IslandMenu2: View {
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var authViewModel: AuthViewModel
     @EnvironmentObject var allEnteredLocationsViewModel: AllEnteredLocationsViewModel
+    @EnvironmentObject var authenticationState: AuthenticationState
 
     @State private var islandDetails: IslandDetails = IslandDetails()
 
@@ -256,6 +257,8 @@ struct IslandMenu2: View {
                         navigationPath: $navigationPath,
                         setupGlobalErrorHandler: { }
                     )
+                    .environmentObject(authenticationState)
+
                 } label: {
                     menuItemLabel(for: option)
                 }

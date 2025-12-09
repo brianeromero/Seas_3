@@ -12,6 +12,8 @@ import FirebaseFirestore
 
 struct ProfileView: View {
     @Environment(\.managedObjectContext) private var viewContext
+    @EnvironmentObject var authenticationState: AuthenticationState
+
     @StateObject var profileViewModel: ProfileViewModel
     @ObservedObject var authViewModel: AuthViewModel
     @Binding var selectedTabIndex: LoginViewSelection
@@ -44,6 +46,8 @@ struct ProfileView: View {
     
     
     @State private var showSignOutConfirmation = false
+    
+
 
 
     enum Field: Hashable { case email, username, name }
@@ -232,14 +236,21 @@ extension ProfileView {
     
     private func performSignOut() {
         Task {
-            await MainActor.run {
-                showMainContent = false
-                profileViewModel.resetProfile()
-                profileViewModel.isProfileLoaded = false
-            }
-
             do {
                 try await authViewModel.logoutAndClearPath(path: $navigationPath)
+
+                await MainActor.run {
+                    profileViewModel.resetProfile()
+                    profileViewModel.isProfileLoaded = false
+
+                    authenticationState.isAuthenticated = false
+                    authenticationState.didJustCreateAccount = false
+
+                    // Force AppRootView to show restricted IslandMenu2
+                    navigationPath.removeLast(navigationPath.count)
+                    selectedTabIndex = .login
+                }
+
                 NotificationCenter.default.post(name: .userLoggedOut, object: nil)
             } catch {
                 await MainActor.run {
@@ -249,7 +260,6 @@ extension ProfileView {
             }
         }
     }
-
 
 
     // MARK: - Toolbar
