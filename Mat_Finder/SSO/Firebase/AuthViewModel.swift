@@ -893,6 +893,20 @@ class AuthViewModel: ObservableObject {
         }
     }
     
+    
+    @MainActor
+    func logout() async throws {
+        try await signOut()
+
+        authenticationState.isAuthenticated = false
+        authenticationState.isLoggedIn = false
+        authenticationState.didJustCreateAccount = false
+
+        logger.info("User fully logged out")
+    }
+
+    
+    
     func getUserId() async throws -> String {
         guard let user = auth.currentUser else {
             throw AuthError.notSignedIn

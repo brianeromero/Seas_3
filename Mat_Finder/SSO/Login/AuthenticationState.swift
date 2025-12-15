@@ -225,24 +225,6 @@ public class AuthenticationState: ObservableObject {
         loginCompletedSuccessfully() // <<-- ADD THIS CALL HERE
     }
 
-    // MARK: - Logout
-    /// Logs out the current user, resetting local state and signing out from Firebase
-    public func logout(completion: @escaping () -> Void = {}) {
-        Task {
-            do {
-                // IMPORTANT CHANGE: Call the comprehensive signOut method
-                try await AuthViewModel.shared.signOut() // Make signOut throwing
-                reset()
-                print("🔒 Logout complete.")
-                completion()
-            } catch {
-                print("❌ Logout failed: \(error.localizedDescription)")
-                errorMessage = error.localizedDescription
-                hasError = true
-                completion()
-            }
-        }
-    }
 
 
     // MARK: - Google Sign-In Completion

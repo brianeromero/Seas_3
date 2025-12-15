@@ -191,11 +191,26 @@ struct AppRootView: View {
             withAnimation { globalShowToast = false }
         }
         .onReceive(NotificationCenter.default.publisher(for: .userLoggedOut)) { _ in
-            print("🔄 AppRootView received logout — resetting navigation")
+            withAnimation {
+                authenticationState.isAuthenticated = false
+                authenticationState.didJustCreateAccount = false
+                navigationPath = NavigationPath()
+                selectedTabIndex = .islandMenu2
+                AppRouter.shared.currentScreen = .main
+            }
+        }
+
+
+        
+        .onReceive(NotificationCenter.default.publisher(for: .navigateHome)) { _ in
+            print("🧭 AppRootView received navigateHome")
+
             navigationPath = NavigationPath()
-            selectedTabIndex = .login
             AppRouter.shared.currentScreen = .main
         }
+
+
+
         // Global toast overlay
         .overlay(
             Group {

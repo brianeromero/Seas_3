@@ -48,6 +48,7 @@ struct ProfileView: View {
     @State private var showSignOutConfirmation = false
     
 
+    @State private var isNavigatingBack = false
 
 
     enum Field: Hashable { case email, username, name }
@@ -57,10 +58,25 @@ struct ProfileView: View {
         VStack {
             if profileViewModel.isProfileLoaded && showMainContent {
                 profileContent
+            } else if !authViewModel.userIsLoggedIn {
+                Text("You are logged out")
+                    .onAppear {
+                        guard !isNavigatingBack else { return }
+                        isNavigatingBack = true
+
+                        Task {
+                            try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
+                            await MainActor.run {
+                                navigationPath.removeLast(navigationPath.count)
+                                selectedTabIndex = .islandMenu2
+                            }
+                        }
+                    }
             } else {
                 ProgressView("Loading profile...")
             }
         }
+
         .navigationTitle("Profile")
         .toolbar { toolbarContent }
         .onAppear { handleAppear() }
@@ -76,6 +92,14 @@ struct ProfileView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(validationAlertMessage)
+        }
+        .alert("Sign Out", isPresented: $showSignOutConfirmation) {
+            Button("Sign Out", role: .destructive) {
+                performSignOut()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("You will not have access to all features if you sign out.")
         }
     }
 }
@@ -233,33 +257,28 @@ extension ProfileView {
                })
     }
 
-    
     private func performSignOut() {
         Task {
             do {
-                try await authViewModel.logoutAndClearPath(path: $navigationPath)
+                try await authViewModel.logout()
 
-                await MainActor.run {
-                    profileViewModel.resetProfile()
-                    profileViewModel.isProfileLoaded = false
+                // Reset profile
+                profileViewModel.resetProfile()
+                profileViewModel.isProfileLoaded = false
+                showMainContent = false
 
-                    authenticationState.isAuthenticated = false
-                    authenticationState.didJustCreateAccount = false
+                // Trigger AppRootView and navigation
+                authenticationState.isAuthenticated = false
+                navigationPath.removeLast(navigationPath.count)
+                selectedTabIndex = .islandMenu2
 
-                    // Force AppRootView to show restricted IslandMenu2
-                    navigationPath.removeLast(navigationPath.count)
-                    selectedTabIndex = .login
-                }
-
-                NotificationCenter.default.post(name: .userLoggedOut, object: nil)
             } catch {
-                await MainActor.run {
-                    saveAlertMessage = "Failed to sign out: \(error.localizedDescription)"
-                    showSaveAlert = true
-                }
+                saveAlertMessage = "Failed to sign out: \(error.localizedDescription)"
+                showSaveAlert = true
             }
         }
     }
+
 
 
     // MARK: - Toolbar
@@ -286,29 +305,32 @@ extension ProfileView {
     // MARK: - On Appear
     private func handleAppear() {
         Task {
-            await MainActor.run { showMainContent = false }
+            showMainContent = false
 
             if authViewModel.userIsLoggedIn {
                 await profileViewModel.loadProfile()
             }
 
-            await MainActor.run {
-                showMainContent = authViewModel.userIsLoggedIn
-            }
+            // Show content if profile is loaded
+            showMainContent = profileViewModel.isProfileLoaded
         }
     }
 
     private func handleLoginChange(_ loggedIn: Bool) {
         Task {
-            await MainActor.run { showMainContent = false }
+            showMainContent = false
 
             if loggedIn {
                 await profileViewModel.loadProfile()
+                showMainContent = profileViewModel.isProfileLoaded
+            } else {
+                // Navigate back to IslandMenu2 immediately
+                navigationPath.removeLast(navigationPath.count)
+                selectedTabIndex = .islandMenu2
             }
-
-            await MainActor.run { showMainContent = loggedIn }
         }
     }
+
 }
 
 // MARK: - Actions / Validation

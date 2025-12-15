@@ -8,7 +8,7 @@
 import Foundation
 
 extension Notification.Name {
-    // ✅ Use consistent naming — UpperCamelCase
+    // Existing
     static let networkStatusChanged = Notification.Name("NetworkStatusChanged")
     static let showToast = Notification.Name("ShowToast")
     static let hideToast = Notification.Name("HideToast")
@@ -17,7 +17,10 @@ extension Notification.Name {
     static let signInLinkReceived = Notification.Name("SignInLinkReceived")
     static let fcmTokenReceived = Notification.Name("FCMTokenReceived")
     static let didSyncPirateIslands = Notification.Name("DidSyncPirateIslands")
-    
-    // 🔹 New logout notification
+
+    // Auth
     static let userLoggedOut = Notification.Name("UserLoggedOut")
+
+    // 🧭 Navigation (OPTIONAL)
+    static let navigateHome = Notification.Name("NavigateHome")
 }

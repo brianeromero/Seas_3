@@ -178,8 +178,14 @@ struct AdminMenu: View {
 
     // MARK: - Sign Out Logic
     private func signOut() {
-        authenticationState.logout {
-            print("✅ User signed out successfully")
+        Task {
+            do {
+                try await AuthViewModel.shared.logout()
+                print("✅ User signed out successfully")
+            } catch {
+                print("❌ Failed to sign out: \(error.localizedDescription)")
+            }
         }
     }
+
 }

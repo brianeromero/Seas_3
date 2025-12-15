@@ -15,18 +15,18 @@ import os
 public enum LoginViewSelection: Int, CaseIterable { // Made CaseIterable for Picker
     case login = 0
     case createAccount = 1
+    case islandMenu2 = 2  // ← NEW CASE
 
     public init?(rawValue: Int) {
         switch rawValue {
-        case 0:
-            self = .login
-        case 1:
-            self = .createAccount
-        default:
-            return nil
+        case 0: self = .login
+        case 1: self = .createAccount
+        case 2: self = .islandMenu2
+        default: return nil
         }
     }
 }
+
 
 enum UserFetchError: LocalizedError {
     case userNotFound

@@ -82,13 +82,22 @@ struct FacebookSignInButtonWrapper: UIViewRepresentable {
         @MainActor
         func loginButtonDidLogOut(_ loginButton: FBLoginButton) {
             print("🔹 User logged out from Facebook.")
-            parent?.authenticationState.logout()
 
+            Task {
+                do {
+                    try await AuthViewModel.shared.logout()
+                    print("✅ User fully logged out from Facebook")
+                } catch {
+                    print("❌ Failed to log out from Facebook: \(error.localizedDescription)")
+                }
+            }
+
+            // Clear Facebook SDK tokens
             AccessToken.current = nil
-            
             let loginManager = LoginManager()
             loginManager.logOut()
 
+            // Reload the button
             DispatchQueue.main.async {
                 guard let superview = loginButton.superview else { return }
                 
@@ -99,7 +108,6 @@ struct FacebookSignInButtonWrapper: UIViewRepresentable {
                 newButton.permissions = ["public_profile", "email"]
                 
                 superview.addSubview(newButton)
-                
                 newButton.translatesAutoresizingMaskIntoConstraints = false
                 NSLayoutConstraint.activate([
                     newButton.centerXAnchor.constraint(equalTo: superview.centerXAnchor),
@@ -109,6 +117,7 @@ struct FacebookSignInButtonWrapper: UIViewRepresentable {
                 print("✅ Facebook login button reloaded.")
             }
         }
+
     }
 }
 
