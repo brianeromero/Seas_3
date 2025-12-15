@@ -468,6 +468,19 @@ struct AppRootDestinationView: View {
             .onAppear {
                 print("🧭 Navigating to screen: .login (LoginParentView)")
             }
+        case .islandMenu2:
+            IslandMenu2(
+                profileViewModel: profileViewModel,
+                navigationPath: $navigationPath
+            )
+            .environmentObject(authViewModel)
+            .environmentObject(authenticationState)
+            .environmentObject(allEnteredLocationsViewModel)
+            .environmentObject(pirateIslandViewModel)
+            .environmentObject(appDayOfWeekViewModel)
+            .onAppear {
+                print("🧭 Navigating to screen: .islandMenu2 (IslandMenu2View)")
+            }
         }
     }
 }

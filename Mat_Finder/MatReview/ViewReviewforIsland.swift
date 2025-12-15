@@ -35,6 +35,8 @@ enum AppScreen: Hashable, Identifiable, Codable {
     case disclaimer
     case faq
     
+    case islandMenu2
+
     
     case viewSchedule(String) // new case
 
@@ -66,6 +68,8 @@ enum AppScreen: Hashable, Identifiable, Codable {
 
             
             
+        case .islandMenu2:
+            return "islandMenu2"
         }
     }
 
@@ -80,6 +84,8 @@ enum AppScreen: Hashable, Identifiable, Codable {
         
         case viewSchedule
         case login   // ← add this
+        case islandMenu2
+
 
 
     }
@@ -170,6 +176,8 @@ enum AppScreen: Hashable, Identifiable, Codable {
             try container.encode(id, forKey: .viewSchedule)
         case .login:
             try container.encodeNil(forKey: .login)
+        case .islandMenu2:
+            try container.encodeNil(forKey: .islandMenu2)
         }
     }
 }
