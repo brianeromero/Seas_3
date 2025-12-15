@@ -59,7 +59,7 @@ struct ProfileView: View {
             if profileViewModel.isProfileLoaded && showMainContent {
                 profileContent
             } else if !authViewModel.userIsLoggedIn {
-                Text("You are logged out")
+                Text("You are now logged out")
                     .onAppear {
                         guard !isNavigatingBack else { return }
                         isNavigatingBack = true
@@ -68,7 +68,6 @@ struct ProfileView: View {
                             try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
                             await MainActor.run {
                                 navigationPath.removeLast(navigationPath.count)
-                                selectedTabIndex = .islandMenu2
                             }
                         }
                     }
@@ -262,15 +261,11 @@ extension ProfileView {
             do {
                 try await authViewModel.logout()
 
-                // Reset profile
                 profileViewModel.resetProfile()
                 profileViewModel.isProfileLoaded = false
                 showMainContent = false
 
-                // Trigger AppRootView and navigation
-                authenticationState.isAuthenticated = false
-                navigationPath.removeLast(navigationPath.count)
-                selectedTabIndex = .islandMenu2
+                NotificationCenter.default.post(name: .userLoggedOut, object: nil)
 
             } catch {
                 saveAlertMessage = "Failed to sign out: \(error.localizedDescription)"
@@ -326,7 +321,6 @@ extension ProfileView {
             } else {
                 // Navigate back to IslandMenu2 immediately
                 navigationPath.removeLast(navigationPath.count)
-                selectedTabIndex = .islandMenu2
             }
         }
     }

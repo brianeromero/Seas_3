@@ -15,13 +15,11 @@ import os
 public enum LoginViewSelection: Int, CaseIterable { // Made CaseIterable for Picker
     case login = 0
     case createAccount = 1
-    case islandMenu2 = 2  // ← NEW CASE
 
     public init?(rawValue: Int) {
         switch rawValue {
         case 0: self = .login
         case 1: self = .createAccount
-        case 2: self = .islandMenu2
         default: return nil
         }
     }
@@ -291,7 +289,11 @@ struct LoginForm: View {
                 authenticationState.navigateUnrestricted = true   // ✅ REQUIRED
                 isLoggedIn = true
                 showMainContent = true
+
+                // ✅ THIS IS THE MISSING LINE
+                NotificationCenter.default.post(name: .navigateHome, object: nil)
             }
+
             
         } catch {
             await MainActor.run {
@@ -491,19 +493,16 @@ struct LoginView: View {
 
         switch type {
         case .successAccount, .successAccountAndGym:
-            // authenticationState.isAuthenticated = true   // ❌ don't set yet
-            authenticationState.navigateUnrestricted = false // optional
-            navigationPath = NavigationPath() // keep them on LoginView
             selectedLoginTab = .login
             authenticationState.accountCreatedSuccessfully = true
 
-            
         case .notice:
             break
         }
 
         currentAlertType = nil
     }
+
 
 }
 

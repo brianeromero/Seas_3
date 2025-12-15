@@ -195,7 +195,6 @@ struct AppRootView: View {
                 authenticationState.isAuthenticated = false
                 authenticationState.didJustCreateAccount = false
                 navigationPath = NavigationPath()
-                selectedTabIndex = .islandMenu2
                 AppRouter.shared.currentScreen = .main
             }
         }
