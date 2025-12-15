@@ -64,11 +64,9 @@ struct ProfileView: View {
                         guard !isNavigatingBack else { return }
                         isNavigatingBack = true
 
-                        Task {
-                            try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
-                            await MainActor.run {
-                                navigationPath.removeLast(navigationPath.count)
-                            }
+                        // Replace async Task + sleep with DispatchQueue
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                            navigationPath.removeLast(navigationPath.count)
                         }
                     }
             } else {
@@ -92,16 +90,10 @@ struct ProfileView: View {
         } message: {
             Text(validationAlertMessage)
         }
-        .alert("Sign Out", isPresented: $showSignOutConfirmation) {
-            Button("Sign Out", role: .destructive) {
-                performSignOut()
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("You will not have access to all features if you sign out.")
-        }
+
     }
 }
+
 
 // MARK: - MAIN CONTENT
 extension ProfileView {
