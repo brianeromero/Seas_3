@@ -210,26 +210,42 @@ struct LoginForm: View {
             
             // MARK: - Social Buttons
             HStack(spacing: 25) {
-                GoogleSignInButtonWrapper { message in
-                    self.errorMessage = message
-                }
+
+                GoogleSignInButtonWrapper(
+                    onSuccess: {
+                        authenticationState.setIsAuthenticated(true)
+                        authenticationState.navigateUnrestricted = true
+                        isLoggedIn = true
+                        showMainContent = true
+
+                        NotificationCenter.default.post(name: .navigateHome, object: nil)
+                    },
+                    onError: { message in
+                        errorMessage = message
+                    }
+                )
                 .frame(width: 50, height: 50)
-                
+
                 AppleSignInButtonView { result in
                     switch result {
                     case .success(_):
                         DispatchQueue.main.async {
                             authenticationState.setIsAuthenticated(true)
+                            authenticationState.navigateUnrestricted = true
                             isLoggedIn = true
                             showMainContent = true
+
+                            // 🔑 KEEP APPLE CONSISTENT TOO
+                            NotificationCenter.default.post(name: .navigateHome, object: nil)
                         }
+
                     case .failure(let error):
                         errorMessage = error.localizedDescription
                     }
                 }
                 .frame(width: 50, height: 50)
-
             }
+
             
             // MARK: - Error Message
             if !errorMessage.isEmpty {

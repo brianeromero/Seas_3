@@ -20,21 +20,26 @@ import SwiftUI
 
 struct GoogleSignInButtonWrapper: View {
     @ObservedObject private var authViewModel = AuthViewModel.shared
-    var handleError: (String) -> Void
+
+    let onSuccess: () -> Void
+    let onError: (String) -> Void
 
     @State private var showError = false
     @State private var errorMessage = ""
 
-    private let logger = os.Logger(subsystem: "com.mat_Finder.app", category: "GoogleSignIn")
+    private let logger = os.Logger(
+        subsystem: "com.mat_Finder.app",
+        category: "GoogleSignIn"
+    )
 
     var body: some View {
         Button(action: handleSignIn) {
             Image("google_logo")
                 .resizable()
                 .scaledToFit()
-                .frame(width: 48, height: 48) // Size of the logo
+                .frame(width: 48, height: 48)
         }
-        .buttonStyle(PlainButtonStyle())
+        .buttonStyle(.plain)
         .alert(isPresented: $showError) {
             Alert(
                 title: Text("Error"),
@@ -44,28 +49,29 @@ struct GoogleSignInButtonWrapper: View {
         }
     }
 
-    func handleSignIn() {
+    private func handleSignIn() {
         logger.debug("Google sign-in started from button wrapper.")
 
         guard let rootVC = UIApplication.shared.connectedScenes
             .compactMap({ ($0 as? UIWindowScene)?.keyWindow })
             .first?.rootViewController else {
-                let errMsg = "Unable to find root view controller for Google Sign-In."
-                logger.error("\(errMsg, privacy: .public)")
-                handleError(errMsg)
-                return
+
+            let errMsg = "Unable to find root view controller for Google Sign-In."
+            logger.error("\(errMsg, privacy: .public)")
+            onError(errMsg)
+            return
         }
 
         Task {
             await authViewModel.signInWithGoogle(presenting: rootVC)
 
-            if let vmError = authViewModel.errorMessage, !vmError.isEmpty {
-                errorMessage = vmError
-                showError = true
-                handleError(vmError)
-
-                DispatchQueue.main.async {
-                    self.authViewModel.errorMessage = ""
+            await MainActor.run {
+                if let vmError = authViewModel.errorMessage, !vmError.isEmpty {
+                    onError(vmError)
+                    authViewModel.errorMessage = ""
+                } else {
+                    // ✅ LOGIN SUCCEEDED
+                    onSuccess()
                 }
             }
         }
