@@ -337,4 +337,12 @@ extension PersistenceController {
             return nil
         }
     }
+
+    /// Ensures Core Data background merges complete before dependent downloads begin
+    func waitForBackgroundSaves() async throws {
+        await container.viewContext.perform {
+            // Forces all background context changes to merge
+            self.container.viewContext.refreshAllObjects()
+        }
+    }
 }

@@ -249,22 +249,33 @@ struct AddNewMatTimeSection: View {
                 let backgroundContext = PersistenceController.shared.container.newBackgroundContext()
                 backgroundContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
 
-                let generatedName = appDayOfWeekRepository.generateName(for: selectedIsland, day: selectedDay)
-                let generatedAppDayOfWeekID = appDayOfWeekRepository.generateAppDayOfWeekID(for: selectedIsland, day: selectedDay)
+                // Capture safe strings before entering performAndWait
+                let islandNameSafe = selectedIsland.islandName ?? "UnknownIsland"
+                let dayNameSafe = selectedDay.rawValue // or selectedDay.displayName
 
                 // Perform only synchronous background work here
                 appDayOfWeekToUseID = try backgroundContext.performAndWait {
                     guard let islandOnBG = try? backgroundContext.existingObject(with: selectedIslandID) as? PirateIsland else {
-                        throw NSError(domain: "CoreDataError", code: 202, userInfo: [NSLocalizedDescriptionKey: "Failed to rehydrate selectedIsland in background context."])
+                        throw NSError(
+                            domain: "CoreDataError",
+                            code: 202,
+                            userInfo: [NSLocalizedDescriptionKey: "Failed to rehydrate selectedIsland in background context."]
+                        )
                     }
 
                     let newAppDayOfWeek = AppDayOfWeek(context: backgroundContext)
+                    
+                    // Keep UUID for Core Data identity
                     newAppDayOfWeek.id = UUID()
-                    newAppDayOfWeek.day = selectedDay.rawValue
-                    newAppDayOfWeek.name = generatedName
+                    
+                    // 🔹 Use captured safe strings instead of Core Data object
+                    let humanReadableID = "\(islandNameSafe)-\(dayNameSafe)"
+                    newAppDayOfWeek.appDayOfWeekID = humanReadableID
+                    
+                    newAppDayOfWeek.day = dayNameSafe
+                    newAppDayOfWeek.name = humanReadableID
                     newAppDayOfWeek.pIsland = islandOnBG
                     newAppDayOfWeek.createdTimestamp = Date()
-                    newAppDayOfWeek.appDayOfWeekID = generatedAppDayOfWeekID
 
                     try backgroundContext.save()
                     return newAppDayOfWeek.objectID
@@ -394,30 +405,34 @@ struct AddNewMatTimeSection: View {
             // Initialize variables to a default/empty state before the closure
             var matTimeDataToSave: [String: Any] = [:] // Initialize with empty dictionary
             var matTimeUUIDString: String = ""         // Initialize with empty string
-            var appDayOfWeekUUIDString: String = ""    // Initialize with empty string
+            var _: String = ""    // Initialize with empty string
             var appDayOfWeekRef: DocumentReference! = nil // Initialize as nil or remove `!` and handle optional
 
             let contextForFirestore = PersistenceController.shared.container.newBackgroundContext()
 
             try await contextForFirestore.perform {
                 guard let matTimeOnBGContext = try contextForFirestore.existingObject(with: matTimeObjectID) as? MatTime,
-                      let matTimeID = matTimeOnBGContext.id, // Get the UUID directly
+                      let matTimeID = matTimeOnBGContext.id,
                       let appDayOfWeekOnBGContext = try contextForFirestore.existingObject(with: appDayOfWeekID) as? AppDayOfWeek,
-                      let appDayOfWeekIDFromContext = appDayOfWeekOnBGContext.id // Get AppDayOfWeek UUID
+                      let appDayOfWeekIDFromContext = appDayOfWeekOnBGContext.appDayOfWeekID // <-- Use string ID
                 else {
-                    throw NSError(domain: "FirestoreSerializationError", code: 202, userInfo: [NSLocalizedDescriptionKey: "Failed to rehydrate matTime or appDayOfWeek for Firestore serialization, or missing UUIDs."])
+                    throw NSError(domain: "FirestoreSerializationError", code: 202,
+                                  userInfo: [NSLocalizedDescriptionKey: "Failed to rehydrate matTime or appDayOfWeek for Firestore serialization."])
                 }
 
                 matTimeUUIDString = matTimeID.uuidString
-                appDayOfWeekUUIDString = appDayOfWeekIDFromContext.uuidString
+                let appDayOfWeekHumanID = appDayOfWeekIDFromContext // <-- Human-readable ID
 
-                // Construct the Firestore DocumentReference *synchronously* here
-                appDayOfWeekRef = Firestore.firestore().collection("AppDayOfWeek").document(appDayOfWeekUUIDString)
+                // Use the human-readable string for Firestore reference
+                appDayOfWeekRef = Firestore.firestore()
+                    .collection("AppDayOfWeek")
+                    .document(appDayOfWeekHumanID)
 
                 var data = matTimeOnBGContext.toFirestoreData()
-                data["appDayOfWeek"] = appDayOfWeekRef // Attach the Firestore reference
+                data["appDayOfWeek"] = appDayOfWeekRef // Attach Firestore reference
                 matTimeDataToSave = data
             }
+
 
             // NOW, perform the Firestore write (which is asynchronous) OUTSIDE the Core Data perform block.
             // Add checks for initialized variables if appDayOfWeekRef was nil

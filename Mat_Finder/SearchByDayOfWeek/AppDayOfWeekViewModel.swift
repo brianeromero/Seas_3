@@ -476,71 +476,67 @@ final class AppDayOfWeekViewModel: ObservableObject {
         kids: Bool,
         for appDayOfWeekID: NSManagedObjectID
     ) async throws -> NSManagedObjectID {
-        
+
         let backgroundContext = PersistenceController.shared.container.newBackgroundContext()
-        backgroundContext.automaticallyMergesChangesFromParent = true
         backgroundContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
-        
-        // --- Perform background work
-        let matTimeID = try await backgroundContext.perform { () -> NSManagedObjectID in
-            print("Updating/creating MatTime for AppDayOfWeek ID: \(appDayOfWeekID)")
-            
-            // Fetch AppDayOfWeek
-            guard let appDayOfWeek = try backgroundContext.existingObject(with: appDayOfWeekID) as? AppDayOfWeek else {
+
+        // 1️⃣ Create / Update MatTime entirely in background
+        let matTimeObjectID = try await backgroundContext.perform {
+            guard let appDayOfWeek = try? backgroundContext.existingObject(with: appDayOfWeekID) as? AppDayOfWeek else {
                 throw NSError(
                     domain: "CoreDataError",
                     code: 200,
                     userInfo: [NSLocalizedDescriptionKey: "Failed to rehydrate AppDayOfWeek"]
                 )
             }
-            appDayOfWeek.name = appDayOfWeek.day
-            
-            // Determine MatTime instance
+
             let matTime: MatTime
             if let existingID = existingMatTimeID,
-               let existing = try backgroundContext.existingObject(with: existingID) as? MatTime {
+               let existing = try? backgroundContext.existingObject(with: existingID) as? MatTime {
                 matTime = existing
             } else {
                 matTime = MatTime(context: backgroundContext)
-                matTime.configure(
-                    time: time,
-                    type: type,
-                    gi: gi,
-                    noGi: noGi,
-                    openMat: openMat,
-                    restrictions: restrictions,
-                    restrictionDescription: restrictionDescription,
-                    goodForBeginners: goodForBeginners,
-                    kids: kids
-                )
                 matTime.createdTimestamp = Date()
             }
-            
-            // Mutate safely in background
-            backgroundContext.performAndWait {
-                if matTime.id == nil {
-                    matTime.id = UUID()
-                }
-                
-                if existingMatTimeID == nil {
-                    appDayOfWeek.addToMatTimes(matTime)
-                }
-            }
-            
-            // Save background context
+
+            if matTime.id == nil { matTime.id = UUID() }
+
+            matTime.configure(
+                time: time,
+                type: type,
+                gi: gi,
+                noGi: noGi,
+                openMat: openMat,
+                restrictions: restrictions,
+                restrictionDescription: restrictionDescription,
+                goodForBeginners: goodForBeginners,
+                kids: kids
+            )
+
+            matTime.appDayOfWeek = appDayOfWeek
+
             try backgroundContext.save()
-            
-            // Return the objectID for main thread use
             return matTime.objectID
         }
-        
-        // --- Merge into main context
-        try? PersistenceController.shared.viewContext.save()
+
+        // 2️⃣ Merge background changes into main actor
+        await MainActor.run {
+            let mainContext = PersistenceController.shared.viewContext
+            mainContext.performAndWait {
+                do {
+                    try mainContext.save()
+                } catch {
+                    print("Error saving main context after background update: \(error)")
+                }
+            }
+        }
+
+        // 3️⃣ Refresh any in-memory arrays / SwiftUI views
         await refreshMatTimes()
-        
-        // Return the saved matTimeID
-        return matTimeID
+
+        return matTimeObjectID
     }
+
 
     // MARK: - Refresh MatTimes
     @MainActor

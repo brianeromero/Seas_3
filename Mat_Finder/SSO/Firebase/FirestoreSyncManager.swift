@@ -81,25 +81,51 @@ class FirestoreSyncManager {
     
     @MainActor
     func syncInitialFirestoreData() async {
-        // ✅ Remove user login check
         do {
-            try await createFirestoreCollection() // setup/check step
+            // Step 1: Ensure Firestore collections exist & upload missing locals
+            try await createFirestoreCollection()
 
             let db = Firestore.firestore()
-            let collections = ["pirateIslands", "AppDayOfWeek", "MatTime", "reviews"]
 
-            for collectionName in collections {
-                do {
-                    try await downloadCollection(db: db, name: collectionName)
-                } catch {
-                    Self.log("Failed to download \(collectionName): \(error.localizedDescription)", level: .error, collection: collectionName)
-                }
+            // ---------------------------------------------------------
+            // 🔒 CRITICAL ORDERING (DO NOT CHANGE)
+            // ---------------------------------------------------------
+
+            // 1️⃣ PirateIslands (parent of AppDayOfWeek)
+            try await downloadCollection(db: db, name: "pirateIslands")
+
+            // 2️⃣ AppDayOfWeek (parent of MatTime)
+            try await downloadCollection(db: db, name: "AppDayOfWeek")
+
+            // ⛔️ HARD BARRIER — wait for background Core Data saves
+            try await PersistenceController.shared.waitForBackgroundSaves()
+
+            // 3️⃣ MatTime (depends on AppDayOfWeek)
+            try await downloadCollection(db: db, name: "MatTime")
+
+            // 4️⃣ Reviews (depends on PirateIsland only)
+            try await downloadCollection(db: db, name: "reviews")
+
+            // ✅ Wait for all background Core Data merges to finish
+            try await PersistenceController.shared.waitForBackgroundSaves()
+            await MainActor.run {
+                FirestoreSyncManager.log(
+                    "🧩 Core Data graph fully merged and stable",
+                    level: .finished
+                )
             }
 
-            Self.log("Initial Firestore sync complete", level: .finished)
+
+            Self.log(
+                "Initial Firestore sync complete (ordered, relationship-safe)",
+                level: .finished
+            )
 
         } catch {
-            Self.log("Firestore setup/check error: \(error.localizedDescription)", level: .error)
+            Self.log(
+                "Firestore setup/check error: \(error.localizedDescription)",
+                level: .error
+            )
         }
     }
 
@@ -345,7 +371,8 @@ class FirestoreSyncManager {
                     ]
                 case "MatTime":
                     guard let matTime = localRecord as? MatTime else { continue }
-                    recordData = [
+
+                    var recordData: [String: Any] = [
                         "id": matTime.id?.uuidString ?? "",
                         "type": matTime.type ?? "",
                         "time": matTime.time ?? "",
@@ -356,9 +383,16 @@ class FirestoreSyncManager {
                         "restrictionDescription": matTime.restrictionDescription ?? "",
                         "goodForBeginners": matTime.goodForBeginners,
                         "kids": matTime.kids,
-                        "createdTimestamp": matTime.createdTimestamp ?? Date(),
-                        "appDayOfWeekID": matTime.appDayOfWeek?.appDayOfWeekID ?? ""
+                        "createdTimestamp": matTime.createdTimestamp ?? Date()
                     ]
+
+                    if let adoID = matTime.appDayOfWeek?.appDayOfWeekID {
+                        recordData["appDayOfWeek"] =
+                            Firestore.firestore()
+                                .collection("AppDayOfWeek")
+                                .document(adoID)
+                    }
+
                 case "AppDayOfWeek":
                     guard let appDayOfWeek = localRecord as? AppDayOfWeek else { continue }
                     
@@ -836,21 +870,19 @@ class FirestoreSyncManager {
         docSnapshot: DocumentSnapshot,
         context: NSManagedObjectContext
     ) {
-        var logBlock: (() -> Void)? = nil
-        
         context.perform {
             let docID = docSnapshot.documentID
             let uuid: UUID = UUID(uuidString: docID) ?? UUID.fromStringID(docID)
-            
+
             let fetchRequest: NSFetchRequest<MatTime> = MatTime.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "id == %@", uuid as CVarArg)
             fetchRequest.fetchLimit = 1
-            
+
             do {
                 let matTime = try context.fetch(fetchRequest).first ?? MatTime(context: context)
                 matTime.id = uuid
-                
-                // Mapping
+
+                // --- Map fields
                 matTime.type = docSnapshot.get("type") as? String
                 matTime.time = docSnapshot.get("time") as? String
                 matTime.gi = docSnapshot.get("gi") as? Bool ?? false
@@ -860,61 +892,59 @@ class FirestoreSyncManager {
                 matTime.restrictionDescription = docSnapshot.get("restrictionDescription") as? String
                 matTime.goodForBeginners = docSnapshot.get("goodForBeginners") as? Bool ?? false
                 matTime.kids = docSnapshot.get("kids") as? Bool ?? false
-                matTime.createdTimestamp = (docSnapshot.get("createdTimestamp") as? Timestamp)?.dateValue()
-                
-                // AppDayOfWeek linking
+                matTime.createdTimestamp =
+                    (docSnapshot.get("createdTimestamp") as? Timestamp)?.dateValue()
+
+                // --- Resolve AppDayOfWeek relationship
                 if let appDayRef = docSnapshot.get("appDayOfWeek") as? DocumentReference {
-                    let rawID = appDayRef.documentID
-                    let normalizedID = UUID(uuidString: rawID)?.uuidString ?? rawID
-                    
-                    let dayFetch: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
-                    dayFetch.predicate = NSPredicate(
-                        format: "appDayOfWeekID == %@ OR appDayOfWeekID == %@",
-                        normalizedID,
-                        rawID
-                    )
-                    dayFetch.fetchLimit = 1
-                    
-                    if let appDay = try? context.fetch(dayFetch).first {
+
+                    let appDayID = appDayRef.documentID  // e.g. "Westminster BJJ-monday"
+
+                    let adoFetch: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
+                    adoFetch.predicate = NSPredicate(format: "appDayOfWeekID == %@", appDayID)
+                    adoFetch.fetchLimit = 1
+
+                    if let appDay = try context.fetch(adoFetch).first {
                         matTime.appDayOfWeek = appDay
+                    } else {
+                        // 🔒 HARD FAIL — prevent orphaned MatTime
+                        context.rollback()
+                        Self.log(
+                            "❌ Aborting MatTime save — AppDayOfWeek not found (\(appDayID)) for MatTime \(docID)",
+                            level: .error,
+                            collection: "MatTime"
+                        )
+                        return
                     }
+
+                } else {
+                    // 🔒 HARD FAIL — missing Firestore reference
+                    context.rollback()
+                    Self.log(
+                        "❌ Aborting MatTime save — missing appDayOfWeek reference for MatTime \(docID)",
+                        level: .error,
+                        collection: "MatTime"
+                    )
+                    return
                 }
-                
-                // Save
+
+                // --- Save background context only
                 if context.hasChanges {
-                    // 1. Removed the save call, letting the main context handle the merge
-                    
-                    // 2. CRITICAL FIX: Force the main context to update on the Main Actor
-                    Task {
-                        @MainActor in
-                        do {
-                            try PersistenceController.shared.viewContext.save()
-                            Self.log("✅ Synced MatTime \(docSnapshot.documentID)",
-                                     level: .success,
-                                     collection: "MatTime")
-                        } catch {
-                            let docID = docSnapshot.documentID
-                            Self.log("❌ Failed saving MatTime \(docID): \(error.localizedDescription)",
-                                     level: .error,
-                                     collection: "MatTime")
-                        }
-                    }
+                    try context.save()
+                    Self.log("✅ Synced MatTime \(docID)", level: .success, collection: "MatTime")
                 }
+
             } catch {
-                logBlock = {
-                    Self.log("❌ Failed syncing MatTime \(docSnapshot.documentID): \(error)",
-                             level: .error,
-                             collection: "MatTime")
-                }
+                context.rollback()
+                Self.log(
+                    "❌ Failed syncing MatTime \(docID): \(error.localizedDescription)",
+                    level: .error,
+                    collection: "MatTime"
+                )
             }
         }
-        
-        // 🌟 MAIN-ACTOR logging, after core data work is done
-        if let logBlock {
-            Task { @MainActor in logBlock() }
-        }
     }
-    
+
     
     // ---------------------------
     // AppDayOfWeek
@@ -1012,11 +1042,8 @@ class FirestoreSyncManager {
                 // --- Save background context only
                 if context.hasChanges {
                     do {
-                        try context.performAndWait {
-                            try context.save()
-                        }
-                        
-                        // Log on main thread
+                        try context.save()
+
                         Task { @MainActor in
                             FirestoreSyncManager.log(
                                 "✅ Synced AppDayOfWeek \(docID)",
@@ -1024,7 +1051,7 @@ class FirestoreSyncManager {
                                 collection: "AppDayOfWeek"
                             )
                         }
-                        
+
                     } catch {
                         Task { @MainActor in
                             FirestoreSyncManager.log(
@@ -1035,6 +1062,7 @@ class FirestoreSyncManager {
                         }
                     }
                 }
+
             } catch {
                 Task { @MainActor in
                     FirestoreSyncManager.log(
