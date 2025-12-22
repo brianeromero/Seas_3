@@ -74,7 +74,7 @@ struct AddOpenMatFormView: View {
                     get: { viewModel.selectedTimeForDay[day] ?? Date() },
                     set: { newDate in
                         Task {
-                            let formattedTime = DateFormat.time.string(from: newDate)
+                            let formattedTime = AppDateFormatter.twelveHour.string(from: newDate)
                             await viewModel.addOrUpdateMatTime(
                                 time: formattedTime,
                                 type: viewModel.selectedType,
@@ -92,6 +92,7 @@ struct AddOpenMatFormView: View {
                 ),
                 displayedComponents: .hourAndMinute
             )
+
             .datePickerStyle(WheelDatePickerStyle())
         }
     }
@@ -194,18 +195,20 @@ struct AddOpenMatFormView: View {
         Button(action: {
             Task {
                 if viewModel.validateFields() {
-                    let timeString = DateFormat.time.string(from: viewModel.selectedTimeForDay[viewModel.selectedDay ?? DayOfWeek.monday] ?? Date())
+                    let timeString = AppDateFormatter.twelveHour.string(
+                        from: viewModel.selectedTimeForDay[viewModel.selectedDay ?? .monday] ?? Date()
+                    )
                     await viewModel.addOrUpdateMatTime(
                         time: timeString,
                         type: viewModel.selectedType,
-                        gi: viewModel.giForDay[viewModel.selectedDay ?? DayOfWeek.monday] ?? false,
-                        noGi: viewModel.noGiForDay[viewModel.selectedDay ?? DayOfWeek.monday] ?? false,
-                        openMat: viewModel.openMatForDay[viewModel.selectedDay ?? DayOfWeek.monday] ?? false,
-                        restrictions: viewModel.restrictionsForDay[viewModel.selectedDay ?? DayOfWeek.monday] ?? false,
-                        restrictionDescription: viewModel.restrictionDescriptionForDay[viewModel.selectedDay ?? DayOfWeek.monday] ?? "",
-                        goodForBeginners: viewModel.goodForBeginnersForDay[viewModel.selectedDay ?? DayOfWeek.monday] ?? false,
-                        kids: viewModel.kidsForDay[viewModel.selectedDay ?? DayOfWeek.monday] ?? false,
-                        for: viewModel.selectedDay ?? DayOfWeek.monday
+                        gi: viewModel.giForDay[viewModel.selectedDay ?? .monday] ?? false,
+                        noGi: viewModel.noGiForDay[viewModel.selectedDay ?? .monday] ?? false,
+                        openMat: viewModel.openMatForDay[viewModel.selectedDay ?? .monday] ?? false,
+                        restrictions: viewModel.restrictionsForDay[viewModel.selectedDay ?? .monday] ?? false,
+                        restrictionDescription: viewModel.restrictionDescriptionForDay[viewModel.selectedDay ?? .monday] ?? "",
+                        goodForBeginners: viewModel.goodForBeginnersForDay[viewModel.selectedDay ?? .monday] ?? false,
+                        kids: viewModel.kidsForDay[viewModel.selectedDay ?? .monday] ?? false,
+                        for: viewModel.selectedDay ?? .monday
                     )
                 } else {
                     alertMessage = "Please fill in all required fields202122."

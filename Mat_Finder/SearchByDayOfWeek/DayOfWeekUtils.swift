@@ -9,7 +9,6 @@ import SwiftUI
 
 
 
-
 enum DayOfWeek: String, CaseIterable, Hashable, Identifiable, Comparable {
     case sunday, monday, tuesday, wednesday, thursday, friday, saturday
 
@@ -45,29 +44,19 @@ enum DayOfWeek: String, CaseIterable, Hashable, Identifiable, Comparable {
         return day
     }
 
+    /// Converts 24-hour time string to 12-hour time string
     static func formatTime(from twentyFourHourTime: String) -> String {
-        guard let date = twentyFourHourFormatter.date(from: twentyFourHourTime) else {
+        guard let date = AppDateFormatter.twentyFourHour.date(from: twentyFourHourTime) else {
             return twentyFourHourTime
         }
-        return twelveHourFormatter.string(from: date)
+        return AppDateFormatter.twelveHour.string(from: date)
     }
-
-    private static let twelveHourFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "h:mm a"
-        return formatter
-    }()
-
-    private static let twentyFourHourFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        return formatter
-    }()
 }
 
 enum DayOfWeekError: Error {
     case invalidDayValue
 }
+
 
 // DayOfWeekView.swift
 

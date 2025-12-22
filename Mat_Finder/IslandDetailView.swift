@@ -155,6 +155,6 @@ struct IslandDetailContent: View {
 
     private func formattedDate(_ date: Date?) -> String? {
         guard let date = date else { return nil }
-        return DateFormat.mediumDateTime.string(from: date)
+        return AppDateFormatter.mediumDateTime.string(from: date)
     }
 }

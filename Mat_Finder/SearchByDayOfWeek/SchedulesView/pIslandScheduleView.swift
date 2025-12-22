@@ -106,10 +106,11 @@ struct pIslandScheduleView: View {
 
     // Function to format time
     func formatTime(_ time: String) -> String {
-        if let date = DateFormat.time.date(from: time) {
-            return DateFormat.shortTime.string(from: date)
+        if let date = AppDateFormatter.twelveHour.date(from: time) {
+            return AppDateFormatter.twelveHour.string(from: date)
         } else {
             return time
         }
     }
+
 }

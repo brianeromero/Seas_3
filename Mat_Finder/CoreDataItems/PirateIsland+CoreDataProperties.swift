@@ -63,8 +63,13 @@ extension PirateIsland {
     }
 
     public var formattedTimestamp: String {
-        DateFormat.full.string(from: lastModifiedTimestamp ?? Date())
+        AppDateFormatter.full.string(from: lastModifiedTimestamp ?? Date())
     }
+    
+    public var formattedCreatedTimestamp: String {
+        AppDateFormatter.mediumDateTime.string(from: createdTimestamp ?? Date())
+    }
+
 
     public var safeIslandLocation: String {
         islandLocation ?? "Unknown Location"

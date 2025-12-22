@@ -24,19 +24,15 @@ extension AppDayOfWeek {
         return DayOfWeek(rawValue: self.day.lowercased())
     }
     
-    private static let timestampFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-        return formatter
-    }()
 
     // Safely format the timestamp for optional Date
     private func formattedCreatedTimestamp() -> String {
         guard let createdTimestamp = createdTimestamp else {
             return "No timestamp set"
         }
-        return Self.timestampFormatter.string(from: createdTimestamp)
+        return AppDateFormatter.timestamp.string(from: createdTimestamp)
     }
+
 
     // Safely unwrap properties in the description
     override public var description: String {
@@ -59,14 +55,27 @@ extension AppDayOfWeek {
     }
 }
 
-
 extension AppDayOfWeek {
     /// Returns the mat times sorted by time string
     var matTimesArray: [MatTime] {
         (matTimes as? Set<MatTime>)?
-            .sorted { ($0.time ?? "") < ($1.time ?? "") } ?? []
+            .sorted { lhs, rhs in
+                let t0Date = lhs.time.flatMap { AppDateFormatter.twelveHour.date(from: $0) }
+                let t1Date = rhs.time.flatMap { AppDateFormatter.twelveHour.date(from: $0) }
+
+                switch (t0Date, t1Date) {
+                case let (d0?, d1?):
+                    return d0 < d1
+                case (_?, nil):
+                    return true
+                case (nil, _?):
+                    return false
+                default:
+                    return (lhs.time ?? "") < (rhs.time ?? "")
+                }
+            } ?? []
     }
-    
+
     /// True when this AppDayOfWeek actually has mat times
     var hasMatTimes: Bool {
         !matTimesArray.isEmpty

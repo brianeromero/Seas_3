@@ -110,10 +110,11 @@ struct AllpIslandScheduleView: View {
         matTimes
             .filter { $0.appDayOfWeek != nil && $0.time != nil && !$0.time!.isEmpty }
             .sorted {
-                guard let time1 = DateFormat.mediumDateTime.date(from: $0.time!),
-                      let time2 = DateFormat.mediumDateTime.date(from: $1.time!)
+                guard let time1 = AppDateFormatter.mediumDateTime.date(from: $0.time!),
+                      let time2 = AppDateFormatter.mediumDateTime.date(from: $1.time!)
                 else { return false }
                 return time1 < time2
+
             }
     }
 
@@ -153,44 +154,3 @@ struct AllpIslandScheduleView: View {
         }
     }
 }
-/*
-// MARK: - Preview
-struct AllpIslandScheduleView_Previews: PreviewProvider {
-    static var previews: some View {
-        let persistenceController = PersistenceController.shared  // Use the shared instance
-
-        let mockIsland = PirateIsland(context: persistenceController.container.viewContext)
-        mockIsland.islandName = "Sample Island"
-
-        let mockAppDayOfWeek = AppDayOfWeek(context: persistenceController.container.viewContext)
-        mockAppDayOfWeek.day = DayOfWeek.monday.rawValue
-        mockAppDayOfWeek.pIsland = mockIsland
-        
-        let dateFormatter = DateFormatter()
-        dateFormatter.timeStyle = .short
-        
-        let mockMatTime1 = MatTime(context: persistenceController.container.viewContext)
-        mockMatTime1.time = DateFormat.time.string(from: Date().addingTimeInterval(-3600))
-        mockAppDayOfWeek.addToMatTimes(mockMatTime1)
-
-        let mockMatTime2 = MatTime(context: persistenceController.container.viewContext)
-        mockMatTime2.time = DateFormat.time.string(from: Date().addingTimeInterval(3600))
-        mockAppDayOfWeek.addToMatTimes(mockMatTime2)
-
-        try? persistenceController.container.viewContext.save()
-
-        let repository = AppDayOfWeekRepository(persistenceController: persistenceController)
-        let enterZipCodeViewModel = EnterZipCodeViewModel(repository: repository, persistenceController: persistenceController)
-        let viewModel = AppDayOfWeekViewModel(
-            selectedIsland: mockIsland,
-            repository: repository,
-            enterZipCodeViewModel: enterZipCodeViewModel
-        )
-
-        return AllpIslandScheduleView(
-            viewModel: viewModel,
-            enterZipCodeViewModel: enterZipCodeViewModel
-        )
-    }
-}
-*/

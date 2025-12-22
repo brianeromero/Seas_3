@@ -49,6 +49,8 @@ final class AppDayOfWeekViewModel: ObservableObject {
     @Published var showError = false
     @Published var selectedAppDayOfWeek: AppDayOfWeek?
     
+    @Published var matTimes: [MatTime] = []
+
     
     @State private var showAlert = false
     @State private var alertTitle = ""
@@ -70,8 +72,8 @@ final class AppDayOfWeekViewModel: ObservableObject {
     }
     
     // MARK: - DateFormatter
-    public let dateFormatter: DateFormatter = DateFormat.time
-    
+    public let dateFormatter: DateFormatter = AppDateFormatter.twelveHour
+
     // MARK: - Initializer
     init(selectedIsland: PirateIsland? = nil,
          repository: AppDayOfWeekRepository,

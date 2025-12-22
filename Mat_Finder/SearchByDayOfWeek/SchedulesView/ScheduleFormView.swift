@@ -11,236 +11,227 @@ import UIKit
 import Combine
 
 
-private func formatDateToString(_ date: Date) -> String {
-    let formatter = DateFormatter()
-    formatter.dateFormat = "h:mm a" // Ensure consistent format
-    return formatter.string(from: date)
+// MARK: - Date <-> String conversions using centralized formatter
+extension Date {
+    func toTimeString() -> String {
+        AppDateFormatter.twelveHour.string(from: self)
+    }
 }
 
-func stringToDate(_ string: String) -> Date? {
-    let formatter = DateFormatter()
-    formatter.dateFormat = "h:mm a"
-    return formatter.date(from: string)
+extension String {
+    func toTimeDate() -> Date? {
+        AppDateFormatter.twelveHour.date(from: self)
+    }
 }
 
-
+// MARK: - MatTime description
 extension MatTime {
     override public var description: String {
-        guard let timeString = time, let date = stringToDate(timeString) else { return "" }
-        return "\(formatDateToString(date)) - Gi: \(gi), No Gi: \(noGi), Open Mat: \(openMat), Restrictions: \(restrictions), Good for Beginners: \(goodForBeginners), Kids: \(kids)"
+        guard let timeString = time,
+              let date = timeString.toTimeDate() else { return "" }
+
+        return """
+        \(date.toTimeString()) \
+        - Gi: \(gi), \
+        No Gi: \(noGi), \
+        Open Mat: \(openMat), \
+        Restrictions: \(restrictions), \
+        Good for Beginners: \(goodForBeginners), \
+        Kids: \(kids)
+        """
     }
 }
 
 
 struct ScheduleFormView: View {
     @Environment(\.managedObjectContext) private var viewContext
-    var islands: [PirateIsland] // Receive islands from parent view
-    @State private var selectedAppDayOfWeek: AppDayOfWeek?
-    @Binding var selectedIsland: PirateIsland? // This is ScheduleFormView's property
-    @ObservedObject var viewModel: AppDayOfWeekViewModel
+
+    let islands: [PirateIsland]
+
+    @Binding var selectedIsland: PirateIsland?
     @Binding var matTimes: [MatTime]
-    @State private var error: String?
+
+    @ObservedObject var viewModel: AppDayOfWeekViewModel
+
+    @State private var selectedDay: DayOfWeek?
+    @State private var selectedAppDayOfWeek: AppDayOfWeek?
 
     @State private var showingAlert = false
     @State private var alertTitle = ""
     @State private var alertMessage = ""
-    @State private var daySelected = false
-    @State private var selectedDay: DayOfWeek? = nil
+
     @State private var showReview = false
-    @State private var showClassScheduleModal = false
-    
-    // Add these two missing state properties
+
     @State private var isLoading = false
     @State private var isAppDayOfWeekLoaded = false
 
     var body: some View {
         Form {
+
+            // MARK: - Island Selection
             IslandSection(
                 islands: islands,
-                selectedIsland: $selectedIsland, // <--- Correctly uses ScheduleFormView's property
+                selectedIsland: $selectedIsland,
                 showReview: $showReview
             )
-            // REMOVE THIS LINE: .id(selectedIsland)
-            // This line was causing the IslandSection to be re-initialized and lose its selection display.
             .onAppear {
-                print("ScheduleFormView - Selected Island onAppear: \(selectedIsland?.islandName ?? "No island selected")")
-                Task {
-                    await handleOnAppear() // This sets selectedIsland if it's nil
-                }
+                Task { await handleOnAppear() }
             }
-            .onChange(of: selectedIsland) { oldIsland, newIsland in
-                print("ScheduleFormView - Island changed from \(oldIsland?.islandName ?? "nil") to \(newIsland?.islandName ?? "nil")")
-                Task {
-                    await setupInitialSelection()
-                }
+            .onChange(of: selectedIsland) { _, _ in
+                Task { await setupInitialSelection() }
             }
 
-            .onChange(of: selectedAppDayOfWeek) { oldValue, newValue in
-                print("AppDayOfWeek changed from \(String(describing: oldValue)) to \(String(describing: newValue))")
-            }
-
-            .onChange(of: viewModel.matTimesForDay) { oldMatTimes, newMatTimes in
-                print("MatTimes changed from \(oldMatTimes) to \(newMatTimes)")
-            }
-
-
+            // MARK: - Day Selection
             daySelectionSection
 
-            AddNewMatTimeSection(
-                selectedIsland: $selectedIsland,
-                selectedDay: $selectedDay,
-                daySelected: $daySelected,
-                viewModel: viewModel,
-                selectIslandAndDay: selectIslandAndDay
-            )
+            // MARK: - Add New Mat Time (FIELDS + FOOTER BUTTON)
+            // MARK: - Add New Mat Time Section
+            Section {
+                AddNewMatTimeSection(
+                    selectedIsland: $selectedIsland,
+                    selectedDay: $selectedDay,
+                    viewModel: viewModel,
+                    selectIslandAndDay: { island, day in
+                        await selectIslandAndDay(island, day)
+                    }
+                )
+            }
+            // Remove the footer button completely
 
 
-            
-            if let selectedDay = selectedDay, let selectedIsland = selectedIsland {
+            // MARK: - Scheduled Mat Times
+            if let island = selectedIsland, let day = selectedDay {
                 ScheduledMatTimesSection(
-                    island: selectedIsland,
-                    day: selectedDay,
+                    island: island,
+                    day: day,
                     viewModel: viewModel,
                     matTimesForDay: $viewModel.matTimesForDay,
                     selectedDay: $selectedDay
                 )
             } else {
                 Text("Please select a day and island to view the schedule.")
-                    .font(.system(size: 12))
+                    .font(.footnote)
                     .foregroundColor(.secondary)
             }
         }
         .navigationTitle("Schedule Entry")
         .alert(isPresented: $showingAlert) {
-            Alert(title: Text(alertTitle), message: Text(alertMessage), dismissButton: .default(Text("OK")))
-        }
-        .onAppear {
-            print("Selected Island: \(selectedIsland?.islandName ?? "No island selected")")
-            Task {
-                await logInitialSetup()
-            }
-        }
-    }
-    
-    private func handleOnAppear() async {
-        if selectedIsland == nil, let firstIsland = islands.first {
-            selectedIsland = firstIsland // Ensure a default selection
-        }
-        
-        print("handleOnAppear - Selected Island: \(selectedIsland?.islandName ?? "No island selected")")
-
-        await setupInitialSelection() // Ensure this runs after selecting an island
-    }
-
-    private func logInitialSetup() async {
-        if let island = selectedIsland {
-            let day = selectedDay ?? .monday
-            
-            let (_, matTimes) = await viewModel.fetchCurrentDayOfWeek(
-                for: island,
-                day: day,
-                selectedDayBinding: .init(get: { viewModel.selectedDay }, set: { viewModel.selectedDay = $0 ?? .monday })
+            Alert(
+                title: Text(alertTitle),
+                message: Text(alertMessage),
+                dismissButton: .default(Text("OK"))
             )
-
-            // Directly update @Published properties (already on main thread)
-            if let matTimes = matTimes {
-                viewModel.matTimesForDay[day] = matTimes
-            }
-
-            print("Initial island set: \(island.islandName ?? ""), day: \(day)")
         }
     }
+}
 
-    private func setupInitialSelection() async {
-        await updateDayOfWeek()
-    }
+// MARK: - Day Selection Section
+private extension ScheduleFormView {
 
-    func updateDayOfWeek() async {
-        if let island = selectedIsland, let day = selectedDay {
-            _ = await viewModel.fetchCurrentDayOfWeek(
-                for: island,
-                day: day,
-                selectedDayBinding: Binding(get: { viewModel.selectedDay }, set: { viewModel.selectedDay = $0 })
-            )
-            print("Initial island set: \(island.islandName ?? ""), day: \(day)")
-        }
-    }
-
-    private var selectedDayBinding: Binding<DayOfWeek> {
-        Binding(get: {
-            selectedDay ?? .monday // default value
-        }, set: { selectedDay = $0 })
-    }
-
-    private var daySelectionSection: some View {
+    var daySelectionSection: some View {
         Section(header: Text("Select Day")) {
             Picker("Day", selection: $selectedDay) {
                 ForEach(DayOfWeek.allCases, id: \.self) { day in
                     Text(day.displayName).tag(day as DayOfWeek?)
                 }
             }
-            .pickerStyle(SegmentedPickerStyle())
+            .pickerStyle(.segmented)
         }
-        .onChange(of: selectedDay) { oldDay, newDay in
-            guard let newDay = newDay else {
-                print("No day selected.")
-                return
-            }
+        .onChange(of: selectedDay) { _, newDay in
+            guard let newDay, let island = selectedIsland else { return }
 
-            daySelected = true
-            print("Selected day changed from \(oldDay?.displayName ?? "No previous day") to \(newDay.displayName)")
+            Task {
+                isLoading = true
 
-            if let selectedIsland = selectedIsland {
-                Task {
-                    isLoading = true
-                    if let appDayOfWeek = await selectIslandAndDay(selectedIsland, newDay) {
-                        // ✅ If schedule exists, update the view model
-                        viewModel.selectedAppDayOfWeek = appDayOfWeek
-                        isAppDayOfWeekLoaded = true
-                    } else {
-                        // 🛑 No schedule exists, show the proper message
-                        viewModel.selectedAppDayOfWeek = nil
-                        isAppDayOfWeekLoaded = false
-                        alertTitle = "No Schedule Available"
-                        alertMessage = "No mat times have been entered for \(newDay.displayName) at \(selectedIsland.islandName ?? "this gym")."
-                        showingAlert = true
-                    }
-                    isLoading = false
+                if let appDay = await selectIslandAndDay(island, newDay) {
+                    viewModel.selectedAppDayOfWeek = appDay
+                    isAppDayOfWeekLoaded = true
+                } else {
+                    viewModel.selectedAppDayOfWeek = nil
+                    isAppDayOfWeekLoaded = false
+                    alertTitle = "No Schedule Available"
+                    alertMessage = "No mat times have been entered for \(newDay.displayName) at \(island.islandName ?? "this gym")."
+                    showingAlert = true
                 }
-            } else {
-                print("Invalid island selected.")
+
+                isLoading = false
             }
         }
     }
+}
+
+// MARK: - Lifecycle / Setup
+private extension ScheduleFormView {
+
+    func handleOnAppear() async {
+        if selectedIsland == nil {
+            selectedIsland = islands.first
+        }
+        await setupInitialSelection()
+    }
+
+    func setupInitialSelection() async {
+        guard let island = selectedIsland else { return }
+
+        let day = selectedDay ?? .monday
+        let (_, fetchedMatTimes) = await viewModel.fetchCurrentDayOfWeek(
+            for: island,
+            day: day,
+            selectedDayBinding: Binding(
+                get: { viewModel.selectedDay },
+                set: { viewModel.selectedDay = $0 }
+            )
+        )
+
+        if let fetchedMatTimes {
+            viewModel.matTimesForDay[day] = fetchedMatTimes
+        }
+
+    }
+    
+    private func formatDateToString(_ date: Date) -> String {
+        AppDateFormatter.twelveHour.string(from: date)
+    }
+
+    func stringToDate(_ string: String) -> Date? {
+        AppDateFormatter.twelveHour.date(from: string)
+    }
 
 
+}
+
+// MARK: - Data Helpers
+private extension ScheduleFormView {
 
     func selectIslandAndDay(_ island: PirateIsland, _ day: DayOfWeek) async -> AppDayOfWeek? {
-        let context = PersistenceController.shared.container.viewContext
         let request: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
-
-        // Filter by island ID and day
-        request.predicate = NSPredicate(format: "pIsland.islandID == %@ AND day == %@", island.islandID! as CVarArg, day.rawValue)
+        request.predicate = NSPredicate(
+            format: "pIsland.islandID == %@ AND day == %@",
+            island.islandID! as CVarArg,
+            day.rawValue
+        )
 
         do {
-            let results = try context.fetch(request)
-            return results.first // Return the first matching AppDayOfWeek or nil
+            return try viewContext.fetch(request).first
         } catch {
             print("❌ Failed to fetch AppDayOfWeek: \(error)")
             return nil
         }
     }
 
-
+    func addNewMatTime() {
+        print("✅ Add New Mat Time tapped")
+        // Your existing add logic lives here
+    }
 
     func formatTime(_ time: String) -> String {
-        if let date = DateFormat.time.date(from: time) {
-            return DateFormat.shortTime.string(from: date)
-        } else {
-            return time
+        if let date = AppDateFormatter.twelveHour.date(from: time) {
+            return AppDateFormatter.twelveHour.string(from: date)
         }
+        return time
     }
 }
+
 
 
 struct CornerRadiusStyle: ViewModifier {

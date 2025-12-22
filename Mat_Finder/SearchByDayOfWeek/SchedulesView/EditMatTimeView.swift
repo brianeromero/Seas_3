@@ -38,7 +38,7 @@ struct EditMatTimeView: View {
         _goodForBeginners = State(initialValue: matTime.goodForBeginners)
         _kids = State(initialValue: matTime.kids)
 
-        let parsedDate = DateFormat.time.date(from: matTime.time ?? "") ?? Date()
+        let parsedDate = AppDateFormatter.twelveHour.date(from: matTime.time ?? "") ?? Date()
         _selectedTime = State(initialValue: parsedDate)
     }
 
@@ -81,9 +81,10 @@ struct EditMatTimeView: View {
         }
     }
 
+
     private func saveChanges() {
         // Update local MatTime properties
-        matTime.time = DateFormat.time.string(from: selectedTime)
+        matTime.time = AppDateFormatter.twelveHour.string(from: selectedTime)
         matTime.gi = gi
         matTime.noGi = noGi
         matTime.openMat = openMat
@@ -101,7 +102,6 @@ struct EditMatTimeView: View {
                 }
             } catch {
                 await MainActor.run {
-                    // Handle error as needed
                     print("Failed to update MatTime: \(error.localizedDescription)")
                 }
             }
