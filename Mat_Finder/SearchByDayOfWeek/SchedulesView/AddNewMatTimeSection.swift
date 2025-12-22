@@ -19,9 +19,6 @@ struct AddNewMatTimeSection: View {
 //    @Binding var daySelected: Bool
     @State var matTime: MatTime?
     @State private var isMatTimeSet: Bool = false
-    @State private var showAlert: Bool = false
-    @State private var alertTitle: String = ""
-    @State private var alertMessage: String = ""
     @State private var selectedTime: Date = Date().roundToNearestHour()
     @State private var restrictionDescriptionInput: String = ""
     @State private var gi: Bool = false
@@ -35,6 +32,11 @@ struct AddNewMatTimeSection: View {
     @State private var isLoading = false
 
     
+    @Binding var showAlert: Bool
+    @Binding var alertTitle: String
+    @Binding var alertMessage: String
+    
+    
     // FIX 1: Add @Environment for viewContext
     @Environment(\.managedObjectContext) private var viewContext
     
@@ -42,6 +44,26 @@ struct AddNewMatTimeSection: View {
     @ObservedObject var appDayOfWeekRepository = AppDayOfWeekRepository.shared
     @StateObject var userProfileViewModel = UserProfileViewModel()
     let selectIslandAndDay: (PirateIsland, DayOfWeek) async -> AppDayOfWeek?
+    
+    
+    // MARK: - Custom initializer
+    init(
+        selectedIsland: Binding<PirateIsland?>,
+        selectedDay: Binding<DayOfWeek?>,
+        viewModel: AppDayOfWeekViewModel,
+        selectIslandAndDay: @escaping (PirateIsland, DayOfWeek) async -> AppDayOfWeek?,
+        showAlert: Binding<Bool>,
+        alertTitle: Binding<String>,
+        alertMessage: Binding<String>
+    ) {
+        self._selectedIsland = selectedIsland
+        self._selectedDay = selectedDay
+        self.viewModel = viewModel
+        self.selectIslandAndDay = selectIslandAndDay
+        self._showAlert = showAlert
+        self._alertTitle = alertTitle
+        self._alertMessage = alertMessage
+    }
     
     var isDaySelected: Bool {
         selectedDay != nil
@@ -51,29 +73,6 @@ struct AddNewMatTimeSection: View {
         gi || noGi || openMat
     }
     
-    
-    // Computed property for button disable state
-    var isAddNewMatTimeDisabled: Bool {
-
-        let isDaySelected = selectedDay != nil
-        let isMatTimeSet = self.isMatTimeSet
-        let isLoading = self.isLoading
-        let isMatTypeSelected = gi || noGi || openMat
-        
-        let result = !(isDaySelected && isMatTimeSet && !isLoading && isMatTypeSelected)
-        
-        // Debugging outputs
-        print("=== Add New Mat Time Button State ===")
-        print("Day Selected: \(selectedDay?.displayName ?? "None")")
-        print("Is Mat Time Set: \(isMatTimeSet)")
-        print("Is Loading: \(isLoading)")
-        print("Mat Type Selected (Gi/NoGi/OpenMat): \(isMatTypeSelected)")
-        print("Selected AppDayOfWeek: \(viewModel.selectedAppDayOfWeek?.day ?? "None")")
-        print("Final Disabled State: \(result)")
-        print("=====================================")
-        
-        return result
-    }
 
     var body: some View {
         ZStack {
@@ -133,16 +132,6 @@ struct AddNewMatTimeSection: View {
                         }
                     }
                     
-                } else {
-                    // ===== Add New Mat Time Button =====
-                    Button(action: addNewMatTime) {
-                        Text("Add New Mat Time")
-                            .padding()
-                            .background(Color.blue) // Always blue
-                            .foregroundColor(.white)
-                            .cornerRadius(8)
-                    }
-                    // No .disabled()
                 }
             } // END VStack
             
@@ -168,6 +157,9 @@ struct AddNewMatTimeSection: View {
             title: alertTitle,
             message: alertMessage
         )
+        .onReceive(NotificationCenter.default.publisher(for: .addNewMatTimeTapped)) { _ in
+            addNewMatTime()
+        }
 
     }
     
@@ -191,7 +183,7 @@ struct AddNewMatTimeSection: View {
                 await MainActor.run {
                     viewModel.selectedAppDayOfWeek = appDayOfWeek
                 }
-            } else {
+            } /*else {
                 await MainActor.run {
                     presentAlert(
                         title: "No Mat Times Found",
@@ -199,51 +191,37 @@ struct AddNewMatTimeSection: View {
                     )
                 }
             }
+               */
         }
 
     }
 
-    
-    
     func addNewMatTime() {
         print("=== addNewMatTime called ===")
-        //print("Day selected: \(daySelected)")
-        print("Selected day: \(selectedDay?.displayName ?? "None")")
 
-        print("Is Mat Time Set: \(isMatTimeSet)")
-        print("Selected AppDayOfWeek: \(viewModel.selectedAppDayOfWeek?.day ?? "None")")
-        print("Selected Island: \(selectedIsland?.islandName ?? "None")")
-        print("Selected Time: \(formatDateToString(selectedTime))")
-        print("Mat Types - Gi: \(gi), NoGi: \(noGi), OpenMat: \(openMat)")
-        print("Restrictions: \(restrictions), Description: \(restrictionDescriptionInput)")
-        
-        // Show alerts if validation fails
         guard validateInput() else {
             print("❌ Validation failed")
             return
         }
-        
-        guard let selectedIsland = selectedIsland, let selectedDay = selectedDay else {
-            print("❌ Selected Island or Day is missing")
-            alertTitle = "Error"
-            alertMessage = "Selected Island or Day is missing."
-            showAlert = true
+
+        guard let selectedIsland,
+              let selectedDay else {
+            presentAlert(
+                title: "Error",
+                message: "Selected Island or Day is missing."
+            )
             return
         }
-        
-        print("✅ Validation passed, starting async task")
-        
+
         Task {
-            print("⏳ Adding mat time for island: \(selectedIsland.islandName ?? "nil"), day: \(selectedDay.displayName)")
             await handleAddNewMatTime(
                 selectedIsland: selectedIsland,
                 selectedDay: selectedDay
             )
-            print("✅ Finished addNewMatTime Task")
-
         }
-
     }
+
+
 
     @MainActor
     func handleAddNewMatTime(
@@ -360,8 +338,21 @@ struct AddNewMatTimeSection: View {
             return false
         }
 
+        // ✅ NEW RULE: Restrictions require description
+        if restrictions {
+            let trimmed = restrictionDescriptionInput.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else {
+                presentAlert(
+                    title: "Missing Restriction Details",
+                    message: "Please Describe Restrictions."
+                )
+                return false
+            }
+        }
+
         return true
     }
+
 
 
     @MainActor
@@ -370,6 +361,7 @@ struct AddNewMatTimeSection: View {
         alertMessage = message
         showAlert = true
     }
+
 
 
     // MARK: - saveMatTime (Adjusted to use NSManagedObjectID and human-readable Firestore ID)
@@ -474,9 +466,11 @@ struct AddNewMatTimeSection: View {
     }
 
 
-    
     func deleteMatTime(_ matTime: MatTime) {
         let context = PersistenceController.shared.container.viewContext
+
+        // ✅ Capture Firestore ID FIRST
+        let firestoreID = matTime.id?.uuidString
 
         // Delete from Core Data
         context.delete(matTime)
@@ -486,45 +480,39 @@ struct AddNewMatTimeSection: View {
             print("MatTime deleted locally.")
 
             // Delete from Firestore
-            if let id = matTime.id?.uuidString {
-                let docRef = Firestore.firestore().collection("MatTime").document(id)
-                docRef.delete { error in
-                    // Ensure UI updates happen on the main thread
-                    DispatchQueue.main.async {
-                        if let error = error {
-                            alertTitle = "Error"
-                            alertMessage = "Failed to delete mat time from Firestore: \(error.localizedDescription)"
-                            showAlert = true
-                        } else {
-                            alertTitle = "Deleted"
-                            alertMessage = "Mat time was deleted successfully."
-                            showAlert = true
+            if let firestoreID {
+                Firestore.firestore()
+                    .collection("MatTime")
+                    .document(firestoreID)
+                    .delete { error in
+                        DispatchQueue.main.async {
+                            if let error {
+                                presentAlert(
+                                    title: "Error",
+                                    message: "Failed to delete mat time from Firestore: \(error.localizedDescription)"
+                                )
+                            } else {
+                                presentAlert(
+                                    title: "Deleted",
+                                    message: "Mat time was deleted successfully."
+                                )
+                            }
                         }
                     }
-                }
             }
 
-            // Clear current editing matTime and reset flags
+            // Reset UI state
             self.matTime = nil
             isMatTimeSet = false
 
-            // Trigger refresh of the selected day to reload mat times
-            if let currentSelectedDay = self.selectedDay {
-                self.selectedDay = nil
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    self.selectedDay = currentSelectedDay
-                }
-            }
-
         } catch {
-            // Ensure alert is presented on main thread
-            DispatchQueue.main.async {
-                alertTitle = "Error"
-                alertMessage = "Failed to delete mat time: \(error.localizedDescription)"
-                showAlert = true
-            }
+            presentAlert(
+                title: "Error",
+                message: "Failed to delete mat time: \(error.localizedDescription)"
+            )
         }
     }
+
 
     
     func resetStateVariables() {
@@ -620,9 +608,11 @@ struct AddNewMatTimeSection: View {
 
                 // Step 6: UI feedback
                 await MainActor.run {
-                    alertTitle = "Updated"
-                    alertMessage = "Mat time updated successfully."
-                    showAlert = true
+                    presentAlert(
+                        title: "Updated",
+                        message: "Mat time updated successfully."
+                    )
+
                     self.resetStateVariables()
 
                     // Refresh selected day to reload mat times
@@ -636,9 +626,11 @@ struct AddNewMatTimeSection: View {
 
             } catch {
                 await MainActor.run {
-                    alertTitle = "Error"
-                    alertMessage = "Failed to update mat time: \(error.localizedDescription)"
-                    showAlert = true
+                    
+                    presentAlert(
+                        title: "Error",
+                        message: "Failed to update mat time: \(error.localizedDescription)."
+                    )
                 }
             }
         }

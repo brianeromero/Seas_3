@@ -64,7 +64,8 @@ struct ScheduleFormView: View {
 
     @State private var isLoading = false
     @State private var isAppDayOfWeekLoaded = false
-
+    
+    
     var body: some View {
         Form {
 
@@ -74,18 +75,13 @@ struct ScheduleFormView: View {
                 selectedIsland: $selectedIsland,
                 showReview: $showReview
             )
-            .onAppear {
-                Task { await handleOnAppear() }
-            }
-            .onChange(of: selectedIsland) { _, _ in
-                Task { await setupInitialSelection() }
-            }
+            .onAppear { Task { await handleOnAppear() } }
+            .onChange(of: selectedIsland) { _, _ in Task { await setupInitialSelection() } }
 
             // MARK: - Day Selection
             daySelectionSection
 
-            // MARK: - Add New Mat Time (FIELDS + FOOTER BUTTON)
-            // MARK: - Add New Mat Time Section
+            // MARK: - Add New Mat Time Section (FIELDS + BUTTON)
             Section {
                 AddNewMatTimeSection(
                     selectedIsland: $selectedIsland,
@@ -93,11 +89,25 @@ struct ScheduleFormView: View {
                     viewModel: viewModel,
                     selectIslandAndDay: { island, day in
                         await selectIslandAndDay(island, day)
-                    }
+                    },
+                    showAlert: $showingAlert,      // pass parent binding
+                    alertTitle: $alertTitle,
+                    alertMessage: $alertMessage
                 )
-            }
-            // Remove the footer button completely
 
+                // Always enabled button
+                Button(action: {
+                    // Call section’s addNewMatTime() via binding if needed
+                    NotificationCenter.default.post(name: .addNewMatTimeTapped, object: nil)
+                }) {
+                    Text("Add New Mat Time")
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                }
+            }
 
             // MARK: - Scheduled Mat Times
             if let island = selectedIsland, let day = selectedDay {
@@ -109,7 +119,7 @@ struct ScheduleFormView: View {
                     selectedDay: $selectedDay
                 )
             } else {
-                Text("Please select a day and island to view the schedule.")
+                Text("Please select a day and gym to view schedule.")
                     .font(.footnote)
                     .foregroundColor(.secondary)
             }
@@ -146,14 +156,14 @@ private extension ScheduleFormView {
                 if let appDay = await selectIslandAndDay(island, newDay) {
                     viewModel.selectedAppDayOfWeek = appDay
                     isAppDayOfWeekLoaded = true
-                } else {
+                } /*else {
                     viewModel.selectedAppDayOfWeek = nil
                     isAppDayOfWeekLoaded = false
                     alertTitle = "No Schedule Available"
                     alertMessage = "No mat times have been entered for \(newDay.displayName) at \(island.islandName ?? "this gym")."
                     showingAlert = true
                 }
-
+*/
                 isLoading = false
             }
         }

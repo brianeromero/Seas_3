@@ -13,17 +13,33 @@ struct RestrictionsView: View {
     @Binding var restrictionDescriptionInput: String
 
     var body: some View {
-        VStack {
+        VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text("Restrictions")
-                InfoTooltip(text: "", tooltipMessage: "e.g., White Gis Only, Competition Class, Mat Fees Required, etc.")
-                    .padding(.leading, 4)
+                InfoTooltip(
+                    text: "",
+                    tooltipMessage: "e.g., White Gis Only, Competition Class, Mat Fees Required, etc."
+                )
+                .padding(.leading, 4)
+
                 Spacer()
+
                 ToggleView(title: "", isOn: $restrictions)
             }
 
             if restrictions {
-                TextField("Restriction Description", text: $restrictionDescriptionInput)
+                TextField("Restriction Description (required)", text: $restrictionDescriptionInput)
+                    .padding(8)
+                    .background(Color(.systemBackground))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(
+                                restrictionDescriptionInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                                    ? Color.red
+                                    : Color.secondary.opacity(0.3),
+                                lineWidth: 1
+                            )
+                    )
             }
         }
     }

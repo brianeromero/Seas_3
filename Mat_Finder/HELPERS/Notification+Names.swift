@@ -23,4 +23,7 @@ extension Notification.Name {
 
     // 🧭 Navigation (OPTIONAL)
     static let navigateHome = Notification.Name("NavigateHome")
+
+    // ✅ MatTime
+    static let addNewMatTimeTapped = Notification.Name("AddNewMatTimeTapped")
 }
