@@ -20,6 +20,8 @@ struct ScheduledMatTimesSection: View {
     @Binding var selectedDay: DayOfWeek?
     @State private var matTimes: [MatTime] = []
     @State private var error: String?
+    @State private var matTimeToDelete: MatTime?
+    @State private var showDeleteConfirmation: Bool = false
 
     @State private var successMessage: String?
     @State private var showSuccessAlert: Bool = false
@@ -28,7 +30,6 @@ struct ScheduledMatTimesSection: View {
     @State private var editingMatTime: MatTime?
     @State private var showEditModal = false
 
-    private let fetchQueue = DispatchQueue(label: "fetch-queue")
 
     // MARK: - Body
     var body: some View {
@@ -57,6 +58,18 @@ struct ScheduledMatTimesSection: View {
             .sheet(isPresented: $showEditModal) {
                 editSheetView
             }
+            .alert("Delete Mat Time?", isPresented: $showDeleteConfirmation, presenting: matTimeToDelete) { matTime in
+                Button("Delete", role: .destructive) {
+                    Task {
+                        await deleteConfirmed(matTime)
+                    }
+                }
+                Button("Cancel", role: .cancel) {
+                    matTimeToDelete = nil
+                }
+            } message: { matTime in
+                Text("Are you sure you want to delete the mat time at \(matTime.time ?? "Unknown")?")
+            }
     }
 
     // MARK: - Subviews
@@ -73,6 +86,7 @@ struct ScheduledMatTimesSection: View {
             }
         }
     }
+
 
     private var matTimesListView: some View {
         MatTimesList(
@@ -166,25 +180,29 @@ struct ScheduledMatTimesSection: View {
         matTimes.sorted { $0.time ?? "" < $1.time ?? "" }
     }
 
+    // ✅ Corrected deleteMatTime: just triggers alert
     func deleteMatTime(_ matTime: MatTime) {
-        Task {
-            do {
-                try await viewModel.removeMatTime(matTime)
-                await MainActor.run {
-                    if let index = matTimes.firstIndex(where: { $0.objectID == matTime.objectID }) {
-                        matTimes.remove(at: index)
-                    }
-                    if let currentSelectedDay = selectedDay {
-                        viewModel.matTimesForDay[currentSelectedDay]?.removeAll(where: { $0.objectID == matTime.objectID })
-                    } else {
-                        viewModel.matTimesForDay[day]?.removeAll(where: { $0.objectID == matTime.objectID })
-                    }
+        matTimeToDelete = matTime
+        showDeleteConfirmation = true
+    }
+
+    // Actual deletion happens here
+    func deleteConfirmed(_ matTime: MatTime) async {
+        do {
+            try await viewModel.removeMatTime(matTime)
+            await MainActor.run {
+                matTimes.removeAll(where: { $0.objectID == matTime.objectID })
+                if let currentSelectedDay = selectedDay {
+                    viewModel.matTimesForDay[currentSelectedDay]?.removeAll(where: { $0.objectID == matTime.objectID })
+                } else {
+                    viewModel.matTimesForDay[day]?.removeAll(where: { $0.objectID == matTime.objectID })
                 }
-            } catch let deleteError {
-                await MainActor.run {
-                    error = "Failed to delete mat time: \(deleteError.localizedDescription)"
-                    showErrorAlert = true
-                }
+                matTimeToDelete = nil
+            }
+        } catch let deleteError {
+            await MainActor.run {
+                error = "Failed to delete mat time: \(deleteError.localizedDescription)"
+                showErrorAlert = true
             }
         }
     }
@@ -278,10 +296,10 @@ struct MatTimesList: View {
                         .buttonStyle(BorderlessButtonStyle())
 
                         Button(action: {
-                            onDelete?(matTime)
+                            onDelete?(matTime) // Parent handles showing alert
                         }) {
                             Image(systemName: "trash")
-                                .foregroundColor(.red) // Keep red for destructive actions
+                                .foregroundColor(.red)
                         }
                         .buttonStyle(BorderlessButtonStyle())
                     }
@@ -293,6 +311,7 @@ struct MatTimesList: View {
         // This title should be set in the parent `NavigationView` that contains this `ScheduledMatTimesSection`.
         // This allows more flexibility and avoids redundant titles.
     }
+    
 }
 
 

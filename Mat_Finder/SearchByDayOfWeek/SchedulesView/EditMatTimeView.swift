@@ -38,9 +38,23 @@ struct EditMatTimeView: View {
         _goodForBeginners = State(initialValue: matTime.goodForBeginners)
         _kids = State(initialValue: matTime.kids)
 
-        let parsedDate = AppDateFormatter.twelveHour.date(from: matTime.time ?? "") ?? Date()
+        // ✅ Use safe parsing for the existing time
+        let parsedDate: Date
+        if let timeString = matTime.time,
+           let date = AppDateFormatter.stringToDate(timeString) {
+            let calendar = Calendar.current
+            let nowComponents = calendar.dateComponents([.year, .month, .day], from: Date())
+            let timeComponents = calendar.dateComponents([.hour, .minute], from: date)
+            parsedDate = calendar.date(bySettingHour: timeComponents.hour ?? 0,
+                                       minute: timeComponents.minute ?? 0,
+                                       second: 0,
+                                       of: calendar.date(from: nowComponents)!) ?? Date()
+        } else {
+            parsedDate = Date()
+        }
         _selectedTime = State(initialValue: parsedDate)
     }
+
 
     var body: some View {
         NavigationView {
