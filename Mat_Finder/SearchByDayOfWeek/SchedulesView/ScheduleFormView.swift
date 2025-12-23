@@ -198,15 +198,6 @@ private extension ScheduleFormView {
         }
 
     }
-    
-    private func formatDateToString(_ date: Date) -> String {
-        AppDateFormatter.twelveHour.string(from: date)
-    }
-
-    func stringToDate(_ string: String) -> Date? {
-        AppDateFormatter.twelveHour.date(from: string)
-    }
-
 
 }
 
@@ -234,12 +225,6 @@ private extension ScheduleFormView {
         // Your existing add logic lives here
     }
 
-    func formatTime(_ time: String) -> String {
-        if let date = AppDateFormatter.twelveHour.date(from: time) {
-            return AppDateFormatter.twelveHour.string(from: date)
-        }
-        return time
-    }
 }
 
 

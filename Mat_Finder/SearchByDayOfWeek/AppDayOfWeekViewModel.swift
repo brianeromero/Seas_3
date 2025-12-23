@@ -577,11 +577,17 @@ final class AppDayOfWeekViewModel: ObservableObject {
             throw FetchError.failedToFetchMatTimes(error)
         }
     }
-    
+
     @MainActor
     func updateMatTime(_ matTime: MatTime) async throws {
         guard let appDayOfWeek = matTime.appDayOfWeek else {
-            throw NSError(domain: "AppDayOfWeekViewModel", code: 4, userInfo: [NSLocalizedDescriptionKey: "MatTime has no associated AppDayOfWeek."])
+            throw NSError(
+                domain: "AppDayOfWeekViewModel",
+                code: 4,
+                userInfo: [
+                    NSLocalizedDescriptionKey: "MatTime has no associated AppDayOfWeek."
+                ]
+            )
         }
 
         if selectedIsland == nil, let inferredIsland = appDayOfWeek.pIsland {
@@ -589,7 +595,30 @@ final class AppDayOfWeekViewModel: ObservableObject {
         }
 
         guard let selectedIsland = self.selectedIsland else {
-            throw NSError(domain: "AppDayOfWeekViewModel", code: 5, userInfo: [NSLocalizedDescriptionKey: "Missing selectedIsland for Firestore sync."])
+            throw NSError(
+                domain: "AppDayOfWeekViewModel",
+                code: 5,
+                userInfo: [
+                    NSLocalizedDescriptionKey: "Missing selectedIsland for Firestore sync."
+                ]
+            )
+        }
+
+        // -----------------------------
+        // Convert time to 24-hour format
+        // -----------------------------
+        let time24Hour: String
+        if let rawTime = matTime.time,
+           let date = AppDateFormatter.stringToDate(rawTime) {
+            time24Hour = AppDateFormatter.dateToString(date)
+        } else {
+            #if DEBUG
+            assertionFailure("⚠️ Invalid MatTime.time format: \(matTime.time ?? "nil")")
+            #else
+            print("⚠️ Invalid MatTime.time format: \(matTime.time ?? "nil")")
+            #endif
+
+            time24Hour = AppDateFormatter.dateToString(Date())
         }
 
         // -----------------------------
@@ -597,7 +626,7 @@ final class AppDayOfWeekViewModel: ObservableObject {
         // -----------------------------
         let updatedMatTimeObjectID = try await updateOrCreateMatTime(
             matTime.objectID,
-            time: matTime.time ?? "",
+            time: time24Hour, // ✅ 24-hour string
             type: matTime.type ?? "",
             gi: matTime.gi,
             noGi: matTime.noGi,
@@ -614,12 +643,21 @@ final class AppDayOfWeekViewModel: ObservableObject {
         // 2️⃣ Update MatTime in Firestore
         // -----------------------------
         guard let matTimeID = matTime.id?.uuidString else {
-            throw NSError(domain: "AppDayOfWeekViewModel", code: 7, userInfo: [NSLocalizedDescriptionKey: "MatTime has no ID for Firestore."])
+            throw NSError(
+                domain: "AppDayOfWeekViewModel",
+                code: 7,
+                userInfo: [
+                    NSLocalizedDescriptionKey: "MatTime has no ID for Firestore."
+                ]
+            )
         }
 
-        let matTimeRef = Firestore.firestore().collection("MatTime").document(matTimeID)
+        let matTimeRef = Firestore.firestore()
+            .collection("MatTime")
+            .document(matTimeID)
+
         var data: [String: Any] = [
-            "time": matTime.time ?? "",
+            "time": time24Hour, // ✅ 24-hour string
             "type": matTime.type ?? "Gi",
             "gi": matTime.gi,
             "noGi": matTime.noGi,
@@ -633,7 +671,8 @@ final class AppDayOfWeekViewModel: ObservableObject {
 
         // Add reference to AppDayOfWeek
         if let appDayID = appDayOfWeek.appDayOfWeekID {
-            data["appDayOfWeek"] = Firestore.firestore().document("AppDayOfWeek/\(appDayID)")
+            data["appDayOfWeek"] =
+                Firestore.firestore().document("AppDayOfWeek/\(appDayID)")
         }
 
         try await matTimeRef.setData(data, merge: true)
@@ -642,14 +681,18 @@ final class AppDayOfWeekViewModel: ObservableObject {
         // -----------------------------
         // 3️⃣ Optionally, update AppDayOfWeek document
         // -----------------------------
-        guard let selectedDayForAppDayOfWeek = DayOfWeek(rawValue: appDayOfWeek.day) else { return }
+        guard let selectedDayForAppDayOfWeek =
+            DayOfWeek(rawValue: appDayOfWeek.day) else { return }
+
         try await saveAppDayOfWeekToFirestore(
             selectedIslandID: selectedIsland.objectID,
             selectedDay: selectedDayForAppDayOfWeek,
             appDayOfWeekObjectID: appDayOfWeek.objectID
         )
+
         print("✅ Firestore update successful via saveAppDayOfWeekToFirestore.")
     }
+
 
     
     // MARK: - Update Day

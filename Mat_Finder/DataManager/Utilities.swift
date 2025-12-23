@@ -49,3 +49,15 @@ public enum AppDateFormatter {
         return formatter
     }()
 }
+
+extension AppDateFormatter {
+    // Converts 24h or 12h string to Date
+    static func stringToDate(_ string: String) -> Date? {
+        twentyFourHour.date(from: string) ?? twelveHour.date(from: string)
+    }
+    
+    // Converts Date to 24h string
+    static func dateToString(_ date: Date) -> String {
+        twentyFourHour.string(from: date)
+    }
+}

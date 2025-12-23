@@ -84,7 +84,7 @@ struct AddNewMatTimeSection: View {
                 DatePicker("Select Time", selection: $selectedTime, displayedComponents: .hourAndMinute)
                     .onChange(of: selectedTime) { oldValue, newValue in
                         isMatTimeSet = true
-                        print("Selected time changed to: \(formatDateToString(newValue))")
+                        print("Selected time changed to: \(AppDateFormatter.dateToString(newValue))")
                     }
                 
                 MatTypeTogglesView(
@@ -639,7 +639,7 @@ struct AddNewMatTimeSection: View {
 
     
     func populateFieldsFromMatTime(_ matTime: MatTime) {
-        selectedTime = stringToDate(matTime.time ?? "") ?? Date().roundToNearestHour()
+        selectedTime = AppDateFormatter.stringToDate(matTime.time ?? "") ?? Date().roundToNearestHour()
         gi = matTime.gi
         noGi = matTime.noGi
         openMat = matTime.openMat
