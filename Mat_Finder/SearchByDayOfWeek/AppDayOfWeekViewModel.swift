@@ -1150,28 +1150,43 @@ final class AppDayOfWeekViewModel: ObservableObject {
     
     // MARK: - Remove MatTime
     func removeMatTime(_ matTime: MatTime) async throws {
-        guard let matTimeID = matTime.id?.uuidString else {
-            print("MatTime does not have a valid ID.")
-            throw NSError(domain: "AppDayOfWeekViewModel", code: 1, userInfo: [NSLocalizedDescriptionKey: "Invalid MatTime ID"])
+        guard let matTimeID = matTime.id else {
+            throw NSError(
+                domain: "AppDayOfWeekViewModel",
+                code: 1,
+                userInfo: [NSLocalizedDescriptionKey: "Invalid MatTime ID"]
+            )
         }
 
-        do {
-            // Delete from Firestore
-            try await firestore.collection("matTimes").document(matTimeID).delete()
+        let rawID = matTimeID.uuidString                  // with hyphens
+        let normalizedID = rawID.replacingOccurrences(of: "-", with: "") // without hyphens
 
-            // Delete from Core Data on main thread
+        do {
+            let collection = firestore.collection("MatTime")
+
+            // 🔥 Delete BOTH possible Firestore document IDs (safe + idempotent)
+            print("🗑 Deleting Firestore MatTime (normalized): \(normalizedID)")
+            try await collection.document(normalizedID).delete()
+
+            print("🗑 Deleting Firestore MatTime (legacy): \(rawID)")
+            try await collection.document(rawID).delete()
+
+            print("✅ Firestore delete(s) completed")
+
+            // 🧠 Core Data delete on main actor
             await MainActor.run {
                 viewContext.delete(matTime)
             }
 
             await saveData()
+            print("✅ Deleted MatTime from Core Data")
+
         } catch {
-            print("Failed to remove MatTime: \(error.localizedDescription)")
+            print("❌ Failed to remove MatTime: \(error.localizedDescription)")
             throw error
         }
     }
 
-    
     // MARK: - Clear Selections
     func clearSelections() {
         DayOfWeek.allCases.forEach { day in
