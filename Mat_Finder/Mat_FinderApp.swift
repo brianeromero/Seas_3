@@ -264,19 +264,22 @@ struct AppRootDestinationView: View {
     var body: some View {
         switch screen {
         case .review(let islandIDString):
-            if let objectID = viewContext.persistentStoreCoordinator?.managedObjectID(forURIRepresentation: URL(string: islandIDString)!) {
-                if let island = try? viewContext.existingObject(with: objectID) as? PirateIsland {
-                    GymMatReviewView(localSelectedIsland: .constant(island))
-                        .onAppear {
-                            print("🧭 Navigating to screen: .review -> \(island.islandName ?? "Unknown")")
-                        }
-                } else {
-                    Text("Error: Island not found for review.")
+            if let objectID = viewContext.persistentStoreCoordinator?
+                .managedObjectID(forURIRepresentation: URL(string: islandIDString)!),
+               let island = try? viewContext.existingObject(with: objectID) as? PirateIsland,
+               let islandUUID = island.islandID {
+
+                GymMatReviewView(
+                    selectedIslandID: .constant(islandUUID)
+                )
+                .onAppear {
+                    print("🧭 Navigating to screen: .review -> \(island.islandName ?? "Unknown")")
                 }
+
             } else {
-                Text("Error: Invalid Island ID for review.")
+                Text("Error: Island not found for review.")
             }
-            
+
         case .viewAllReviews(let islandIDString):
             if let objectID = viewContext.persistentStoreCoordinator?.managedObjectID(forURIRepresentation: URL(string: islandIDString)!) {
                 if let island = try? viewContext.existingObject(with: objectID) as? PirateIsland {

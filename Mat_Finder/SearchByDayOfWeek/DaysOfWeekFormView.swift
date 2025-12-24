@@ -125,15 +125,13 @@ struct DaysOfWeekFormView: View {
     
     @ViewBuilder
     private func islandRow(for island: PirateIsland) -> some View {
-        // Move the destination creation out into a variable to reduce inline complexity
-        let destination = ScheduleFormView(
-            islands: Array(islands),
-            selectedIsland: .constant(island),
-            matTimes: .constant([]),
-            viewModel: appDayOfWeekViewModel
-        )
-        
-        NavigationLink(destination: destination) {
+        NavigationLink(
+            destination: ScheduleFormView(
+                islands: Array(islands),
+                matTimes: .constant([]),           // placeholder binding
+                viewModel: appDayOfWeekViewModel
+            )
+        ) {
             VStack(alignment: .leading) {
                 Text(island.islandName ?? "Unknown Gym")
                     .font(.headline)

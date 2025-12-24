@@ -48,7 +48,13 @@ struct ScheduleFormView: View {
 
     let islands: [PirateIsland]
 
-    @Binding var selectedIsland: PirateIsland?
+    @State private var selectedIslandID: UUID?
+
+    var selectedIsland: PirateIsland? {
+        islands.first { $0.islandID == selectedIslandID }
+    }
+
+
     @Binding var matTimes: [MatTime]
 
     @ObservedObject var viewModel: AppDayOfWeekViewModel
@@ -72,9 +78,10 @@ struct ScheduleFormView: View {
             // MARK: - Island Selection
             IslandSection(
                 islands: islands,
-                selectedIsland: $selectedIsland,
+                selectedIslandID: $selectedIslandID,
                 showReview: $showReview
             )
+
             .onAppear { Task { await handleOnAppear() } }
             .onChange(of: selectedIsland) { _, _ in Task { await setupInitialSelection() } }
 
@@ -83,21 +90,24 @@ struct ScheduleFormView: View {
 
             // MARK: - Add New Mat Time Section (FIELDS + BUTTON)
             Section {
-                AddNewMatTimeSection(
-                    selectedIsland: $selectedIsland,
-                    selectedDay: $selectedDay,
-                    viewModel: viewModel,
-                    selectIslandAndDay: { island, day in
-                        await selectIslandAndDay(island, day)
-                    },
-                    showAlert: $showingAlert,      // pass parent binding
-                    alertTitle: $alertTitle,
-                    alertMessage: $alertMessage
-                )
+                if let island = selectedIsland { // unwrap the computed property
+                    AddNewMatTimeSection(
+                        selectedIslandID: $selectedIslandID,
+                        islands: islands,
+                        selectedDay: $selectedDay,
+                        viewModel: viewModel,
+                        selectIslandAndDay: { island, day in await selectIslandAndDay(island, day) },
+                        showAlert: $showingAlert,
+                        alertTitle: $alertTitle,
+                        alertMessage: $alertMessage
+                    )
+
+                } else {
+                    Text("Please select a gym first")
+                }
 
                 // Always enabled button
                 Button(action: {
-                    // Call section’s addNewMatTime() via binding if needed
                     NotificationCenter.default.post(name: .addNewMatTimeTapped, object: nil)
                 }) {
                     Text("Add New Mat Time")
@@ -123,6 +133,7 @@ struct ScheduleFormView: View {
                     .font(.footnote)
                     .foregroundColor(.secondary)
             }
+
         }
         .navigationTitle("Schedule Entry")
         .alert(isPresented: $showingAlert) {
@@ -174,11 +185,12 @@ private extension ScheduleFormView {
 private extension ScheduleFormView {
 
     func handleOnAppear() async {
-        if selectedIsland == nil {
-            selectedIsland = islands.first
+        if selectedIslandID == nil, let first = islands.first {
+            selectedIslandID = first.islandID
         }
         await setupInitialSelection()
     }
+
 
     func setupInitialSelection() async {
         guard let island = selectedIsland else { return }

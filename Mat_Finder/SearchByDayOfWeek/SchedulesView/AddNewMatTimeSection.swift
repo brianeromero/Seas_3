@@ -13,7 +13,13 @@ import FirebaseFirestore
 
 
 struct AddNewMatTimeSection: View {
-    @Binding var selectedIsland: PirateIsland?
+    @Binding var selectedIslandID: UUID?          // The source of truth
+    let islands: [PirateIsland]                  // All available islands
+
+    var selectedIsland: PirateIsland? {
+        islands.first { $0.islandID == selectedIslandID }
+    }
+    
     @Binding var selectedDay: DayOfWeek?
     @StateObject var matTimesViewModel = MatTimesViewModel()
 //    @Binding var daySelected: Bool
@@ -48,7 +54,8 @@ struct AddNewMatTimeSection: View {
     
     // MARK: - Custom initializer
     init(
-        selectedIsland: Binding<PirateIsland?>,
+        selectedIslandID: Binding<UUID?>,         // pass the binding for selectedIslandID
+        islands: [PirateIsland],                 // pass the array of islands
         selectedDay: Binding<DayOfWeek?>,
         viewModel: AppDayOfWeekViewModel,
         selectIslandAndDay: @escaping (PirateIsland, DayOfWeek) async -> AppDayOfWeek?,
@@ -56,7 +63,8 @@ struct AddNewMatTimeSection: View {
         alertTitle: Binding<String>,
         alertMessage: Binding<String>
     ) {
-        self._selectedIsland = selectedIsland
+        self._selectedIslandID = selectedIslandID    // ✅ initialize the binding
+        self.islands = islands                       // ✅ initialize stored array
         self._selectedDay = selectedDay
         self.viewModel = viewModel
         self.selectIslandAndDay = selectIslandAndDay
@@ -64,6 +72,7 @@ struct AddNewMatTimeSection: View {
         self._alertTitle = alertTitle
         self._alertMessage = alertMessage
     }
+
     
     var isDaySelected: Bool {
         selectedDay != nil

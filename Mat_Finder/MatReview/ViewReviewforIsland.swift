@@ -220,7 +220,14 @@ struct ViewReviewforIsland: View {
 
     let selectedIsland: PirateIsland
 
-    @State private var selectedIslandInternal: PirateIsland?
+    @State private var selectedIslandID: UUID?
+    
+    private var selectedIslandInternal: PirateIsland? {
+        guard let id = selectedIslandID else { return nil }
+        return islands.first { $0.islandID == id }
+    }
+
+
     @State private var selectedSortType: SortType = .latest
     @State private var filteredReviewsCache: [Review] = []
     @State private var averageRating: Double = 0.0
@@ -241,11 +248,17 @@ struct ViewReviewforIsland: View {
     ) {
         self._showReview = showReview
         self.selectedIsland = selectedIsland
-        self._selectedIslandInternal = State(initialValue: selectedIsland)
+        self._selectedIslandID = State(initialValue: selectedIsland.islandID)
         self._navigationPath = navigationPath
 
-        os_log("ViewReviewforIsland INIT - selectedIslandInternal: %@", log: logger, type: .info, selectedIsland.islandName ?? "nil")
+        os_log(
+            "ViewReviewforIsland INIT - selectedIslandID: %@",
+            log: logger,
+            type: .info,
+            selectedIsland.islandID?.uuidString ?? "nil"
+        )
     }
+
 
     var body: some View {
         ScrollView {
@@ -253,8 +266,10 @@ struct ViewReviewforIsland: View {
         }
         .navigationTitle("Read Gym Reviews")
         .onAppear(perform: handleOnAppear)
-        .onChange(of: selectedSortType) { _, _ in Task { await loadReviews() } }
-        .onChange(of: selectedIslandInternal) { _, _ in Task { await loadReviews() } }
+        .onChange(of: selectedSortType) { _, _ in
+            Task { await loadReviews() } }
+        .onChange(of: selectedIslandID) { _, _ in
+            Task { await loadReviews() } }
 
         // ✅ REMOVED: The .navigationDestination modifier should NOT be here.
         // It belongs on the NavigationStack in AppRootView (handled by AppRootDestinationView).
@@ -268,10 +283,11 @@ struct ViewReviewforIsland: View {
         VStack(alignment: .leading) {
             IslandSection(
                 islands: Array(islands),
-                selectedIsland: $selectedIslandInternal,
+                selectedIslandID: $selectedIslandID,
                 showReview: $showReview
             )
             .padding(.horizontal, 16)
+
 
             if let island = selectedIslandInternal {
                 SortSection(selectedSortType: $selectedSortType)
@@ -284,9 +300,10 @@ struct ViewReviewforIsland: View {
 
                 if filteredReviews.isEmpty {
                     NoReviewsView(
-                        selectedIsland: $selectedIslandInternal,
-                        path: $navigationPath // This correctly pushes to the shared path
+                        island: island,
+                        path: $navigationPath
                     )
+
                 } else {
                     ReviewList(
                         filteredReviews: filteredReviews,
@@ -311,10 +328,19 @@ struct ViewReviewforIsland: View {
 
  
     private func handleOnAppear() {
-        os_log("ViewReviewforIsland onAppear - island: %@", log: logger, type: .info, selectedIslandInternal?.islandName ?? "nil")
         guard selectedIslandInternal != nil else { return }
+        guard filteredReviewsCache.isEmpty else { return }
+
+        os_log(
+            "ViewReviewforIsland onAppear - island: %@",
+            log: logger,
+            type: .info,
+            selectedIslandInternal?.islandName ?? "nil"
+        )
+
         Task { await loadReviews() }
     }
+
 
     var filteredReviews: [Review] {
         filteredReviewsCache
@@ -343,18 +369,23 @@ struct ViewReviewforIsland: View {
     }
 
     private struct NoReviewsView: View {
-        @Binding var selectedIsland: PirateIsland?
+        let island: PirateIsland
         @Binding var path: NavigationPath
-
-        @EnvironmentObject var enterZipCodeViewModel: EnterZipCodeViewModel // Assuming correct type
-        @EnvironmentObject var authViewModel: AuthViewModel
 
         var body: some View {
             Button {
-                if let island = selectedIsland {
-                    os_log("Tapped 'No reviews available' button, appending AppScreen.review to path", log: logger, type: .info, island.islandName ?? "nil")
-                    path.append(AppScreen.review(island.objectID.uriRepresentation().absoluteString))
-                }
+                os_log(
+                    "Tapped 'No reviews available' button",
+                    log: logger,
+                    type: .info,
+                    island.islandName ?? "nil"
+                )
+
+                path.append(
+                    AppScreen.review(
+                        island.objectID.uriRepresentation().absoluteString
+                    )
+                )
             } label: {
                 Text("No reviews available. Be the first to write a review!")
                     .font(.headline)
@@ -364,6 +395,7 @@ struct ViewReviewforIsland: View {
             }
         }
     }
+
 
     private struct AddMyOwnReviewView: View {
         let island: PirateIsland

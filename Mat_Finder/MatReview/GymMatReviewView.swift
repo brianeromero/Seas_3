@@ -194,7 +194,7 @@ struct StarRatingsLedger: View {
 
 // Main view for Gym Mat Review
 struct GymMatReviewView: View {
-    @Binding var localSelectedIsland: PirateIsland?
+    @Binding var selectedIslandID: UUID?
     @State private var isReviewsFetched = false
     @State private var showReview = false // This might be redundant if GymMatReviewView's presentation is managed by NavigationLink
     @State private var activeIsland: PirateIsland?
@@ -225,20 +225,30 @@ struct GymMatReviewView: View {
 
     @State private var isReviewViewPresented = false // This also might be redundant
 
-    init(localSelectedIsland: Binding<PirateIsland?>, callerFile: String = #file, callerFunction: String = #function) {
-        self._localSelectedIsland = localSelectedIsland
-        // REMOVE THIS LINE:
-        // self.onIslandChange = onIslandChange // <-- DELETE THIS!
-        os_log("GymMatReviewView INITIALIZED from %{public}s, function: %{public}s", log: logger, type: .info, (callerFile as NSString).lastPathComponent, callerFunction)
+    init(selectedIslandID: Binding<UUID?>, callerFile: String = #file, callerFunction: String = #function) {
+        self._selectedIslandID = selectedIslandID
+
+        os_log(
+            "GymMatReviewView INITIALIZED from %{public}s, function: %{public}s",
+            log: logger,
+            type: .info,
+            (callerFile as NSString).lastPathComponent,
+            callerFunction
+        )
     }
 
+
     var body: some View {
-        let _ = os_log("GymMatReviewView BODY rendered (selectedIsland: %@)", log: logger, type: .debug, localSelectedIsland?.islandName ?? "nil")
+        //let _ = os_log("GymMatReviewView BODY rendered (selectedIsland: %@)", log: logger, type: .debug, selectedIslandInternal?.islandName ?? "nil")
 
         // === THIS IS THE FULL FORM BLOCK ===
         VStack {
             Form {
-                IslandSection(islands: Array(islands), selectedIsland: $localSelectedIsland, showReview: $showReview)
+                IslandSection(
+                    islands: Array(islands),
+                    selectedIslandID: $selectedIslandID,
+                    showReview: $showReview
+                )
 
                 ReviewSection(
                     reviewText: $reviewText,
@@ -286,22 +296,22 @@ struct GymMatReviewView: View {
 
         .navigationTitle("Add Gym Review")
         .onAppear {
-            os_log("GymMatReviewView ON APPEAR for island: %@", log: logger, type: .info, localSelectedIsland?.islandName ?? "nil")
-            print("🟢 GymMatReviewView ON APPEAR for island: \(localSelectedIsland?.islandName ?? "nil")")
+            os_log("GymMatReviewView ON APPEAR for island: %@", log: logger, type: .info, selectedIslandInternal?.islandName ?? "nil")
+            print("🟢 GymMatReviewView ON APPEAR for island: \(selectedIslandInternal?.islandName ?? "nil")")
             
 
         }
         .onDisappear {
-            os_log("GymMatReviewView ON DISAPPEAR - localSelectedIsland: %@", log: logger, type: .info, localSelectedIsland?.islandName ?? "nil")
-            print("🔴 GymMatReviewView ON DISAPPEAR - localSelectedIsland: \(localSelectedIsland?.islandName ?? "nil")")
+            os_log("GymMatReviewView ON DISAPPEAR - selectedIslandInternal: %@", log: logger, type: .info, selectedIslandInternal?.islandName ?? "nil")
+            print("🔴 GymMatReviewView ON DISAPPEAR - selectedIslandInternal: \(selectedIslandInternal?.islandName ?? "nil")")
 
         }
-        .task(id: localSelectedIsland?.objectID) {
-            print("📘 GymMatReviewView .task started. Island: \(localSelectedIsland?.islandName ?? "nil")")
+        .task(id: selectedIslandInternal?.objectID) {
+            print("📘 GymMatReviewView .task started. Island: \(selectedIslandInternal?.islandName ?? "nil")")
 
             
-            guard let island = localSelectedIsland else {
-                os_log("GymMatReviewView .task: localSelectedIsland is nil, returning.", log: logger, type: .info)
+            guard let island = selectedIslandInternal else {
+                os_log("GymMatReviewView .task: selectedIslandInternal is nil, returning.", log: logger, type: .info)
                 return
             }
             guard cachedIsland?.objectID != island.objectID else {
@@ -328,8 +338,14 @@ struct GymMatReviewView: View {
         }
     }
     
+    private var selectedIslandInternal: PirateIsland? {
+        guard let id = selectedIslandID else { return nil }
+        return islands.first { $0.islandID == id }
+    }
+
+    
     private func submitReview() {
-        guard let island = localSelectedIsland else {
+        guard let island = selectedIslandInternal else {
             alertMessage = "Please select a Gym."
             showAlert = true
             return

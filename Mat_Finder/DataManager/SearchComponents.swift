@@ -258,22 +258,24 @@ enum DestinationView {
 
 struct SelectedIslandView: View {
     let island: PirateIsland
-    @Binding var selectedIsland: PirateIsland?
+
+    @Binding var selectedIslandID: UUID?
+
     var enterZipCodeViewModel: EnterZipCodeViewModel
     var onIslandChange: (PirateIsland?) -> Void
     var authViewModel: AuthViewModel
     var destinationView: DestinationView
-    
-    // Add navigationPath here
+
     @State private var navigationPath = NavigationPath()
 
     var body: some View {
         switch destinationView {
+
         case .gymMatReview:
             GymMatReviewView(
-                localSelectedIsland: $selectedIsland,
-                //onIslandChange: onIslandChange
+                selectedIslandID: $selectedIslandID
             )
+
         case .viewReviewForIsland:
             ViewReviewforIsland(
                 showReview: .constant(false),
@@ -283,3 +285,4 @@ struct SelectedIslandView: View {
         }
     }
 }
+

@@ -11,35 +11,27 @@ import CoreData
 
 struct IslandSection: View {
     var islands: [PirateIsland]
-    @Binding var selectedIsland: PirateIsland? // This binding now points to ViewReviewforIsland's internal state
-    @Binding var showReview: Bool // Unused in this snippet, but kept for context
+    @Binding var selectedIslandID: UUID?
+    @Binding var showReview: Bool
 
     var body: some View {
         Section(header: Text("Select A Gym")) {
-            Picker("Select Gym", selection: $selectedIsland) {
-                Text("Select a Gym").tag(nil as PirateIsland?)
+            Picker("Select Gym", selection: $selectedIslandID) {
+                Text("Select a Gym").tag(nil as UUID?)
                 ForEach(islands, id: \.islandID) { island in
                     Text(island.islandName ?? "Unknown Gym")
-                        .tag(island as PirateIsland?)
+                        .tag(island.islandID)
                 }
             }
             .onAppear {
-                if selectedIsland == nil, !islands.isEmpty {
-                    selectedIsland = islands.first
+                if selectedIslandID == nil, let first = islands.first {
+                    selectedIslandID = first.islandID
                 }
-                print("FROM IslandSection2: Initial selected island: \(selectedIsland?.islandName ?? "No island selected initially.")")
+                print("FROM IslandSection: Initial selected island ID: \(selectedIslandID?.uuidString ?? "none")")
             }
-            .onChange(of: islands) { oldIslands, newIslands in
-                if !newIslands.isEmpty, selectedIsland == nil {
-                    selectedIsland = newIslands.first
-                }
-                print("Islands updated. Old count: \(oldIslands.count), New count: \(newIslands.count)")
+            .onChange(of: selectedIslandID) { oldID, newID in
+                print("Selected Gym changed from \(oldID?.uuidString ?? "none") to \(newID?.uuidString ?? "none")")
             }
-            .onChange(of: selectedIsland) { oldIsland, newIsland in
-                print("FROM IslandSection3: Selected Gym changed from \(oldIsland?.islandName ?? "none") to \(newIsland?.islandName ?? "none")")
-            }
-
         }
-
     }
 }
