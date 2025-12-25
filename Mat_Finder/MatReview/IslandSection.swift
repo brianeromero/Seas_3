@@ -18,16 +18,11 @@ struct IslandSection: View {
         Section(header: Text("Select A Gym")) {
             Picker("Select Gym", selection: $selectedIslandID) {
                 Text("Select a Gym").tag(nil as UUID?)
+
                 ForEach(islands, id: \.islandID) { island in
                     Text(island.islandName ?? "Unknown Gym")
                         .tag(island.islandID)
                 }
-            }
-            .onAppear {
-                if selectedIslandID == nil, let first = islands.first {
-                    selectedIslandID = first.islandID
-                }
-                print("FROM IslandSection: Initial selected island ID: \(selectedIslandID?.uuidString ?? "none")")
             }
             .onChange(of: selectedIslandID) { oldID, newID in
                 print("Selected Gym changed from \(oldID?.uuidString ?? "none") to \(newID?.uuidString ?? "none")")

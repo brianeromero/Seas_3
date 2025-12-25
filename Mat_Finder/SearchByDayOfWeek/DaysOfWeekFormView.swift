@@ -128,7 +128,8 @@ struct DaysOfWeekFormView: View {
         NavigationLink(
             destination: ScheduleFormView(
                 islands: Array(islands),
-                matTimes: .constant([]),           // placeholder binding
+                initialSelectedIsland: island,   // ✅ REQUIRED
+                matTimes: .constant([]),
                 viewModel: appDayOfWeekViewModel
             )
         ) {
@@ -140,4 +141,6 @@ struct DaysOfWeekFormView: View {
             }
         }
     }
+
+
 }

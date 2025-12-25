@@ -54,6 +54,7 @@ struct ScheduleFormView: View {
         islands.first { $0.islandID == selectedIslandID }
     }
 
+    let initialSelectedIsland: PirateIsland?
 
     @Binding var matTimes: [MatTime]
 
@@ -90,7 +91,7 @@ struct ScheduleFormView: View {
 
             // MARK: - Add New Mat Time Section (FIELDS + BUTTON)
             Section {
-                if let island = selectedIsland { // unwrap the computed property
+                if selectedIsland != nil { // unwrap the computed property
                     AddNewMatTimeSection(
                         selectedIslandID: $selectedIslandID,
                         islands: islands,
@@ -185,11 +186,27 @@ private extension ScheduleFormView {
 private extension ScheduleFormView {
 
     func handleOnAppear() async {
-        if selectedIslandID == nil, let first = islands.first {
-            selectedIslandID = first.islandID
+
+        // 🧪 DEBUG — add temporarily
+        print("🧭 initialSelectedIsland:",
+              initialSelectedIsland?.islandName ?? "nil")
+        print("🧭 selectedIslandID (before):",
+              selectedIslandID?.uuidString ?? "nil")
+
+        if selectedIslandID == nil {
+            if let initial = initialSelectedIsland {
+                selectedIslandID = initial.islandID
+            } else if let first = islands.first {
+                selectedIslandID = first.islandID
+            }
         }
+
+        print("🧭 selectedIslandID (after):",
+              selectedIslandID?.uuidString ?? "nil")
+
         await setupInitialSelection()
     }
+
 
 
     func setupInitialSelection() async {
