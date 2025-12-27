@@ -209,110 +209,99 @@ struct ScheduledMatTimesSection: View {
 }
 
 
-
 // MARK: - MatTimesList
 struct MatTimesList: View {
     let day: DayOfWeek
     let matTimes: [MatTime]
 
-    // Callbacks for edit and delete actions
     var onEdit: ((MatTime) -> Void)?
     var onDelete: ((MatTime) -> Void)?
 
     var body: some View {
         List {
             ForEach(matTimes, id: \.objectID) { matTime in
-                VStack(alignment: .leading) {
-                    if let timeString = matTime.time {
-                        Text("Time: \(DayOfWeek.formatTime(from: timeString))")
-                            .font(.headline)
-                            .foregroundColor(.primary) // Ensure readability in both modes
-                    } else {
-                        Text("Time: Unknown")
-                            .font(.headline)
-                            .foregroundColor(.primary) // Ensure readability in both modes
-                    }
-                    HStack {
+                VStack(alignment: .leading, spacing: 8) {
+
+                    // MARK: Time
+                    Text(
+                        "\(DayOfWeek.formatTime(from: matTime.time ?? "Unknown"))"
+                    )
+                    .font(.headline)
+                    .foregroundColor(.primary)
+
+                    // MARK: Class Type (Gi / NoGi / Open Mat)
+                    HStack(spacing: 12) {
                         if matTime.gi {
-                            HStack {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(.green)
-                                Text("Gi")
-                                    .foregroundColor(.primary) // Ensure readability
-                            }
+                            Label("Gi", systemImage: "checkmark.circle.fill")
+                                .foregroundColor(.green)
                         }
                         if matTime.noGi {
-                            HStack {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(.green)
-                                Text("NoGi")
-                                    .foregroundColor(.primary) // Ensure readability
-                            }
+                            Label("NoGi", systemImage: "checkmark.circle.fill")
+                                .foregroundColor(.green)
                         }
                         if matTime.openMat {
-                            HStack {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(.green)
-                                Text("Open Mat")
-                                    .foregroundColor(.primary) // Ensure readability
-                            }
+                            Label("Open Mat", systemImage: "checkmark.circle.fill")
+                                .foregroundColor(.green)
                         }
                     }
+                    .font(.subheadline)
 
-                    if matTime.restrictions {
-                        Text("Restrictions: \(matTime.restrictionDescription ?? "Yes")")
-                            .font(.caption)
-                            .foregroundColor(.red) // Keep red for warnings, ensure it stands out
-                    }
-
-                    HStack {
+                    // MARK: Audience (Beginners / Kids)
+                    HStack(spacing: 12) {
                         if matTime.goodForBeginners {
-                            HStack {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(.blue)
-                                Text("Good for Beginners")
-                                    .foregroundColor(.primary) // Ensure readability
-                            }
+                            Label("Good for Beginners", systemImage: "checkmark.circle.fill")
+                                .foregroundColor(.blue)
                         }
                         if matTime.kids {
-                            HStack {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(.blue)
-                                Text("Kids Class")
-                                    .foregroundColor(.primary) // Ensure readability
-                            }
+                            Label("Kids Class", systemImage: "checkmark.circle.fill")
+                                .foregroundColor(.blue)
+                        }
+                    }
+                    .font(.subheadline)
+
+                    // MARK: Restrictions (LAST — no divider)
+                    if matTime.restrictions {
+                        HStack(alignment: .top, spacing: 6) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.yellow)
+
+                            Text(matTime.restrictionDescription ?? "Restrictions apply")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
                         }
                     }
 
-                    // Edit & Delete buttons
+
+                    // MARK: Actions
                     HStack {
                         Spacer()
-                        Button(action: {
-                            onEdit?(matTime)
-                        }) {
-                            Image(systemName: "pencil")
-                                .foregroundColor(.accentColor) // Use accentColor for interactive elements
-                        }
-                        .buttonStyle(BorderlessButtonStyle())
 
-                        Button(action: {
-                            onDelete?(matTime) // Parent handles showing alert
-                        }) {
+                        Button {
+                            onEdit?(matTime)
+                        } label: {
+                            Image(systemName: "pencil")
+                                .foregroundColor(.accentColor)
+                        }
+                        .buttonStyle(.borderless)
+
+                        Button {
+                            onDelete?(matTime)
+                        } label: {
                             Image(systemName: "trash")
                                 .foregroundColor(.red)
                         }
-                        .buttonStyle(BorderlessButtonStyle())
+                        .buttonStyle(.borderless)
                     }
                 }
-                .padding(.vertical, 4) // Add a little vertical padding to each row
+                .padding(.vertical, 6)
             }
         }
-        // Removed .navigationBarTitle(Text("Scheduled Mat Times for \(day.rawValue.capitalized)"))
-        // This title should be set in the parent `NavigationView` that contains this `ScheduledMatTimesSection`.
-        // This allows more flexibility and avoids redundant titles.
     }
-    
 }
+
+
+
+
 
 
 func debugPrintMatTimes(_ matTimes: [MatTime]) {

@@ -9,54 +9,72 @@ import Foundation
 import SwiftUI
 import CoreData
 
+
 struct ViewScheduleForIsland: View {
     @ObservedObject var viewModel: AppDayOfWeekViewModel
     let island: PirateIsland
     
     var body: some View {
-        VStack {
+        VStack(spacing: 0) {
+
+            // MARK: - Header
             Text("Schedules for \(island.islandName ?? "Unknown Gym")")
                 .font(.title)
                 .padding()
-            
+
+            // MARK: - Day Selector
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack {
+                HStack(spacing: 8) {
                     ForEach(DayOfWeek.allCases, id: \.self) { day in
-                        Button(action: {
+                        Button {
                             viewModel.selectedDay = day
                             Task {
                                 await viewModel.loadSchedules(for: island)
                             }
-                        }) {
+                        } label: {
                             Text(day.displayName)
                                 .font(.headline)
-                                .padding(.horizontal, 10) // Add horizontal padding for a more button-like feel
-                                .padding(.vertical, 5) // Add vertical padding
-                                .background(viewModel.selectedDay == day ? Color.accentColor : Color.clear) // Use accentColor for selected
-                                .foregroundColor(viewModel.selectedDay == day ? .white : .primary) // .white for selected, .primary for unselected
-                                .cornerRadius(8) // Add corner radius for rounded appearance
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(
+                                    viewModel.selectedDay == day
+                                    ? Color.accentColor
+                                    : Color.clear
+                                )
+                                .foregroundColor(
+                                    viewModel.selectedDay == day
+                                    ? .white
+                                    : .primary
+                                )
+                                .cornerRadius(8)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 8)
                                         .stroke(
-                                            viewModel.selectedDay == day ? Color.accentColor : Color.secondary.opacity(0.5),
+                                            viewModel.selectedDay == day
+                                            ? Color.accentColor
+                                            : Color.secondary.opacity(0.5),
                                             lineWidth: 1
-                                        ) // Add a subtle border for unselected days
+                                        )
                                 )
                         }
                     }
                 }
-                .padding(.horizontal) // Padding for the scroll view content
+                .padding(.horizontal)
             }
-            .padding(.vertical, 8) // Padding around the day selector
-            
+            .padding(.vertical, 8)
+
+            // MARK: - Section Title
             Text("Schedule Mat Times for \(viewModel.selectedDay?.displayName ?? "Select a Day")")
                 .font(.title2)
-                .padding()
+                .padding(.bottom, 8)
 
-            // Fixed height for the section
-            VStack {
+            Divider()
+
+            // MARK: - Schedule Area (Top-Aligned, No Jumping)
+            Group {
                 if let day = viewModel.selectedDay {
                     if !viewModel.matTimesForDay.isEmpty {
+
                         ScheduledMatTimesSection(
                             island: island,
                             day: day,
@@ -64,29 +82,40 @@ struct ViewScheduleForIsland: View {
                             matTimesForDay: $viewModel.matTimesForDay,
                             selectedDay: $viewModel.selectedDay
                         )
-                        .frame(height: 250) // Set a fixed height for the section
-                        
+                        .layoutPriority(1)
+
                     } else {
-                        Text("No mat times available for3 \(day.displayName) at \(island.islandName ?? "Unknown Gym").")
-                            .foregroundColor(.gray)
-                            .frame(height: 200) // Match the height of the scheduled section
+                        VStack(alignment: .leading) {
+                            Text("No mat times available for \(day.displayName) at \(island.islandName ?? "Unknown Gym").")
+                                .foregroundColor(.secondary)
+                                .padding(.top, 16)
+
+                            Spacer()
+                        }
                     }
                 } else {
-                    Text("Please select a day to view the schedule.")
-                        .foregroundColor(.gray)
-                        .frame(height: 200) // Match the height of the scheduled section
+                    VStack(alignment: .leading) {
+                        Text("Please select a day to view the schedule.")
+                            .foregroundColor(.secondary)
+                            .padding(.top, 16)
+
+                        Spacer()
+                    }
                 }
             }
-            .frame(maxWidth: .infinity)
-            .background(Color(UIColor.systemGroupedBackground)) // Optional: background color for better visibility
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(UIColor.systemGroupedBackground))
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
             if viewModel.selectedDay == nil {
-                viewModel.selectedDay = DayOfWeek.monday
+                viewModel.selectedDay = .monday
             }
+
             Task {
                 await viewModel.loadSchedules(for: island)
             }
+
             print("Loaded schedules for island: \(island.islandName ?? "Unknown")")
             print("Loaded schedules: \(viewModel.matTimesForDay.count) mat times")
         }
