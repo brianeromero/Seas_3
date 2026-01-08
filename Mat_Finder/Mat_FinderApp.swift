@@ -119,7 +119,6 @@ struct AppRootView: View {
                 // 1. Signed-in user → UNRESTRICTED IslandMenu2
                 } else if authenticationState.isAuthenticated {
                     IslandMenu2(
-                        profileViewModel: profileViewModel,
                         navigationPath: $navigationPath
                     )
                     .environment(\.isRestricted, false)
@@ -128,7 +127,6 @@ struct AppRootView: View {
                 // 2. Not signed-in → RESTRICTED IslandMenu2
                 } else {
                     IslandMenu2(
-                        profileViewModel: profileViewModel,
                         navigationPath: $navigationPath
                     )
                     .environment(\.isRestricted, true)
@@ -473,7 +471,6 @@ struct AppRootDestinationView: View {
             }
         case .islandMenu2:
             IslandMenu2(
-                profileViewModel: profileViewModel,
                 navigationPath: $navigationPath
             )
             .environmentObject(authViewModel)

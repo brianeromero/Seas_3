@@ -69,7 +69,6 @@ public struct AddNewIsland: View {
         }
         .navigationDestination(for: String.self) { islandMenuPath in
             IslandMenu2(
-                profileViewModel: profileViewModel,
                 navigationPath: $navigationPath,
             )
         }

@@ -22,6 +22,8 @@ struct IslandMenu2: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @EnvironmentObject var allEnteredLocationsViewModel: AllEnteredLocationsViewModel
     @EnvironmentObject var authenticationState: AuthenticationState
+    @EnvironmentObject var profileViewModel: ProfileViewModel
+
 
     @State private var islandDetails: IslandDetails = IslandDetails()
 
@@ -33,7 +35,6 @@ struct IslandMenu2: View {
     @State private var region: MKCoordinateRegion = MKCoordinateRegion()
     @State private var searchResults: [PirateIsland] = []
     @StateObject var appDayOfWeekViewModel: AppDayOfWeekViewModel
-    let profileViewModel: ProfileViewModel
     @Binding var navigationPath: NavigationPath
 
     @State private var showToastMessage: String = ""
@@ -48,8 +49,7 @@ struct IslandMenu2: View {
     let menuLeadingPadding: CGFloat = 20
 
     // MARK: - Initialization
-    init(profileViewModel: ProfileViewModel, navigationPath: Binding<NavigationPath>) {
-        self.profileViewModel = profileViewModel
+    init(navigationPath: Binding<NavigationPath>) {
         self._navigationPath = navigationPath
 
         let sharedPersistenceController = PersistenceController.shared
@@ -59,10 +59,12 @@ struct IslandMenu2: View {
             repository: appDayOfWeekRepository,
             persistenceController: sharedPersistenceController
         )
+
         let enterZipCodeViewModelForReviews = EnterZipCodeViewModel(
             repository: appDayOfWeekRepository,
             persistenceController: sharedPersistenceController
         )
+
         let pirateIslandViewModel = PirateIslandViewModel(persistenceController: sharedPersistenceController)
 
         _appDayOfWeekViewModel = StateObject(wrappedValue: AppDayOfWeekViewModel(
@@ -76,6 +78,7 @@ struct IslandMenu2: View {
         self.enterZipCodeViewModelForReviews = enterZipCodeViewModelForReviews
         self.pirateIslandViewModel = pirateIslandViewModel
     }
+
 
     // MARK: - Enum for Menu Options
     enum IslandMenuOption: String, CaseIterable, Identifiable {
@@ -248,39 +251,27 @@ struct IslandMenu2: View {
     private func renderMenuItem(_ option: IslandMenuOption) -> some View {
         if option == .profile {
             if isLoggedIn {
-                // Logged in → go to ProfileView
-                NavigationLink {
-                    ProfileView(
-                        profileViewModel: profileViewModel,
-                        authViewModel: authViewModel,
-                        selectedTabIndex: .constant(.login),
-                        navigationPath: $navigationPath,
-                        setupGlobalErrorHandler: { }
-                    )
-                    .environmentObject(authenticationState)
-
-                } label: {
+                // ✅ FIXED: push enum, NOT a view
+                NavigationLink(value: AppScreen.profile) {
                     menuItemLabel(for: option)
                 }
             } else {
-                // Not logged in → trigger alert
                 Button {
                     alertMessage = "You must be logged in to access your profile. Tap below to log in or create an account."
                     showAlert = true
                 } label: {
-                    menuItemLabel(for: .profileLogin) // Show "Login / Create Account" text
+                    menuItemLabel(for: .profileLogin)
                 }
             }
         } else if restrictedItems.contains(option) && !isLoggedIn {
             Button {
-                // Customize alert message for specific restricted items
                 switch option {
                 case .submitReview:
-                    alertMessage = "You must be logged in to submit a review. Tap below to log in or create an account."
+                    alertMessage = "You must be logged in to submit a review."
                 case .dayOfWeek, .addNewGym, .updateExistingGyms, .addOrEditScheduleOpenMat:
-                    alertMessage = "You must be logged in to access this feature. Tap below to log in or create an account."
+                    alertMessage = "You must be logged in to access this feature."
                 default:
-                    alertMessage = "You must be logged in to access this feature. Tap below to log in or create an account."
+                    alertMessage = "You must be logged in to access this feature."
                 }
                 showAlert = true
             } label: {
