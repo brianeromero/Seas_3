@@ -23,96 +23,80 @@ enum ProfileError: Error, LocalizedError {
     }
 }
 
+
 @MainActor
-public class ProfileViewModel: ObservableObject {
-    // MARK: - Published Properties
+public final class ProfileViewModel: ObservableObject {
+
+    enum LoadState: Equatable {
+        case idle
+        case loading
+        case loaded
+        case failed(String)
+    }
+
+    // MARK: - Profile Fields
     @Published var email = ""
     @Published var userName = ""
     @Published var name = ""
     @Published var belt = ""
+
+    // MARK: - Password Editing
     @Published var newPassword = ""
     @Published var confirmPassword = ""
     @Published var showPasswordChange = false
-    @Published var password = ""
-    @Published var isSignInEnabled = true
-    @Published var errorMessage = ""
-    @Published var isLoggedIn = false
-    @Published var isProfileLoaded = false
-    @Published var isVerified = false
-    @Published var currentUser: User?
 
-    var isProfileValid: Bool {
-        !name.isEmpty && !userName.isEmpty
-    }
+    // MARK: - State
+    @Published private(set) var loadState: LoadState = .idle
+    @Published private(set) var currentUser: User?
 
-    private var viewContext: NSManagedObjectContext
-    private var authViewModel: AuthViewModel
-
-    // MARK: - Init
-    @MainActor
-    init(viewContext: NSManagedObjectContext, authViewModel: AuthViewModel? = nil) {
-        self.viewContext = viewContext
-        self.authViewModel = authViewModel ?? AuthViewModel.shared
-    }
-
-    // MARK: - Load Profile
-    @MainActor
-    func loadProfile() async {
-        // 🔐 SAFETY: Bail immediately if user is not logged in
-        guard let userId = authViewModel.currentUser?.userID else {
-            print("⚠️ loadProfile() called but no authenticated user exists.")
-            self.isProfileLoaded = false   // ensure spinner does NOT show indefinitely
-            self.currentUser = nil
-            return
-        }
-
-        let userRef = Firestore.firestore().collection("users").document(userId)
+    // MARK: - Load Profile (AUTH TRIGGERS THIS)
+    func loadProfile(for userID: String) async {
+        loadState = .loading
 
         do {
-            let document = try await userRef.getDocument()
+            let doc = try await Firestore.firestore()
+                .collection("users")
+                .document(userID)
+                .getDocument()
 
-            guard let data = document.data() else {
-                print("⚠️ No profile document found for userID: \(userId)")
-                self.isProfileLoaded = true
+            guard let data = doc.data() else {
+                loadState = .failed("Profile not found")
                 return
             }
 
-            // 📝 Assign values directly to @Published properties
-            self.email = data["email"] as? String ?? ""
-            self.userName = data["userName"] as? String ?? ""
-            self.name = data["name"] as? String ?? ""
-            self.belt = data["belt"] as? String ?? ""
-
-            // 🧩 Sync in-memory user model
-            self.currentUser = User(
-                email: self.email,
-                userName: self.userName,
-                name: self.name,
-                belt: self.belt,
-                userID: userId
+            let user = User(
+                email: data["email"] as? String ?? "",
+                userName: data["userName"] as? String ?? "",
+                name: data["name"] as? String ?? "",
+                belt: data["belt"] as? String ?? "",
+                userID: userID
             )
 
-            print("✅ Profile loaded for \(self.email)")
-        } catch {
-            print("❌ Error loading profile: \(error.localizedDescription)")
-        }
+            self.currentUser = user
+            self.email = user.email
+            self.userName = user.userName
+            self.name = user.name
+            self.belt = user.belt ?? ""
 
-        // 🟢 Mark load complete (success or fail)
-        self.isProfileLoaded = true
+            loadState = .loaded
+
+        } catch {
+            loadState = .failed("Failed to load profile")
+        }
     }
 
-
     // MARK: - Update Profile
-    func updateProfile() async throws {
-        guard let currentUser = authViewModel.currentUser else {
-            throw NSError(domain: "User not loaded", code: 401)
+    func updateProfile(using authViewModel: AuthViewModel) async throws {
+        guard let user = currentUser else {
+            throw NSError(domain: "Profile not loaded", code: 400)
         }
 
         if showPasswordChange && newPassword != confirmPassword {
             throw ProfileError.passwordsDoNotMatch
         }
 
-        let userRef = Firestore.firestore().collection("users").document(currentUser.userID)
+        let ref = Firestore.firestore().collection("users").document(user.userID)
+
         let data: [String: Any] = [
             "email": email,
             "userName": userName,
@@ -120,91 +104,36 @@ public class ProfileViewModel: ObservableObject {
             "belt": belt
         ]
 
-        print("📄 Updating Firestore user document for ID \(currentUser.userID)")
+        try await ref.setData(data, merge: true)
 
-        do {
-            try await userRef.setData(data, merge: true)
-            print("✅ Profile updated successfully in Firestore")
+        self.currentUser = User(
+            email: email,
+            userName: userName,
+            name: name,
+            belt: belt,
+            userID: user.userID
+        )
 
-            // ✅ Keep in-memory user in sync
-            self.currentUser = User(
-                email: email,
-                userName: userName,
-                name: name,
-                belt: belt,
-                userID: currentUser.userID
-            )
-
-            if showPasswordChange {
-                try await authViewModel.updatePassword(newPassword)
-            }
-        } catch {
-            print("❌ Error updating Firestore: \(error.localizedDescription)")
-            throw error
+        if showPasswordChange {
+            try await authViewModel.updatePassword(newPassword)
         }
     }
 
     // MARK: - Validation
-    func validateProfile() -> Bool {
-        print("🔍 Running profile validation...")
-
-        let emailError = validateEmail(email)
-        let userNameError = validateUserName(userName)
-        let nameError = validateName(name)
-        let passwordError = showPasswordChange ? validatePassword(newPassword) : nil
-
-        let validations: [(String, String?)] = [
-            ("Email", emailError),
-            ("Username", userNameError),
-            ("Name", nameError),
-            ("Password", passwordError)
-        ]
-
-        for (field, error) in validations {
-            if let error = error {
-                print("❌ Validation failed for \(field): \(error)")
-            } else {
-                print("✅ Validation passed for \(field)")
-            }
-        }
-
-        return validations.allSatisfy { $0.1 == nil }
+    var isProfileValid: Bool {
+        !email.isEmpty && !userName.isEmpty && !name.isEmpty
     }
 
-    func validateEmail(_ email: String) -> String? {
-        ValidationUtility.validateField(email, type: .email)?.rawValue
-    }
-
-    func validateUserName(_ userName: String) -> String? {
-        ValidationUtility.validateField(userName, type: .userName)?.rawValue
-    }
-
-    func validateName(_ name: String) -> String? {
-        ValidationUtility.validateField(name, type: .name)?.rawValue
-    }
-
-    func validatePassword(_ password: String) -> String? {
-        ValidationUtility.validateField(password, type: .password)?.rawValue
-    }
-
-    // MARK: - Reset Helpers
-    func resetProfile() {
-        print("🔄 Resetting profile fields")
-        clearFields()
-        // FIX: Explicitly set isProfileLoaded to true to indicate the reset is complete,
-        // which satisfies the body's condition when showMainContent is false.
-        self.isProfileLoaded = true
-        self.currentUser = nil // Good idea to clear this too
-    }
-
-    private func clearFields() {
+    // MARK: - Reset
+    func reset() {
+        loadState = .idle
+        currentUser = nil
         email = ""
         userName = ""
         name = ""
         belt = ""
-        showPasswordChange = false
         newPassword = ""
         confirmPassword = ""
-        // isProfileLoaded is set in resetProfile()
+        showPasswordChange = false
     }
 }

@@ -113,6 +113,7 @@ struct LoginForm: View {
     @Binding var errorMessage: String
     @EnvironmentObject var authenticationState: AuthenticationState
     @ObservedObject var islandViewModel: PirateIslandViewModel
+    @ObservedObject var profileViewModel: ProfileViewModel      // ✅ ADD THIS
     @Binding var showMainContent: Bool
     @Binding var isLoggedIn: Bool
     @Binding var navigateToAdminMenu: Bool
@@ -169,7 +170,7 @@ struct LoginForm: View {
                         .onChange(of: password) { _, newValue in
                             isSignInEnabled = !usernameOrEmail.isEmpty && !newValue.isEmpty
                         }
-
+                        
                         Button {
                             isPasswordVisible.toggle()
                         } label: {
@@ -210,107 +211,96 @@ struct LoginForm: View {
             
             // MARK: - Social Buttons
             HStack(spacing: 25) {
-
+                
+                // MARK: - Google Sign-In
                 GoogleSignInButtonWrapper(
                     onSuccess: {
-                        authenticationState.setIsAuthenticated(true)
-                        authenticationState.navigateUnrestricted = true
-                        isLoggedIn = true
-                        showMainContent = true
-
-                        NotificationCenter.default.post(name: .navigateHome, object: nil)
+                        Task {
+                            await handlePostLogin()
+                        }
                     },
                     onError: { message in
                         errorMessage = message
                     }
                 )
-                .frame(width: 50, height: 50)
 
+                .frame(width: 50, height: 50)
+                
+                
+                // MARK: - Apple Sign-In
                 AppleSignInButtonView { result in
                     switch result {
-                    case .success(_):
-                        DispatchQueue.main.async {
-                            authenticationState.setIsAuthenticated(true)
-                            authenticationState.navigateUnrestricted = true
-                            isLoggedIn = true
-                            showMainContent = true
-
-                            // 🔑 KEEP APPLE CONSISTENT TOO
-                            NotificationCenter.default.post(name: .navigateHome, object: nil)
+                    case .success:
+                        Task {
+                            await handlePostLogin()
                         }
 
                     case .failure(let error):
                         errorMessage = error.localizedDescription
                     }
                 }
-                .frame(width: 50, height: 50)
-            }
 
-            
-            // MARK: - Error Message
-            if !errorMessage.isEmpty {
-                Text(errorMessage)
-                    .foregroundColor(.red)
-                    .multilineTextAlignment(.center)
-            }
-            
-            // MARK: - Links
-            VStack(spacing: 10) {
-                NavigationLink(destination: ApplicationOfServiceView()) {
-                    (
-                        Text("By continuing, you agree to the ")
-                            .foregroundColor(.gray)
-                        +
-                        Text("Terms of Service/Disclaimer")
-                            .foregroundColor(.blue)
-                            .underline()
-                    )
-                    .font(.footnote)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: .infinity, alignment: .center)
+                .frame(width: 50, height: 50)
+                
+                
+                // MARK: - Error Message
+                if !errorMessage.isEmpty {
+                    Text(errorMessage)
+                        .foregroundColor(.red)
+                        .multilineTextAlignment(.center)
                 }
                 
-                NavigationLink(destination: AdminLoginView(isPresented: .constant(false))) {
-                    Text("Admin Login")
+                // MARK: - Links
+                VStack(spacing: 10) {
+                    NavigationLink(destination: ApplicationOfServiceView()) {
+                        (
+                            Text("By continuing, you agree to the ")
+                                .foregroundColor(.gray)
+                            +
+                            Text("Terms of Service/Disclaimer")
+                                .foregroundColor(.blue)
+                                .underline()
+                        )
                         .font(.footnote)
-                        .foregroundColor(.blue)
-                        .underline()
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    }
+                    
+                    NavigationLink(destination: AdminLoginView(isPresented: .constant(false))) {
+                        Text("Admin Login")
+                            .font(.footnote)
+                            .foregroundColor(.blue)
+                            .underline()
+                    }
                 }
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+                
+                Spacer()
+                
             }
-            .multilineTextAlignment(.center)
-            .frame(maxWidth: .infinity)
-
-            Spacer()
-
+            .padding(.horizontal, 20)
+            .padding(.top, 30)
+            // Removed black background so gradient shows through
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 30)
-        // Removed black background so gradient shows through
     }
-
+        
     private func signIn() async {
         guard !usernameOrEmail.isEmpty && !password.isEmpty else {
-            errorMessage = "Please enter both username and password."
+            await MainActor.run {
+                errorMessage = "Please enter both username and password."
+            }
             return
         }
-        
+
         do {
             try await AuthViewModel.shared.signInUser(
                 with: usernameOrEmail.lowercased(),
                 password: password
             )
-            
-            await MainActor.run {
-                authenticationState.setIsAuthenticated(true)
-                authenticationState.navigateUnrestricted = true   // ✅ REQUIRED
-                isLoggedIn = true
-                showMainContent = true
 
-                // ✅ THIS IS THE MISSING LINE
-                NotificationCenter.default.post(name: .navigateHome, object: nil)
-            }
+            await handlePostLogin()
 
-            
         } catch {
             await MainActor.run {
                 errorMessage = error.localizedDescription
@@ -318,6 +308,34 @@ struct LoginForm: View {
         }
     }
 
+    
+    private func handlePostLogin() async {
+        // 1️⃣ Fetch user (async, NOT on MainActor)
+        let user = await AuthViewModel.shared.getCurrentUser()
+
+        // 2️⃣ Update UI state (MainActor only)
+        await MainActor.run {
+            authenticationState.setIsAuthenticated(true)
+            authenticationState.navigateUnrestricted = true
+            isLoggedIn = true
+            showMainContent = true
+        }
+
+        // 3️⃣ Load profile (defensive guard)
+        guard let userID = user?.userID else {
+            await MainActor.run {
+                errorMessage = "Unable to load user profile."
+            }
+            return
+        }
+
+        await profileViewModel.loadProfile(for: userID)
+
+        // 4️⃣ Navigate (MainActor)
+        await MainActor.run {
+            NotificationCenter.default.post(name: .navigateHome, object: nil)
+        }
+    }
 }
 
 
@@ -449,6 +467,7 @@ struct LoginView: View {
                         isSignInEnabled: $isSignInEnabled,
                         errorMessage: $errorMessage,
                         islandViewModel: islandViewModel,
+                        profileViewModel: profileViewModel,      // ✅ PASS HERE
                         showMainContent: $showMainContent,
                         isLoggedIn: $isLoggedIn,
                         navigateToAdminMenu: $navigateToAdminMenu
@@ -460,7 +479,6 @@ struct LoginView: View {
                         isUserProfileActive: .constant(false),
                         selectedTabIndex: $selectedLoginTab,
                         navigationPath: $navigationPath,
-                        persistenceController: PersistenceController.shared,
                         emailManager: UnifiedEmailManager.shared,
                         showAlert: $showAlert,
                         alertTitle: $alertTitle,

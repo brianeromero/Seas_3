@@ -79,22 +79,23 @@ struct CreateAccountView: View {
         isUserProfileActive: Binding<Bool>,
         selectedTabIndex: Binding<LoginViewSelection>,
         navigationPath: Binding<NavigationPath>,
-        persistenceController: PersistenceController,
         countryService: CountryService = .shared,
         emailManager: UnifiedEmailManager,
         showAlert: Binding<Bool>,
         alertTitle: Binding<String>,
         alertMessage: Binding<String>,
-        currentAlertType: Binding<AccountAlertType?>      // <-- ADD THIS
-    ) {
+        currentAlertType: Binding<AccountAlertType?>
+    )
+ {
         self._islandViewModel = ObservedObject(wrappedValue: islandViewModel)
         self._isUserProfileActive = isUserProfileActive
         self._selectedTabIndex = selectedTabIndex
         self._navigationPath = navigationPath
         self.countryService = countryService
         self.emailManager = emailManager
-        _profileViewModel = StateObject(wrappedValue: ProfileViewModel(viewContext: persistenceController.container.viewContext))
-        
+        _profileViewModel = StateObject(
+            wrappedValue: ProfileViewModel()
+        )
         self._showAlert = showAlert
         self._alertTitle = alertTitle
         self._alertMessage = alertMessage

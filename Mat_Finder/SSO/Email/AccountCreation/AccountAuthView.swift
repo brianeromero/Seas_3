@@ -49,7 +49,7 @@ struct AccountAuthView: View {
     @EnvironmentObject var authenticationState: AuthenticationState
     @Binding var isUserProfileActive: Bool
     @State private var formState: FormState = FormState()
-    @ObservedObject private var authViewModel = AuthViewModel.shared // Add this line
+    @ObservedObject private var authViewModel = AuthViewModel.shared
     @State private var showVerificationAlert = false
     @State private var errorMessage = ""
     @Environment(\.managedObjectContext) private var viewContext
@@ -57,6 +57,8 @@ struct AccountAuthView: View {
     @State private var isLoginSelected = false
     let emailManager: UnifiedEmailManager
     @ObservedObject var islandViewModel: PirateIslandViewModel
+    @ObservedObject var profileViewModel: ProfileViewModel   // ✅ added
+
     @State private var isSelected: LoginViewSelection = .login
     @State private var showAlert = false
     @State private var alertTitle = ""
@@ -68,12 +70,15 @@ struct AccountAuthView: View {
 
     @State private var currentAlertType: AccountAlertType? = nil
 
-
+    // ✅ Corrected initializer
     init(islandViewModel: PirateIslandViewModel,
+         profileViewModel: ProfileViewModel,     // ✅ add this
          isUserProfileActive: Binding<Bool>,
          navigateToAdminMenu: Binding<Bool> = .constant(false),
          emailManager: UnifiedEmailManager) {
+        
         self._islandViewModel = ObservedObject(wrappedValue: islandViewModel)
+        self._profileViewModel = ObservedObject(wrappedValue: profileViewModel)   // ✅ assign here
         self._isUserProfileActive = isUserProfileActive
         self._navigateToAdminMenu = navigateToAdminMenu
         self.emailManager = emailManager
@@ -90,6 +95,7 @@ struct AccountAuthView: View {
                             isSignInEnabled: $authViewModel.isSignInEnabled,
                             errorMessage: $errorMessage,
                             islandViewModel: islandViewModel,
+                            profileViewModel: profileViewModel,       // ✅ PASS IT
                             showMainContent: .constant(false),
                             isLoggedIn: $isLoggedIn,
                             navigateToAdminMenu: $navigateToAdminMenu
@@ -104,15 +110,13 @@ struct AccountAuthView: View {
                     CreateAccountView(
                         islandViewModel: islandViewModel,
                         isUserProfileActive: .constant(false),
-                        selectedTabIndex: $isSelected,  // ✅ pass existing state
+                        selectedTabIndex: $isSelected,
                         navigationPath: $navigationPath,
-                        persistenceController: PersistenceController.shared,
                         emailManager: UnifiedEmailManager.shared,
                         showAlert: $showAlert,
-                        alertTitle: $alertTitle,       // ✅ pass the binding here
+                        alertTitle: $alertTitle,
                         alertMessage: $alertMessage,
-                        currentAlertType: $currentAlertType      // <-- add this
-                        
+                        currentAlertType: $currentAlertType
                     )
 
                 }

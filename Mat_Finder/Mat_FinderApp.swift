@@ -68,7 +68,13 @@ struct Mat_FinderApp: App {
             .environmentObject(enterZipCodeViewModel)
             .environment(\.managedObjectContext,
                          appDelegate.persistenceController.container.viewContext)
+            .task {
+                // Small delay to ensure window is visible
+                try? await Task.sleep(nanoseconds: 500_000_000)
+                await IDFAHelper.requestIDFAPermission()
+            }
         }
+
     }
 
     private func setupGlobalErrorHandler() {

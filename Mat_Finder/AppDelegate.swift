@@ -124,10 +124,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         )
         self.authViewModel = AuthViewModel.shared
         self.pirateIslandViewModel = PirateIslandViewModel(persistenceController: PersistenceController.shared)
-        self.profileViewModel = ProfileViewModel(
-            viewContext: PersistenceController.shared.container.viewContext,
-            authViewModel: self.authViewModel
-        )
+        self.profileViewModel = ProfileViewModel()
+
 
         // ✅ 3. Facebook SDK (after Firebase)
         ApplicationDelegate.shared.application(application, didFinishLaunchingWithOptions: launchOptions)
@@ -164,11 +162,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         }
 
         // ✅ 9. IDFA Request (delayed)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            Task {
-                await IDFAHelper.requestIDFAPermission()
-            }
-        }
+//        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+//            Task {
+//                await IDFAHelper.requestIDFAPermission()
+//            }
+//       }
 
         // ✅ 10. Firebase Auth State Listener (NO SYNCING HERE)
         authStateDidChangeListenerHandle = Auth.auth().addStateDidChangeListener { [weak self] auth, user in

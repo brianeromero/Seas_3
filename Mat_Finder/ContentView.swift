@@ -12,10 +12,8 @@ import CoreData
 struct ContentView: View {
     @EnvironmentObject var persistenceController: PersistenceController
     @StateObject private var viewModel: PirateIslandViewModel
-    @StateObject private var profileViewModel = ProfileViewModel(
-        viewContext: PersistenceController.shared.viewContext,
-        authViewModel: AuthViewModel.shared
-    )
+    @StateObject private var profileViewModel = ProfileViewModel()
+
     
     private let authViewModel = AuthViewModel.shared
 

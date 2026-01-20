@@ -337,7 +337,6 @@ struct IslandNameField: View {
     }
 }
 
-
 struct BeltSection: View {
     @Binding var belt: String
     let beltOptions: [String]
@@ -351,31 +350,35 @@ struct BeltSection: View {
                 .opacity(0.7)
         }
         .padding(.horizontal, 20)) {
+            
             if usePickerStyle {
                 Picker("Select your belt", selection: $belt) {
                     ForEach(beltOptions, id: \.self) { beltOption in
-                        Text(beltOption).tag(beltOption)
+                        Text(beltOption.isEmpty ? "Not selected" : beltOption)
+                            .tag(beltOption)
                     }
                 }
                 .pickerStyle(MenuPickerStyle())
                 .padding(.horizontal, 20)
                 .onAppear {
+                    // Ensure belt always has a valid value
                     if belt.isEmpty {
                         belt = beltOptions.first ?? ""
                     }
                 }
+                
             } else {
                 Menu {
                     ForEach(beltOptions, id: \.self) { beltOption in
                         Button(action: {
                             self.belt = beltOption
                         }) {
-                            Text(beltOption)
+                            Text(beltOption.isEmpty ? "Not selected" : beltOption)
                         }
                     }
                 } label: {
                     HStack {
-                        Text(belt.isEmpty ? "Select a belt" : belt)
+                        Text(belt.isEmpty ? "Not selected" : belt)
                             .foregroundColor(belt.isEmpty ? .gray : .primary)
                         Spacer()
                         Image(systemName: "chevron.down")
