@@ -12,12 +12,15 @@ import Combine
 import CoreLocation
 import MapKit
 
+
 final class AllEnteredLocationsViewModel: NSObject, ObservableObject {
     @Published var allIslands: [PirateIsland] = []
     @Published var pirateMarkers: [CustomMapMarker] = []
     @Published var errorMessage: String?
     @Published var isDataLoaded = false
-    @Published var region: MapCameraPosition = .automatic
+
+    // ✅ Modern camera position (iOS 17+)
+    @Published var cameraPosition: MapCameraPosition = .automatic
 
     private let dataManager: PirateIslandDataManager
     private var hasSetInitialRegion = false
@@ -32,8 +35,10 @@ final class AllEnteredLocationsViewModel: NSObject, ObservableObject {
         isDataLoaded = false
         errorMessage = nil
 
-        DispatchQueue.global(qos: .userInitiated).async {
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self = self else { return }
             let result = self.dataManager.fetchPirateIslands()
+            
             DispatchQueue.main.async {
                 switch result {
                 case .success(let islands):
@@ -47,40 +52,33 @@ final class AllEnteredLocationsViewModel: NSObject, ObservableObject {
                         )
                     }
                     self.isDataLoaded = true
-                    self.setRegionToFitMarkersOrDefault()
+                    
+                    // ✅ Automatically frame all markers on the first load
+                    if !self.hasSetInitialRegion {
+                        self.cameraPosition = .automatic
+                        self.hasSetInitialRegion = true
+                    }
+
                 case .failure(let error):
                     self.errorMessage = "Failed to load pirate islands: \(error.localizedDescription)"
                     self.pirateMarkers = []
-                    self.region = .automatic
                     self.isDataLoaded = true
                 }
             }
         }
     }
 
-    /// Sets the map region to fit all markers if available, otherwise uses a default zoomed-out span
-    func setRegionToFitMarkersOrDefault() {
-        guard !hasSetInitialRegion else { return }
-
-        if !pirateMarkers.isEmpty {
-            let coordinates = pirateMarkers.map { $0.coordinate }
-            let mkRegion = MapUtils.calculateRegionToFit(coordinates: coordinates)
-            region = .region(mkRegion)
-        } else {
-            // Default global zoom (~1000 miles)
-            let zoomedOutSpan = MKCoordinateSpan(latitudeDelta: 15.0, longitudeDelta: 15.0)
-            region = .region(MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: 37.7749, longitude: -95.0), span: zoomedOutSpan))
-        }
-
-        hasSetInitialRegion = true
-    }
-
-    /// Updates the map region based on user location (if we haven’t set it already)
+    /// Updates the map camera based on user location
     func setRegionToUserLocation(_ location: CLLocationCoordinate2D) {
+        // We only want to snap to user location once, or when explicitly requested
         guard !hasSetInitialRegion else { return }
-
-        let zoomedOutSpan = MKCoordinateSpan(latitudeDelta: 15.0, longitudeDelta: 15.0)
-        region = .region(MKCoordinateRegion(center: location, span: zoomedOutSpan))
+        
+        withAnimation {
+            cameraPosition = .region(MKCoordinateRegion(
+                center: location,
+                span: MKCoordinateSpan(latitudeDelta: 0.5, longitudeDelta: 0.5)
+            ))
+        }
         hasSetInitialRegion = true
     }
 
@@ -91,6 +89,56 @@ final class AllEnteredLocationsViewModel: NSObject, ObservableObject {
     }
 
     func getPirateIsland(from marker: CustomMapMarker) -> PirateIsland? {
-        marker.pirateIsland
+        return marker.pirateIsland
+    }
+    
+    // MARK: - Clustering Logic
+    
+    func clusteredMarkers(radiusInMiles: Double = 10, maxIndividualMarkers: Int = 4) -> [CustomMapMarker] {
+        guard !pirateMarkers.isEmpty else { return [] }
+
+        var clusters: [CustomMapMarker] = []
+        var unclustered = pirateMarkers
+
+        while !unclustered.isEmpty {
+            let marker = unclustered.removeFirst()
+            var clusterGroup = [marker]
+
+            unclustered = unclustered.filter { otherMarker in
+                let distance = marker.coordinate.distance(to: otherMarker.coordinate)
+                if distance <= radiusInMiles * 1609.34 { // convert miles to meters
+                    clusterGroup.append(otherMarker)
+                    return false
+                }
+                return true
+            }
+
+            if clusterGroup.count > maxIndividualMarkers {
+                // Calculate average center for the cluster
+                let avgLat = clusterGroup.map { $0.coordinate.latitude }.reduce(0, +) / Double(clusterGroup.count)
+                let avgLon = clusterGroup.map { $0.coordinate.longitude }.reduce(0, +) / Double(clusterGroup.count)
+
+                let clusterMarker = CustomMapMarker(
+                    id: UUID(),
+                    coordinate: CLLocationCoordinate2D(latitude: avgLat, longitude: avgLon),
+                    title: "\(clusterGroup.count) Gyms Nearby",
+                    pirateIsland: nil
+                )
+                clusters.append(clusterMarker)
+            } else {
+                clusters.append(contentsOf: clusterGroup)
+            }
+        }
+        return clusters
+    }
+}
+
+// MARK: - Extensions
+
+extension CLLocationCoordinate2D {
+    func distance(to other: CLLocationCoordinate2D) -> Double {
+        let loc1 = CLLocation(latitude: latitude, longitude: longitude)
+        let loc2 = CLLocation(latitude: other.latitude, longitude: other.longitude)
+        return loc1.distance(from: loc2) // distance in meters
     }
 }

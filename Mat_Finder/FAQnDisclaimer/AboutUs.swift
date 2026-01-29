@@ -130,17 +130,21 @@ struct AboutUsView: View {
                 DisclosureGroup(
                     content: {
                         Text("""
-                            For now, the app is completely free and ad-free. Currently, it’s a service I want to offer to the BJJ community. Eventually, the app will have ads and other monetization features (it would be nice to be compensated for my effort, and hosting an app or related data on the app stores isn’t free for me).
+                            Mat Finder is free to use.
 
-                            Thank you for reading this.
-                            Mat_Finder
+                            I’m experimenting with adding a small amount of advertising — such as simple banner ads at the bottom of the app — to help generate enough revenue to cover ongoing costs like database hosting and yearly app maintenance. Running and maintaining the app isn’t free on my end, and this helps keep it sustainable.
+
+                            The goal isn’t profit — it’s simply to support the app and continue offering it to the BJJ community without paywalls or subscriptions.
+
+                            Thanks for the support.
+                            Mat Finder
                             """)
                             .font(.body)
                             .padding(.horizontal)
                             .multilineTextAlignment(.leading) // Align text left
                     },
                     label: {
-                        Text("FREE BUT...NOT AD-FREE...YET")
+                        Text("FREE — WITH MINIMAL ADS")
                             .font(.title3)
                             .foregroundColor(.primary)
                             .bold()

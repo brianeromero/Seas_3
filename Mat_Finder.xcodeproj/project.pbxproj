@@ -10,6 +10,7 @@
 		0C00086E2CA895D600CA5181 /* SearchComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C00086D2CA895D600CA5181 /* SearchComponents.swift */; };
 		0C00087A2CAB092B00CA5181 /* ErrorHandling.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0008792CAB092B00CA5181 /* ErrorHandling.swift */; };
 		0C0008862CAB420100CA5181 /* Errors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0008852CAB420100CA5181 /* Errors.swift */; };
+		0C0739952F27D3DE00313B25 /* MF_little.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C0739942F27D3DE00313B25 /* MF_little.png */; };
 		0C07B0732C2CFD2800D0BFB2 /* AddNewIsland.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0722C2CFD2800D0BFB2 /* AddNewIsland.swift */; };
 		0C07B0752C2CFD4900D0BFB2 /* EditExistingIslandList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0742C2CFD4900D0BFB2 /* EditExistingIslandList.swift */; };
 		0C07B0772C2CFD6700D0BFB2 /* EditExistingIsland.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0762C2CFD6700D0BFB2 /* EditExistingIsland.swift */; };
@@ -95,7 +96,6 @@
 		0CD930AD2C33D4F00051E923 /* calendar Image.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C07B0C52C2D022C00D0BFB2 /* calendar Image.png */; };
 		0CD930AE2C33D4F30051E923 /* flashing.gif in Resources */ = {isa = PBXBuildFile; fileRef = 0C07B0C42C2D022C00D0BFB2 /* flashing.gif */; };
 		0CD930AF2C33D4F60051E923 /* flashing2.gif in Resources */ = {isa = PBXBuildFile; fileRef = 0C07B0C92C2D022D00D0BFB2 /* flashing2.gif */; };
-		0CD930B02C33D4F80051E923 /* MF_little .png in Resources */ = {isa = PBXBuildFile; fileRef = 0C07B0C62C2D022C00D0BFB2 /* MF_little .png */; };
 		0CD930B12C33D4FB0051E923 /* YOu are HEre2.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C07B0C72C2D022C00D0BFB2 /* YOu are HEre2.png */; };
 		0CD930B22C33D4FE0051E923 /* MF_little_trans .png in Resources */ = {isa = PBXBuildFile; fileRef = 0C07B0CA2C2D022D00D0BFB2 /* MF_little_trans .png */; };
 		0CD930B32C33D5020051E923 /* YOu are HEre.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C07B0C82C2D022C00D0BFB2 /* YOu are HEre.png */; };
@@ -150,6 +150,7 @@
 		0C00086D2CA895D600CA5181 /* SearchComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchComponents.swift; sourceTree = "<group>"; };
 		0C0008792CAB092B00CA5181 /* ErrorHandling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorHandling.swift; sourceTree = "<group>"; };
 		0C0008852CAB420100CA5181 /* Errors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Errors.swift; sourceTree = "<group>"; };
+		0C0739942F27D3DE00313B25 /* MF_little.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = MF_little.png; sourceTree = "<group>"; };
 		0C07B0722C2CFD2800D0BFB2 /* AddNewIsland.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddNewIsland.swift; sourceTree = "<group>"; };
 		0C07B0742C2CFD4900D0BFB2 /* EditExistingIslandList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditExistingIslandList.swift; sourceTree = "<group>"; };
 		0C07B0762C2CFD6700D0BFB2 /* EditExistingIsland.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditExistingIsland.swift; sourceTree = "<group>"; };
@@ -187,7 +188,6 @@
 		0C07B0C22C2D020C00D0BFB2 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		0C07B0C42C2D022C00D0BFB2 /* flashing.gif */ = {isa = PBXFileReference; lastKnownFileType = image.gif; path = flashing.gif; sourceTree = "<group>"; };
 		0C07B0C52C2D022C00D0BFB2 /* calendar Image.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "calendar Image.png"; sourceTree = "<group>"; };
-		0C07B0C62C2D022C00D0BFB2 /* MF_little .png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "MF_little .png"; sourceTree = "<group>"; };
 		0C07B0C72C2D022C00D0BFB2 /* YOu are HEre2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "YOu are HEre2.png"; sourceTree = "<group>"; };
 		0C07B0C82C2D022C00D0BFB2 /* YOu are HEre.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "YOu are HEre.png"; sourceTree = "<group>"; };
 		0C07B0C92C2D022D00D0BFB2 /* flashing2.gif */ = {isa = PBXFileReference; lastKnownFileType = image.gif; path = flashing2.gif; sourceTree = "<group>"; };
@@ -658,7 +658,7 @@
 				0C07B0C52C2D022C00D0BFB2 /* calendar Image.png */,
 				0C07B0C42C2D022C00D0BFB2 /* flashing.gif */,
 				0C07B0C92C2D022D00D0BFB2 /* flashing2.gif */,
-				0C07B0C62C2D022C00D0BFB2 /* MF_little .png */,
+				0C0739942F27D3DE00313B25 /* MF_little.png */,
 				0C07B0C82C2D022C00D0BFB2 /* YOu are HEre.png */,
 				0C07B0C72C2D022C00D0BFB2 /* YOu are HEre2.png */,
 				0C07B0CA2C2D022D00D0BFB2 /* MF_little_trans .png */,
@@ -853,8 +853,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				0CD930AB2C33D4D90051E923 /* Assets.xcassets in Resources */,
-				0CD930B02C33D4F80051E923 /* MF_little .png in Resources */,
 				0CD930B22C33D4FE0051E923 /* MF_little_trans .png in Resources */,
+				0C0739952F27D3DE00313B25 /* MF_little.png in Resources */,
 				0CD930AD2C33D4F00051E923 /* calendar Image.png in Resources */,
 				0CD930AF2C33D4F60051E923 /* flashing2.gif in Resources */,
 				0CD930B12C33D4FB0051E923 /* YOu are HEre2.png in Resources */,
@@ -1371,7 +1371,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.0.1;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"\"-ObjC -lc++ -lsqlite3 -lstdc++ -lz\"",
@@ -1483,7 +1483,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.0.1;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"\"-ObjC -lc++ -lsqlite3 -lstdc++ -lz\"",
