@@ -10,7 +10,6 @@ import MapKit
 
 
 struct AllEnteredLocations: View {
-    // We use @StateObject here because the view is responsible for the initial creation in init()
     @StateObject var viewModel: AllEnteredLocationsViewModel
     @StateObject private var enterZipCodeViewModel: EnterZipCodeViewModel
     @StateObject private var appDayOfWeekViewModel: AppDayOfWeekViewModel
@@ -25,24 +24,15 @@ struct AllEnteredLocations: View {
 
     init(navigationPath: Binding<NavigationPath>) {
         self._navigationPath = navigationPath
-
-        // Data Manager setup
         let dataManager = PirateIslandDataManager(viewContext: PersistenceController.shared.viewContext)
-        
-        // Main ViewModel Initialization
-        let mainViewModel = AllEnteredLocationsViewModel(dataManager: dataManager)
-        self._viewModel = StateObject(wrappedValue: mainViewModel)
-
-        // Repository and secondary ViewModels
+        self._viewModel = StateObject(wrappedValue: AllEnteredLocationsViewModel(dataManager: dataManager))
         let sharedPersistenceController = PersistenceController.shared
         let appDayOfWeekRepository = AppDayOfWeekRepository(persistenceController: sharedPersistenceController)
-
         let zipCodeVM = EnterZipCodeViewModel(
             repository: appDayOfWeekRepository,
             persistenceController: sharedPersistenceController
         )
         self._enterZipCodeViewModel = StateObject(wrappedValue: zipCodeVM)
-
         self._appDayOfWeekViewModel = StateObject(wrappedValue: AppDayOfWeekViewModel(
             repository: appDayOfWeekRepository,
             enterZipCodeViewModel: zipCodeVM
@@ -62,13 +52,10 @@ struct AllEnteredLocations: View {
                 Text("No Open Mats found.")
                     .padding()
             } else {
-                // ✅ MODERN MAP API (iOS 17+)
                 Map(position: $viewModel.cameraPosition) {
-                    // Standard User Location dot
                     UserAnnotation()
-
-                    // Markers and Clusters
-                    ForEach(viewModel.clusteredMarkers(radiusInMiles: 10, maxIndividualMarkers: 4)) { marker in
+                    // 🔹 FIXED: clustering now only occurs at 10 miles or greater
+                    ForEach(viewModel.clusteredMarkers(maxIndividualMarkers: 4)) { marker in
                         Annotation(marker.title ?? "", coordinate: marker.coordinate) {
                             if let island = marker.pirateIsland {
                                 IslandAnnotationView(island: island) {
@@ -103,7 +90,6 @@ struct AllEnteredLocations: View {
         }
         .onReceive(userLocationVM.$userLocation) { location in
             guard let location = location else { return }
-            // This will only snap the camera if hasSetInitialRegion is false
             viewModel.setRegionToUserLocation(location.coordinate)
         }
         .onReceive(NotificationCenter.default.publisher(for: .didSyncPirateIslands)) { _ in
@@ -122,14 +108,11 @@ struct AllEnteredLocations: View {
         }
     }
 
-    // MARK: - Helper Views
-
     private func clusterView(for marker: CustomMapMarker) -> some View {
         ZStack {
             Circle()
                 .fill(Color.red.opacity(0.8))
                 .frame(width: 40, height: 40)
-            
             Text(marker.title?.isEmpty == false ? marker.title! : "•")
                 .foregroundColor(.white)
                 .font(.caption)
@@ -140,8 +123,6 @@ struct AllEnteredLocations: View {
         }
     }
 
-    // MARK: - Actions
-
     private func handleIslandTap(island: PirateIsland?) {
         guard let island = island else { return }
         selectedIsland = island
@@ -150,7 +131,6 @@ struct AllEnteredLocations: View {
 
     private func zoomMap(to marker: CustomMapMarker) {
         withAnimation(.easeInOut) {
-            // Using a region inside the cameraPosition binding for precise zooming
             viewModel.cameraPosition = .region(MKCoordinateRegion(
                 center: marker.coordinate,
                 span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)

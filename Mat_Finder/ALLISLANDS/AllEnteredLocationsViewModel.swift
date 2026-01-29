@@ -12,7 +12,6 @@ import Combine
 import CoreLocation
 import MapKit
 
-
 final class AllEnteredLocationsViewModel: NSObject, ObservableObject {
     @Published var allIslands: [PirateIsland] = []
     @Published var pirateMarkers: [CustomMapMarker] = []
@@ -70,7 +69,6 @@ final class AllEnteredLocationsViewModel: NSObject, ObservableObject {
 
     /// Updates the map camera based on user location
     func setRegionToUserLocation(_ location: CLLocationCoordinate2D) {
-        // We only want to snap to user location once, or when explicitly requested
         guard !hasSetInitialRegion else { return }
         
         withAnimation {
@@ -92,9 +90,22 @@ final class AllEnteredLocationsViewModel: NSObject, ObservableObject {
         return marker.pirateIsland
     }
     
+    // 🔹 CHANGED: Dynamic cluster radius based on zoom level with optimized factor
+    var currentClusterRadiusInMiles: Double { // 🔹 CHANGED
+        if let region = cameraPosition.region {
+            let span = region.span.latitudeDelta
+            // Optimized factor for realistic cluster breaking
+            // Smaller span → smaller radius, larger span → larger radius
+            // Factor 15 gives smoother transitions between clusters and individual markers
+            return max(0.3, span * 15) // 🔹 CHANGED: adjusted factor from 20 → 15, min radius 0.3 miles
+        }
+        return 10 // fallback default 🔹 CHANGED
+    }
+
     // MARK: - Clustering Logic
     
-    func clusteredMarkers(radiusInMiles: Double = 10, maxIndividualMarkers: Int = 4) -> [CustomMapMarker] {
+    func clusteredMarkers(radiusInMiles: Double? = nil, maxIndividualMarkers: Int = 4) -> [CustomMapMarker] {
+        let radius = radiusInMiles ?? currentClusterRadiusInMiles // 🔹 CHANGED: use dynamic radius
         guard !pirateMarkers.isEmpty else { return [] }
 
         var clusters: [CustomMapMarker] = []
@@ -106,7 +117,7 @@ final class AllEnteredLocationsViewModel: NSObject, ObservableObject {
 
             unclustered = unclustered.filter { otherMarker in
                 let distance = marker.coordinate.distance(to: otherMarker.coordinate)
-                if distance <= radiusInMiles * 1609.34 { // convert miles to meters
+                if distance <= radius * 1609.34 { // convert miles to meters
                     clusterGroup.append(otherMarker)
                     return false
                 }
