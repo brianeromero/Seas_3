@@ -23,6 +23,12 @@ final class AllEnteredLocationsViewModel: NSObject, ObservableObject {
 
     private let dataManager: PirateIslandDataManager
     private var hasSetInitialRegion = false
+    
+    private let clusterBreakLatitudeDelta: Double = 0.15
+    
+    @Published private(set) var isClusteringEnabled: Bool = true
+
+
 
     init(dataManager: PirateIslandDataManager) {
         self.dataManager = dataManager
@@ -91,21 +97,18 @@ final class AllEnteredLocationsViewModel: NSObject, ObservableObject {
     }
     
     // 🔹 CHANGED: Dynamic cluster radius based on zoom level with optimized factor
-    var currentClusterRadiusInMiles: Double { // 🔹 CHANGED
-        if let region = cameraPosition.region {
-            let span = region.span.latitudeDelta
-            // Optimized factor for realistic cluster breaking
-            // Smaller span → smaller radius, larger span → larger radius
-            // Factor 15 gives smoother transitions between clusters and individual markers
-            return max(0.3, span * 15) // 🔹 CHANGED: adjusted factor from 20 → 15, min radius 0.3 miles
-        }
-        return 10 // fallback default 🔹 CHANGED
-    }
+    private let clusterRadiusMiles: Double = 10
 
     // MARK: - Clustering Logic
     
-    func clusteredMarkers(radiusInMiles: Double? = nil, maxIndividualMarkers: Int = 4) -> [CustomMapMarker] {
-        let radius = radiusInMiles ?? currentClusterRadiusInMiles // 🔹 CHANGED: use dynamic radius
+    func clusteredMarkers(maxIndividualMarkers: Int = 4) -> [CustomMapMarker] {
+
+        // HARD LOCK: no clustering when disabled
+        if !isClusteringEnabled {
+            return pirateMarkers
+        }
+
+        let radius = clusterRadiusMiles
         guard !pirateMarkers.isEmpty else { return [] }
 
         var clusters: [CustomMapMarker] = []
@@ -117,7 +120,7 @@ final class AllEnteredLocationsViewModel: NSObject, ObservableObject {
 
             unclustered = unclustered.filter { otherMarker in
                 let distance = marker.coordinate.distance(to: otherMarker.coordinate)
-                if distance <= radius * 1609.34 { // convert miles to meters
+                if distance <= radius * 1609.34 {
                     clusterGroup.append(otherMarker)
                     return false
                 }
@@ -125,23 +128,42 @@ final class AllEnteredLocationsViewModel: NSObject, ObservableObject {
             }
 
             if clusterGroup.count > maxIndividualMarkers {
-                // Calculate average center for the cluster
                 let avgLat = clusterGroup.map { $0.coordinate.latitude }.reduce(0, +) / Double(clusterGroup.count)
                 let avgLon = clusterGroup.map { $0.coordinate.longitude }.reduce(0, +) / Double(clusterGroup.count)
 
-                let clusterMarker = CustomMapMarker(
-                    id: UUID(),
-                    coordinate: CLLocationCoordinate2D(latitude: avgLat, longitude: avgLon),
-                    title: "\(clusterGroup.count) Gyms Nearby",
-                    pirateIsland: nil
+                clusters.append(
+                    CustomMapMarker(
+                        id: UUID(),
+                        coordinate: CLLocationCoordinate2D(latitude: avgLat, longitude: avgLon),
+                        title: "\(clusterGroup.count) Gyms Nearby",
+                        pirateIsland: nil
+                    )
                 )
-                clusters.append(clusterMarker)
             } else {
                 clusters.append(contentsOf: clusterGroup)
             }
         }
+
         return clusters
     }
+
+
+    
+    func updateClusteringMode() {
+        guard let region = cameraPosition.region else { return }
+
+        let span = region.span.latitudeDelta
+
+        // ~0.15 latitude ≈ 10 miles (roughly)
+        if span <= clusterBreakLatitudeDelta {
+            isClusteringEnabled = false
+        } else {
+            isClusteringEnabled = true
+        }
+    }
+
+
+
 }
 
 // MARK: - Extensions

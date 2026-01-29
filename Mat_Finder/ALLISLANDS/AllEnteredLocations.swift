@@ -106,6 +106,13 @@ struct AllEnteredLocations: View {
                 navigationPath: $navigationPath
             )
         }
+        
+        .onChange(of: viewModel.cameraPosition) { _ in
+            DispatchQueue.main.async {
+                viewModel.updateClusteringMode()
+            }
+        }
+    
     }
 
     private func clusterView(for marker: CustomMapMarker) -> some View {
