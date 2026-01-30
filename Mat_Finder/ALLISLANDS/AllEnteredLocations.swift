@@ -8,7 +8,6 @@ import CoreData
 import CoreLocation
 import MapKit
 
-
 struct AllEnteredLocations: View {
     @StateObject var viewModel: AllEnteredLocationsViewModel
     @StateObject private var enterZipCodeViewModel: EnterZipCodeViewModel
@@ -54,8 +53,9 @@ struct AllEnteredLocations: View {
             } else {
                 Map(position: $viewModel.cameraPosition) {
                     UserAnnotation()
-                    // 🔹 FIXED: clustering now only occurs at 10 miles or greater
-                    ForEach(viewModel.clusteredMarkers(maxIndividualMarkers: 4)) { marker in
+
+                    // ✅ Use displayedMarkers from ViewModel
+                    ForEach(viewModel.displayedMarkers) { marker in
                         Annotation(marker.title ?? "", coordinate: marker.coordinate) {
                             if let island = marker.pirateIsland {
                                 IslandAnnotationView(island: island) {
@@ -85,6 +85,7 @@ struct AllEnteredLocations: View {
             if !viewModel.isDataLoaded && viewModel.errorMessage == nil {
                 viewModel.fetchPirateIslands()
             }
+            // ✅ Access public method
             viewModel.logTileInformation()
             userLocationVM.startLocationServices()
         }
@@ -106,13 +107,10 @@ struct AllEnteredLocations: View {
                 navigationPath: $navigationPath
             )
         }
-        
-        .onChange(of: viewModel.cameraPosition) { _ in
-            DispatchQueue.main.async {
-                viewModel.updateClusteringMode()
-            }
+        .onChange(of: viewModel.cameraPosition.region?.span.latitudeDelta) { oldValue, newValue in
+            viewModel.updateClusteringMode()
         }
-    
+
     }
 
     private func clusterView(for marker: CustomMapMarker) -> some View {
@@ -120,7 +118,7 @@ struct AllEnteredLocations: View {
             Circle()
                 .fill(Color.red.opacity(0.8))
                 .frame(width: 40, height: 40)
-            Text(marker.title?.isEmpty == false ? marker.title! : "•")
+            Text(marker.count != nil ? "\(marker.count!)" : "•")
                 .foregroundColor(.white)
                 .font(.caption)
                 .fontWeight(.bold)

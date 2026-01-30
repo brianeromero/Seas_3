@@ -12,28 +12,23 @@ import Combine
 import CoreLocation
 import MapKit
 
-final class AllEnteredLocationsViewModel: NSObject, ObservableObject {
+
+final class AllEnteredLocationsViewModel: ObservableObject {
     @Published var allIslands: [PirateIsland] = []
     @Published var pirateMarkers: [CustomMapMarker] = []
     @Published var errorMessage: String?
     @Published var isDataLoaded = false
-
-    // ✅ Modern camera position (iOS 17+)
     @Published var cameraPosition: MapCameraPosition = .automatic
+    @Published private(set) var isClusteringEnabled: Bool = true
+    @Published private(set) var displayedMarkers: [CustomMapMarker] = []
 
     private let dataManager: PirateIslandDataManager
     private var hasSetInitialRegion = false
-    
     private let clusterBreakLatitudeDelta: Double = 0.15
-    
-    @Published private(set) var isClusteringEnabled: Bool = true
-
-
+    private let clusterRadiusMiles: Double = 10
 
     init(dataManager: PirateIslandDataManager) {
         self.dataManager = dataManager
-        super.init()
-        fetchPirateIslands()
     }
 
     func fetchPirateIslands() {
@@ -49,31 +44,29 @@ final class AllEnteredLocationsViewModel: NSObject, ObservableObject {
                 case .success(let islands):
                     self.allIslands = islands
                     self.pirateMarkers = islands.map { island in
-                        CustomMapMarker(
-                            id: island.islandID ?? UUID(),
-                            coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude),
-                            title: island.islandName ?? "Unknown Island",
-                            pirateIsland: island
-                        )
+                        CustomMapMarker.forPirateIsland(island)
                     }
+
+
                     self.isDataLoaded = true
                     
-                    // ✅ Automatically frame all markers on the first load
                     if !self.hasSetInitialRegion {
                         self.cameraPosition = .automatic
                         self.hasSetInitialRegion = true
                     }
 
+                    self.updateDisplayedMarkers()
+
                 case .failure(let error):
                     self.errorMessage = "Failed to load pirate islands: \(error.localizedDescription)"
                     self.pirateMarkers = []
                     self.isDataLoaded = true
+                    self.updateDisplayedMarkers()
                 }
             }
         }
     }
 
-    /// Updates the map camera based on user location
     func setRegionToUserLocation(_ location: CLLocationCoordinate2D) {
         guard !hasSetInitialRegion else { return }
         
@@ -85,30 +78,9 @@ final class AllEnteredLocationsViewModel: NSObject, ObservableObject {
         }
         hasSetInitialRegion = true
     }
-
-    func logTileInformation() {
-        for marker in pirateMarkers {
-            print("Marker ID: \(marker.id), Coordinate: \(marker.coordinate), Title: \(marker.title ?? "Unknown")")
-        }
-    }
-
-    func getPirateIsland(from marker: CustomMapMarker) -> PirateIsland? {
-        return marker.pirateIsland
-    }
-    
-    // 🔹 CHANGED: Dynamic cluster radius based on zoom level with optimized factor
-    private let clusterRadiusMiles: Double = 10
-
-    // MARK: - Clustering Logic
     
     func clusteredMarkers(maxIndividualMarkers: Int = 4) -> [CustomMapMarker] {
-
-        // HARD LOCK: no clustering when disabled
-        if !isClusteringEnabled {
-            return pirateMarkers
-        }
-
-        let radius = clusterRadiusMiles
+        if !isClusteringEnabled { return pirateMarkers }
         guard !pirateMarkers.isEmpty else { return [] }
 
         var clusters: [CustomMapMarker] = []
@@ -120,7 +92,7 @@ final class AllEnteredLocationsViewModel: NSObject, ObservableObject {
 
             unclustered = unclustered.filter { otherMarker in
                 let distance = marker.coordinate.distance(to: otherMarker.coordinate)
-                if distance <= radius * 1609.34 {
+                if distance <= clusterRadiusMiles * 1609.34 {
                     clusterGroup.append(otherMarker)
                     return false
                 }
@@ -130,17 +102,20 @@ final class AllEnteredLocationsViewModel: NSObject, ObservableObject {
             if clusterGroup.count > maxIndividualMarkers {
                 let avgLat = clusterGroup.map { $0.coordinate.latitude }.reduce(0, +) / Double(clusterGroup.count)
                 let avgLon = clusterGroup.map { $0.coordinate.longitude }.reduce(0, +) / Double(clusterGroup.count)
-
                 clusters.append(
-                    CustomMapMarker(
-                        id: UUID(),
-                        coordinate: CLLocationCoordinate2D(latitude: avgLat, longitude: avgLon),
-                        title: "\(clusterGroup.count) Gyms Nearby",
-                        pirateIsland: nil
+                    CustomMapMarker.forCluster(
+                        at: CLLocationCoordinate2D(latitude: avgLat, longitude: avgLon),
+                        count: clusterGroup.count
                     )
                 )
             } else {
-                clusters.append(contentsOf: clusterGroup)
+                clusters.append(contentsOf: clusterGroup.map { marker in
+                    if let island = marker.pirateIsland {
+                        return CustomMapMarker.forPirateIsland(island)
+                    } else {
+                        return marker
+                    }
+                })
             }
         }
 
@@ -148,26 +123,28 @@ final class AllEnteredLocationsViewModel: NSObject, ObservableObject {
     }
 
 
-    
     func updateClusteringMode() {
         guard let region = cameraPosition.region else { return }
-
-        let span = region.span.latitudeDelta
-
-        // ~0.15 latitude ≈ 10 miles (roughly)
-        if span <= clusterBreakLatitudeDelta {
-            isClusteringEnabled = false
-        } else {
-            isClusteringEnabled = true
+        let newClusteringState = region.span.latitudeDelta > clusterBreakLatitudeDelta
+        if isClusteringEnabled != newClusteringState {
+            isClusteringEnabled = newClusteringState
+            updateDisplayedMarkers()
         }
     }
 
+    func updateDisplayedMarkers() {
+        displayedMarkers = clusteredMarkers(maxIndividualMarkers: 4)
+    }
 
-
+    // ✅ Public logging method
+    func logTileInformation() {
+        for marker in pirateMarkers {
+            print("Marker ID: \(marker.id), Coordinate: \(marker.coordinate), Title: \(marker.title ?? "Unknown")")
+        }
+    }
 }
 
-// MARK: - Extensions
-
+// MARK: - CLLocationCoordinate2D Extension
 extension CLLocationCoordinate2D {
     func distance(to other: CLLocationCoordinate2D) -> Double {
         let loc1 = CLLocation(latitude: latitude, longitude: longitude)
