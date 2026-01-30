@@ -40,6 +40,10 @@ struct ConsolidatedIslandMapView: View {
 
     @State private var selectedRadius: Double = 5.0
     
+    @State private var isClusteringEnabled: Bool = true
+    private let clusterBreakLatitudeDelta: Double = 0.15
+    private let clusterRadiusMiles: Double = 10.0
+    
     // ⬇️ REPLACED: equatableRegion is no longer the map's source of truth.
     // ⭐️ NEW: Use MapCameraPosition for iOS 17 Map.
     @State private var cameraPosition: MapCameraPosition = .region(defaultRegion)
@@ -108,35 +112,30 @@ struct ConsolidatedIslandMapView: View {
     // MARK: - Map
     // ⭐️ NEW: Map view using the iOS 17 API
     private func makeMapView() -> some View {
-        Map(position: $cameraPosition, interactionModes: .all) { // Use $cameraPosition
-            
-            // ⭐️ NEW: UserAnnotation replaces showsUserLocation: true
-            UserAnnotation()
-            
-            // ⭐️ NEW: Annotation replaces MapAnnotation and uses ForEach
-            ForEach(pirateMarkers) { marker in
-                Annotation(
-                    "", // empty string, MapKit shows nothing by default
-                    coordinate: marker.coordinate,
-                    anchor: .center
-                ) {
-                    mapAnnotationView(for: marker)
+            Map(position: $cameraPosition, interactionModes: .all) {
+                UserAnnotation()
+                
+                ForEach(pirateMarkers) { marker in
+                    Annotation("", coordinate: marker.coordinate, anchor: .center) {
+                        if marker.pirateIsland != nil {
+                            mapAnnotationView(for: marker)
+                        } else {
+                            clusterView(for: marker)
+                        }
+                    }
                 }
             }
+            // ✅ CHANGED: frequency set to .continuous for instant clustering
+            .onMapCameraChange(frequency: .continuous) { context in
+                updateMarkers(for: context.region)
+            }
+            .frame(height: 400)
+            .padding()
+            .onAppear {
+                log.debug("🗺️ Map view appeared with \(pirateMarkers.count) markers.")
+                updateMarkers(for: cameraPosition.region ?? defaultRegion)
+            }
         }
-        // ⭐️ NEW: .onMapCameraChange() replaces manual equatableRegion logic for user gestures
-        .onMapCameraChange(frequency: .onEnd) { context in
-            // This is called when the user stops dragging or pinching the map.
-            updateMarkers(for: context.region)
-        }
-        .frame(height: 400)
-        .padding()
-        .onAppear {
-            log.debug("🗺️ Map view appeared with \(pirateMarkers.count) markers.")
-            // Initial marker load is required here or in onAppear()
-            updateMarkers(for: cameraPosition.region ?? defaultRegion)
-        }
-    }
 
     private func makeRadiusPicker() -> some View {
         RadiusPicker(selectedRadius: $selectedRadius)
@@ -244,24 +243,86 @@ struct ConsolidatedIslandMapView: View {
 
     // This helper remains the same and correctly filters the islands based on the region
     private func updateMarkers(for region: MKCoordinateRegion) {
+        // 1. Update the clustering toggle based on zoom level
+        let newClusteringState = region.span.latitudeDelta > clusterBreakLatitudeDelta
+        if isClusteringEnabled != newClusteringState {
+            isClusteringEnabled = newClusteringState
+        }
+
+        // 2. Filter islands within the current visible bounds
         let minLat = region.center.latitude - region.span.latitudeDelta / 2
         let maxLat = region.center.latitude + region.span.latitudeDelta / 2
         let minLon = region.center.longitude - region.span.longitudeDelta / 2
         let maxLon = region.center.longitude + region.span.longitudeDelta / 2
 
-        // A better filtering approach might be distance-based for accuracy,
-        // but this span-based filtering is kept to match your original intent.
-        pirateMarkers = islands.filter { island in
+        let filteredIslands = islands.filter { island in
             (island.latitude >= minLat && island.latitude <= maxLat) &&
             (island.longitude >= minLon && island.longitude <= maxLon)
-        }.map { island in
-            CustomMapMarker(
-                id: island.islandID ?? UUID(),
-                coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude),
-                title: island.islandName,
-                pirateIsland: island
-            )
         }
-        log.debug("Markers updated. Found \(self.pirateMarkers.count) gyms in region.")
+
+        // 3. Create initial individual markers
+        let rawMarkers = filteredIslands.map { island in
+            CustomMapMarker.forPirateIsland(island) // Ensure your CustomMapMarker has this helper
+        }
+
+        // 4. Run Clustering Algorithm
+        if !isClusteringEnabled {
+            self.pirateMarkers = rawMarkers
+        } else {
+            self.pirateMarkers = performClustering(on: rawMarkers)
+        }
+    }
+
+    // Helper method for the clustering logic
+    private func performClustering(on markers: [CustomMapMarker]) -> [CustomMapMarker] {
+        var clusters: [CustomMapMarker] = []
+        var unclustered = markers
+
+        while !unclustered.isEmpty {
+            let marker = unclustered.removeFirst()
+            var clusterGroup = [marker]
+
+            unclustered = unclustered.filter { otherMarker in
+                let distance = marker.coordinate.distance(to: otherMarker.coordinate)
+                if distance <= clusterRadiusMiles * 1609.34 {
+                    clusterGroup.append(otherMarker)
+                    return false
+                }
+                return true
+            }
+
+            if clusterGroup.count > 4 { // Threshold for showing a cluster
+                let avgLat = clusterGroup.map { $0.coordinate.latitude }.reduce(0, +) / Double(clusterGroup.count)
+                let avgLon = clusterGroup.map { $0.coordinate.longitude }.reduce(0, +) / Double(clusterGroup.count)
+                clusters.append(
+                    CustomMapMarker.forCluster(
+                        at: CLLocationCoordinate2D(latitude: avgLat, longitude: avgLon),
+                        count: clusterGroup.count
+                    )
+                )
+            } else {
+                clusters.append(contentsOf: clusterGroup)
+            }
+        }
+        return clusters
+    }
+    
+    private func clusterView(for marker: CustomMapMarker) -> some View {
+        ZStack {
+            Circle()
+                .fill(Color.red.opacity(0.8))
+                .frame(width: 40, height: 40)
+            Text("\(marker.count ?? 1)")
+                .foregroundColor(.white)
+                .font(.caption).fontWeight(.bold)
+        }
+        .onTapGesture {
+            withAnimation(.easeInOut) {
+                cameraPosition = .region(MKCoordinateRegion(
+                    center: marker.coordinate,
+                    span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
+                ))
+            }
+        }
     }
 }
