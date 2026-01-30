@@ -31,15 +31,25 @@ struct IslandMapView: View {
 
     var body: some View {
         Map(position: $cameraPosition) {
-            ForEach(searchResults, id: \.islandID) { island in
+            ForEach(enterZipCodeViewModel.displayedMarkers) { marker in
                 Annotation(
-                    "", // empty string, nothing will show
-                    coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude),
+                    "",
+                    coordinate: marker.coordinate,
                     anchor: .center
                 ) {
-                    AnnotationMarkerView(island: island, handleTap: handleTap)
+                    if let island = marker.pirateIsland {
+                        // 🧍 Individual island
+                        AnnotationMarkerView(
+                            island: island,
+                            handleTap: handleTap
+                        )
+                    } else {
+                        // 🧩 Cluster marker
+                        ClusterMarkerView(count: marker.count ?? 0)
+                    }
                 }
             }
+
         }
         .frame(height: 400)
         .edgesIgnoringSafeArea(.all)

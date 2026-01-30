@@ -139,7 +139,9 @@ struct EnterZipCodeView: View {
             searchResults: $searchResults,
             onMapRegionChange: { region in
                 enterZipCodeViewModel.updateMarkersForCenter(region.center, span: region.span)
+                enterZipCodeViewModel.updateClusteringMode(with: region)
             }
+
         )
     }
 

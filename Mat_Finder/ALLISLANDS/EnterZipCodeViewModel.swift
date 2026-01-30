@@ -39,6 +39,14 @@ class EnterZipCodeViewModel: ObservableObject {
     private let geocoder = CLGeocoder()
     private let updateQueue = DispatchQueue(label: "com.example.Mat_Finder.updateQueue")
     private let earthRadius = 6371.0088 // km
+    // MARK: - Clustering properties
+
+    @Published private(set) var isClusteringEnabled: Bool = true
+    @Published private(set) var displayedMarkers: [CustomMapMarker] = []
+
+    private let clusterBreakLatitudeDelta: Double = 0.15
+    private let clusterRadiusMiles: Double = 10
+
 
     // MARK: - Location manager
     let locationManager = UserLocationMapViewModel.shared
@@ -137,6 +145,9 @@ class EnterZipCodeViewModel: ObservableObject {
                     pirateIsland: island
                 )
             }
+
+            updateDisplayedMarkers()
+
         } catch {
             print("Error fetching islands: \(error.localizedDescription)")
         }
@@ -146,6 +157,61 @@ class EnterZipCodeViewModel: ObservableObject {
         let span = MKCoordinateSpan(latitudeDelta: radius / 69.0, longitudeDelta: radius / 69.0)
         self.region = MKCoordinateRegion(center: userLocation.coordinate, span: span)
     }
+    
+    
+    func clusteredMarkers(maxIndividualMarkers: Int = 4) -> [CustomMapMarker] {
+        if !isClusteringEnabled { return pirateIslands }
+        guard !pirateIslands.isEmpty else { return [] }
+
+        var clusters: [CustomMapMarker] = []
+        var unclustered = pirateIslands
+
+        while !unclustered.isEmpty {
+            let marker = unclustered.removeFirst()
+            var clusterGroup = [marker]
+
+            unclustered = unclustered.filter { otherMarker in
+                let distance = marker.coordinate.distance(to: otherMarker.coordinate)
+                if distance <= clusterRadiusMiles * 1609.34 {
+                    clusterGroup.append(otherMarker)
+                    return false
+                }
+                return true
+            }
+
+            if clusterGroup.count > maxIndividualMarkers {
+                let avgLat = clusterGroup.map { $0.coordinate.latitude }.reduce(0, +) / Double(clusterGroup.count)
+                let avgLon = clusterGroup.map { $0.coordinate.longitude }.reduce(0, +) / Double(clusterGroup.count)
+
+                clusters.append(
+                    CustomMapMarker.forCluster(
+                        at: CLLocationCoordinate2D(latitude: avgLat, longitude: avgLon),
+                        count: clusterGroup.count
+                    )
+                )
+            } else {
+                clusters.append(contentsOf: clusterGroup)
+            }
+        }
+
+        return clusters
+    }
+
+    func updateClusteringMode(with region: MKCoordinateRegion) {
+        let newState = region.span.latitudeDelta > clusterBreakLatitudeDelta
+
+        if isClusteringEnabled != newState {
+            isClusteringEnabled = newState
+            updateDisplayedMarkers()
+        }
+    }
+
+    func updateDisplayedMarkers() {
+        withAnimation(.easeInOut) {
+            displayedMarkers = clusteredMarkers(maxIndividualMarkers: 4)
+        }
+    }
+
 }
 
 // MARK: - Helper

@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftUI
 import CoreLocation
 import MapKit
 
@@ -52,5 +53,22 @@ struct CustomMapMarker: Identifiable, Equatable {
     func distance(from location: CLLocation) -> CLLocationDistance {
         let islandLocation = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
         return islandLocation.distance(from: location)
+    }
+}
+
+
+struct ClusterMarkerView: View {
+    let count: Int
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(Color.red.opacity(0.8))
+                .frame(width: 40, height: 40)
+            Text("\(count)")
+                .foregroundColor(.white)
+                .font(.caption)
+                .fontWeight(.bold)
+        }
     }
 }
