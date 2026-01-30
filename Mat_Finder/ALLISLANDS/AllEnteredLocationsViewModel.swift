@@ -123,9 +123,10 @@ final class AllEnteredLocationsViewModel: ObservableObject {
     }
 
 
-    func updateClusteringMode() {
-        guard let region = cameraPosition.region else { return }
+    // Inside AllEnteredLocationsViewModel
+    func updateClusteringMode(with region: MKCoordinateRegion) {
         let newClusteringState = region.span.latitudeDelta > clusterBreakLatitudeDelta
+        
         if isClusteringEnabled != newClusteringState {
             isClusteringEnabled = newClusteringState
             updateDisplayedMarkers()
@@ -133,9 +134,12 @@ final class AllEnteredLocationsViewModel: ObservableObject {
     }
 
     func updateDisplayedMarkers() {
-        displayedMarkers = clusteredMarkers(maxIndividualMarkers: 4)
+        withAnimation(.easeInOut) {
+            displayedMarkers = clusteredMarkers(maxIndividualMarkers: 4)
+        }
     }
-
+    
+    
     // ✅ Public logging method
     func logTileInformation() {
         for marker in pirateMarkers {

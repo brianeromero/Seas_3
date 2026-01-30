@@ -53,7 +53,7 @@ struct AllEnteredLocations: View {
             } else {
                 Map(position: $viewModel.cameraPosition) {
                     UserAnnotation()
-
+                    
                     // ✅ Use displayedMarkers from ViewModel
                     ForEach(viewModel.displayedMarkers) { marker in
                         Annotation(marker.title ?? "", coordinate: marker.coordinate) {
@@ -107,10 +107,10 @@ struct AllEnteredLocations: View {
                 navigationPath: $navigationPath
             )
         }
-        .onChange(of: viewModel.cameraPosition.region?.span.latitudeDelta) { oldValue, newValue in
-            viewModel.updateClusteringMode()
+        // ✅ 1. Keep this: It's the most reliable way to detect zoom changes
+        .onMapCameraChange(frequency: .continuous) { context in
+            viewModel.updateClusteringMode(with: context.region)
         }
-
     }
 
     private func clusterView(for marker: CustomMapMarker) -> some View {
