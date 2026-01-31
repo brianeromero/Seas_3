@@ -20,13 +20,9 @@ struct IslandMapView: View {
     @ObservedObject var allEnteredLocationsViewModel: AllEnteredLocationsViewModel
     @ObservedObject var enterZipCodeViewModel: EnterZipCodeViewModel
 
-    // Modern MapKit API bindings
     @Binding var cameraPosition: MapCameraPosition
-    @Binding var searchResults: [PirateIsland]
-
     var onMapRegionChange: (MKCoordinateRegion) -> Void
 
-    @State private var navigationPath = NavigationPath()
     @State private var mapUpdateTask: Task<(), Never>? = nil
 
     var body: some View {
@@ -46,37 +42,49 @@ struct IslandMapView: View {
                     } else {
                         // 🧩 Cluster marker
                         ClusterMarkerView(count: marker.count ?? 0)
+                            .onTapGesture {
+                                zoomIntoCluster(marker)
+                            }
                     }
                 }
             }
-
         }
         .frame(height: 400)
         .edgesIgnoringSafeArea(.all)
         .onMapCameraChange(frequency: .continuous) { context in
-            let region = context.region
             mapUpdateTask?.cancel()
             mapUpdateTask = Task {
                 try? await Task.sleep(nanoseconds: 400_000_000)
                 if !Task.isCancelled {
                     await MainActor.run {
-                        // Directly update markers for current center + span
-                        enterZipCodeViewModel.updateMarkersForCenter(region.center, span: region.span)
+                        onMapRegionChange(context.region)
                     }
                 }
             }
         }
+    }
 
-        .floatingModal(isPresented: $showModal) {
-            IslandModalContainer(
-                selectedIsland: $selectedIsland,
-                viewModel: viewModel,
-                selectedDay: $selectedDay,
-                showModal: $showModal,
-                enterZipCodeViewModel: enterZipCodeViewModel,
-                selectedAppDayOfWeek: $selectedAppDayOfWeek,
-                navigationPath: $navigationPath
-            )
+    // MARK: - Helpers
+    private func zoomIntoCluster(_ marker: CustomMapMarker) {
+        let currentRegion = cameraPosition.region ?? MKCoordinateRegion(
+            center: marker.coordinate,
+            span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
+        )
+
+        let newSpan = MKCoordinateSpan(
+            latitudeDelta: max(currentRegion.span.latitudeDelta * 0.5, 0.005),
+            longitudeDelta: max(currentRegion.span.longitudeDelta * 0.5, 0.005)
+        )
+
+        Task {
+            try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+            await MainActor.run {
+                withAnimation(.easeInOut) {
+                    cameraPosition = .region(
+                        MKCoordinateRegion(center: marker.coordinate, span: newSpan)
+                    )
+                }
+            }
         }
     }
 
@@ -107,9 +115,8 @@ struct AnnotationMarkerView: View {
     }
 }
 
-// MARK: - IslandMapViewMap (For Single Island)
+// MARK: - IslandMapViewMap (Single Island)
 struct IslandMapViewMap: View {
-    // ✅ Use the modern API as well for consistency
     @State private var cameraPosition: MapCameraPosition
     var coordinate: CLLocationCoordinate2D
     var islandName: String
@@ -130,20 +137,17 @@ struct IslandMapViewMap: View {
         self.islandLocation = islandLocation
         self.onTap = onTap
         self.island = island
-
-        _cameraPosition = State(initialValue: .region(MKCoordinateRegion(
-            center: coordinate,
-            span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
-        )))
+        _cameraPosition = State(initialValue: .region(
+            MKCoordinateRegion(
+                center: coordinate,
+                span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
+            )
+        ))
     }
 
     var body: some View {
         Map(position: $cameraPosition) {
-            Annotation(
-                "", // empty string — satisfies compiler, nothing is shown by MapKit
-                coordinate: coordinate,
-                anchor: .center
-            ) {
+            Annotation("", coordinate: coordinate, anchor: .center) {
                 VStack {
                     Text(islandName)
                         .font(.caption)

@@ -22,31 +22,21 @@ class EnterZipCodeViewModel: ObservableObject {
     @Published var enteredLocation: CustomMapMarker?
     @Published var pirateIslands: [CustomMapMarker] = []
     @Published var address: String = ""
-    
-    @Published var currentRadius: Double = 5.0 {
-        didSet {
-            if let location = locationManager.userLocation {
-                updateRegion(location, radius: currentRadius)
-                fetchPirateIslandsNear(location, within: currentRadius * 1609.34)
-            }
-        }
-    }
+    @Published var currentRadius: Double = 5.0
+
+    @Published private(set) var isClusteringEnabled: Bool = true
+    @Published private(set) var displayedMarkers: [CustomMapMarker] = []
 
     // MARK: - Private properties
     private var repository: AppDayOfWeekRepository
     private var context: NSManagedObjectContext
     private var cancellables = Set<AnyCancellable>()
-    private let geocoder = CLGeocoder()
-    private let updateQueue = DispatchQueue(label: "com.example.Mat_Finder.updateQueue")
-    private let earthRadius = 6371.0088 // km
-    // MARK: - Clustering properties
 
-    @Published private(set) var isClusteringEnabled: Bool = true
-    @Published private(set) var displayedMarkers: [CustomMapMarker] = []
+    private let earthRadius = 6371.0088 // km
+    private let metersPerMile = 1609.34
 
     private let clusterBreakLatitudeDelta: Double = 0.15
     private let clusterRadiusMiles: Double = 10
-
 
     // MARK: - Location manager
     let locationManager = UserLocationMapViewModel.shared
@@ -65,7 +55,7 @@ class EnterZipCodeViewModel: ObservableObject {
             .sink { [weak self] userLocation in
                 guard let self, let location = userLocation else { return }
                 self.updateRegion(location, radius: self.currentRadius)
-                self.fetchPirateIslandsNear(location, within: self.currentRadius * 1609.34)
+                self.fetchPirateIslandsNear(location, within: self.currentRadius * metersPerMile)
             }
             .store(in: &cancellables)
 
@@ -73,7 +63,6 @@ class EnterZipCodeViewModel: ObservableObject {
     }
 
     // MARK: - Helpers
-
     func isValidPostalCode() -> Bool {
         postalCode.count == 5 && postalCode.allSatisfy(\.isNumber)
     }
@@ -82,7 +71,6 @@ class EnterZipCodeViewModel: ObservableObject {
         Task {
             do {
                 let coordinate = try await MapUtils.geocodeAddressWithFallback(address)
-
                 await MainActor.run {
                     // Update region
                     self.region = MKCoordinateRegion(
@@ -104,7 +92,7 @@ class EnterZipCodeViewModel: ObservableObject {
                     // Fetch nearby islands
                     self.fetchPirateIslandsNear(
                         CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude),
-                        within: currentRadius * 1609.34
+                        within: currentRadius * metersPerMile
                     )
                 }
             } catch {
@@ -147,7 +135,6 @@ class EnterZipCodeViewModel: ObservableObject {
             }
 
             updateDisplayedMarkers()
-
         } catch {
             print("Error fetching islands: \(error.localizedDescription)")
         }
@@ -157,11 +144,11 @@ class EnterZipCodeViewModel: ObservableObject {
         let span = MKCoordinateSpan(latitudeDelta: radius / 69.0, longitudeDelta: radius / 69.0)
         self.region = MKCoordinateRegion(center: userLocation.coordinate, span: span)
     }
-    
-    
+
+    // MARK: - Clustering
     func clusteredMarkers(maxIndividualMarkers: Int = 4) -> [CustomMapMarker] {
-        if !isClusteringEnabled { return pirateIslands }
         guard !pirateIslands.isEmpty else { return [] }
+        if !isClusteringEnabled { return pirateIslands }
 
         var clusters: [CustomMapMarker] = []
         var unclustered = pirateIslands
@@ -172,7 +159,7 @@ class EnterZipCodeViewModel: ObservableObject {
 
             unclustered = unclustered.filter { otherMarker in
                 let distance = marker.coordinate.distance(to: otherMarker.coordinate)
-                if distance <= clusterRadiusMiles * 1609.34 {
+                if distance <= clusterRadiusMiles * metersPerMile {
                     clusterGroup.append(otherMarker)
                     return false
                 }
@@ -180,8 +167,8 @@ class EnterZipCodeViewModel: ObservableObject {
             }
 
             if clusterGroup.count > maxIndividualMarkers {
-                let avgLat = clusterGroup.map { $0.coordinate.latitude }.reduce(0, +) / Double(clusterGroup.count)
-                let avgLon = clusterGroup.map { $0.coordinate.longitude }.reduce(0, +) / Double(clusterGroup.count)
+                let avgLat = clusterGroup.map(\.coordinate.latitude).reduce(0, +) / Double(clusterGroup.count)
+                let avgLon = clusterGroup.map(\.coordinate.longitude).reduce(0, +) / Double(clusterGroup.count)
 
                 clusters.append(
                     CustomMapMarker.forCluster(
@@ -199,7 +186,6 @@ class EnterZipCodeViewModel: ObservableObject {
 
     func updateClusteringMode(with region: MKCoordinateRegion) {
         let newState = region.span.latitudeDelta > clusterBreakLatitudeDelta
-
         if isClusteringEnabled != newState {
             isClusteringEnabled = newState
             updateDisplayedMarkers()
@@ -212,21 +198,13 @@ class EnterZipCodeViewModel: ObservableObject {
         }
     }
 
-}
-
-// MARK: - Helper
-extension EnterZipCodeViewModel {
-    @MainActor
+    // MARK: - Update markers for a specific region
     func updateMarkersForCenter(_ center: CLLocationCoordinate2D, span: MKCoordinateSpan) {
         let radiusMeters = MapUtils.estimateVisibleRadius(from: span)
-
         fetchPirateIslandsNear(
             CLLocation(latitude: center.latitude, longitude: center.longitude),
             within: radiusMeters
         )
-
-        // 👇 Keep the map region synced with what the user is viewing
         self.region = MKCoordinateRegion(center: center, span: span)
     }
-
 }
