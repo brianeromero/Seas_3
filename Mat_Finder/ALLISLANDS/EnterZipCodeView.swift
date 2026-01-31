@@ -116,7 +116,6 @@ struct EnterZipCodeView: View {
                 allEnteredLocationsViewModel: allEnteredLocationsViewModel,
                 enterZipCodeViewModel: enterZipCodeViewModel,
                 onMapRegionChange: { region in
-                    enterZipCodeViewModel.region = region
                     pendingRegion = region
                     showSearchThisArea = true
                 }
@@ -149,15 +148,9 @@ struct EnterZipCodeView: View {
         Button {
             guard let region = pendingRegion else { return }
 
-            Task {
-                await MainActor.run {
-                    showSearchThisArea = false
-                    enterZipCodeViewModel.updateMarkersForCenter(
-                        region.center,
-                        span: region.span
-                    )
-                }
-            }
+            showSearchThisArea = false
+
+            enterZipCodeViewModel.userDidMoveMap(to: region)
         } label: {
             Text("Search this area")
                 .font(.headline)

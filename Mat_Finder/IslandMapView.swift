@@ -62,20 +62,19 @@ struct IslandMapView: View {
     private var mapCameraBinding: Binding<MapCameraPosition> {
         Binding(
             get: {
-                MapCameraPosition.region(enterZipCodeViewModel.region)
+                .region(enterZipCodeViewModel.region)
             },
             set: { newValue in
                 if let region = newValue.region {
-                    enterZipCodeViewModel.region = region
-                    onMapRegionChange(region)
+                    onMapRegionChange(region)   // notify ONLY
                 }
             }
         )
     }
 
 
-    // MARK: - Helpers
 
+    // MARK: - Helpers
     private func zoomIntoCluster(_ marker: CustomMapMarker) {
         let currentRegion = enterZipCodeViewModel.region
 
@@ -84,11 +83,14 @@ struct IslandMapView: View {
             longitudeDelta: max(currentRegion.span.longitudeDelta * 0.5, 0.005)
         )
 
-        enterZipCodeViewModel.region = MKCoordinateRegion(
-            center: marker.coordinate,
-            span: newSpan
+        enterZipCodeViewModel.userDidMoveMap(
+            to: MKCoordinateRegion(
+                center: marker.coordinate,
+                span: newSpan
+            )
         )
     }
+
 
     private func handleTap(island: PirateIsland) {
         selectedIsland = island

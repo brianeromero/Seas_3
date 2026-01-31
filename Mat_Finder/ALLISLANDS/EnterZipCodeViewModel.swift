@@ -206,10 +206,16 @@ class EnterZipCodeViewModel: ObservableObject {
     }
 
     func updateDisplayedMarkers() {
+        let newMarkers = clusteredMarkers(maxIndividualMarkers: 4)
+
+        // ✅ Prevent unnecessary state updates + flicker
+        guard newMarkers != displayedMarkers else { return }
+
         withAnimation(.easeInOut) {
-            displayedMarkers = clusteredMarkers(maxIndividualMarkers: 4)
+            displayedMarkers = newMarkers
         }
     }
+
 
     // MARK: - Map interaction
     func updateMarkersForCenter(_ center: CLLocationCoordinate2D, span: MKCoordinateSpan) {
