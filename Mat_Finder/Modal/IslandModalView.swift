@@ -84,7 +84,7 @@ struct IslandModalView: View {
             // Dimmed blurred background
             Rectangle()
                 .fill(.ultraThinMaterial)
-                .edgesIgnoringSafeArea(.all)
+                .ignoresSafeArea(edges: .bottom)
                 .onTapGesture { showModal = false }
 
             contentView

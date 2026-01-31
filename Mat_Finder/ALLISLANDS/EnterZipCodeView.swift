@@ -4,62 +4,61 @@ import MapKit
 import CoreData
 import Combine
 
+
 struct EnterZipCodeView: View {
+
+    // MARK: - Dependencies
     @ObservedObject var appDayOfWeekViewModel: AppDayOfWeekViewModel
     @ObservedObject var allEnteredLocationsViewModel: AllEnteredLocationsViewModel
     @ObservedObject var enterZipCodeViewModel: EnterZipCodeViewModel
 
     @ObservedObject private var userLocationMapViewModel = UserLocationMapViewModel.shared
 
+    // MARK: - State
     @State private var locationInput: String = ""
-    @State private var cameraPosition: MapCameraPosition = .region(
-        MKCoordinateRegion(
-            center: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
-            span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
-        )
-    )
-
-    @State private var selectedIsland: PirateIsland? = nil
-    @State private var showModal: Bool = false
-    @State private var selectedAppDayOfWeek: AppDayOfWeek? = nil
+    @State private var selectedIsland: PirateIsland?
+    @State private var showModal = false
+    @State private var selectedAppDayOfWeek: AppDayOfWeek?
     @State private var selectedDay: DayOfWeek? = .monday
     @State private var navigationPath = NavigationPath()
-    @State private var pendingRegion: MKCoordinateRegion? = nil
+    @State private var pendingRegion: MKCoordinateRegion?
     @State private var showSearchThisArea = false
 
+    // MARK: - Body
     var body: some View {
         NavigationView {
-            GeometryReader { geo in
-                VStack(spacing: 0) {
-                    // MARK: - Location Input
-                    TextField("Enter Location (Zip Code, Address, City, State)", text: $locationInput)
-                        .padding()
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .onSubmit {
-                            Task {
-                                do {
-                                    let coordinate = try await MapUtils.geocodeAddressWithFallback(locationInput)
-                                    updateCamera(to: coordinate)
+            VStack(spacing: 0) {
 
-                                    // Update markers immediately
-                                    await MainActor.run {
-                                        enterZipCodeViewModel.updateMarkersForCenter(
-                                            coordinate,
-                                            span: cameraPosition.region?.span ?? MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
-                                        )
-                                        showSearchThisArea = false
-                                    }
-                                } catch {
-                                    print("Geocoding failed: \(error.localizedDescription)")
-                                }
+                // MARK: - Location Input
+                TextField(
+                    "Enter Location (Zip Code, Address, City, State)",
+                    text: $locationInput
+                )
+                .padding()
+                .textFieldStyle(.roundedBorder)
+                .disableAutocorrection(true)
+                .onSubmit {
+                    Task {
+                        do {
+                            let coordinate = try await MapUtils.geocodeAddressWithFallback(locationInput)
+                            updateCamera(to: coordinate)
+
+                            await MainActor.run {
+                                enterZipCodeViewModel.updateMarkersForCenter(
+                                    coordinate,
+                                    span: enterZipCodeViewModel.region.span
+                                )
+                                showSearchThisArea = false
                             }
+                        } catch {
+                            print("Geocoding failed: \(error.localizedDescription)")
                         }
-
-                    // MARK: - Map Section
-                    mapSection
-                        .frame(height: geo.size.height - 70) // fill remaining space
+                    }
                 }
-                .edgesIgnoringSafeArea(.bottom)
+
+                // MARK: - Map
+                mapSection
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -97,11 +96,12 @@ struct EnterZipCodeView: View {
                 requestUserLocation()
             }
         }
-        .onChange(of: userLocationMapViewModel.userLocation) { _, newValue in
+        .onChange(of: userLocationMapViewModel.userLocation) { oldValue, newValue in
             if let location = newValue {
                 updateCamera(to: location.coordinate)
             }
         }
+
     }
 
     // MARK: - Map Section
@@ -115,8 +115,8 @@ struct EnterZipCodeView: View {
                 selectedDay: $selectedDay,
                 allEnteredLocationsViewModel: allEnteredLocationsViewModel,
                 enterZipCodeViewModel: enterZipCodeViewModel,
-                cameraPosition: $cameraPosition,
                 onMapRegionChange: { region in
+                    enterZipCodeViewModel.region = region
                     pendingRegion = region
                     showSearchThisArea = true
                 }
@@ -128,15 +128,18 @@ struct EnterZipCodeView: View {
         }
     }
 
+
+
+
+
     // MARK: - Helpers
     private func updateCamera(to coordinate: CLLocationCoordinate2D) {
-        cameraPosition = .region(
-            MKCoordinateRegion(
-                center: coordinate,
-                span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
-            )
+        enterZipCodeViewModel.region = MKCoordinateRegion(
+            center: coordinate,
+            span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
         )
     }
+
 
     private func requestUserLocation() {
         userLocationMapViewModel.requestLocation()
@@ -145,10 +148,14 @@ struct EnterZipCodeView: View {
     private var searchThisAreaButton: some View {
         Button {
             guard let region = pendingRegion else { return }
+
             Task {
                 await MainActor.run {
                     showSearchThisArea = false
-                    enterZipCodeViewModel.updateMarkersForCenter(region.center, span: region.span)
+                    enterZipCodeViewModel.updateMarkersForCenter(
+                        region.center,
+                        span: region.span
+                    )
                 }
             }
         } label: {

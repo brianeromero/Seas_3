@@ -129,7 +129,7 @@ struct ConsolidatedIslandMapView: View {
             .onMapCameraChange(frequency: .continuous) { context in
                 updateMarkers(for: context.region)
             }
-            .frame(height: 400)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding()
             .onAppear {
                 log.debug("🗺️ Map view appeared with \(pirateMarkers.count) markers.")

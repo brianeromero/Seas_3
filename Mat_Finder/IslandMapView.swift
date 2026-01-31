@@ -20,13 +20,12 @@ struct IslandMapView: View {
     @ObservedObject var allEnteredLocationsViewModel: AllEnteredLocationsViewModel
     @ObservedObject var enterZipCodeViewModel: EnterZipCodeViewModel
 
-    @Binding var cameraPosition: MapCameraPosition
     var onMapRegionChange: (MKCoordinateRegion) -> Void
 
     @State private var mapUpdateTask: Task<(), Never>? = nil
 
     var body: some View {
-        Map(position: $cameraPosition) {
+        Map(position: mapCameraBinding) {
             ForEach(enterZipCodeViewModel.displayedMarkers) { marker in
                 Annotation(
                     "",
@@ -34,22 +33,17 @@ struct IslandMapView: View {
                     anchor: .center
                 ) {
                     if let island = marker.pirateIsland {
-                        // 🧍 Individual island
-                        AnnotationMarkerView(
-                            island: island,
-                            handleTap: handleTap
-                        )
+                        AnnotationMarkerView(island: island, handleTap: handleTap)
                     } else {
-                        // 🧩 Cluster marker
                         ClusterMarkerView(count: marker.count ?? 0)
-                            .onTapGesture {
-                                zoomIntoCluster(marker)
-                            }
+                            .onTapGesture { zoomIntoCluster(marker) }
                     }
                 }
             }
         }
-        .frame(height: 400)
+
+
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .edgesIgnoringSafeArea(.all)
         .onMapCameraChange(frequency: .continuous) { context in
             mapUpdateTask?.cancel()
@@ -63,29 +57,37 @@ struct IslandMapView: View {
             }
         }
     }
+    
+    // Converts the ViewModel's MKCoordinateRegion into a MapCameraPosition binding
+    private var mapCameraBinding: Binding<MapCameraPosition> {
+        Binding(
+            get: {
+                MapCameraPosition.region(enterZipCodeViewModel.region)
+            },
+            set: { newValue in
+                if let region = newValue.region {
+                    enterZipCodeViewModel.region = region
+                    onMapRegionChange(region)
+                }
+            }
+        )
+    }
+
 
     // MARK: - Helpers
+
     private func zoomIntoCluster(_ marker: CustomMapMarker) {
-        let currentRegion = cameraPosition.region ?? MKCoordinateRegion(
-            center: marker.coordinate,
-            span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
-        )
+        let currentRegion = enterZipCodeViewModel.region
 
         let newSpan = MKCoordinateSpan(
             latitudeDelta: max(currentRegion.span.latitudeDelta * 0.5, 0.005),
             longitudeDelta: max(currentRegion.span.longitudeDelta * 0.5, 0.005)
         )
 
-        Task {
-            try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
-            await MainActor.run {
-                withAnimation(.easeInOut) {
-                    cameraPosition = .region(
-                        MKCoordinateRegion(center: marker.coordinate, span: newSpan)
-                    )
-                }
-            }
-        }
+        enterZipCodeViewModel.region = MKCoordinateRegion(
+            center: marker.coordinate,
+            span: newSpan
+        )
     }
 
     private func handleTap(island: PirateIsland) {
@@ -93,6 +95,7 @@ struct IslandMapView: View {
         showModal = true
     }
 }
+
 
 // MARK: - AnnotationMarkerView (Custom Marker)
 struct AnnotationMarkerView: View {
