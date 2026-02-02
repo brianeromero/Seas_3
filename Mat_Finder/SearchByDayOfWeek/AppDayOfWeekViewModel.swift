@@ -8,6 +8,8 @@ import SwiftUI
 import Foundation
 import Combine
 import CoreData
+import Foundation
+import MapKit
 @preconcurrency import FirebaseFirestore
 
 @MainActor
@@ -50,6 +52,13 @@ final class AppDayOfWeekViewModel: ObservableObject {
     @Published var selectedAppDayOfWeek: AppDayOfWeek?
     
     @Published var matTimes: [MatTime] = []
+    
+    @Published var displayedMarkers: [CustomMapMarker] = []
+    
+
+    private let clusterBreakLatitudeDelta: Double = 0.15
+    private let clusterRadiusMiles: Double = 10
+
 
     
     @State private var showAlert = false
@@ -1414,6 +1423,69 @@ final class AppDayOfWeekViewModel: ObservableObject {
             print("Failed to fetch AppDayOfWeek from Firestore: \(error.localizedDescription)")
         }
     }
+    
+    @MainActor
+    func updateClusters(for region: MKCoordinateRegion) {
+        let shouldCluster = region.span.latitudeDelta > clusterBreakLatitudeDelta
+
+        let baseMarkers: [CustomMapMarker] = islandsWithMatTimes.map { island, _ in
+            CustomMapMarker.forPirateIsland(island)
+        }
+
+        guard shouldCluster else {
+            displayedMarkers = baseMarkers
+            return
+        }
+
+        displayedMarkers = clusterMarkers(
+            baseMarkers,
+            clusterRadiusMiles: clusterRadiusMiles,
+            maxIndividualMarkers: 4
+        )
+    }
+
+    
+    private func clusterMarkers(
+        _ markers: [CustomMapMarker],
+        clusterRadiusMiles: Double,
+        maxIndividualMarkers: Int
+    ) -> [CustomMapMarker] {
+
+        var clusters: [CustomMapMarker] = []
+        var unclustered = markers
+
+        while !unclustered.isEmpty {
+            let marker = unclustered.removeFirst()
+            var clusterGroup = [marker]
+
+            unclustered = unclustered.filter { other in
+                let distance = marker.coordinate.distance(to: other.coordinate)
+                if distance <= clusterRadiusMiles * 1609.34 {
+                    clusterGroup.append(other)
+                    return false
+                }
+                return true
+            }
+
+            if clusterGroup.count > maxIndividualMarkers {
+                let avgLat = clusterGroup.map { $0.coordinate.latitude }.reduce(0, +) / Double(clusterGroup.count)
+                let avgLon = clusterGroup.map { $0.coordinate.longitude }.reduce(0, +) / Double(clusterGroup.count)
+
+                clusters.append(
+                    CustomMapMarker.forCluster(
+                        at: CLLocationCoordinate2D(latitude: avgLat, longitude: avgLon),
+                        count: clusterGroup.count
+                    )
+                )
+            } else {
+                clusters.append(contentsOf: clusterGroup)
+            }
+        }
+
+        return clusters
+    }
+
+
 }
 
 

@@ -143,3 +143,32 @@ struct AllEnteredLocations: View {
         }
     }
 }
+
+
+
+
+// MARK: - IslandAnnotationView
+
+struct IslandAnnotationView: View {
+    let island: PirateIsland
+    let handleIslandTap: () -> Void
+
+    var body: some View {
+        Button(action: handleIslandTap) {
+            VStack(spacing: 4) {
+                Text(island.islandName ?? "Unnamed Gym")
+                    .font(.caption2)
+                    .padding(4)
+                    // --- KEY CHANGE HERE for background ---
+                    .background(Color(.systemBackground).opacity(0.85)) // Use adaptive system background
+                    .cornerRadius(4)
+                    // --- KEY CHANGE HERE for foreground text color ---
+                    .foregroundColor(.primary) // Use adaptive primary text color
+
+                CustomMarkerView()
+            }
+            .shadow(radius: 3)
+        }
+    }
+}
+

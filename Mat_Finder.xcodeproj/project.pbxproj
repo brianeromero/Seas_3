@@ -55,6 +55,7 @@
 		0C33DC052CC095CF002C4835 /* FirebaseMLModelDownloader in Frameworks */ = {isa = PBXBuildFile; productRef = 0C33DC042CC095CF002C4835 /* FirebaseMLModelDownloader */; };
 		0C33DC152CC09E7C002C4835 /* PrivacyPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C33DC142CC09E7C002C4835 /* PrivacyPolicy.swift */; };
 		0C33DC172CC09FBC002C4835 /* TermsOfService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C33DC162CC09FBC002C4835 /* TermsOfService.swift */; };
+		0C380A5F2F2FEFA500274EFA /* SearchableClusterMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C380A5E2F2FEFA200274EFA /* SearchableClusterMap.swift */; };
 		0C4B34362C61A32700FD6893 /* PirateIslandDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4B34352C61A32700FD6893 /* PirateIslandDataManager.swift */; };
 		0C4F3C412C3C4645008D04B9 /* IslandScheduleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4F3C402C3C4645008D04B9 /* IslandScheduleView.swift */; };
 		0C524E8C2C2F408F008D6623 /* ExampleUsuageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C524E8B2C2F408F008D6623 /* ExampleUsuageView.swift */; };
@@ -204,6 +205,7 @@
 		0C33DC122CC0979A002C4835 /* FirebaseSettings.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = FirebaseSettings.xcconfig; sourceTree = "<group>"; };
 		0C33DC142CC09E7C002C4835 /* PrivacyPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyPolicy.swift; sourceTree = "<group>"; };
 		0C33DC162CC09FBC002C4835 /* TermsOfService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TermsOfService.swift; sourceTree = "<group>"; };
+		0C380A5E2F2FEFA200274EFA /* SearchableClusterMap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchableClusterMap.swift; sourceTree = "<group>"; };
 		0C4A7B4A2CC0D43A008CE1EA /* iAd.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = iAd.framework; path = System/Library/Frameworks/iAd.framework; sourceTree = SDKROOT; };
 		0C4A7B4C2CC0D443008CE1EA /* AdSupport.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AdSupport.framework; path = System/Library/Frameworks/AdSupport.framework; sourceTree = SDKROOT; };
 		0C4A7B4E2CC0D507008CE1EA /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = System/Library/Frameworks/CoreLocation.framework; sourceTree = SDKROOT; };
@@ -456,6 +458,7 @@
 		0C07B0862C2CFE8200D0BFB2 /* SearchByDayOfWeek */ = {
 			isa = PBXGroup;
 			children = (
+				0C380A5E2F2FEFA200274EFA /* SearchableClusterMap.swift */,
 				0C955BEC2C764D9B00D03CAB /* DayOfWeekSearchView.swift */,
 				0C524E8D2C2F4241008D6623 /* DayOfWeekUtils.swift */,
 				0CEC327C2C41A2FE00F0747F /* SchedulesView */,
@@ -511,6 +514,7 @@
 				0C07B0AF2C2D00BE00D0BFB2 /* CustomMarkerView.swift */,
 				0C07B0B12C2D00DC00D0BFB2 /* CustomMapMarker.swift */,
 				0C07B0B32C2D00F300D0BFB2 /* CustomPin.swift */,
+				0C07B07C2C2CFDFE00D0BFB2 /* IslandMapView.swift */,
 			);
 			path = ALLISLANDS;
 			sourceTree = "<group>";
@@ -644,7 +648,6 @@
 				0CF13E482C2A326A00D714C0 /* Assets.xcassets */,
 				0CF13E4D2C2A326A00D714C0 /* Persistence.swift */,
 				0C07B07A2C2CFDDE00D0BFB2 /* AddIslandFormView.swift */,
-				0C07B07C2C2CFDFE00D0BFB2 /* IslandMapView.swift */,
 				0C07B07E2C2CFE1C00D0BFB2 /* IslandDetailView.swift */,
 				0C07B0802C2CFE3600D0BFB2 /* IslandMap.swift */,
 				0C07B0822C2CFE5000D0BFB2 /* GeocodingUtility.swift */,
@@ -1042,6 +1045,7 @@
 				0C07B0B22C2D00DC00D0BFB2 /* CustomMapMarker.swift in Sources */,
 				0C6F7BDE2C7B146200072237 /* Extensions.swift in Sources */,
 				0C07B0A02C2CFFE000D0BFB2 /* AllMapView.swift in Sources */,
+				0C380A5F2F2FEFA500274EFA /* SearchableClusterMap.swift in Sources */,
 				0CEC32822C41CA3C00F0747F /* AllpIslandScheduleView.swift in Sources */,
 				0CEC32792C41907200F0747F /* StoryboardViewControllerRepresentable.swift in Sources */,
 				0C6F7BD92C79193B00072237 /* Review+CoreDataClass.swift in Sources */,
