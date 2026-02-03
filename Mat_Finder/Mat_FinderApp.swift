@@ -462,19 +462,17 @@ struct AppRootDestinationView: View {
             }
         case .login:
             LoginView(
-                islandViewModel: pirateIslandViewModel,
-                profileViewModel: profileViewModel,
-                isSelected: .constant(.login),
-                navigateToAdminMenu: $authenticationState.navigateToAdminMenu,
-                isLoggedIn: .constant(authenticationState.isAuthenticated),
-                navigationPath: $navigationPath  // <-- added this
+                isLoggedIn: $authenticationState.isAuthenticated,
+                navigationPath: $navigationPath
             )
             .environmentObject(authViewModel)
             .environmentObject(pirateIslandViewModel)
             .environmentObject(profileViewModel)
+            .environmentObject(authenticationState)
             .onAppear {
                 print("🧭 Navigating to screen: .login (LoginParentView)")
             }
+
         case .islandMenu2:
             IslandMenu2(
                 navigationPath: $navigationPath

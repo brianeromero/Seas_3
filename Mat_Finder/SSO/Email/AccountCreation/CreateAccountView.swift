@@ -34,6 +34,8 @@ struct CreateAccountView: View {
     // Environment and Context
     @EnvironmentObject var authenticationState: AuthenticationState
     @Environment(\.managedObjectContext) private var managedObjectContext
+    @Environment(\.dismiss) private var dismiss
+    
     
     // Navigation and Routing
     @Binding var isUserProfileActive: Bool
@@ -62,7 +64,9 @@ struct CreateAccountView: View {
     @Binding var alertTitle: String   // <-- NEW
     @Binding var alertMessage: String
     @Binding var currentAlertType: AccountAlertType?   // <-- new binding
-
+    @Binding var showCreateAccount: Bool
+    
+    
     
     // Button State
     @State private var isButtonDisabled = false
@@ -71,6 +75,8 @@ struct CreateAccountView: View {
     @ObservedObject var islandViewModel: PirateIslandViewModel
     @StateObject var profileViewModel: ProfileViewModel
     @ObservedObject var countryService: CountryService
+    
+    
     
     let emailManager: UnifiedEmailManager
     
@@ -84,36 +90,57 @@ struct CreateAccountView: View {
         showAlert: Binding<Bool>,
         alertTitle: Binding<String>,
         alertMessage: Binding<String>,
-        currentAlertType: Binding<AccountAlertType?>
-    )
- {
+        currentAlertType: Binding<AccountAlertType?>,
+        showCreateAccount: Binding<Bool>       // <-- NEW
+    ) {
         self._islandViewModel = ObservedObject(wrappedValue: islandViewModel)
         self._isUserProfileActive = isUserProfileActive
         self._selectedTabIndex = selectedTabIndex
         self._navigationPath = navigationPath
         self.countryService = countryService
         self.emailManager = emailManager
-        _profileViewModel = StateObject(
-            wrappedValue: ProfileViewModel()
-        )
+        _profileViewModel = StateObject(wrappedValue: ProfileViewModel())
         self._showAlert = showAlert
         self._alertTitle = alertTitle
         self._alertMessage = alertMessage
-        self._currentAlertType = currentAlertType      // <-- SET IT HERE
+        self._currentAlertType = currentAlertType
+        self._showCreateAccount = showCreateAccount   // <-- SET IT HERE
     }
-
-
+    
+    
     // MARK: - Body
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
+                
+                // ← BACK BUTTON
+                HStack {
+                    Button(action: {
+                        showCreateAccount = false // close the fullScreenCover
+                    }) {
+                        Image(systemName: "chevron.left")
+                            .foregroundColor(.blue)
+                            .imageScale(.large)
+                        Text("Back")
+                            .foregroundColor(.blue)
+                            .fontWeight(.medium)
+                    }
+                    .padding(.leading, 16)
+                    
+                    Spacer()
+                }
+                .padding(.top, 16)
+                
+                // TITLE
                 Text("Create Account")
                     .font(.largeTitle)
                     .fontWeight(.bold)
                     .padding(.horizontal, 20)
                 
+                // USER INFORMATION
                 UserInformationView(formState: $formState)
                 
+                // PASSWORD FIELD
                 PasswordField(
                     password: $formState.password,
                     isValid: $formState.isPasswordValid,
@@ -127,14 +154,17 @@ struct CreateAccountView: View {
                     }
                 )
                 
+                // CONFIRM PASSWORD
                 ConfirmPasswordField(
                     confirmPassword: $formState.confirmPassword,
                     isValid: $formState.isConfirmPasswordValid,
                     password: $formState.password
                 )
                 
+                // BELT PICKER
                 BeltSection(belt: $belt, beltOptions: beltOptions, usePickerStyle: true)
                 
+                // GYM INFORMATION SECTION
                 Section(header: HStack {
                     Text("Gym Information")
                         .fontWeight(.bold)
@@ -181,6 +211,7 @@ struct CreateAccountView: View {
                     )
                 }
                 
+                // CREATE ACCOUNT BUTTON
                 Button(action: handleCreateAccountButtonTapped) {
                     Text("Create Account")
                         .font(.title2)
@@ -207,7 +238,26 @@ struct CreateAccountView: View {
             islandDetails.selectedCountry = newCountry
             formState.selectedCountry = newCountry
         }
+        .alert(currentAlertType?.title ?? "Notice", isPresented: Binding(
+            get: { currentAlertType != nil },
+            set: { _ in currentAlertType = nil }
+        )) {
+            Button("OK") {
+                // Use the same logic as handleAlertDismiss
+                switch currentAlertType {
+                case .successAccount, .successAccountAndGym:
+                    authenticationState.accountCreatedSuccessfully = false
+                    currentAlertType = nil
+                    showCreateAccount = false // Close fullScreenCover
+                default:
+                    currentAlertType = nil
+                }
+            }
+        } message: {
+            Text(currentAlertType?.defaultMessage ?? "")
+        }
     }
+
     
     // MARK: - Button Action
     private func handleCreateAccountButtonTapped() {
@@ -227,12 +277,15 @@ struct CreateAccountView: View {
     
     // MARK: - Account Creation
     private func createAccount(country: String) async {
+        isButtonDisabled = true  // Disable the button immediately
+
         do {
-            // Check if user exists
+            // 1️⃣ Check if user already exists
             if await AuthViewModel.shared.userAlreadyExists(
                 email: formState.email.lowercased(),
                 userName: formState.userName
             ) {
+                // Show alert for existing user
                 await MainActor.run {
                     alertTitle = "Notice"
                     alertMessage = "An account with this email or username already exists."
@@ -242,7 +295,7 @@ struct CreateAccountView: View {
                 return
             }
 
-            // Create user
+            // 2️⃣ Create the user
             let createdUser = try await AuthViewModel.shared.createUser(
                 withEmail: formState.email,
                 password: formState.password,
@@ -251,37 +304,32 @@ struct CreateAccountView: View {
                 belt: belt
             )
 
-            // Only create gym if island name exists
+            // 3️⃣ Optionally create gym if island name exists
             if !islandDetails.islandName.isEmpty {
                 _ = await createPirateIsland(for: createdUser)
             }
 
-            // Show alert on main thread using AccountAlertType
+            // 4️⃣ Show success alert
             await MainActor.run {
                 AuthViewModel.shared.currentUser = createdUser
+                authenticationState.navigateUnrestricted = false  // block auto navigation
 
-                // 🚫 NEW — Block automatic navigation
-                authenticationState.navigateUnrestricted = false
-
-                if !islandDetails.islandName.isEmpty {
-                    currentAlertType = .successAccountAndGym
-                } else {
-                    currentAlertType = .successAccount
-                }
+                currentAlertType = !islandDetails.islandName.isEmpty
+                    ? .successAccountAndGym
+                    : .successAccount
 
                 alertTitle = currentAlertType?.title ?? "Notice"
                 alertMessage = currentAlertType?.defaultMessage ?? ""
                 showAlert = true
+                isButtonDisabled = false
             }
 
         } catch {
+            // 5️⃣ Handle errors gracefully
             await MainActor.run {
                 handleCreateAccountError(error)
+                isButtonDisabled = false
             }
-        }
-
-        await MainActor.run {
-            isButtonDisabled = false
         }
     }
 

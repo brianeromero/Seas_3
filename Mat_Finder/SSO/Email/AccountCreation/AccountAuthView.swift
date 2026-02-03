@@ -69,6 +69,8 @@ struct AccountAuthView: View {
     @State private var navigationPath = NavigationPath()
 
     @State private var currentAlertType: AccountAlertType? = nil
+    @State private var showCreateAccount = false
+
 
     // ✅ Corrected initializer
     init(islandViewModel: PirateIslandViewModel,
@@ -110,13 +112,14 @@ struct AccountAuthView: View {
                     CreateAccountView(
                         islandViewModel: islandViewModel,
                         isUserProfileActive: .constant(false),
-                        selectedTabIndex: $isSelected,
+                        selectedTabIndex: .constant(.login),
                         navigationPath: $navigationPath,
                         emailManager: UnifiedEmailManager.shared,
-                        showAlert: $showAlert,
-                        alertTitle: $alertTitle,
-                        alertMessage: $alertMessage,
-                        currentAlertType: $currentAlertType
+                        showAlert: .constant(false),
+                        alertTitle: .constant(""),
+                        alertMessage: .constant(""),
+                        currentAlertType: .constant(nil),
+                        showCreateAccount: $showCreateAccount // <-- ADD THIS
                     )
 
                 }

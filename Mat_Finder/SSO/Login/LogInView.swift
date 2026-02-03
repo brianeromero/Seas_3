@@ -70,41 +70,6 @@ enum AppAuthError: LocalizedError {
 }
 
 
-// MARK: - HERO HEADER VIEW
-struct HeroHeaderView: View {
-    @Binding var selectedLoginTab: LoginViewSelection
-    @ObservedObject var islandViewModel: PirateIslandViewModel
-    
-    var body: some View {
-        VStack(spacing: 15) {
-            // MARK: - Logo
-            VStack(spacing: 8) {
-                Image("MF_little_trans")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 300, height: 300)
-                    .offset(y: 50) // moves image down 20 points
-            }
-            .padding(.top, 10)
-            .padding(.bottom, 10)
-            
-            // MARK: - Segmented Control
-            Picker("Select View", selection: $selectedLoginTab) {
-                ForEach(LoginViewSelection.allCases, id: \.self) { tab in
-                    Text(tab == .login ? "Log In" : "Create Account")
-                        .tag(tab)
-                }
-            }
-            .pickerStyle(.segmented)
-            .tint(.white)
-            .padding(.horizontal)
-            .padding(.bottom, 10)
-        }
-        .frame(maxWidth: .infinity)
-    }
-}
-
-
 // MARK: - LOGIN FORM
 struct LoginForm: View {
     @Binding var usernameOrEmail: String
@@ -363,12 +328,12 @@ enum AccountAlertType {
 // MARK: - LOGIN VIEW
 struct LoginView: View {
     @EnvironmentObject var authenticationState: AuthenticationState
-    
-    @StateObject private var islandViewModel: PirateIslandViewModel
-    @StateObject private var profileViewModel: ProfileViewModel
-    
-    @Binding var selectedLoginTab: LoginViewSelection
-    @Binding var navigateToAdminMenu: Bool
+
+    @StateObject private var islandViewModel = PirateIslandViewModel(
+        persistenceController: PersistenceController.shared
+    )
+    @StateObject private var profileViewModel = ProfileViewModel()
+
     @Binding var isLoggedIn: Bool
     @Binding var navigationPath: NavigationPath
 
@@ -376,38 +341,12 @@ struct LoginView: View {
     @State private var password = ""
     @State private var errorMessage = ""
     @State private var isSignInEnabled = false
-    @State private var showMainContent = false
-    
-    // Local tab used only for toggling Login / CreateAccount screens
-    @State private var loginTabSelection: LoginViewSelection = .login
-    
-    // MARK: - Alerts
-    @State private var showAlert = false
-    @State private var alertTitle = "Notice"
-    @State private var alertMessage = ""
+
+    @State private var showCreateAccount = false
     @State private var currentAlertType: AccountAlertType? = nil
 
-    // MARK: - Initializer
-    public init(
-        islandViewModel: PirateIslandViewModel,
-        profileViewModel: ProfileViewModel,
-        isSelected: Binding<LoginViewSelection>,
-        navigateToAdminMenu: Binding<Bool>,
-        isLoggedIn: Binding<Bool>,
-        navigationPath: Binding<NavigationPath>
-    ) {
-        _selectedLoginTab = isSelected
-        _navigateToAdminMenu = navigateToAdminMenu
-        _isLoggedIn = isLoggedIn
-        _islandViewModel = StateObject(wrappedValue: islandViewModel)
-        _profileViewModel = StateObject(wrappedValue: profileViewModel)
-        _navigationPath = navigationPath
-    }
-    
-    // MARK: - BODY
     var body: some View {
         ZStack {
-            // Background gradient
             LinearGradient(
                 colors: [Color(red: 0.1, green: 0.2, blue: 0.25),
                          Color(red: 0.05, green: 0.15, blue: 0.2)],
@@ -415,99 +354,72 @@ struct LoginView: View {
                 endPoint: .bottom
             )
             .ignoresSafeArea()
-            
-            VStack(spacing: 0) {
-                
-                /*
-                // ----------------------------------------------------
-                // MARK: - AUTHENTICATED VIEW (NO AUTO-NAVIGATION)
-                // ----------------------------------------------------
-                if authenticationState.accountCreatedSuccessfully {
-                    VStack {
-                        Spacer()
-                        Text("from loginview")
-                            .foregroundColor(.white)
-                            .font(.title)
-                        Spacer()
-                    }
-                }
-                */
-                
-                // Success banner (optional)
-                if authenticationState.accountCreatedSuccessfully,
-                   let type = currentAlertType {
-                    Text(type.defaultMessage)
-                        .foregroundColor(.green)
-                        .padding()
-                        .transition(.opacity)
-                        .onAppear {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                                withAnimation {
-                                    // Hide banner
-                                    authenticationState.accountCreatedSuccessfully = false
-                                    currentAlertType = nil
-                                    
-                                    // Navigate to IslandMenu2
-                                    navigationPath.removeLast(navigationPath.count)
-                                    navigationPath.append(AppScreen.islandMenu2)
-                                }
-                            }
-                        }
-                }
-                
-                HeroHeaderView(
-                    selectedLoginTab: $loginTabSelection,
-                    islandViewModel: islandViewModel
+
+            VStack(spacing: 30) {
+                Image("MF_little_trans")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 260, height: 260)
+
+                LoginForm(
+                    usernameOrEmail: $usernameOrEmail,
+                    password: $password,
+                    isSignInEnabled: $isSignInEnabled,
+                    errorMessage: $errorMessage,
+                    islandViewModel: islandViewModel,
+                    profileViewModel: profileViewModel,
+                    showMainContent: .constant(false),
+                    isLoggedIn: $isLoggedIn,
+                    navigateToAdminMenu: .constant(false)
                 )
-                
-                if loginTabSelection == .login {
-                    LoginForm(
-                        usernameOrEmail: $usernameOrEmail,
-                        password: $password,
-                        isSignInEnabled: $isSignInEnabled,
-                        errorMessage: $errorMessage,
-                        islandViewModel: islandViewModel,
-                        profileViewModel: profileViewModel,      // ✅ PASS HERE
-                        showMainContent: $showMainContent,
-                        isLoggedIn: $isLoggedIn,
-                        navigateToAdminMenu: $navigateToAdminMenu
-                    )
-                    .transition(.move(edge: .leading).combined(with: .opacity))
-                } else {
-                    CreateAccountView(
-                        islandViewModel: islandViewModel,
-                        isUserProfileActive: .constant(false),
-                        selectedTabIndex: $selectedLoginTab,
-                        navigationPath: $navigationPath,
-                        emailManager: UnifiedEmailManager.shared,
-                        showAlert: $showAlert,
-                        alertTitle: $alertTitle,
-                        alertMessage: $alertMessage,
-                        currentAlertType: $currentAlertType
-                    )
-                    .transition(.move(edge: .trailing).combined(with: .opacity))
+
+                Button("Create Account") {
+                    showCreateAccount = true
                 }
+                .foregroundColor(.white)
+                .padding(.top, 10)
             }
-            .animation(.default, value: loginTabSelection)
+            .padding()
         }
-        .alert(isPresented: $showAlert) {
-            Alert(
-                title: Text(alertTitle),
-                message: Text(alertMessage),
-                dismissButton: .default(Text("OK")) {
-                    handleAlertDismiss()
-                }
+        .fullScreenCover(isPresented: $showCreateAccount) {
+            NavigationStack {
+                CreateAccountView(
+                    islandViewModel: islandViewModel,
+                    isUserProfileActive: .constant(false),
+                    selectedTabIndex: .constant(.login),
+                    navigationPath: $navigationPath,
+                    emailManager: UnifiedEmailManager.shared,
+                    showAlert: .constant(false),
+                    alertTitle: .constant(""),
+                    alertMessage: .constant(""),
+                    currentAlertType: .constant(nil),
+                    showCreateAccount: $showCreateAccount // <-- ADD THIS
+                )
+            }
+        }
+
+
+        .alert(
+            currentAlertType?.title ?? "Notice",
+            isPresented: Binding(
+                get: { currentAlertType != nil },
+                set: { _ in currentAlertType = nil }
             )
+        ) {
+            Button("OK") {
+                handleAlertDismiss()
+            }
+        } message: {
+            Text(currentAlertType?.defaultMessage ?? "")
         }
     }
-    
+
     // MARK: - ALERT DISMISS HANDLER
     private func handleAlertDismiss() {
         guard let type = currentAlertType else { return }
 
         switch type {
         case .successAccount, .successAccountAndGym:
-            selectedLoginTab = .login
             authenticationState.accountCreatedSuccessfully = false
             currentAlertType = nil
             
@@ -516,7 +428,7 @@ struct LoginView: View {
             navigationPath.append(AppScreen.islandMenu2)
             
         case .notice:
-            break
+            currentAlertType = nil
         }
     }
 }
