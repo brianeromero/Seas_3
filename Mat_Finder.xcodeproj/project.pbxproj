@@ -56,6 +56,8 @@
 		0C33DC152CC09E7C002C4835 /* PrivacyPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C33DC142CC09E7C002C4835 /* PrivacyPolicy.swift */; };
 		0C33DC172CC09FBC002C4835 /* TermsOfService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C33DC162CC09FBC002C4835 /* TermsOfService.swift */; };
 		0C380A5F2F2FEFA500274EFA /* SearchableClusterMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C380A5E2F2FEFA200274EFA /* SearchableClusterMap.swift */; };
+		0C380A642F32B32500274EFA /* MFINDER_BOLDw.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C380A632F32B32500274EFA /* MFINDER_BOLDw.png */; };
+		0C380A652F32B32500274EFA /* MFINDER_BOLDb.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C380A622F32B32500274EFA /* MFINDER_BOLDb.png */; };
 		0C4B34362C61A32700FD6893 /* PirateIslandDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4B34352C61A32700FD6893 /* PirateIslandDataManager.swift */; };
 		0C4F3C412C3C4645008D04B9 /* IslandScheduleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4F3C402C3C4645008D04B9 /* IslandScheduleView.swift */; };
 		0C524E8C2C2F408F008D6623 /* ExampleUsuageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C524E8B2C2F408F008D6623 /* ExampleUsuageView.swift */; };
@@ -206,6 +208,8 @@
 		0C33DC142CC09E7C002C4835 /* PrivacyPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyPolicy.swift; sourceTree = "<group>"; };
 		0C33DC162CC09FBC002C4835 /* TermsOfService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TermsOfService.swift; sourceTree = "<group>"; };
 		0C380A5E2F2FEFA200274EFA /* SearchableClusterMap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchableClusterMap.swift; sourceTree = "<group>"; };
+		0C380A622F32B32500274EFA /* MFINDER_BOLDb.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = MFINDER_BOLDb.png; sourceTree = "<group>"; };
+		0C380A632F32B32500274EFA /* MFINDER_BOLDw.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = MFINDER_BOLDw.png; sourceTree = "<group>"; };
 		0C4A7B4A2CC0D43A008CE1EA /* iAd.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = iAd.framework; path = System/Library/Frameworks/iAd.framework; sourceTree = SDKROOT; };
 		0C4A7B4C2CC0D443008CE1EA /* AdSupport.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AdSupport.framework; path = System/Library/Frameworks/AdSupport.framework; sourceTree = SDKROOT; };
 		0C4A7B4E2CC0D507008CE1EA /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = System/Library/Frameworks/CoreLocation.framework; sourceTree = SDKROOT; };
@@ -664,6 +668,8 @@
 				0C0739942F27D3DE00313B25 /* MF_little.png */,
 				0C07B0C82C2D022C00D0BFB2 /* YOu are HEre.png */,
 				0C07B0C72C2D022C00D0BFB2 /* YOu are HEre2.png */,
+				0C380A622F32B32500274EFA /* MFINDER_BOLDb.png */,
+				0C380A632F32B32500274EFA /* MFINDER_BOLDw.png */,
 				0C07B0CA2C2D022D00D0BFB2 /* MF_little_trans .png */,
 				0CF13E7F2C2A36C000D714C0 /* CoreDataItems */,
 				0C07B09A2C2CFF9400D0BFB2 /* ALLISLANDS */,
@@ -866,6 +872,8 @@
 				0CDA09552EA99E250095AA59 /* google_logo@3x.png in Resources */,
 				0CDA09562EA99E250095AA59 /* google_logo@1x.png in Resources */,
 				0CD930AC2C33D4DD0051E923 /* Preview Assets.xcassets in Resources */,
+				0C380A642F32B32500274EFA /* MFINDER_BOLDw.png in Resources */,
+				0C380A652F32B32500274EFA /* MFINDER_BOLDb.png in Resources */,
 				0CD930B32C33D5020051E923 /* YOu are HEre.png in Resources */,
 				0CD930AE2C33D4F30051E923 /* flashing.gif in Resources */,
 			);

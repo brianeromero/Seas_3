@@ -12,7 +12,7 @@ import os
 
 
 // MARK: - UTILITY ENUMS
-public enum LoginViewSelection: Int, CaseIterable { // Made CaseIterable for Picker
+public enum LoginViewSelection: Int, CaseIterable {
     case login = 0
     case createAccount = 1
 
@@ -69,241 +69,6 @@ enum AppAuthError: LocalizedError {
     }
 }
 
-
-// MARK: - LOGIN FORM
-struct LoginForm: View {
-    @Binding var usernameOrEmail: String
-    @Binding var password: String
-    @Binding var isSignInEnabled: Bool
-    @Binding var errorMessage: String
-    @EnvironmentObject var authenticationState: AuthenticationState
-    @ObservedObject var islandViewModel: PirateIslandViewModel
-    @ObservedObject var profileViewModel: ProfileViewModel      // ✅ ADD THIS
-    @Binding var showMainContent: Bool
-    @Binding var isLoggedIn: Bool
-    @Binding var navigateToAdminMenu: Bool
-    @State private var isPasswordVisible = false
-
-    var body: some View {
-        VStack(spacing: 20) {
-            
-            // MARK: - Username / Email + Password
-            VStack(spacing: 15) {
-                
-                // Username / Email
-                VStack(alignment: .leading, spacing: 5) {
-                    Text("Username or Email")
-                        .foregroundColor(.white)
-                        .font(.subheadline)
-                    
-                    TextField("Email Address", text: $usernameOrEmail)
-                        .font(.subheadline)
-                        .padding(.vertical, 8)    // reduced height
-                        .padding(.horizontal, 12) // balanced sides
-                        .frame(height: 44)        // accessibility minimum
-                        .background(Color.gray.opacity(0.4))
-                        .cornerRadius(8)
-                        .foregroundColor(.white)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled(true)
-                        .onChange(of: usernameOrEmail) { _, newValue in
-                            isSignInEnabled = !newValue.isEmpty && !password.isEmpty
-                        }
-                }
-                
-                // Password
-                VStack(alignment: .leading, spacing: 5) {
-                    Text("Password")
-                        .foregroundColor(.white)
-                        .font(.subheadline)
-                    
-                    HStack(spacing: 8) {
-                        Group {
-                            if isPasswordVisible {
-                                TextField("Password", text: $password)
-                            } else {
-                                SecureField("Password", text: $password)
-                            }
-                        }
-                        .font(.subheadline)
-                        .padding(.vertical, 8)
-                        .padding(.horizontal, 12)
-                        .frame(height: 44)
-                        .background(Color.gray.opacity(0.4))
-                        .cornerRadius(8)
-                        .foregroundColor(.white)
-                        .onChange(of: password) { _, newValue in
-                            isSignInEnabled = !usernameOrEmail.isEmpty && !newValue.isEmpty
-                        }
-                        
-                        Button {
-                            isPasswordVisible.toggle()
-                        } label: {
-                            Image(systemName: isPasswordVisible ? "eye.slash" : "eye")
-                                .foregroundColor(.gray)
-                        }
-                    }
-                }
-            }
-            
-            // MARK: - Sign In Button
-            Button {
-                Task { await signIn() }
-            } label: {
-                Text("Sign In")
-                    .font(.system(size: 17, weight: .semibold))
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 44) // same visual rhythm as fields
-                    .background(isSignInEnabled ? Color.blue : Color.gray)
-                    .foregroundColor(.white)
-                    .cornerRadius(10)
-            }
-            .disabled(!isSignInEnabled)
-            
-            // MARK: - OR Separator
-            HStack {
-                Rectangle()
-                    .frame(height: 1)
-                    .foregroundColor(.gray.opacity(0.5))
-                Text("OR")
-                    .foregroundColor(.gray)
-                    .font(.caption)
-                Rectangle()
-                    .frame(height: 1)
-                    .foregroundColor(.gray.opacity(0.5))
-            }
-            .padding(.vertical, 10)
-            
-            // MARK: - Social Buttons
-            HStack(spacing: 25) {
-                
-                // MARK: - Google Sign-In
-                GoogleSignInButtonWrapper(
-                    onSuccess: {
-                        Task {
-                            await handlePostLogin()
-                        }
-                    },
-                    onError: { message in
-                        errorMessage = message
-                    }
-                )
-
-                .frame(width: 50, height: 50)
-                
-                
-                // MARK: - Apple Sign-In
-                AppleSignInButtonView { result in
-                    switch result {
-                    case .success:
-                        Task {
-                            await handlePostLogin()
-                        }
-
-                    case .failure(let error):
-                        errorMessage = error.localizedDescription
-                    }
-                }
-
-                .frame(width: 50, height: 50)
-                
-                
-                // MARK: - Error Message
-                if !errorMessage.isEmpty {
-                    Text(errorMessage)
-                        .foregroundColor(.red)
-                        .multilineTextAlignment(.center)
-                }
-                
-                // MARK: - Links
-                VStack(spacing: 10) {
-                    NavigationLink(destination: ApplicationOfServiceView()) {
-                        (
-                            Text("By continuing, you agree to the ")
-                                .foregroundColor(.gray)
-                            +
-                            Text("Terms of Service/Disclaimer")
-                                .foregroundColor(.blue)
-                                .underline()
-                        )
-                        .font(.footnote)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                    }
-                    
-                    NavigationLink(destination: AdminLoginView(isPresented: .constant(false))) {
-                        Text("Admin Login")
-                            .font(.footnote)
-                            .foregroundColor(.blue)
-                            .underline()
-                    }
-                }
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity)
-                
-                Spacer()
-                
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 30)
-            // Removed black background so gradient shows through
-        }
-    }
-        
-    private func signIn() async {
-        guard !usernameOrEmail.isEmpty && !password.isEmpty else {
-            await MainActor.run {
-                errorMessage = "Please enter both username and password."
-            }
-            return
-        }
-
-        do {
-            try await AuthViewModel.shared.signInUser(
-                with: usernameOrEmail.lowercased(),
-                password: password
-            )
-
-            await handlePostLogin()
-
-        } catch {
-            await MainActor.run {
-                errorMessage = error.localizedDescription
-            }
-        }
-    }
-
-    
-    private func handlePostLogin() async {
-        // 1️⃣ Fetch user (async, NOT on MainActor)
-        let user = await AuthViewModel.shared.getCurrentUser()
-
-        // 2️⃣ Update UI state (MainActor only)
-        await MainActor.run {
-            authenticationState.setIsAuthenticated(true)
-            authenticationState.navigateUnrestricted = true
-            isLoggedIn = true
-            showMainContent = true
-        }
-
-        // 3️⃣ Load profile (defensive guard)
-        guard let userID = user?.userID else {
-            await MainActor.run {
-                errorMessage = "Unable to load user profile."
-            }
-            return
-        }
-
-        await profileViewModel.loadProfile(for: userID)
-
-        // 4️⃣ Navigate (MainActor)
-        await MainActor.run {
-            NotificationCenter.default.post(name: .navigateHome, object: nil)
-        }
-    }
-}
-
-
 enum AccountAlertType {
     case successAccount
     case successAccountAndGym
@@ -318,9 +83,147 @@ enum AccountAlertType {
 
     var defaultMessage: String {
         switch self {
-        case .successAccount: return "Account Created Successfully! You will now be navigated back to Main Menu."
-        case .successAccountAndGym: return "Account Created Successfully and your gym has been added to the database! You will now be navigated back to Main Menu."
-        case .notice: return ""
+        case .successAccount:
+            return "Account Created Successfully! You will now be navigated back to Main Menu."
+        case .successAccountAndGym:
+            return "Account Created Successfully and your gym has been added to the database! You will now be navigated back to Main Menu."
+        case .notice:
+            return ""
+        }
+    }
+}
+
+// MARK: - LOGIN FORM
+struct LoginForm: View {
+    @Binding var usernameOrEmail: String
+    @Binding var password: String
+    @Binding var isSignInEnabled: Bool
+    @Binding var errorMessage: String
+
+    @ObservedObject var islandViewModel: PirateIslandViewModel
+    @ObservedObject var profileViewModel: ProfileViewModel
+    @EnvironmentObject var authenticationState: AuthenticationState
+
+    @State private var isPasswordVisible = false
+
+    var body: some View {
+        VStack(spacing: 12) {
+            credentialFields
+
+            signInButton
+
+            if !errorMessage.isEmpty {
+                Text(errorMessage)
+                    .foregroundColor(.red)
+                    .multilineTextAlignment(.center)
+                    .font(.footnote)
+            }
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Color.white.opacity(0.08))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(Color.white.opacity(0.12))
+        )
+    }
+
+    private var credentialFields: some View {
+        VStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Username or Email")
+                    .font(.subheadline)
+                    .foregroundColor(.white.opacity(0.85))
+
+                TextField("Email Address", text: $usernameOrEmail)
+                    .keyboardType(.emailAddress)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled(true)
+                    .submitLabel(.next)
+                    .onChange(of: usernameOrEmail) { _, _ in updateSignInState() }
+                    .modifier(AuthTextFieldStyle())
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Password")
+                    .font(.subheadline)
+                    .foregroundColor(.white.opacity(0.85))
+
+                HStack {
+                    if isPasswordVisible {
+                        TextField("Password", text: $password)
+                            .submitLabel(.go)
+                            .onChange(of: password) { _, _ in updateSignInState() }
+                    } else {
+                        SecureField("Password", text: $password)
+                            .submitLabel(.go)
+                            .onChange(of: password) { _, _ in updateSignInState() }
+                    }
+
+                    Button {
+                        isPasswordVisible.toggle()
+                    } label: {
+                        Image(systemName: isPasswordVisible ? "eye.slash" : "eye")
+                            .foregroundColor(.gray)
+                    }
+                }
+                .modifier(AuthTextFieldStyle())
+            }
+        }
+    }
+
+    private var signInButton: some View {
+        Button {
+            Task { await signIn() }
+        } label: {
+            Text("Sign In")
+                .font(.system(size: 17, weight: .semibold))
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .background(isSignInEnabled ? Color.blue : Color.gray.opacity(0.6))
+                .foregroundColor(.white)
+                .cornerRadius(10)
+                .shadow(color: Color.blue.opacity(0.4), radius: 6, x: 0, y: 3)
+        }
+        .disabled(!isSignInEnabled)
+    }
+
+    private func updateSignInState() {
+        isSignInEnabled =
+            !usernameOrEmail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+            !password.isEmpty
+    }
+
+    private func signIn() async {
+        guard isSignInEnabled else { return }
+
+        do {
+            try await AuthViewModel.shared.signInUser(
+                with: usernameOrEmail.lowercased(),
+                password: password
+            )
+            await handlePostLogin()
+        } catch {
+            await MainActor.run {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func handlePostLogin() async {
+        let user = await AuthViewModel.shared.getCurrentUser()
+
+        await MainActor.run {
+            authenticationState.setIsAuthenticated(true)
+            authenticationState.navigateUnrestricted = true
+        }
+
+        guard let userID = user?.userID else { return }
+
+        await profileViewModel.loadProfile(for: userID)
+        await MainActor.run {
+            NotificationCenter.default.post(name: .navigateHome, object: nil)
         }
     }
 }
@@ -329,9 +232,8 @@ enum AccountAlertType {
 struct LoginView: View {
     @EnvironmentObject var authenticationState: AuthenticationState
 
-    @StateObject private var islandViewModel = PirateIslandViewModel(
-        persistenceController: PersistenceController.shared
-    )
+    @StateObject private var islandViewModel =
+        PirateIslandViewModel(persistenceController: .shared)
     @StateObject private var profileViewModel = ProfileViewModel()
 
     @Binding var isLoggedIn: Bool
@@ -341,9 +243,7 @@ struct LoginView: View {
     @State private var password = ""
     @State private var errorMessage = ""
     @State private var isSignInEnabled = false
-
     @State private var showCreateAccount = false
-    @State private var currentAlertType: AccountAlertType? = nil
 
     var body: some View {
         ZStack {
@@ -355,31 +255,81 @@ struct LoginView: View {
             )
             .ignoresSafeArea()
 
-            VStack(spacing: 30) {
-                Image("MF_little_trans")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 260, height: 260)
+            ScrollView {
+                VStack(spacing: 10) {
 
-                LoginForm(
-                    usernameOrEmail: $usernameOrEmail,
-                    password: $password,
-                    isSignInEnabled: $isSignInEnabled,
-                    errorMessage: $errorMessage,
-                    islandViewModel: islandViewModel,
-                    profileViewModel: profileViewModel,
-                    showMainContent: .constant(false),
-                    isLoggedIn: $isLoggedIn,
-                    navigateToAdminMenu: .constant(false)
-                )
+                    Image("MFINDER_BOLDb")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 240)
 
-                Button("Create Account") {
-                    showCreateAccount = true
+                    Text("Sign In Via")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white)
+                        .padding(.top, 4)
+
+                    
+                    // --- Credential Login Card ---
+                    LoginForm(
+                        usernameOrEmail: $usernameOrEmail,
+                        password: $password,
+                        isSignInEnabled: $isSignInEnabled,
+                        errorMessage: $errorMessage,
+                        islandViewModel: islandViewModel,
+                        profileViewModel: profileViewModel
+                    )
+
+                    HStack(spacing: 28) {
+                        GoogleSignInButtonWrapper(
+                            onSuccess: { Task { await handlePostLogin() } },
+                            onError: { errorMessage = $0 }
+                        )
+                        .frame(width: 50, height: 50)
+
+                        AppleSignInButtonView { result in
+                            switch result {
+                            case .success:
+                                Task { await handlePostLogin() }
+                            case .failure(let error):
+                                errorMessage = error.localizedDescription
+                            }
+                        }
+                        .frame(width: 50, height: 50)
+                    }
+                    
+                    OrDivider()
+
+                    // --- Create Account Button ---
+                    Button("Create an Account") {
+                        showCreateAccount = true
+                    }
+                    .font(.system(size: 16, weight: .semibold))
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color.blue, lineWidth: 1.5)
+                    )
+                    .foregroundColor(.blue)
+
+                    // --- Links ---
+                    VStack(spacing: 8) {
+                        NavigationLink(destination: ApplicationOfServiceView()) {
+                            Text("Terms of Service / Disclaimer")
+                                .font(.footnote)
+                                .foregroundColor(.blue)
+                                .underline()
+                        }
+
+                        NavigationLink(destination: AdminLoginView(isPresented: .constant(false))) {
+                            Text("Admin Login")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
+                    }
+                    .padding(.bottom, 12)
                 }
-                .foregroundColor(.white)
-                .padding(.top, 10)
+                .padding(.horizontal, 20)
             }
-            .padding()
         }
         .fullScreenCover(isPresented: $showCreateAccount) {
             NavigationStack {
@@ -393,43 +343,45 @@ struct LoginView: View {
                     alertTitle: .constant(""),
                     alertMessage: .constant(""),
                     currentAlertType: .constant(nil),
-                    showCreateAccount: $showCreateAccount // <-- ADD THIS
+                    showCreateAccount: $showCreateAccount
                 )
             }
         }
-
-
-        .alert(
-            currentAlertType?.title ?? "Notice",
-            isPresented: Binding(
-                get: { currentAlertType != nil },
-                set: { _ in currentAlertType = nil }
-            )
-        ) {
-            Button("OK") {
-                handleAlertDismiss()
-            }
-        } message: {
-            Text(currentAlertType?.defaultMessage ?? "")
-        }
     }
 
-    // MARK: - ALERT DISMISS HANDLER
-    private func handleAlertDismiss() {
-        guard let type = currentAlertType else { return }
+    private func handlePostLogin() async {
+        let user = await AuthViewModel.shared.getCurrentUser()
 
-        switch type {
-        case .successAccount, .successAccountAndGym:
-            authenticationState.accountCreatedSuccessfully = false
-            currentAlertType = nil
-            
-            // Navigate to IslandMenu2
-            navigationPath.removeLast(navigationPath.count)
-            navigationPath.append(AppScreen.islandMenu2)
-            
-        case .notice:
-            currentAlertType = nil
+        await MainActor.run {
+            authenticationState.setIsAuthenticated(true)
+            authenticationState.navigateUnrestricted = true
+            isLoggedIn = true
         }
+
+        guard let userID = user?.userID else { return }
+
+        await profileViewModel.loadProfile(for: userID)
+        await MainActor.run {
+            NotificationCenter.default.post(name: .navigateHome, object: nil)
+        }
+    }
+}
+
+// MARK: - TEXTFIELD STYLE
+struct AuthTextFieldStyle: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .padding(.horizontal, 14)
+            .frame(height: 44)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color.white.opacity(0.12))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(Color.white.opacity(0.25), lineWidth: 1)
+            )
+            .foregroundColor(.white)
     }
 }
 

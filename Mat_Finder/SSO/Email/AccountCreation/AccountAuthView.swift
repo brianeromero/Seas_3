@@ -97,10 +97,7 @@ struct AccountAuthView: View {
                             isSignInEnabled: $authViewModel.isSignInEnabled,
                             errorMessage: $errorMessage,
                             islandViewModel: islandViewModel,
-                            profileViewModel: profileViewModel,       // ✅ PASS IT
-                            showMainContent: .constant(false),
-                            isLoggedIn: $isLoggedIn,
-                            navigateToAdminMenu: $navigateToAdminMenu
+                            profileViewModel: profileViewModel
                         )
                         .frame(maxWidth: .infinity)
                         .padding()
