@@ -42,7 +42,7 @@ struct FAQnDisclaimerMenuView: View {
                 // These NavigationLinks will now push values to the parent NavigationStack's path.
                 NavigationLink(value: AppScreen.aboutus) {
                     MenuItemRow(
-                        imageName: "MF_little",
+                        imageName: "MFINDER_BOLDb-nobackground",
                         text: "About Us",
                         standardIconSize: standardIconSize,
                         iconTrailingSpacing: iconTrailingSpacing
@@ -60,7 +60,7 @@ struct FAQnDisclaimerMenuView: View {
                 
                 NavigationLink(value: AppScreen.faq) {
                     MenuItemRow(
-                        imageName: "faq",
+                        imageName: "FAQ",
                         text: "FAQ",
                         standardIconSize: standardIconSize,
                         iconTrailingSpacing: iconTrailingSpacing

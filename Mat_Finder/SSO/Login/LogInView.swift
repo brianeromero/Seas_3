@@ -258,7 +258,7 @@ struct LoginView: View {
             ScrollView {
                 VStack(spacing: 10) {
 
-                    Image("MFINDER_BOLDb")
+                    Image("MFINDER_BOLDb-nobackground")
                         .resizable()
                         .scaledToFit()
                         .frame(width: 240)
