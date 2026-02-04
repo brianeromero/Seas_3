@@ -15,7 +15,7 @@ import FirebaseFirestore
 struct AddNewMatTimeSection: View {
     @Binding var selectedIslandID: UUID?          // The source of truth
     let islands: [PirateIsland]                  // All available islands
-
+    
     var selectedIsland: PirateIsland? {
         islands.first { $0.islandID == selectedIslandID }
     }

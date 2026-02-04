@@ -175,21 +175,21 @@ extension ProfileView {
     private var accountInfoSection: some View {
         Section(header: Text("Account Information")) {
             accountField(
-                title: "Email:",
+                title: "Email",
                 text: $profileViewModel.email,
                 error: errorMessages[.email] ?? nil,
                 field: .email
             )
 
             accountField(
-                title: "Username:",
+                title: "Username",
                 text: $profileViewModel.userName,
                 error: errorMessages[.userName] ?? nil,
                 field: .username
             )
 
             accountField(
-                title: "Name:",
+                title: "Name",
                 text: $profileViewModel.name,
                 error: errorMessages[.name] ?? nil,
                 field: .name
@@ -374,25 +374,37 @@ extension ProfileView {
 }
 
 
+// MARK: - Account Field with Persistent Label
 extension ProfileView {
 
     @ViewBuilder
     private func accountField(
-        title: String,
-        text: Binding<String>,
-        error: String?,
-        field: Field
+        title: String,          // The visible label
+        text: Binding<String>,  // Bound value
+        error: String?,         // Optional validation error
+        field: Field            // FocusedField
     ) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            TextField(title, text: text)
+            // Persistent label
+            Text(title)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+
+            // TextField
+            TextField("", text: text)
                 .disabled(!isEditing)
                 .focused($focusedField, equals: field)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .autocapitalization(.none)
+                .disableAutocorrection(true)
 
+            // Optional error message
             if let error {
                 Text(error)
                     .foregroundColor(.red)
                     .font(.footnote)
             }
         }
+        .padding(.vertical, 4)
     }
 }

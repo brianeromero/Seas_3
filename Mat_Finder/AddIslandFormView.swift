@@ -158,7 +158,7 @@ struct AddIslandFormView: View {
     
     private var enteredBySection: some View {
         Section(header: Text("Entered By")) {
-            Text(profileViewModel.name)
+            Text(profileViewModel.userName)
                 .foregroundColor(.primary)
                 .padding()
         }

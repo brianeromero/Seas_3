@@ -116,21 +116,24 @@ struct IslandFormSections: View {
                 selectedCountry: $selectedCountry,
                 isPickerPresented: $isPickerPresented
             )
-                .onChange(of: selectedCountry) { oldCountry, newCountry in // Use the new signature
-                if let countryCode = newCountry?.cca2 {
-                    // Normalize the country code
-                    let normalizedCountryCode = countryCode.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
-                    print("Normalized Country Code Set7896: \(normalizedCountryCode)") // Print the normalized code
+                .onChange(of: selectedCountry) { oldCountry, newCountry in
+                    guard oldCountry?.cca2 != newCountry?.cca2 else { return }
                     
-                    // Fetch address fields using the safe method
-                    let addressFields = getAddressFieldsSafely(for: normalizedCountryCode)
-                    print("Address Fields Required789: \(addressFields)")
-                } else {
-                    print("No country selected789")
-                }
-                // Update address requirements for the new selected country
-                updateAddressRequirements(for: newCountry)
-            })
+                    // Only reset state if the new country is different
+                    if newCountry?.cca2 != oldCountry?.cca2 {
+                        if newCountry?.cca2 != "US" {
+                            islandDetails.state = "" // only reset if not US
+                        } else {
+                            // keep existing state if it's valid
+                            if !USStates.allCodes.contains(islandDetails.state) {
+                                islandDetails.state = ""
+                            }
+                        }
+                    }
+                    
+                    // Update address requirements
+                    updateAddressRequirements(for: newCountry)
+                })
         }
     }
 
@@ -821,12 +824,14 @@ struct IslandFormSections: View {
         }
     }
     
-    
-    func updateIslandLocation() async {
-        Logger.logCreatedByIdEvent(createdByUserId: profileViewModel.name, fileName: "IslandFormSections", functionName: "updateIslandLocation")
 
-        // Ensure you have the UUID string of the island to update
-        // CORRECTED: Access the wrappedValue of islandDetails, then safely unwrap islandID
+    func updateIslandLocation() async {
+        Logger.logCreatedByIdEvent(
+            createdByUserId: profileViewModel.userName,
+            fileName: "IslandFormSections",
+            functionName: "updateIslandLocation"
+        )
+
         guard let islandID = islandDetails.islandID?.uuidString else {
             self.errorMessage = "Island ID is missing for update."
             self.showError = true
@@ -834,32 +839,26 @@ struct IslandFormSections: View {
         }
 
         do {
-            // Create a dictionary with all the data you want to update in Firestore.
-            // The keys in this dictionary should match your Firestore document field names.
             var dataToUpdate: [String: Any] = [
                 "name": islandDetails.islandName,
-                "location": islandDetails.fullAddress, // Assuming fullAddress is correctly compiled
-                "country": selectedCountry?.name.common ?? "Unknown", // Ensure country is included
-                "lastModifiedByUserId": profileViewModel.name,
-                "lastModifiedTimestamp": Date(), // Always update the timestamp on modification
-                // CORRECTED: Provide default values for optional Doubles
+                "location": islandDetails.fullAddress,
+                "country": selectedCountry?.name.common ?? "Unknown",
+                "lastModifiedByUserId": profileViewModel.userName,
+                "lastModifiedTimestamp": Date(),
                 "latitude": islandDetails.latitude ?? 0.0,
                 "longitude": islandDetails.longitude ?? 0.0
             ]
 
-            // Conditionally add gymWebsite to avoid issues if it's empty or invalid
-            // CORRECTED: Check if the non-optional string is empty
             if !islandDetails.gymWebsite.isEmpty {
                 let urlString = islandDetails.gymWebsite.hasPrefix("http")
                     ? islandDetails.gymWebsite
                     : "https://\(islandDetails.gymWebsite)"
                 dataToUpdate["gymWebsite"] = urlString
             } else {
-                dataToUpdate["gymWebsite"] = NSNull() // Explicitly set to null in Firestore if empty
+                dataToUpdate["gymWebsite"] = NSNull()
             }
 
-            // Add all other relevant address fields from islandDetails to the dictionary
-            // Make sure these keys match your Firestore document structure
+            // Add all other fields...
             dataToUpdate["street"] = islandDetails.street
             dataToUpdate["city"] = islandDetails.city
             dataToUpdate["state"] = islandDetails.state
@@ -882,15 +881,9 @@ struct IslandFormSections: View {
             dataToUpdate["zone"] = islandDetails.zone
             dataToUpdate["block"] = islandDetails.block
             dataToUpdate["island"] = islandDetails.island
-            
-            // This is the updated call:
-            // It now takes the island's ID as a String and a dictionary of data to update.
-            try await viewModel.updatePirateIsland(
-                id: islandID,
-                data: dataToUpdate
-            )
 
-            // Show success message or handle success state
+            try await viewModel.updatePirateIsland(id: islandID, data: dataToUpdate)
+
             self.successMessage = "Island location updated successfully!"
             self.showToast = true
 
@@ -899,6 +892,7 @@ struct IslandFormSections: View {
             self.showError = true
         }
     }
+
     
     func setError(_ message: String) {
         errorMessage = message

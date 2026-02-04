@@ -180,7 +180,7 @@ public struct AddNewIsland: View {
                 .foregroundColor(.primary)
             
             if profileViewModel.isProfileLoaded {
-                Text(profileViewModel.name.isEmpty ? "Unknown" : profileViewModel.name)
+                Text(profileViewModel.userName.isEmpty ? "Unknown" : profileViewModel.userName)
                     .font(.body)
                     .foregroundColor(.primary)
             } else {
