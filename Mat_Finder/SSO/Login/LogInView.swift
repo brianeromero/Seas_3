@@ -258,12 +258,14 @@ struct LoginView: View {
             ScrollView {
                 VStack(spacing: 10) {
 
-                    Image("MFINDER_BOLDb-nobackground")
+                    Image("MFINDER_circle")
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 240)
+                        .frame(width: 150)
+                        .offset(y: -50)
 
-                    Text("Sign In Via")
+
+                    Text("Log In to Mat_Finder")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(.white)
                         .padding(.top, 4)

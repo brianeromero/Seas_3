@@ -85,6 +85,7 @@
 		0C9861B22F33ABCD00B4B96C /* MFINDER_BOLDb-nobackground.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C9861B12F33ABCD00B4B96C /* MFINDER_BOLDb-nobackground.png */; };
 		0C9861B52F33B20C00B4B96C /* Disclaimer.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C9861B32F33B20C00B4B96C /* Disclaimer.png */; };
 		0C9861B62F33B20C00B4B96C /* FAQ.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C9861B42F33B20C00B4B96C /* FAQ.png */; };
+		0C9861BC2F33B66C00B4B96C /* MFINDER_circle.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C9861BB2F33B66C00B4B96C /* MFINDER_circle.png */; };
 		0C98D2C72DA5949B000583ED /* ToggleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C98D2C62DA5949B000583ED /* ToggleView.swift */; };
 		0C9B5F292E260B9100C643B7 /* DaysOfWeekFormViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C9B5F282E260B9100C643B7 /* DaysOfWeekFormViewModel.swift */; };
 		0CB6E1E72EAC09F600BE4016 /* Mat_Finder.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 0CB6E1E52EAC09F600BE4016 /* Mat_Finder.xcdatamodeld */; };
@@ -242,6 +243,7 @@
 		0C9861B12F33ABCD00B4B96C /* MFINDER_BOLDb-nobackground.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "MFINDER_BOLDb-nobackground.png"; sourceTree = "<group>"; };
 		0C9861B32F33B20C00B4B96C /* Disclaimer.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Disclaimer.png; sourceTree = "<group>"; };
 		0C9861B42F33B20C00B4B96C /* FAQ.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = FAQ.png; sourceTree = "<group>"; };
+		0C9861BB2F33B66C00B4B96C /* MFINDER_circle.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = MFINDER_circle.png; sourceTree = "<group>"; };
 		0C98D2C62DA5949B000583ED /* ToggleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToggleView.swift; sourceTree = "<group>"; };
 		0C9B5F282E260B9100C643B7 /* DaysOfWeekFormViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DaysOfWeekFormViewModel.swift; sourceTree = "<group>"; };
 		0CA142232C3EF19900C366CF /* MainLoginViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainLoginViewController.swift; sourceTree = "<group>"; };
@@ -679,6 +681,7 @@
 				0C380A622F32B32500274EFA /* MFINDER_BOLDb.png */,
 				0C380A632F32B32500274EFA /* MFINDER_BOLDw.png */,
 				0C9861B12F33ABCD00B4B96C /* MFINDER_BOLDb-nobackground.png */,
+				0C9861BB2F33B66C00B4B96C /* MFINDER_circle.png */,
 				0C07B0CA2C2D022D00D0BFB2 /* MF_little_trans .png */,
 				0CF13E7F2C2A36C000D714C0 /* CoreDataItems */,
 				0C07B09A2C2CFF9400D0BFB2 /* ALLISLANDS */,
@@ -875,6 +878,7 @@
 				0C9861B22F33ABCD00B4B96C /* MFINDER_BOLDb-nobackground.png in Resources */,
 				0C0739952F27D3DE00313B25 /* MF_little.png in Resources */,
 				0CD930AD2C33D4F00051E923 /* calendar Image.png in Resources */,
+				0C9861BC2F33B66C00B4B96C /* MFINDER_circle.png in Resources */,
 				0CD930AF2C33D4F60051E923 /* flashing2.gif in Resources */,
 				0CD930B12C33D4FB0051E923 /* YOu are HEre2.png in Resources */,
 				0CEC326F2C3F07D400F0747F /* MainStoryboard.storyboard in Resources */,
