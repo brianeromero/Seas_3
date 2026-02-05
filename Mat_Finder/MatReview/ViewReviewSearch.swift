@@ -116,17 +116,34 @@ class ViewReviewSearchViewModel: ObservableObject {
     private func performFiltering(with pirateIslands: FetchedResults<PirateIsland>) {
         isLoading = true
 
-        DispatchQueue.global(qos: .userInitiated).async {
-            let lowercasedQuery = self.searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-            let filteredIslands = self.filterIslands(pirateIslands, query: lowercasedQuery)
+        let lowercasedQuery = searchQuery
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
 
-            DispatchQueue.main.async {
-                self.filteredIslands = filteredIslands
-                self.showNoMatchAlert = !self.searchQuery.isEmpty && self.filteredIslands.isEmpty
-                self.isLoading = false
-            }
+        // If query is empty, show all islands
+        guard !lowercasedQuery.isEmpty else {
+            filteredIslands = Array(pirateIslands)
+            showNoMatchAlert = false
+            isLoading = false
+            return
         }
+
+        let filtered = pirateIslands.filter { island in
+            [
+                island.islandName,
+                island.islandLocation,
+                island.gymWebsite?.absoluteString,
+                island.country
+            ]
+            .compactMap { $0?.lowercased() }
+            .contains { $0.contains(lowercasedQuery) }
+        }
+
+        filteredIslands = filtered
+        showNoMatchAlert = filtered.isEmpty
+        isLoading = false
     }
+
     
     private func filterIslands(_ pirateIslands: FetchedResults<PirateIsland>, query: String) -> [PirateIsland] {
         pirateIslands.compactMap { island -> PirateIsland? in

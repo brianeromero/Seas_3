@@ -152,7 +152,7 @@ struct EnterZipCodeView: View {
 
             enterZipCodeViewModel.userDidMoveMap(to: region)
         } label: {
-            Text("Search this area")
+            Text("Search this Area")
                 .font(.headline)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
