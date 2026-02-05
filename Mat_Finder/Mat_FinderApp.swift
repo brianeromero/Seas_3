@@ -359,12 +359,11 @@ struct AppRootDestinationView: View {
             }
             
         case .dayOfWeek:
-            // ✅ Direct to DayOfWeekSearchView, now relying on environment objects
-            DayOfWeekSearchView() // This is now correct!
+            DayOfWeekSearchView(navigationPath: $navigationPath)
                 .onAppear {
                     print("🧭 Navigating to screen: .dayOfWeek (DayOfWeekSearchView)")
                 }
-            
+
         case .addNewGym:
             AddNewIsland(
                 navigationPath: $navigationPath,

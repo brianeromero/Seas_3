@@ -10,7 +10,11 @@ import CoreLocation
 import CoreData
 import Combine
 
+
+
 struct DayOfWeekSearchView: View {
+    @Binding var navigationPath: NavigationPath   // <- pass this in
+
     @State private var selectedIsland: PirateIsland?
     @State private var selectedAppDayOfWeek: AppDayOfWeek?
 
@@ -21,7 +25,6 @@ struct DayOfWeekSearchView: View {
         )
     )
 
-    @State private var navigationPath = NavigationPath()
     @ObservedObject private var userLocationMapViewModel = UserLocationMapViewModel.shared
     @EnvironmentObject var viewModel: AppDayOfWeekViewModel
     @EnvironmentObject var enterZipCodeViewModel: EnterZipCodeViewModel
@@ -32,18 +35,15 @@ struct DayOfWeekSearchView: View {
     @State private var showModal: Bool = false
 
     var body: some View {
-        NavigationView {
+        GeometryReader { geo in
             VStack {
-                // 🗓️ Day Picker
                 DayPickerView(selectedDay: $selectedDay)
                     .onChange(of: selectedDay) { _, _ in
                         Task { await updateIslandsAndRegion() }
                     }
 
-                // ⚠️ Error View
                 ErrorView(errorMessage: $errorMessage)
 
-                // 🗺️ Map with clustering
                 SearchableClusterMap(
                     region: $equatableRegionWrapper.region,
                     markers: viewModel.displayedMarkers,
@@ -52,6 +52,7 @@ struct DayOfWeekSearchView: View {
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+            .frame(width: geo.size.width, height: geo.size.height)
             .floatingModal(isPresented: $showModal) {
                 IslandModalContainer(
                     selectedIsland: $selectedIsland,
@@ -60,7 +61,7 @@ struct DayOfWeekSearchView: View {
                     showModal: $showModal,
                     enterZipCodeViewModel: enterZipCodeViewModel,
                     selectedAppDayOfWeek: $selectedAppDayOfWeek,
-                    navigationPath: $navigationPath
+                    navigationPath: $navigationPath // <- pass binding from parent
                 )
             }
             .onAppear(perform: handleOnAppear)
@@ -74,6 +75,7 @@ struct DayOfWeekSearchView: View {
             }
         }
     }
+
 
     // MARK: - Event Handlers
 
