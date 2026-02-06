@@ -52,7 +52,7 @@ struct ApplicationOfServiceView: View {
                     .fontWeight(.semibold)
 
                 Text("""
-                    When you submit gym or open mat information to Mat_Finder, you grant us a non-exclusive license to use, edit, and display this content within the app. You retain ownership of your content.
+                    When you submit gym or open mat information to Mat_Finder, you grant us a non-exclusive license to use, edit, and display this content within the app.
                     """)
 
                 Text("5. Location and Personal Data")
