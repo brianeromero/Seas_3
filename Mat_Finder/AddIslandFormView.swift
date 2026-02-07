@@ -124,37 +124,112 @@ struct AddIslandFormView: View {
     // MARK: - Address Fields
     // Ensure consistency between AddressField and AddressFieldType
     private func addressField(for field: AddressFieldType) -> some View {
-        // Adjusting to use AddressFieldType
         switch field {
+
         case .street:
-            return AnyView(TextField("Street", text: $islandDetails.street).textFieldStyle(RoundedBorderTextFieldStyle()))
-        // Handle other cases similarly
+            return AnyView(
+                TextField("Street", text: $islandDetails.street)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .onChange(of: islandDetails.street) { _, _ in
+                        validateForm()
+                    }
+            )
+
         case .city:
-            return AnyView(TextField("City", text: $islandDetails.city).textFieldStyle(RoundedBorderTextFieldStyle()))
+            return AnyView(
+                TextField("City", text: $islandDetails.city)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .onChange(of: islandDetails.city) { _, _ in
+                        validateForm()
+                    }
+            )
+
         case .state:
-            return AnyView(TextField("State", text: $islandDetails.state).textFieldStyle(RoundedBorderTextFieldStyle()))
+            return AnyView(
+                TextField("State", text: $islandDetails.state)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .onChange(of: islandDetails.state) { _, _ in
+                        validateForm()
+                    }
+            )
+
         case .postalCode:
-            return AnyView(TextField("Postal Code", text: $islandDetails.postalCode).textFieldStyle(RoundedBorderTextFieldStyle()))
+            return AnyView(
+                TextField("Postal Code", text: $islandDetails.postalCode)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .onChange(of: islandDetails.postalCode) { _, _ in
+                        validateForm()
+                    }
+            )
+
         case .province:
-            return AnyView(TextField("Province", text: $islandDetails.province).textFieldStyle(RoundedBorderTextFieldStyle()))
-        case .neighborhood:
-            return AnyView(TextField("Neighborhood", text: $islandDetails.neighborhood).textFieldStyle(RoundedBorderTextFieldStyle()))
+            return AnyView(
+                TextField("Province", text: $islandDetails.province)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .onChange(of: islandDetails.province) { _, _ in
+                        validateForm()
+                    }
+            )
+
         case .district:
-            return AnyView(TextField("District", text: $islandDetails.district).textFieldStyle(RoundedBorderTextFieldStyle()))
+            return AnyView(
+                TextField("District", text: $islandDetails.district)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .onChange(of: islandDetails.district) { _, _ in
+                        validateForm()
+                    }
+            )
+
         case .department:
-            return AnyView(TextField("Department", text: $islandDetails.department).textFieldStyle(RoundedBorderTextFieldStyle()))
+            return AnyView(
+                TextField("Department", text: $islandDetails.department)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .onChange(of: islandDetails.department) { _, _ in
+                        validateForm()
+                    }
+            )
+
         case .governorate:
-            return AnyView(TextField("Governorate", text: $islandDetails.governorate).textFieldStyle(RoundedBorderTextFieldStyle()))
+            return AnyView(
+                TextField("Governorate", text: $islandDetails.governorate)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .onChange(of: islandDetails.governorate) { _, _ in
+                        validateForm()
+                    }
+            )
+
         case .emirate:
-            return AnyView(TextField("Emirate", text: $islandDetails.emirate).textFieldStyle(RoundedBorderTextFieldStyle()))
+            return AnyView(
+                TextField("Emirate", text: $islandDetails.emirate)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .onChange(of: islandDetails.emirate) { _, _ in
+                        validateForm()
+                    }
+            )
+
         case .apartment:
-            return AnyView(TextField("Apartment", text: $islandDetails.apartment).textFieldStyle(RoundedBorderTextFieldStyle()))
+            return AnyView(
+                TextField("Apartment", text: $islandDetails.apartment)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .onChange(of: islandDetails.apartment) { _, _ in
+                        validateForm()
+                    }
+            )
+
         case .additionalInfo:
-            return AnyView(TextField("Additional Info", text: $islandDetails.additionalInfo).textFieldStyle(RoundedBorderTextFieldStyle()))
+            return AnyView(
+                TextField("Additional Info", text: $islandDetails.additionalInfo)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .onChange(of: islandDetails.additionalInfo) { _, _ in
+                        validateForm()
+                    }
+            )
+
         default:
             return AnyView(EmptyView())
         }
     }
+
     
     private var enteredBySection: some View {
         Section(header: Text("Entered By")) {
@@ -270,15 +345,5 @@ struct AddIslandFormView: View {
         }
     }
 
-    
-    private func binding(for field: AddressFieldType) -> Binding<String> {
-        switch field {
-        case .street: return $islandDetails.street
-        case .city: return $islandDetails.city
-        case .state: return $islandDetails.state
-        case .postalCode: return $islandDetails.postalCode
-        default: return .constant("")
-        }
-    }
 }
 

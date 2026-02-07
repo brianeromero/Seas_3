@@ -56,6 +56,15 @@ struct CreateAccountView: View {
     @State private var selectedCountry: Country? = Country(name: Country.Name(common: "United States"), cca2: "US", flag: "")
     
     // Account and Profile Information
+    
+    @State private var gymWebsite: String = ""
+    @State private var gymWebsiteURL: URL? = nil
+    @State private var isSaveEnabled: Bool = false
+    
+    @State private var showValidationMessage = false
+    @State private var missingFields: [String] = []
+
+    
     @State private var belt: String = ""
     let beltOptions = ["", "White", "Blue", "Purple", "Brown", "Black"]
     
@@ -176,16 +185,17 @@ struct CreateAccountView: View {
                     IslandFormSections(
                         viewModel: islandViewModel,
                         profileViewModel: profileViewModel,
-                        countryService: countryService,
                         islandName: $islandDetails.islandName,
                         street: $islandDetails.street,
                         city: $islandDetails.city,
                         state: $islandDetails.state,
                         postalCode: $islandDetails.postalCode,
                         islandDetails: $islandDetails,
-                        selectedCountry: $selectedCountry,
-                        gymWebsite: $islandDetails.gymWebsite,
-                        gymWebsiteURL: $islandDetails.gymWebsiteURL,
+                        selectedCountry: $islandDetails.selectedCountry,
+                        gymWebsite: $gymWebsite,
+                        gymWebsiteURL: $gymWebsiteURL,
+
+                        // Additional address fields
                         province: $islandDetails.province,
                         neighborhood: $islandDetails.neighborhood,
                         complement: $islandDetails.complement,
@@ -204,11 +214,14 @@ struct CreateAccountView: View {
                         zone: $islandDetails.zone,
                         block: $islandDetails.block,
                         island: $islandDetails.island,
-                        isIslandNameValid: $isIslandNameValid,
-                        islandNameErrorMessage: $islandNameErrorMessage,
-                        isFormValid: $isFormValid,
-                        formState: $formState
+
+                        // Validation bindings
+                        isSaveEnabled: $isSaveEnabled,
+                        showValidationMessage: $showValidationMessage,
+                        missingFields: $missingFields
                     )
+
+
                 }
                 
                 // CREATE ACCOUNT BUTTON

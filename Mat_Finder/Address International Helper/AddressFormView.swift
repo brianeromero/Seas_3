@@ -48,11 +48,10 @@ struct AddressFormView: View {
     
     
     func binding(for field: AddressFieldType) -> Binding<String> {
-        return Binding<String>(get: {
-            addressFields[field] ?? ""
-        }, set: {
-            addressFields[field] = $0
-        })
+        return Binding<String>(
+            get: { addressFields[field] ?? "" },
+            set: { addressFields[field] = $0 }
+        )
     }
 }
 
@@ -71,8 +70,3 @@ struct AddressFieldView2: View {
     }
 }
 
-struct AddressFormView_Previews: PreviewProvider {
-    static var previews: some View {
-        AddressFormView()
-    }
-}

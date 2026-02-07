@@ -225,3 +225,35 @@ enum CountryError: Error, CustomStringConvertible {
         }
     }
 }
+
+
+// MARK: - Display Names
+extension AddressFieldType {
+    var displayName: String {
+        switch self {
+        case .street: return "Street"
+        case .city: return "City"
+        case .state: return "State"
+        case .postalCode: return "Postal Code"
+        case .province: return "Province"
+        case .neighborhood: return "Neighborhood"
+        case .complement: return "Complement"
+        case .apartment: return "Apartment"
+        case .region: return "Region"
+        case .county: return "County"
+        case .governorate: return "Governorate"
+        case .additionalInfo: return "Additional Info"
+        case .department: return "Department"
+        case .parish: return "Parish"
+        case .district: return "District"
+        case .entity: return "Entity"
+        case .municipality: return "Municipality"
+        case .division: return "Division"
+        case .emirate: return "Emirate"
+        case .zone: return "Zone"
+        case .block: return "Block"
+        case .island: return "Island"
+        case .multilineAddress: return "Address"
+        }
+    }
+}

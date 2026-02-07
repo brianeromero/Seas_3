@@ -37,12 +37,28 @@ public struct AddNewIsland: View {
 
     @Binding var islandDetails: IslandDetails
     @State private var isSuccessAlert = false
+    
+    @State private var showValidationMessage = false
+    @State private var missingFields: [String] = []
+
 
     // Body
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 islandFormSection
+                
+                // ✅ Missing fields message goes here
+                if showValidationMessage && !missingFields.isEmpty {
+                    Text("Required fields are missing: \(missingFields.joined(separator: ", "))")
+                        .font(.caption)
+                        .foregroundColor(.red)
+                        .onAppear {
+                            print("❌ Missing fields: \(missingFields)")
+                        }
+                }
+                
+                
                 enteredBySection
                 actionButtons
             }
@@ -127,9 +143,8 @@ public struct AddNewIsland: View {
     // MARK: - Subviews
     private var islandFormSection: some View {
         IslandFormSections(
-            viewModel: islandViewModel, // Now @EnvironmentObject
-            profileViewModel: profileViewModel, // Now @EnvironmentObject
-            countryService: countryService,
+            viewModel: islandViewModel,
+            profileViewModel: profileViewModel,
             islandName: $islandDetails.islandName,
             street: $islandDetails.street,
             city: $islandDetails.city,
@@ -140,7 +155,7 @@ public struct AddNewIsland: View {
             gymWebsite: $gymWebsite,
             gymWebsiteURL: $gymWebsiteURL,
 
-            // Additional address fields:
+            // Additional address fields
             province: $islandDetails.province,
             neighborhood: $islandDetails.neighborhood,
             complement: $islandDetails.complement,
@@ -149,8 +164,6 @@ public struct AddNewIsland: View {
             county: $islandDetails.county,
             governorate: $islandDetails.governorate,
             additionalInfo: $islandDetails.additionalInfo,
-
-            // More address fields:
             department: $islandDetails.department,
             parish: $islandDetails.parish,
             district: $islandDetails.district,
@@ -162,14 +175,12 @@ public struct AddNewIsland: View {
             block: $islandDetails.block,
             island: $islandDetails.island,
 
-            // Validation and alert:
-            isIslandNameValid: $islandDetails.isIslandNameValid,
-            islandNameErrorMessage: $islandDetails.islandNameErrorMessage,
-            isFormValid: $isSaveEnabled,
-
-            // FormState argument should come last:
-            formState: $formState
+            // Validation bindings
+            isSaveEnabled: $isSaveEnabled,
+            showValidationMessage: $showValidationMessage,
+            missingFields: $missingFields
         )
+
     }
 
 
@@ -206,22 +217,34 @@ public struct AddNewIsland: View {
             os_log("Save button clicked", log: OSLog.default, type: .info)
 
             Task {
-                // Check required fields before saving
                 let requiredFields = islandDetails.requiredAddressFields
-                let missingFields = requiredFields.filter { !isValidField($0) }
-                
-                if missingFields.count > 0 {
+
+                let missing = requiredFields
+                    .filter { !isValidField($0) }
+                    .map { $0.rawValue }
+
+                // 🔴 trigger inline validation
+                self.missingFields = missing
+                self.showValidationMessage = true
+
+                // ✅ ADD THIS RIGHT HERE
+                let isIslandNameEmpty =
+                    islandDetails.islandName
+                        .trimmingCharacters(in: .whitespacesAndNewlines)
+                        .isEmpty
+
+                if !missing.isEmpty || isIslandNameEmpty {
                     toastMessage = "Please fill in all required fields"
                     showToast = true
                     return
                 }
-                
+
                 guard let currentUser = await authViewModel.getCurrentUser() else {
-                    self.alertMessage = "You must be logged in to add a new gym location."
-                    self.showAlert = true
+                    alertMessage = "You must be logged in to add a new gym location."
+                    showAlert = true
                     return
                 }
-                
+
                 await saveIsland(currentUser: currentUser) {
                     navigationPath.append("IslandMenu2")
                 }

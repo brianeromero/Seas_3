@@ -260,6 +260,11 @@ struct GymInformationSection: View {
     @State private var formState: FormState = FormState()
 
     
+    @State private var isSaveEnabled: Bool = false
+    @State private var showValidationMessage: Bool = false
+    @State private var missingFields: [String] = []
+
+    
     var body: some View {
         Section(header: HStack {
             Text("Gym Information")
@@ -272,26 +277,25 @@ struct GymInformationSection: View {
             IslandFormSections(
                 viewModel: islandViewModel,
                 profileViewModel: profileViewModel,
-                countryService: CountryService.shared,
-                islandName: $islandName,
-                street: $street,
-                city: $city,
-                state: $state,
-                postalCode: $postalCode,
-                islandDetails: $islandDetails,  // This must come before other parameters
-                selectedCountry: $selectedCountry,
+                islandName: $islandDetails.islandName,
+                street: $islandDetails.street,
+                city: $islandDetails.city,
+                state: $islandDetails.state,
+                postalCode: $islandDetails.postalCode,
+                islandDetails: $islandDetails,
+                selectedCountry: $islandDetails.selectedCountry,
                 gymWebsite: $gymWebsite,
                 gymWebsiteURL: $gymWebsiteURL,
-                province: $province,
-                neighborhood: $neighborhood,
-                complement: $complement,
-                apartment: $apartment,
-                region: $region,
-                county: $county,
-                governorate: $governorate,
-                additionalInfo: $additionalInfo,
-                
-                // Required parameters
+
+                // Additional address fields
+                province: $islandDetails.province,
+                neighborhood: $islandDetails.neighborhood,
+                complement: $islandDetails.complement,
+                apartment: $islandDetails.apartment,
+                region: $islandDetails.region,
+                county: $islandDetails.county,
+                governorate: $islandDetails.governorate,
+                additionalInfo: $islandDetails.additionalInfo,
                 department: $islandDetails.department,
                 parish: $islandDetails.parish,
                 district: $islandDetails.district,
@@ -303,12 +307,12 @@ struct GymInformationSection: View {
                 block: $islandDetails.block,
                 island: $islandDetails.island,
 
-                // Validation and alert
-                isIslandNameValid: $isIslandNameValid,
-                islandNameErrorMessage: $islandNameErrorMessage,
-                isFormValid: $isFormValid,
-                formState: $formState
+                // Validation bindings
+                isSaveEnabled: $isSaveEnabled,
+                showValidationMessage: $showValidationMessage,
+                missingFields: $missingFields
             )
+
             .padding(.horizontal, 20)
         }
     }
