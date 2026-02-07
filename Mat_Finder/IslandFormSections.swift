@@ -6,6 +6,14 @@ import CoreLocation
 import os
 
 
+enum FocusedField: Hashable {
+    case gymName
+    case address(AddressFieldType)
+    case website
+}
+
+
+
 // MARK: - Country Address Format
 struct CountryAddressFormat {
     let requiredFields: [AddressFieldType] // Change this line
@@ -26,6 +34,9 @@ func getPostalCodeValidationRegex(for country: String) -> String? {
 }
 
 struct IslandFormSections: View {
+    
+    @FocusState private var focusedField: FocusedField?
+
     @ObservedObject var viewModel: PirateIslandViewModel
     @ObservedObject var profileViewModel: ProfileViewModel
     @ObservedObject var countryService = CountryService.shared
@@ -123,19 +134,29 @@ struct IslandFormSections: View {
 
     // MARK: - Island Details Section
     var islandDetailsSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Gym Name").font(.headline)
-            TextField("Enter Gym Name", text: validatedBinding(for: \.islandName))
-            
+        VStack(alignment: .leading, spacing: 16) {
+            // Gym Name with subheader
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Gym Name")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                
+                TextField("Enter Gym Name", text: validatedBinding(for: \.islandName))
+                    .focused($focusedField, equals: .gymName)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+            }
+
+            // Dynamic Address Fields
             let requiredFields = requiredFields(for: selectedCountry)
             VStack(alignment: .leading, spacing: 12) {
                 ForEach(requiredFields, id: \.self) { field in
-                    addressField(for: field)
+                    addressField(for: field) // Each field now has its own subheader
                 }
             }
-            .padding(.top)
+            .padding(.top, 8)
         }
     }
+
     
     private func getMissingRequiredFields(for country: Country?) -> [String] {
         let required = requiredFields(for: country)
@@ -145,77 +166,75 @@ struct IslandFormSections: View {
         }
     }
 
+
     // MARK: - Address Field Dynamic Generation
     @ViewBuilder
     func addressField(for field: AddressFieldType) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            switch field {
-            case .street:
-                TextField("Street", text: $islandDetails.street)
-            case .city:
-                TextField("City", text: $islandDetails.city)
-            case .state:
-                if selectedCountry?.cca2 == "US" {
-                    Picker("State", selection: $islandDetails.state) {
-                        Text("Select State").tag("")
-                        ForEach(USStates.allCodes.sorted(), id: \.self) { code in
-                            Text(code).tag(code)
-                        }
+            // Subheader / label
+            Text(field.displayName)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+            
+            // Field input
+            if field == .state && selectedCountry?.cca2 == "US" {
+                Picker("State", selection: $islandDetails.state) {
+                    Text("Select State").tag("")
+                    ForEach(USStates.allCodes.sorted(), id: \.self) { code in
+                        Text(code).tag(code)
                     }
-                    .pickerStyle(MenuPickerStyle())
-                } else {
-                    TextField("State / Province / Region", text: $islandDetails.state)
                 }
-            case .postalCode:
-                TextField("Postal Code", text: $islandDetails.postalCode)
-            case .province:
-                TextField("Province", text: $islandDetails.province)
-            case .neighborhood:
-                TextField("Neighborhood", text: $islandDetails.neighborhood)
-            case .complement:
-                TextField("Complement", text: $islandDetails.complement)
-            case .apartment:
-                TextField("Apartment", text: $islandDetails.apartment)
-            case .region:
-                TextField("Region", text: $islandDetails.region)
-            case .county:
-                TextField("County", text: $islandDetails.county)
-            case .governorate:
-                TextField("Governorate", text: $islandDetails.governorate)
-            case .additionalInfo:
-                TextField("Additional Info", text: $islandDetails.additionalInfo)
-            case .island:
-                TextField("Island", text: $islandDetails.island)
-            case .department:
-                TextField("Department", text: $islandDetails.department)
-            case .parish:
-                TextField("Parish", text: $islandDetails.parish)
-            case .district:
-                TextField("District", text: $islandDetails.district)
-            case .entity:
-                TextField("Entity", text: $islandDetails.entity)
-            case .municipality:
-                TextField("Municipality", text: $islandDetails.municipality)
-            case .division:
-                TextField("Division", text: $islandDetails.division)
-            case .emirate:
-                TextField("Emirate", text: $islandDetails.emirate)
-            case .zone:
-                TextField("Zone", text: $islandDetails.zone)
-            case .block:
-                TextField("Block", text: $islandDetails.block)
-            default:
-                EmptyView()
+                .pickerStyle(MenuPickerStyle())
+                .focused($focusedField, equals: .address(field))
+            } else {
+                TextField("Enter \(field.displayName)", text: binding(for: field))
+                    .focused($focusedField, equals: .address(field))
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
             }
 
-            // Validation message
+            // Validation
             if showValidationMessage && missingFields.contains(field.rawValue) {
                 Text("\(field.displayName) is required")
                     .font(.caption)
                     .foregroundColor(.red)
             }
         }
+        .padding(.vertical, 6) // Slightly more spacing for clarity
     }
+
+
+    // MARK: - Binding Helper for All Address Fields
+    func binding(for field: AddressFieldType) -> Binding<String> {
+        switch field {
+        case .street: return $islandDetails.street
+        case .city: return $islandDetails.city
+        case .state: return $islandDetails.state
+        case .postalCode: return $islandDetails.postalCode
+        case .province: return $islandDetails.province
+        case .neighborhood: return $islandDetails.neighborhood
+        case .complement: return $islandDetails.complement
+        case .apartment: return $islandDetails.apartment
+        case .region: return $islandDetails.region
+        case .county: return $islandDetails.county
+        case .governorate: return $islandDetails.governorate
+        case .additionalInfo: return $islandDetails.additionalInfo
+        case .department: return $islandDetails.department
+        case .parish: return $islandDetails.parish
+        case .district: return $islandDetails.district
+        case .entity: return $islandDetails.entity
+        case .municipality: return $islandDetails.municipality
+        case .division: return $islandDetails.division
+        case .emirate: return $islandDetails.emirate
+        case .zone: return $islandDetails.zone
+        case .block: return $islandDetails.block
+        case .island: return $islandDetails.island
+        default:
+            // Safety fallback for future fields
+            return .constant("")
+        }
+    }
+
+
 
     // MARK: - Website Section
     var websiteSection: some View {

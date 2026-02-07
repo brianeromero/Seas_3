@@ -52,9 +52,11 @@ struct CreateAccountView: View {
     @State private var islandNameErrorMessage: String = ""
     
     // Account & Address Info
-    @State private var islandDetails = IslandDetails()
-    @State private var selectedCountry: Country? = Country(name: Country.Name(common: "United States"), cca2: "US", flag: "")
-    
+    @State private var islandDetails = IslandDetails(
+        selectedCountry: Country(name: Country.Name(common: "United States"), cca2: "US", flag: "")
+    )
+
+
     // Account and Profile Information
     
     @State private var gymWebsite: String = ""
@@ -247,10 +249,11 @@ struct CreateAccountView: View {
             .padding(.vertical)
             .background(Color(uiColor: .systemBackground))
         }
-        .onChange(of: selectedCountry) { newCountry, _ in
-            islandDetails.selectedCountry = newCountry
-            formState.selectedCountry = newCountry
+        .onChange(of: islandDetails.selectedCountry) {
+            formState.selectedCountry = islandDetails.selectedCountry
         }
+
+
         .alert(currentAlertType?.title ?? "Notice", isPresented: Binding(
             get: { currentAlertType != nil },
             set: { _ in currentAlertType = nil }
@@ -278,7 +281,7 @@ struct CreateAccountView: View {
             isButtonDisabled = true
             let (isValid, errorMsg) = isValidForm()
             if isValid {
-                await createAccount(country: selectedCountry?.name.common ?? "United States")
+                await createAccount(country: islandDetails.selectedCountry?.name.common ?? "United States")
             } else {
                 alertTitle = "Notice"
                 alertMessage = errorMsg ?? "Please complete all required fields."
@@ -405,9 +408,10 @@ struct CreateAccountView: View {
         if !formState.isPasswordValid { return (false, "Password is missing/invalid.") }
         if formState.password != formState.confirmPassword { return (false, "Passwords do not match.") }
 
-        if !islandDetails.islandName.isEmpty && !isAddressValid(for: selectedCountry?.cca2 ?? "") {
+        if !islandDetails.islandName.isEmpty && !isAddressValid(for: islandDetails.selectedCountry?.cca2 ?? "") {
             return (false, "Please complete all required address fields for the selected country.")
         }
+
 
         return (true, nil)
     }
