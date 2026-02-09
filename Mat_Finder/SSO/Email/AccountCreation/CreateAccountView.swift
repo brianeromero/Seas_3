@@ -262,9 +262,13 @@ struct CreateAccountView: View {
                 // Use the same logic as handleAlertDismiss
                 switch currentAlertType {
                 case .successAccount, .successAccountAndGym:
-                    authenticationState.accountCreatedSuccessfully = false
+                    authenticationState.setIsAuthenticated(true)
+                    authenticationState.navigateUnrestricted = true
+                    authenticationState.accountCreatedSuccessfully = true
+
                     currentAlertType = nil
-                    showCreateAccount = false // Close fullScreenCover
+                    showCreateAccount = false
+
                 default:
                     currentAlertType = nil
                 }

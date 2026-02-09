@@ -250,7 +250,6 @@ struct LoginView: View {
     @State private var alertMessage = ""
     @State private var currentAlertType: AccountAlertType?
 
-
     var body: some View {
         ZStack {
             LinearGradient(
@@ -270,12 +269,10 @@ struct LoginView: View {
                         .frame(width: 150)
                         .offset(y: -50)
 
-
                     Text("Log In to Mat_Finder")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(.white)
                         .padding(.top, 4)
-
                     
                     // --- Credential Login Card ---
                     LoginForm(
@@ -354,6 +351,17 @@ struct LoginView: View {
                     showCreateAccount: $showCreateAccount
                 )
             }
+        }
+        // 🔹 React to account creation (iOS 17+)
+        .onChange(of: authenticationState.accountCreatedSuccessfully) { oldValue, newValue in
+            guard newValue else { return }
+
+            authenticationState.setIsAuthenticated(true)
+            authenticationState.navigateUnrestricted = true
+            isLoggedIn = true
+
+            // reset the flag
+            authenticationState.accountCreatedSuccessfully = false
         }
 
     }

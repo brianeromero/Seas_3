@@ -87,6 +87,7 @@ struct Mat_FinderApp: App {
     }
 }
 
+// MARK: - APP ROOT VIEW
 struct AppRootView: View {
     @EnvironmentObject var authenticationState: AuthenticationState
     @EnvironmentObject var authViewModel: AuthViewModel
@@ -171,9 +172,12 @@ struct AppRootView: View {
                 .environmentObject(enterZipCodeViewModel)
             }
         }
+        // MARK: - Navigation Path Observer
         .onChange(of: navigationPath) { old, new in
             print("⚠️ navigationPath changed from \(old) to \(new)")
         }
+
+        // MARK: - Toast Notifications
         .onReceive(NotificationCenter.default.publisher(for: .init("ShowToast"))) { notification in
             guard let userInfo = notification.userInfo,
                   let message = userInfo["message"] as? String,
@@ -194,6 +198,8 @@ struct AppRootView: View {
         .onReceive(NotificationCenter.default.publisher(for: .init("HideToast"))) { _ in
             withAnimation { globalShowToast = false }
         }
+
+        // MARK: - Handle Logout
         .onReceive(NotificationCenter.default.publisher(for: .userLoggedOut)) { _ in
             withAnimation {
                 authenticationState.isAuthenticated = false
@@ -203,8 +209,7 @@ struct AppRootView: View {
             }
         }
 
-
-        
+        // MARK: - Navigate Home
         .onReceive(NotificationCenter.default.publisher(for: .navigateHome)) { _ in
             print("🧭 AppRootView received navigateHome")
 
@@ -212,9 +217,25 @@ struct AppRootView: View {
             AppRouter.shared.currentScreen = .main
         }
 
+        // MARK: - React to Account Creation
+        .onChange(of: authenticationState.accountCreatedSuccessfully) { oldValue, newValue in
+            guard newValue else { return }
+
+            withAnimation {
+                // Set authenticated
+                authenticationState.setIsAuthenticated(true)
+                authenticationState.navigateUnrestricted = true
+
+                // Reset the flag
+                authenticationState.accountCreatedSuccessfully = false
+
+                // Clear navigationPath to show unrestricted IslandMenu2
+                navigationPath = NavigationPath()
+            }
+        }
 
 
-        // Global toast overlay
+        // MARK: - Global toast overlay
         .overlay(
             Group {
                 if globalShowToast {
@@ -232,6 +253,7 @@ struct AppRootView: View {
         )
     }
 }
+
 
 
 struct AppRootDestinationView: View {
