@@ -164,6 +164,7 @@ struct CreateAccountView: View {
 
                 BeltSection(belt: $belt, beltOptions: beltOptions, usePickerStyle: true)
 
+/*
                 // GYM INFORMATION SECTION
                 Section(header: HStack {
                     Text("Gym Information").fontWeight(.bold)
@@ -205,6 +206,9 @@ struct CreateAccountView: View {
                         missingFields: $missingFields
                     )
                 }
+ 
+ 
+ */
 
                 Button(action: handleCreateAccountButtonTapped) {
                     Text("Create Account")
