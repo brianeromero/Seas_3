@@ -244,6 +244,12 @@ struct LoginView: View {
     @State private var errorMessage = ""
     @State private var isSignInEnabled = false
     @State private var showCreateAccount = false
+    
+    @State private var showAlert = false
+    @State private var alertTitle = ""
+    @State private var alertMessage = ""
+    @State private var currentAlertType: AccountAlertType?
+
 
     var body: some View {
         ZStack {
@@ -341,14 +347,15 @@ struct LoginView: View {
                     selectedTabIndex: .constant(.login),
                     navigationPath: $navigationPath,
                     emailManager: UnifiedEmailManager.shared,
-                    showAlert: .constant(false),
-                    alertTitle: .constant(""),
-                    alertMessage: .constant(""),
-                    currentAlertType: .constant(nil),
+                    showAlert: $showAlert,
+                    alertTitle: $alertTitle,
+                    alertMessage: $alertMessage,
+                    currentAlertType: $currentAlertType,
                     showCreateAccount: $showCreateAccount
                 )
             }
         }
+
     }
 
     private func handlePostLogin() async {
