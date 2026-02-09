@@ -91,6 +91,8 @@ struct CreateAccountView: View {
     
     let emailManager: UnifiedEmailManager
     
+
+    // MARK: - Init
     init(
         islandViewModel: PirateIslandViewModel,
         isUserProfileActive: Binding<Bool>,
@@ -102,7 +104,7 @@ struct CreateAccountView: View {
         alertTitle: Binding<String>,
         alertMessage: Binding<String>,
         currentAlertType: Binding<AccountAlertType?>,
-        showCreateAccount: Binding<Bool>       // <-- NEW
+        showCreateAccount: Binding<Bool>
     ) {
         self._islandViewModel = ObservedObject(wrappedValue: islandViewModel)
         self._isUserProfileActive = isUserProfileActive
@@ -115,43 +117,32 @@ struct CreateAccountView: View {
         self._alertTitle = alertTitle
         self._alertMessage = alertMessage
         self._currentAlertType = currentAlertType
-        self._showCreateAccount = showCreateAccount   // <-- SET IT HERE
+        self._showCreateAccount = showCreateAccount
     }
-    
     
     // MARK: - Body
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                
                 // ← BACK BUTTON
                 HStack {
-                    Button(action: {
-                        showCreateAccount = false // close the fullScreenCover
-                    }) {
+                    Button(action: { showCreateAccount = false }) {
                         Image(systemName: "chevron.left")
-                            .foregroundColor(.blue)
-                            .imageScale(.large)
-                        Text("Back")
-                            .foregroundColor(.blue)
-                            .fontWeight(.medium)
+                        Text("Back").fontWeight(.medium)
                     }
+                    .foregroundColor(.blue)
                     .padding(.leading, 16)
-                    
                     Spacer()
                 }
                 .padding(.top, 16)
-                
-                // TITLE
+
                 Text("Create Account")
                     .font(.largeTitle)
                     .fontWeight(.bold)
                     .padding(.horizontal, 20)
-                
-                // USER INFORMATION
+
                 UserInformationView(formState: $formState)
-                
-                // PASSWORD FIELD
+
                 PasswordField(
                     password: $formState.password,
                     isValid: $formState.isPasswordValid,
@@ -164,26 +155,21 @@ struct CreateAccountView: View {
                         return (true, "")
                     }
                 )
-                
-                // CONFIRM PASSWORD
+
                 ConfirmPasswordField(
                     confirmPassword: $formState.confirmPassword,
                     isValid: $formState.isConfirmPasswordValid,
                     password: $formState.password
                 )
-                
-                // BELT PICKER
+
                 BeltSection(belt: $belt, beltOptions: beltOptions, usePickerStyle: true)
-                
+
                 // GYM INFORMATION SECTION
                 Section(header: HStack {
-                    Text("Gym Information")
-                        .fontWeight(.bold)
-                        .foregroundColor(.primary)
-                    Text("(Optional)")
-                        .foregroundColor(.secondary)
-                        .opacity(0.7)
+                    Text("Gym Information").fontWeight(.bold)
+                    Text("(Optional)").foregroundColor(.secondary).opacity(0.7)
                 }.padding(.horizontal, 20)) {
+
                     IslandFormSections(
                         viewModel: islandViewModel,
                         profileViewModel: profileViewModel,
@@ -196,8 +182,6 @@ struct CreateAccountView: View {
                         selectedCountry: $islandDetails.selectedCountry,
                         gymWebsite: $gymWebsite,
                         gymWebsiteURL: $gymWebsiteURL,
-
-                        // Additional address fields
                         province: $islandDetails.province,
                         neighborhood: $islandDetails.neighborhood,
                         complement: $islandDetails.complement,
@@ -216,17 +200,12 @@ struct CreateAccountView: View {
                         zone: $islandDetails.zone,
                         block: $islandDetails.block,
                         island: $islandDetails.island,
-
-                        // Validation bindings
                         isSaveEnabled: $isSaveEnabled,
-                        showValidationMessage: $showValidationMessage,
+                        showValidationMessage: wantsToAddGym ? $showValidationMessage : .constant(false),
                         missingFields: $missingFields
                     )
-
-
                 }
-                
-                // CREATE ACCOUNT BUTTON
+
                 Button(action: handleCreateAccountButtonTapped) {
                     Text("Create Account")
                         .font(.title2)
@@ -241,9 +220,7 @@ struct CreateAccountView: View {
                 .padding(.bottom)
                 .disabled(isButtonDisabled)
                 .onAppear {
-                    Task {
-                        await countryService.fetchCountries()
-                    }
+                    Task { await countryService.fetchCountries() }
                 }
             }
             .padding(.vertical)
@@ -253,47 +230,81 @@ struct CreateAccountView: View {
             formState.selectedCountry = islandDetails.selectedCountry
         }
 
-
-        .alert(currentAlertType?.title ?? "Notice", isPresented: Binding(
-            get: { currentAlertType != nil },
-            set: { _ in currentAlertType = nil }
-        )) {
+        // ✅ Unified Alert (handles success and validation/missing fields)
+        .alert(
+            currentAlertType?.title ?? alertTitle,
+            isPresented: Binding<Bool>(
+                get: { showAlert || currentAlertType != nil },
+                set: { _ in
+                    showAlert = false
+                    currentAlertType = nil
+                }
+            )
+        ) {
             Button("OK") {
-                // Use the same logic as handleAlertDismiss
-                switch currentAlertType {
-                case .successAccount, .successAccountAndGym:
-                    authenticationState.setIsAuthenticated(true)
-                    authenticationState.navigateUnrestricted = true
-                    authenticationState.accountCreatedSuccessfully = true
-
-                    currentAlertType = nil
-                    showCreateAccount = false
-
-                default:
-                    currentAlertType = nil
+                if let type = currentAlertType {
+                    if type == .successAccount || type == .successAccountAndGym {
+                        authenticationState.setIsAuthenticated(true)
+                        authenticationState.navigateUnrestricted = true
+                        authenticationState.accountCreatedSuccessfully = true
+                        showCreateAccount = false
+                    }
                 }
             }
         } message: {
-            Text(currentAlertType?.defaultMessage ?? "")
+            Text(currentAlertType?.defaultMessage ?? alertMessage)
         }
     }
 
+    // MARK: - Helpers
+    private var wantsToAddGym: Bool {
+        !islandDetails.islandName.trimmingCharacters(in: .whitespaces).isEmpty ||
+        !gymWebsite.trimmingCharacters(in: .whitespaces).isEmpty
+    }
     
     // MARK: - Button Action
     private func handleCreateAccountButtonTapped() {
         Task {
             isButtonDisabled = true
-            let (isValid, errorMsg) = isValidForm()
+            missingFields = getMissingFields()
+            let (isValid, _) = isValidForm()
+
             if isValid {
                 await createAccount(country: islandDetails.selectedCountry?.name.common ?? "United States")
             } else {
-                alertTitle = "Notice"
-                alertMessage = errorMsg ?? "Please complete all required fields."
+                // Dynamically build missing fields message
+                let fieldList = missingFields.map { "- \($0)" }.joined(separator: "\n")
+                alertTitle = "Fields Required"
+                alertMessage = fieldList.isEmpty ? "Please complete all required fields." : "Please fill in the following fields:\n\(fieldList)"
                 showAlert = true
                 isButtonDisabled = false
             }
         }
     }
+    
+    private func getMissingFields() -> [String] {
+        var fields: [String] = []
+
+        if formState.userName.trimmingCharacters(in: .whitespaces).isEmpty { fields.append("Username") }
+        if formState.name.trimmingCharacters(in: .whitespaces).isEmpty { fields.append("Full Name") }
+        if formState.email.trimmingCharacters(in: .whitespaces).isEmpty { fields.append("Email") }
+        if formState.password.trimmingCharacters(in: .whitespaces).isEmpty { fields.append("Password") }
+        if formState.password != formState.confirmPassword { fields.append("Passwords do not match") }
+
+        if wantsToAddGym {
+            let gymFields: [(String, Bool)] = [
+                ("Island Name", islandDetails.islandName.trimmingCharacters(in: .whitespaces).isEmpty),
+                ("Street", islandDetails.street.trimmingCharacters(in: .whitespaces).isEmpty),
+                ("City", islandDetails.city.trimmingCharacters(in: .whitespaces).isEmpty),
+                ("State", islandDetails.state.trimmingCharacters(in: .whitespaces).isEmpty),
+                ("Postal Code", islandDetails.postalCode.trimmingCharacters(in: .whitespaces).isEmpty)
+            ]
+            for (name, isEmpty) in gymFields where isEmpty { fields.append(name) }
+        }
+
+        return fields
+    }
+
     
     // MARK: - Account Creation
     private func createAccount(country: String) async {
@@ -412,13 +423,13 @@ struct CreateAccountView: View {
         if !formState.isPasswordValid { return (false, "Password is missing/invalid.") }
         if formState.password != formState.confirmPassword { return (false, "Passwords do not match.") }
 
-        if !islandDetails.islandName.isEmpty && !isAddressValid(for: islandDetails.selectedCountry?.cca2 ?? "") {
-            return (false, "Please complete all required address fields for the selected country.")
+        if wantsToAddGym && !isAddressValid(for: islandDetails.selectedCountry?.cca2 ?? "") {
+            return (false, "Please complete all required address fields for the gym.")
         }
-
 
         return (true, nil)
     }
+
 
     func isAddressValid(for countryCode: String) -> Bool {
         guard !countryCode.isEmpty else { return false }
