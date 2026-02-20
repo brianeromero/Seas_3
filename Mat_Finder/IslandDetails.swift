@@ -60,8 +60,8 @@ public class IslandDetails: ObservableObject, Equatable {
     @Published var additionalInfo: String = ""
 
     // ADD THIS NEW PROPERTY:
-    @Published var islandID: UUID? // This is crucial for linking to an existing PirateIsland
-
+    @Published var islandID: String?
+    
     // MARK: - Computed Properties
     var islandLocation: String {
         let locationComponents = requiredAddressFields.compactMap { field -> String? in
@@ -112,7 +112,7 @@ public class IslandDetails: ObservableObject, Equatable {
          requiredAddressFields: [AddressFieldType] = [],
          gymWebsite: String = "",
          gymWebsiteURL: URL? = nil,
-         islandID: UUID? = nil) { // ADD THIS PARAMETER TO THE INITIALIZER
+         islandID: String? = nil) { // ADD THIS PARAMETER TO THE INITIALIZER
         self.islandName = islandName
         self.street = street
         self.city = city
@@ -210,12 +210,11 @@ public class IslandDetails: ObservableObject, Equatable {
 
 }
 
-
 extension IslandDetails: CustomStringConvertible {
     public var description: String {
         return """
         IslandDetails:
-        - ID: \(islandID?.uuidString ?? "nil")
+        - ID: \(islandID ?? "nil")   // ✅ fixed
         - Name: \(islandName)
         - Street: \(street)
         - City: \(city)

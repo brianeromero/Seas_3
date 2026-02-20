@@ -492,6 +492,7 @@ struct CreateAccountView: View {
             case .postalCodeMissing: return "Postal code is missing"
             case .fieldMissing(let fieldName): return "\(fieldName) is missing."
             case .invalidGymWebsite: return "Gym Website appears to be invalid"
+            case .missingID: return "Gym entry is mising an ID"
             }
         } else {
             let errorCode = (error as NSError).code

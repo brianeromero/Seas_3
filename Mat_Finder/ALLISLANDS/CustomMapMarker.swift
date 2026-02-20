@@ -12,7 +12,7 @@ import MapKit
 
 
 struct CustomMapMarker: Identifiable, Equatable {
-    let id: UUID
+    var id: String
     var coordinate: CLLocationCoordinate2D
     var count: Int?               // number to show in circle; nil for individual pins
     var title: String?            // subline / callout
@@ -31,7 +31,7 @@ struct CustomMapMarker: Identifiable, Equatable {
     // Factory for individual pin
     static func forPirateIsland(_ island: PirateIsland) -> CustomMapMarker {
         CustomMapMarker(
-            id: island.islandID ?? UUID(),
+            id: island.islandID ?? UUID().uuidString, // ✅ use String
             coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude),
             count: nil,                   // individual pin, no number
             title: island.islandName,
@@ -42,7 +42,7 @@ struct CustomMapMarker: Identifiable, Equatable {
     // Factory for cluster
     static func forCluster(at coordinate: CLLocationCoordinate2D, count: Int) -> CustomMapMarker {
         CustomMapMarker(
-            id: UUID(),
+            id: UUID().uuidString, // ✅ use String for cluster ID too
             coordinate: coordinate,
             count: count,                      // number to display in circle
             title: "\(count) Gyms Nearby",    // subline
@@ -55,7 +55,6 @@ struct CustomMapMarker: Identifiable, Equatable {
         return islandLocation.distance(from: location)
     }
 }
-
 
 struct ClusterMarkerView: View {
     let count: Int

@@ -396,7 +396,7 @@ public struct EditExistingIsland: View {
             }
 
             // 2️⃣ Prepare data for Firestore update
-            if let islandID = island.islandID?.uuidString {
+            if let islandID = island.islandID {
                 var dataToUpdate: [String: Any] = [
                     "islandName": newIslandName,
                     "islandLocation": newIslandLocation,

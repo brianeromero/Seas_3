@@ -259,8 +259,8 @@ enum DestinationView {
 struct SelectedIslandView: View {
     let island: PirateIsland
 
-    @Binding var selectedIslandID: UUID?
-
+    @Binding var selectedIslandID: String?
+    
     var enterZipCodeViewModel: EnterZipCodeViewModel
     var onIslandChange: (PirateIsland?) -> Void
     var authViewModel: AuthViewModel

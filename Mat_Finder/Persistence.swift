@@ -15,7 +15,7 @@ import FirebaseAuth
 final class PersistenceController: ObservableObject {
 
     // MARK: - Singleton Instance
-    static let shared = PersistenceController() // ✅ Fix: allow access outside @MainActor
+    static let shared = PersistenceController()
 
     // MARK: - Core Data & Firestore
     let container: NSPersistentContainer
@@ -23,13 +23,14 @@ final class PersistenceController: ObservableObject {
 
     var viewContext: NSManagedObjectContext { container.viewContext }
 
+    
     // MARK: - Preview Provider
     static var preview: PersistenceController = {
         let result = PersistenceController(inMemory: true)
         let viewContext = result.container.viewContext
 
         let dummyIsland = PirateIsland(context: viewContext)
-        dummyIsland.islandID = UUID()
+        dummyIsland.islandID = UUID().uuidString
         dummyIsland.islandName = "Preview Island"
         dummyIsland.islandLocation = "Fictional Place"
         dummyIsland.country = "Imagination Land"
@@ -41,44 +42,51 @@ final class PersistenceController: ObservableObject {
         dummyIsland.longitude = -118.2437
         dummyIsland.gymWebsite = URL(string: "https://example.com")
 
-        let dummyAppDayOfWeek = AppDayOfWeek(context: viewContext)
-        dummyAppDayOfWeek.id = UUID()
-        dummyAppDayOfWeek.day = DayOfWeek.monday.rawValue
-        dummyAppDayOfWeek.pIsland = dummyIsland
-
         do { try viewContext.save() }
-        catch { fatalError("Unresolved error \(error)") }
+        catch { fatalError("Preview save failed: \(error)") }
 
         return result
     }()
 
+    
     // MARK: - Initializer
     private init(inMemory: Bool = false) {
         self.firestoreManager = FirestoreManager.shared
         container = NSPersistentContainer(name: "Mat_Finder")
 
+        guard let description = container.persistentStoreDescriptions.first else {
+            fatalError("❌ No persistent store description found.")
+        }
+
         if inMemory {
-            container.persistentStoreDescriptions.first?.url = URL(fileURLWithPath: "/dev/null")
+            description.url = URL(fileURLWithPath: "/dev/null")
             FirestoreManager.shared.disabled = true
         }
 
+        // 🔥 LIGHTWEIGHT MIGRATION ENABLED
+        description.setOption(true as NSNumber,
+                              forKey: NSMigratePersistentStoresAutomaticallyOption)
+        description.setOption(true as NSNumber,
+                              forKey: NSInferMappingModelAutomaticallyOption)
+
         container.loadPersistentStores { description, error in
             if let error = error as NSError? {
+                print("🔥 Persistent Store Load Error:")
+                print(error)
+                print(error.userInfo)
                 fatalError("Unresolved error \(error), \(error.userInfo)")
+            } else {
+                print("✅ Persistent Store Loaded: \(description.url?.absoluteString ?? "unknown")")
             }
         }
 
-        // 🔥 REQUIRED FIXES — prevent SwiftUI "background thread publishing" errors
         container.viewContext.automaticallyMergesChangesFromParent = true
         container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
 
-        viewContext.automaticallyMergesChangesFromParent = true
-        viewContext.perform {
-            print("✅ ViewContext access is safe — running on \(Thread.isMainThread ? "Main Thread" : "Background Thread")")
+        container.viewContext.perform {
+            print("✅ ViewContext running on main thread: \(Thread.isMainThread)")
         }
     }
-
-
     
     // MARK: - Core Data Methods
     func fetch<T: NSManagedObject>(_ request: NSFetchRequest<T>) async throws -> [T] {
@@ -86,43 +94,54 @@ final class PersistenceController: ObservableObject {
     }
 
     func create<T: NSManagedObject>(entityName: String) -> T? {
-        guard let entity = NSEntityDescription.entity(forEntityName: entityName, in: viewContext) else { return nil }
+        guard let entity = NSEntityDescription.entity(forEntityName: entityName, in: viewContext)
+        else { return nil }
         return T(entity: entity, insertInto: viewContext)
     }
 
+
     // MARK: - Save Context
-    @MainActor
     func saveContext() async throws {
         guard viewContext.hasChanges else {
-            print("💤 No Core Data changes to save — skipping saveContext()")
+            print("💤 No Core Data changes to save")
             return
         }
 
         do {
             try viewContext.save()
-            print("💾 Successfully saved context on main actor.")
+            print("💾 Core Data save successful")
         } catch {
             viewContext.rollback()
-            print("❌ Core Data save failed: \(error.localizedDescription)")
+            print("❌ Core Data save failed: \(error)")
             throw error
         }
     }
+
     
     // MARK: - PirateIsland CRUD
     func fetchAllPirateIslands() async throws -> [PirateIsland] {
         let request: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
         return try await fetch(request)
     }
+
     
     func createOrUpdatePirateIsland(
-        islandID: UUID, name: String, location: String, country: String,
-        createdByUserId: String, createdTimestamp: Date,
-        lastModifiedByUserId: String, lastModifiedTimestamp: Date,
-        latitude: Double, longitude: Double, gymWebsiteURL: URL?
+        islandID: UUID,
+        name: String,
+        location: String,
+        country: String,
+        createdByUserId: String,
+        createdTimestamp: Date,
+        lastModifiedByUserId: String,
+        lastModifiedTimestamp: Date,
+        latitude: Double,
+        longitude: Double,
+        gymWebsiteURL: URL?
     ) async throws -> PirateIsland {
-        let request: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
-        request.predicate = NSPredicate(format: "islandID == %@", islandID as CVarArg)
 
+        let request: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
+        request.predicate = NSPredicate(format: "islandID == %@", islandID.uuidString)
+        
         if let existing = try await fetch(request).first {
             existing.islandName = name
             existing.islandLocation = location
@@ -138,7 +157,7 @@ final class PersistenceController: ObservableObject {
             return existing
         } else {
             let newIsland = PirateIsland(context: viewContext)
-            newIsland.islandID = islandID
+            newIsland.islandID = islandID.uuidString
             newIsland.islandName = name
             newIsland.islandLocation = location
             newIsland.country = country
@@ -154,8 +173,10 @@ final class PersistenceController: ObservableObject {
         }
     }
     
+
     func cachePirateIslandsFromFirestore() async throws {
         let snapshot = try await firestoreManager.getDocuments(in: .pirateIslands)
+
         for document in snapshot {
             let islandID = UUID(uuidString: document.documentID) ?? UUID()
             let name = document.get("name") as? String ?? ""
@@ -167,13 +188,22 @@ final class PersistenceController: ObservableObject {
             let lastModifiedTimestamp = (document.get("lastModifiedTimestamp") as? Timestamp)?.dateValue() ?? Date()
             let latitude = document.get("latitude") as? Double ?? 0
             let longitude = document.get("longitude") as? Double ?? 0
-            let gymWebsiteURL = URL(string: document.get("gymWebsite") as? String ?? "")
-            
+
+            let websiteString = document.get("gymWebsite") as? String
+            let gymWebsiteURL = websiteString.flatMap { URL(string: $0) }
+
             _ = try await createOrUpdatePirateIsland(
-                islandID: islandID, name: name, location: location, country: country,
-                createdByUserId: createdByUserId, createdTimestamp: createdTimestamp,
-                lastModifiedByUserId: lastModifiedByUserId, lastModifiedTimestamp: lastModifiedTimestamp,
-                latitude: latitude, longitude: longitude, gymWebsiteURL: gymWebsiteURL
+                islandID: islandID,
+                name: name,
+                location: location,
+                country: country,
+                createdByUserId: createdByUserId,
+                createdTimestamp: createdTimestamp,
+                lastModifiedByUserId: lastModifiedByUserId,
+                lastModifiedTimestamp: lastModifiedTimestamp,
+                latitude: latitude,
+                longitude: longitude,
+                gymWebsiteURL: gymWebsiteURL
             )
         }
     }
@@ -182,7 +212,7 @@ final class PersistenceController: ObservableObject {
         if entityName == "PirateIsland" {
             guard let snapshot = try await firestoreManager.getDocuments(in: .pirateIslands).first else { return nil }
             let island = PirateIsland(context: viewContext)
-            island.islandID = UUID(uuidString: snapshot.documentID) ?? UUID()
+            island.islandID = snapshot.documentID  // ✅ Assign string directly
             island.islandName = snapshot.get("islandName") as? String
             try await saveContext()
             return island
@@ -190,15 +220,24 @@ final class PersistenceController: ObservableObject {
 
         let request = NSFetchRequest<NSManagedObject>(entityName: entityName)
         request.fetchLimit = 1
-        // Direct fetch without perform { ... } avoids Sendable/main-actor issues
         return try viewContext.fetch(request).first
     }
 
     
     // MARK: - Local Fetch Helpers
+    
+    // MARK: - Local Fetch Helpers (String ID version for PirateIsland)
+    func fetchLocalRecord(forCollection collectionName: String, recordId: String) throws -> NSManagedObject? {
+        guard collectionName == "pirateIslands" else { return nil }
+
+        let request = NSFetchRequest<PirateIsland>(entityName: "PirateIsland")
+        request.predicate = NSPredicate(format: "islandID == %@", recordId)
+        request.fetchLimit = 1
+        return try viewContext.fetch(request).first
+    }
+    
     func fetchLocalRecord(forCollection collectionName: String, recordId: UUID) throws -> NSManagedObject? {
         let entityMap = [
-            "pirateIslands": "PirateIsland",
             "reviews": "Review",
             "matTimes": "MatTime",
             "appDayOfWeeks": "AppDayOfWeek"
@@ -211,8 +250,6 @@ final class PersistenceController: ObservableObject {
         let idNoHyphen = idString.replacingOccurrences(of: "-", with: "")
 
         switch collectionName {
-        case "pirateIslands":
-            request.predicate = NSPredicate(format: "islandID == %@ OR islandID == %@", idString, idNoHyphen)
         case "reviews":
             request.predicate = NSPredicate(format: "reviewID == %@ OR reviewID == %@", idString, idNoHyphen)
         case "matTimes":
@@ -226,7 +263,6 @@ final class PersistenceController: ObservableObject {
         request.fetchLimit = 1
         return try viewContext.fetch(request).first
     }
-
 
     // MARK: - Generic Record Fetchers
     // For entities where the UUID is optional (UUID?)
@@ -261,7 +297,7 @@ final class PersistenceController: ObservableObject {
     
     private func getDocumentID(for record: NSManagedObject) -> String? {
         switch record {
-        case let island as PirateIsland: return island.islandID?.uuidString
+        case let island as PirateIsland: return island.islandID
         case let review as Review: return review.reviewID.uuidString
         case let matTime as MatTime: return matTime.id?.uuidString
         case let appDay as AppDayOfWeek: return appDay.id?.uuidString
@@ -320,6 +356,16 @@ extension PersistenceController {
 
 
 extension PersistenceController {
+    
+    func fetchLocalRecords<T: NSManagedObject>(
+        forEntity entity: T.Type,
+        keyPath: KeyPath<T, String?>
+    ) throws -> [String] {
+        let request = NSFetchRequest<T>(entityName: String(describing: entity))
+        return try viewContext.fetch(request).compactMap { $0[keyPath: keyPath] }
+    }
+    
+    
     func fetchLocalRecords(forCollection collectionName: String) async throws -> [String]? {
         switch collectionName {
         case "pirateIslands":

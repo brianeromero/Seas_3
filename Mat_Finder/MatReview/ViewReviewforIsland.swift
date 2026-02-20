@@ -220,11 +220,11 @@ struct ViewReviewforIsland: View {
 
     let selectedIsland: PirateIsland
 
-    @State private var selectedIslandID: UUID?
+    @State private var selectedIslandID: String?
     
     private var selectedIslandInternal: PirateIsland? {
         guard let id = selectedIslandID else { return nil }
-        return islands.first { $0.islandID == id }
+        return islands.first { $0.islandID == id }  // ✅ Compare strings
     }
 
 
@@ -255,7 +255,7 @@ struct ViewReviewforIsland: View {
             "ViewReviewforIsland INIT - selectedIslandID: %@",
             log: logger,
             type: .info,
-            selectedIsland.islandID?.uuidString ?? "nil"
+            selectedIsland.islandID ?? "nil"   // ✅ No uuidString
         )
     }
 

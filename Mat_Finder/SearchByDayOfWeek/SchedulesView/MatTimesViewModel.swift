@@ -46,8 +46,8 @@ class MatTimesViewModel: ObservableObject {
             "restrictionDescription": matTime.restrictionDescription ?? "",
             "goodForBeginners": matTime.goodForBeginners,
             "kids": matTime.kids,
-            "appDayOfWeekID": selectedAppDayOfWeek.appDayOfWeekID ?? "",
-            "pIsland": selectedIsland.islandID?.uuidString ?? "",
+            "appDayOfWeekID": selectedAppDayOfWeek.appDayOfWeekID ?? "",  // ✅ Already String
+            "pIsland": selectedIsland.islandID ?? "",                     // ✅ Already String
             "createdByUserId": "Unknown User",
             "createdTimestamp": Date(),
             "lastModifiedByUserId": "Unknown User",

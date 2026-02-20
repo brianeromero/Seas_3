@@ -147,7 +147,7 @@ struct DayOfWeekSearchView: View {
             equatableRegionWrapper.region = MapUtils.updateRegion(
                 markers: viewModel.islandsWithMatTimes.map {
                     CustomMapMarker(
-                        id: $0.0.islandID ?? UUID(),
+                        id: $0.0.islandID ?? UUID().uuidString, // ✅ Use UUID string
                         coordinate: CLLocationCoordinate2D(
                             latitude: $0.0.latitude,
                             longitude: $0.0.longitude
@@ -162,7 +162,6 @@ struct DayOfWeekSearchView: View {
         }
     }
 }
-
 
 // MARK: - Error View
 struct ErrorView: View {

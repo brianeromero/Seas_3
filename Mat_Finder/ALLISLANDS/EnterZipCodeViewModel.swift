@@ -87,7 +87,7 @@ class EnterZipCodeViewModel: ObservableObject {
                 updateClusteringMode(with: newRegion)
 
                 self.enteredLocation = CustomMapMarker(
-                    id: UUID(),
+                    id: UUID().uuidString, // ✅ use string
                     coordinate: coordinate,
                     title: address,
                     pirateIsland: nil
@@ -130,12 +130,19 @@ class EnterZipCodeViewModel: ObservableObject {
                     .distance(from: location) <= radius
             }
 
-            pirateIslands = filteredIslands.map {
-                CustomMapMarker(
-                    id: $0.islandID ?? UUID(),
-                    coordinate: CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude),
-                    title: $0.islandName ?? "Unknown Gym",
-                    pirateIsland: $0
+            pirateIslands = filteredIslands.map { island in
+                let idString: String
+                if let islandID = island.islandID, !islandID.isEmpty {
+                    idString = islandID
+                } else {
+                    idString = UUID().uuidString
+                }
+
+                return CustomMapMarker(
+                    id: idString,
+                    coordinate: CLLocationCoordinate2D(latitude: island.latitude, longitude: island.longitude),
+                    title: island.islandName ?? "Unknown Gym",
+                    pirateIsland: island
                 )
             }
 

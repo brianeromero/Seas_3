@@ -41,7 +41,7 @@ struct IslandDetailView: View {
         }
 
         let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "islandID == %@", islandID as CVarArg)
+        fetchRequest.predicate = NSPredicate(format: "islandID == %@", islandID)
 
         do {
             let results = try viewContext.fetch(fetchRequest)

@@ -1324,7 +1324,7 @@ final class AppDayOfWeekViewModel: ObservableObject {
             print("☁️ Firestore: Fetched \(querySnapshot.documents.count) documents for day \(day.rawValue).")
 
             // 2️⃣ Merge Firestore data into Core Data on a background context
-            let islandsToUpdateInFirestore = try await withCheckedThrowingContinuation { continuation in
+            let islandsToUpdateInFirestore = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[(PirateIsland, DocumentReference)], Error>) in
                 PersistenceController.shared.container.performBackgroundTask { backgroundContext in
                     do {
                         var firestoreUpdateList: [(PirateIsland, DocumentReference)] = []
@@ -1332,31 +1332,27 @@ final class AppDayOfWeekViewModel: ObservableObject {
                         for document in querySnapshot.documents {
                             let islandID = document.data()["id"] as? String ?? document.documentID
                             let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
-                            fetchRequest.predicate = NSPredicate(format: "id == %@", islandID)
+                            fetchRequest.predicate = NSPredicate(format: "islandID == %@", islandID)
                             fetchRequest.fetchLimit = 1
 
                             let existingIsland = try? backgroundContext.fetch(fetchRequest).first
                             if let island = existingIsland {
                                 island.configure(document.data())
                                 firestoreUpdateList.append((island, document.reference))
-                                print("    ➡️ Updated existing island: \(island.islandName ?? "Unnamed")")
                             } else {
                                 let newIsland = PirateIsland(context: backgroundContext)
                                 newIsland.configure(document.data())
-                                newIsland.islandID = UUID(uuidString: islandID) ?? UUID()
+                                newIsland.islandID = islandID.isEmpty ? UUID().uuidString : islandID
                                 firestoreUpdateList.append((newIsland, document.reference))
-                                print("    ➡️ Created new island: \(newIsland.islandName ?? "Unnamed")")
                             }
                         }
 
                         if backgroundContext.hasChanges {
                             try backgroundContext.save()
-                            print("    💾 BackgroundContext: Saved changes after Firestore merge.")
                         }
 
                         continuation.resume(returning: firestoreUpdateList)
                     } catch {
-                        print("    ❌ BackgroundContext: Error merging Firestore data: \(error.localizedDescription)")
                         continuation.resume(throwing: error)
                     }
                 }
@@ -1488,21 +1484,23 @@ final class AppDayOfWeekViewModel: ObservableObject {
 
 }
 
-
 extension PirateIsland {
     func configure(_ data: [String: Any]) {
-        // Map Firestore document data to PirateIsland properties
+        // Use the string directly
         if let islandIDString = data["islandID"] as? String {
-            self.islandID = UUID(uuidString: islandIDString) // Convert String to UUID
+            self.islandID = islandIDString
+        } else {
+            // fallback: generate a new UUID string if missing
+            self.islandID = UUID().uuidString
         }
-        self.islandName = data["islandName"] as? String
-        self.islandLocation = data["islandLocation"] as? String // Corrected to islandLocation
-        self.country = data["country"] as? String  // Add other fields as needed
 
-        // Map days (which should be a relationship to AppDayOfWeek) if needed
+        self.islandName = data["islandName"] as? String
+        self.islandLocation = data["islandLocation"] as? String
+        self.country = data["country"] as? String
+
+        // Map days if needed (create AppDayOfWeek relationships)
         if data["days"] is [String] {
-            // Create AppDayOfWeek objects and assign them
-            // You need to create and associate AppDayOfWeek objects for each day if necessary
+            // TODO: create or fetch AppDayOfWeek objects and associate
         }
     }
 }

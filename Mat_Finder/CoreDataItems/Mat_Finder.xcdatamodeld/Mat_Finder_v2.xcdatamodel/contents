@@ -33,7 +33,7 @@
         <attribute name="createdByUserId" optional="YES" attributeType="String"/>
         <attribute name="createdTimestamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="gymWebsite" optional="YES" attributeType="URI"/>
-        <attribute name="islandID" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="islandID" optional="YES" attributeType="String"/>
         <attribute name="islandLocation" attributeType="String"/>
         <attribute name="islandName" attributeType="String"/>
         <attribute name="lastModifiedByUserId" optional="YES" attributeType="String"/>

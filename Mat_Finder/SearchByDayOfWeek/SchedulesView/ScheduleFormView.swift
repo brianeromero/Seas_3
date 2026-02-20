@@ -48,8 +48,8 @@ struct ScheduleFormView: View {
 
     let islands: [PirateIsland]
 
-    @State private var selectedIslandID: UUID?
-
+    @State private var selectedIslandID: String? // <- use String
+    
     var selectedIsland: PirateIsland? {
         islands.first { $0.islandID == selectedIslandID }
     }
@@ -191,22 +191,21 @@ private extension ScheduleFormView {
         print("🧭 initialSelectedIsland:",
               initialSelectedIsland?.islandName ?? "nil")
         print("🧭 selectedIslandID (before):",
-              selectedIslandID?.uuidString ?? "nil")
+              selectedIslandID ?? "nil") // ✅ no .uuidString
 
         if selectedIslandID == nil {
             if let initial = initialSelectedIsland {
-                selectedIslandID = initial.islandID
+                selectedIslandID = initial.islandID // String? ✅
             } else if let first = islands.first {
-                selectedIslandID = first.islandID
+                selectedIslandID = first.islandID // String? ✅
             }
         }
 
         print("🧭 selectedIslandID (after):",
-              selectedIslandID?.uuidString ?? "nil")
+              selectedIslandID ?? "nil") // ✅ no .uuidString
 
         await setupInitialSelection()
     }
-
 
 
     func setupInitialSelection() async {
@@ -235,9 +234,16 @@ private extension ScheduleFormView {
 
     func selectIslandAndDay(_ island: PirateIsland, _ day: DayOfWeek) async -> AppDayOfWeek? {
         let request: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
+        
+        // ✅ Safely unwrap islandID
+        guard let islandID = island.islandID else {
+            print("❌ Island has no islandID")
+            return nil
+        }
+
         request.predicate = NSPredicate(
             format: "pIsland.islandID == %@ AND day == %@",
-            island.islandID! as CVarArg,
+            islandID,
             day.rawValue
         )
 
@@ -248,7 +254,7 @@ private extension ScheduleFormView {
             return nil
         }
     }
-
+    
     func addNewMatTime() {
         print("✅ Add New Mat Time tapped")
         // Your existing add logic lives here

@@ -194,7 +194,7 @@ struct StarRatingsLedger: View {
 
 // Main view for Gym Mat Review
 struct GymMatReviewView: View {
-    @Binding var selectedIslandID: UUID?
+    @Binding var selectedIslandID: String?
     @State private var isReviewsFetched = false
     @State private var showReview = false // This might be redundant if GymMatReviewView's presentation is managed by NavigationLink
     @State private var activeIsland: PirateIsland?
@@ -225,7 +225,7 @@ struct GymMatReviewView: View {
 
     @State private var isReviewViewPresented = false // This also might be redundant
 
-    init(selectedIslandID: Binding<UUID?>, callerFile: String = #file, callerFunction: String = #function) {
+    init(selectedIslandID: Binding<String?>, callerFile: String = #file, callerFunction: String = #function) {
         self._selectedIslandID = selectedIslandID
 
         os_log(
@@ -340,9 +340,8 @@ struct GymMatReviewView: View {
     
     private var selectedIslandInternal: PirateIsland? {
         guard let id = selectedIslandID else { return nil }
-        return islands.first { $0.islandID == id }
+        return islands.first { $0.islandID == id }  // ✅ Compare strings
     }
-
     
     private func submitReview() {
         guard let island = selectedIslandInternal else {
@@ -406,7 +405,7 @@ struct GymMatReviewView: View {
                             "stars": newReview.stars,
                             "review": newReview.review,
                             "createdTimestamp": timestamp,
-                            "islandID": island.islandID?.uuidString ?? "",
+                            "islandID": island.islandID ?? "",
                             "name": newReview.userName ?? "Anonymous",
                             "reviewID": newReview.reviewID.uuidString
                         ], merge: true)

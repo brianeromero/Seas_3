@@ -20,6 +20,7 @@ public enum PirateIslandError: Error {
     case stateMissing
     case postalCodeMissing
     case invalidGymWebsite
+    case missingID
 
     var localizedDescription: String {
         switch self {
@@ -45,6 +46,8 @@ public enum PirateIslandError: Error {
             return "Postal code is missing"
         case .invalidGymWebsite:
             return "Confirm website validity"
+        case .missingID:
+            return "PirateIsland is missing a valid islandID"
         }
     }
 }
@@ -115,7 +118,7 @@ public class PirateIslandViewModel: ObservableObject {
 
         try await backgroundContext.perform {
             let newIsland = PirateIsland(context: backgroundContext)
-            newIsland.islandID = UUID()
+            newIsland.islandID = UUID().uuidString
             newIsland.islandName = islandName
             newIsland.islandLocation = fullAddress
             newIsland.country = countryName
@@ -141,7 +144,7 @@ public class PirateIslandViewModel: ObservableObject {
 
         // Step 6: Fetch on main context and upload to Firestore
         let mainContextIsland = try persistenceController.container.viewContext.existingObject(with: newIslandObjectID) as! PirateIsland
-        let islandData = FirestoreIslandData(from: mainContextIsland)
+        let islandData = try FirestoreIslandData(from: mainContextIsland)
         try await FirestoreManager.shared.saveIslandToFirestore(
             islandData: islandData,
             selectedCountry: selectedCountry,
@@ -161,7 +164,7 @@ public class PirateIslandViewModel: ObservableObject {
         createdByUser: User
     ) async throws {
         // Capture a safe snapshot of the Core Data object on the Main Actor
-        let islandData = FirestoreIslandData(from: island)
+        let islandData = try FirestoreIslandData(from: island)
 
         // Log the data being uploaded
         os_log(
@@ -280,7 +283,7 @@ public class PirateIslandViewModel: ObservableObject {
     func deletePirateIsland(_ island: PirateIsland) async throws {
         let context = PersistenceController.shared.viewContext
 
-        guard let islandID = island.islandID?.uuidString else {
+        guard let islandID = island.islandID else {
             throw NSError(
                 domain: "PirateIslandViewModel",
                 code: 1,

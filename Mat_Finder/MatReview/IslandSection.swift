@@ -11,21 +11,21 @@ import CoreData
 
 struct IslandSection: View {
     var islands: [PirateIsland]
-    @Binding var selectedIslandID: UUID?
+    @Binding var selectedIslandID: String?
     @Binding var showReview: Bool
 
     var body: some View {
         Section(header: Text("Select A Gym")) {
             Picker("Select Gym", selection: $selectedIslandID) {
-                Text("Select a Gym").tag(nil as UUID?)
-
+                Text("Select a Gym").tag(nil as String?)
+                
                 ForEach(islands, id: \.islandID) { island in
                     Text(island.islandName ?? "Unknown Gym")
                         .tag(island.islandID)
                 }
             }
             .onChange(of: selectedIslandID) { oldID, newID in
-                print("Selected Gym changed from \(oldID?.uuidString ?? "none") to \(newID?.uuidString ?? "none")")
+                print("Selected Gym changed from \(oldID ?? "none") to \(newID ?? "none")")
             }
         }
     }

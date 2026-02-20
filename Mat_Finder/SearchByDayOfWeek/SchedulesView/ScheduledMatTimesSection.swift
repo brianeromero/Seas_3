@@ -159,16 +159,16 @@ struct ScheduledMatTimesSection: View {
     }
 
     func filterMatTimes(_ matTimes: [MatTime], for day: DayOfWeek, and island: PirateIsland) -> [MatTime] {
-        guard let islandUUID = island.islandID else { return [] }
-        let normalized = islandUUID.uuidString.replacingOccurrences(of: "-", with: "")
+        guard let islandID = island.islandID else { return [] }
+        let normalized = islandID.replacingOccurrences(of: "-", with: "")
 
         return matTimes.filter { matTime in
             guard let appDay = matTime.appDayOfWeek,
                   let pIsland = appDay.pIsland,
-                  let pIslandUUID = pIsland.islandID
+                  let pIslandID = pIsland.islandID
             else { return false }
 
-            let pNorm = pIslandUUID.uuidString.replacingOccurrences(of: "-", with: "")
+            let pNorm = pIslandID.replacingOccurrences(of: "-", with: "")
             let sameIsland = (normalized == pNorm)
             let sameDay = appDay.day.caseInsensitiveCompare(day.rawValue) == .orderedSame
 

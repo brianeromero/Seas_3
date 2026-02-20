@@ -51,19 +51,18 @@ public class PirateIslandDataManager: ObservableObject {
     }
 
     func fetchLocalPirateIsland(withId id: String) async throws -> PirateIsland? {
-        guard let uuid = UUID(uuidString: id) else {
-            throw PersistenceError.invalidRecordId(id)
-        }
-        return try await fetchPirateIsland(uuid: uuid)
-    }
+        let predicate = NSPredicate(format: "islandID == %@", id)
 
-    private func fetchPirateIsland(uuid: UUID) async throws -> PirateIsland? {
-        let predicate = NSPredicate(format: "islandID == %@", uuid as CVarArg)
         let result = fetchPirateIslands(predicate: predicate, fetchLimit: 1)
+
         switch result {
         case .success(let pirateIslands):
-            if !pirateIslands.isEmpty { return pirateIslands.first }
-            else { throw PersistenceError.recordNotFound(uuid.uuidString) }
+            if let island = pirateIslands.first {
+                return island
+            } else {
+                throw PersistenceError.recordNotFound(id)
+            }
+
         case .failure(let error):
             throw error
         }

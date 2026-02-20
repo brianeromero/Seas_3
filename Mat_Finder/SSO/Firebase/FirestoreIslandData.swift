@@ -20,8 +20,12 @@ struct FirestoreIslandData {
     let longitude: Double
     let gymWebsite: String
 
-    init(from island: PirateIsland) {
-        self.id = island.islandID?.uuidString ?? UUID().uuidString
+    init(from island: PirateIsland) throws {
+        guard let id = island.islandID, !id.isEmpty else {
+            throw PirateIslandError.missingID
+        }
+
+        self.id = id
         self.name = island.islandName ?? "Unnamed Gym"
         self.location = island.islandLocation ?? "Unknown Location"
         self.country = island.country ?? "Unknown Country"

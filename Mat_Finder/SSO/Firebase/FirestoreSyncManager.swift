@@ -221,7 +221,7 @@ class FirestoreSyncManager {
                 FirestoreSyncManager.log("Local records (\(localRecords.count)): \(localRecords.prefix(5))\(localRecords.count > 5 ? "... (\(localRecords.count - 5) more)" : "")", level: .info, collection: collectionName, syncID: syncID)
                 
                 _ = Firestore.firestore().collection(collectionName)
-                _ = await Task.detached(priority: .background) { [localRecords] in
+                _ = await Task { [localRecords] in
                     var missing: [String] = []
                     let db = Firestore.firestore().collection(collectionName)
                     
@@ -290,7 +290,6 @@ class FirestoreSyncManager {
         FirestoreSyncManager.log("Finished checking local records for \(collectionName)", level: .finished, collection: collectionName, syncID: syncID)
     }
     
-    
     private func uploadLocalRecordsToFirestore(collectionName: String, records: [String]) async {
         let db = Firestore.firestore()
         let collectionRef = db.collection(collectionName)
@@ -302,27 +301,34 @@ class FirestoreSyncManager {
             return
         }
         
-        let (uploadedCount, errorCount) = await Task.detached(priority: .background) { () -> (Int, Int) in
+        let (uploadedCount, errorCount) = await Task { () -> (Int, Int) in
             var uploaded = 0
             var errors = 0
             
             for record in records {
-                guard let recordUUID = UUID(uuidString: record) else {
-                    errors += 1
-                    await MainActor.run {
-                        ToastThrottler.shared.postToast(
-                            for: collectionName,
-                            action: "invalid UUID \(record)",
-                            type: .error,
-                            isPersistent: true
-                        )
-                    }
-                    continue
-                }
+                var localRecord: AnyObject?
                 
-                // Fetch local record safely on MainActor
-                let localRecord: AnyObject? = await MainActor.run {
-                    try? PersistenceController.shared.fetchLocalRecord(
+                if collectionName == "pirateIslands" {
+                    // PirateIsland now uses String ID
+                    localRecord = try? await PersistenceController.shared.fetchLocalRecord(
+                        forCollection: collectionName,
+                        recordId: record
+                    )
+                } else {
+                    // Other entities still use UUID
+                    guard let recordUUID = UUID(uuidString: record) else {
+                        errors += 1
+                        await MainActor.run {
+                            ToastThrottler.shared.postToast(
+                                for: collectionName,
+                                action: "invalid UUID \(record)",
+                                type: .error,
+                                isPersistent: true
+                            )
+                        }
+                        continue
+                    }
+                    localRecord = try? await PersistenceController.shared.fetchLocalRecord(
                         forCollection: collectionName,
                         recordId: recordUUID
                     )
@@ -341,13 +347,13 @@ class FirestoreSyncManager {
                     continue
                 }
                 
-                // Map Core Data object to dictionary
+                // Map Core Data object to Firestore dictionary
                 var recordData: [String: Any] = [:]
                 switch collectionName {
                 case "pirateIslands":
                     guard let pirateIsland = localRecord as? PirateIsland else { continue }
                     recordData = [
-                        "id": pirateIsland.islandID?.uuidString ?? "",
+                        "id": pirateIsland.islandID ?? "",
                         "name": pirateIsland.islandName ?? "",
                         "location": pirateIsland.islandLocation ?? "",
                         "country": pirateIsland.country ?? "",
@@ -359,6 +365,7 @@ class FirestoreSyncManager {
                         "lastModifiedByUserId": pirateIsland.lastModifiedByUserId ?? "",
                         "lastModifiedTimestamp": pirateIsland.lastModifiedTimestamp ?? Date()
                     ]
+                    
                 case "reviews":
                     guard let review = localRecord as? Review else { continue }
                     recordData = [
@@ -367,12 +374,12 @@ class FirestoreSyncManager {
                         "review": review.review,
                         "name": review.userName ?? "Anonymous",
                         "createdTimestamp": review.createdTimestamp,
-                        "islandID": review.island?.islandID?.uuidString ?? ""
+                        "islandID": review.island?.islandID ?? ""
                     ]
+                    
                 case "MatTime":
                     guard let matTime = localRecord as? MatTime else { continue }
-
-                    var recordData: [String: Any] = [
+                    recordData = [
                         "id": matTime.id?.uuidString ?? "",
                         "type": matTime.type ?? "",
                         "time": matTime.time ?? "",
@@ -385,22 +392,18 @@ class FirestoreSyncManager {
                         "kids": matTime.kids,
                         "createdTimestamp": matTime.createdTimestamp ?? Date()
                     ]
-
                     if let adoID = matTime.appDayOfWeek?.appDayOfWeekID {
-                        recordData["appDayOfWeek"] =
-                            Firestore.firestore()
-                                .collection("AppDayOfWeek")
-                                .document(adoID)
+                        recordData["appDayOfWeek"] = Firestore.firestore()
+                            .collection("AppDayOfWeek")
+                            .document(adoID)
                     }
-
+                    
                 case "AppDayOfWeek":
                     guard let appDayOfWeek = localRecord as? AppDayOfWeek else { continue }
-                    
                     let id = appDayOfWeek.appDayOfWeekID ?? ""
-                    
                     recordData = [
-                        "id": id,                      // ← Firestore primary ID
-                        "appDayOfWeekID": id,          // ← Must match Core Data primary ID
+                        "id": id,
+                        "appDayOfWeekID": id,
                         "day": appDayOfWeek.day,
                         "name": appDayOfWeek.name ?? "",
                         "createdTimestamp": appDayOfWeek.createdTimestamp ?? Date()
@@ -410,6 +413,7 @@ class FirestoreSyncManager {
                     continue
                 }
                 
+                // Use record (String) directly as Firestore document ID
                 let docRef = collectionRef.document(record)
                 
                 do {
@@ -436,7 +440,6 @@ class FirestoreSyncManager {
         let finalLevel: LogLevel = errorCount > 0 ? .warning : .finished
         Self.log("Finished uploading local \(collectionName) records — succeeded: \(uploadedCount), failed: \(errorCount)", level: finalLevel, collection: collectionName)
     }
-    
     
     // MARK: - Main download & sync coordinator
     private func syncRecords(localRecords: [String], firestoreRecords: [String], collectionName: String) async {
@@ -736,17 +739,13 @@ class FirestoreSyncManager {
         
         context.perform {
             let fetchRequest = PirateIsland.fetchRequest()
-            if let uuid = UUID(uuidString: docSnapshot.documentID) {
-                fetchRequest.predicate = NSPredicate(format: "islandID == %@", uuid as CVarArg)
-            } else {
-                fetchRequest.predicate = NSPredicate(format: "islandIDString == %@", docSnapshot.documentID)
-            }
+            fetchRequest.predicate = NSPredicate(format: "islandID == %@", docSnapshot.documentID)
             
             do {
                 let results = try context.fetch(fetchRequest)
                 let island = results.first ?? PirateIsland(context: context)
                 
-                island.islandID = UUID(uuidString: docSnapshot.documentID)
+                island.islandID = docSnapshot.documentID        // ✅ assign String
                 island.islandName = name
                 island.islandLocation = location
                 island.country = country
@@ -1011,20 +1010,18 @@ class FirestoreSyncManager {
                 // --- Link PirateIsland
                 if let pIslandData = docSnapshot.get("pIsland") as? [String: Any],
                    let pirateIslandIDString = pIslandData["islandID"] as? String {
-                    
-                    let pirateUUID = UUID.fromStringID(pirateIslandIDString)
-                    
+
                     let islandFetch: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
-                    islandFetch.predicate = NSPredicate(format: "islandID == %@", pirateUUID as CVarArg)
+                    islandFetch.predicate = NSPredicate(format: "islandID == %@", pirateIslandIDString)
                     islandFetch.fetchLimit = 1
-                    
+
                     let island: PirateIsland
                     if let existingIsland = try context.fetch(islandFetch).first {
                         island = existingIsland
                     } else {
                         // Create new island
                         island = PirateIsland(context: context)
-                        island.islandID = pirateUUID
+                        island.islandID = pirateIslandIDString       // ✅ assign String directly
                         island.islandName = pIslandData["islandName"] as? String ?? pIslandData["name"] as? String
                         island.islandLocation = pIslandData["islandLocation"] as? String ?? pIslandData["location"] as? String
                         island.country = pIslandData["country"] as? String
@@ -1035,7 +1032,7 @@ class FirestoreSyncManager {
                             island.gymWebsite = URL(string: urlString)
                         }
                     }
-                    
+
                     ado.pIsland = island
                 }
                 

@@ -28,7 +28,6 @@
 		0C07B0992C2CFF8500D0BFB2 /* GymMatReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0982C2CFF8500D0BFB2 /* GymMatReviewView.swift */; };
 		0C07B09C2C2CFFA500D0BFB2 /* AllEnteredLocations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B09B2C2CFFA500D0BFB2 /* AllEnteredLocations.swift */; };
 		0C07B09E2C2CFFC400D0BFB2 /* AllIslandMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B09D2C2CFFC400D0BFB2 /* AllIslandMapView.swift */; };
-		0C07B0A02C2CFFE000D0BFB2 /* AllMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B09F2C2CFFE000D0BFB2 /* AllMapView.swift */; };
 		0C07B0A42C2D002000D0BFB2 /* EnterZipCodeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0A32C2D002000D0BFB2 /* EnterZipCodeView.swift */; };
 		0C07B0A62C2D002D00D0BFB2 /* SceneLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0A52C2D002D00D0BFB2 /* SceneLoader.swift */; };
 		0C07B0A82C2D004900D0BFB2 /* RenderingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0A72C2D004900D0BFB2 /* RenderingManager.swift */; };
@@ -55,6 +54,7 @@
 		0C33DC052CC095CF002C4835 /* FirebaseMLModelDownloader in Frameworks */ = {isa = PBXBuildFile; productRef = 0C33DC042CC095CF002C4835 /* FirebaseMLModelDownloader */; };
 		0C33DC152CC09E7C002C4835 /* PrivacyPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C33DC142CC09E7C002C4835 /* PrivacyPolicy.swift */; };
 		0C33DC172CC09FBC002C4835 /* TermsOfService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C33DC162CC09FBC002C4835 /* TermsOfService.swift */; };
+		0C35D9B22F48E80E0048D205 /* PirateIslandUUIDToStringMapping.xcmappingmodel in Sources */ = {isa = PBXBuildFile; fileRef = 0C35D9B12F48E80E0048D205 /* PirateIslandUUIDToStringMapping.xcmappingmodel */; };
 		0C380A5F2F2FEFA500274EFA /* SearchableClusterMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C380A5E2F2FEFA200274EFA /* SearchableClusterMap.swift */; };
 		0C380A642F32B32500274EFA /* MFINDER_BOLDw.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C380A632F32B32500274EFA /* MFINDER_BOLDw.png */; };
 		0C380A652F32B32500274EFA /* MFINDER_BOLDb.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C380A622F32B32500274EFA /* MFINDER_BOLDb.png */; };
@@ -211,6 +211,8 @@
 		0C33DC122CC0979A002C4835 /* FirebaseSettings.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = FirebaseSettings.xcconfig; sourceTree = "<group>"; };
 		0C33DC142CC09E7C002C4835 /* PrivacyPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyPolicy.swift; sourceTree = "<group>"; };
 		0C33DC162CC09FBC002C4835 /* TermsOfService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TermsOfService.swift; sourceTree = "<group>"; };
+		0C35D9B02F48E6C40048D205 /* Mat_Finder_v2.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = Mat_Finder_v2.xcdatamodel; sourceTree = "<group>"; };
+		0C35D9B12F48E80E0048D205 /* PirateIslandUUIDToStringMapping.xcmappingmodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcmappingmodel; path = PirateIslandUUIDToStringMapping.xcmappingmodel; sourceTree = "<group>"; };
 		0C380A5E2F2FEFA200274EFA /* SearchableClusterMap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchableClusterMap.swift; sourceTree = "<group>"; };
 		0C380A622F32B32500274EFA /* MFINDER_BOLDb.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = MFINDER_BOLDb.png; sourceTree = "<group>"; };
 		0C380A632F32B32500274EFA /* MFINDER_BOLDw.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = MFINDER_BOLDw.png; sourceTree = "<group>"; };
@@ -737,6 +739,7 @@
 				0CCA11C62C79105F003CAB7C /* Review+CoreDataProperties.swift */,
 				0CD376DE2CED4C7200491DD8 /* AdSettings+CoreDataClass.swift */,
 				0CD376DF2CED4C7200491DD8 /* AdSettings+CoreDataProperties.swift */,
+				0C35D9B12F48E80E0048D205 /* PirateIslandUUIDToStringMapping.xcmappingmodel */,
 			);
 			path = CoreDataItems;
 			sourceTree = "<group>";
@@ -1068,7 +1071,6 @@
 				0C8AEC292C5C246800D38635 /* AddNewMatTimeSection.swift in Sources */,
 				0C07B0B22C2D00DC00D0BFB2 /* CustomMapMarker.swift in Sources */,
 				0C6F7BDE2C7B146200072237 /* Extensions.swift in Sources */,
-				0C07B0A02C2CFFE000D0BFB2 /* AllMapView.swift in Sources */,
 				0C380A5F2F2FEFA500274EFA /* SearchableClusterMap.swift in Sources */,
 				0CEC32822C41CA3C00F0747F /* AllpIslandScheduleView.swift in Sources */,
 				0CEC32792C41907200F0747F /* StoryboardViewControllerRepresentable.swift in Sources */,
@@ -1082,6 +1084,7 @@
 				0C07B0AA2C2D007000D0BFB2 /* GIFBackgroundView.swift in Sources */,
 				0C524E952C308E4A008D6623 /* EnterZipCodeViewModel.swift in Sources */,
 				0C07B0AC2C2D009300D0BFB2 /* SwiftGIF.swift in Sources */,
+				0C35D9B22F48E80E0048D205 /* PirateIslandUUIDToStringMapping.xcmappingmodel in Sources */,
 				0C07B09C2C2CFFA500D0BFB2 /* AllEnteredLocations.swift in Sources */,
 				0C524E8E2C2F4241008D6623 /* DayOfWeekUtils.swift in Sources */,
 				0C07B07F2C2CFE1C00D0BFB2 /* IslandDetailView.swift in Sources */,
@@ -1317,7 +1320,7 @@
 				CODE_SIGN_ENTITLEMENTS = Mat_Finder/Mat_Finder.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 1;
 				DATABASE_URL = "https://smart-abacus-425519-r7-default-rtdb.firebaseio.com";
 				DEVELOPMENT_ASSET_PATHS = "\"Mat_Finder/Preview Content\"";
 				DEVELOPMENT_TEAM = 84463TFCZ4;
@@ -1399,7 +1402,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.1.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"\"-ObjC -lc++ -lsqlite3 -lstdc++ -lz\"",
@@ -1430,7 +1433,7 @@
 				CODE_SIGN_ENTITLEMENTS = Mat_Finder/Mat_Finder.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 1;
 				DATABASE_URL = "https://smart-abacus-425519-r7-default-rtdb.firebaseio.com";
 				DEVELOPMENT_ASSET_PATHS = "\"Mat_Finder/Preview Content\"";
 				DEVELOPMENT_TEAM = 84463TFCZ4;
@@ -1511,7 +1514,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.1.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"\"-ObjC -lc++ -lsqlite3 -lstdc++ -lz\"",
@@ -1669,9 +1672,10 @@
 		0CB6E1E52EAC09F600BE4016 /* Mat_Finder.xcdatamodeld */ = {
 			isa = XCVersionGroup;
 			children = (
+				0C35D9B02F48E6C40048D205 /* Mat_Finder_v2.xcdatamodel */,
 				0CB6E1E62EAC09F600BE4016 /* Mat_Finder.xcdatamodel */,
 			);
-			currentVersion = 0CB6E1E62EAC09F600BE4016 /* Mat_Finder.xcdatamodel */;
+			currentVersion = 0C35D9B02F48E6C40048D205 /* Mat_Finder_v2.xcdatamodel */;
 			path = Mat_Finder.xcdatamodeld;
 			sourceTree = "<group>";
 			versionGroupType = wrapper.xcdatamodel;

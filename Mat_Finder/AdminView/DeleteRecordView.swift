@@ -60,6 +60,8 @@ struct DeleteRecordView: View {
                 coreDataContext.perform {
                     do {
                         let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
+                        
+                        // Updated predicate: islandID is now String
                         fetchRequest.predicate = NSPredicate(format: "islandID == %@", recordID)
                         
                         let results = try coreDataContext.fetch(fetchRequest)
@@ -82,12 +84,12 @@ struct DeleteRecordView: View {
                     }
                 }
             }
-            
+
         } catch {
             return (false, "Firestore deletion failed: \(error.localizedDescription)")
         }
     }
-
+    
     @MainActor
     private func deleteRecordAndHandleCache() {
         guard validateRecordID(recordID) else {

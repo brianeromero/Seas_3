@@ -37,20 +37,13 @@ struct AllMapView: View {
 
     var body: some View {
         Map(coordinateRegion: $region, annotationItems: islands.compactMap { island -> CustomMapMarker? in
-            // Use optional coalescing to provide default values for optional properties
             let title = island.islandName ?? "Unnamed Gym"
             let latitude = island.latitude
             let longitude = island.longitude
             
-            // Use ReviewUtils to get the reviews for the island, with added caller function logging
-            let reviews = ReviewUtils.getReviews(from: island.reviews, callerFunction: #function)
-            
-            // Example: Printing reviews for debugging
-            print("Reviews for \(title): \(reviews)")
-
             // Create a CustomMapMarker for each island
             return CustomMapMarker(
-                id: island.islandID ?? UUID(), // Use default UUID if islandID is nil
+                id: island.islandID ?? UUID().uuidString, // ✅ String ID
                 coordinate: CLLocationCoordinate2D(latitude: latitude, longitude: longitude),
                 title: title,
                 pirateIsland: island
@@ -63,7 +56,7 @@ struct AllMapView: View {
                         .padding(5)
                         .background(Color.white)
                         .cornerRadius(5)
-                    CustomMarkerView() // Use your custom marker view here
+                    CustomMarkerView()
                 }
             }
         }
@@ -80,8 +73,19 @@ struct AllMapView: View {
     }
 
     private func updateRegion() {
-        let radius: Double = 5.0 // Replace with your desired radius
-        region = MapUtils.updateRegion(markers: [CustomMapMarker(id: UUID(), coordinate: userLocation.coordinate, title: "", pirateIsland: nil)], selectedRadius: radius, center: userLocation.coordinate)
+        let radius: Double = 5.0
+        region = MapUtils.updateRegion(
+            markers: [
+                CustomMapMarker(
+                    id: UUID().uuidString, // ✅ must be String
+                    coordinate: userLocation.coordinate,
+                    title: "",
+                    pirateIsland: nil
+                )
+            ],
+            selectedRadius: radius,
+            center: userLocation.coordinate
+        )
         print("Updated region to: \(region.center.latitude), \(region.center.longitude)")
     }
 }

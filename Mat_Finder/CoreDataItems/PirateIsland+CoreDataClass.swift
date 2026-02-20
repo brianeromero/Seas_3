@@ -17,10 +17,9 @@ public class PirateIsland: NSManagedObject {
         
         // Ensure islandID is set
         if self.islandID == nil {
-            self.islandID = UUID()
+            self.islandID = UUID().uuidString // generate a unique string if needed
         }
-        
-        print("Gym object created with ID: \(self.islandID?.uuidString ?? "unknown")")
+        print("Gym object created with ID: \(self.islandID ?? "unknown")")
     }
     
     public static func == (lhs: PirateIsland, rhs: PirateIsland) -> Bool {

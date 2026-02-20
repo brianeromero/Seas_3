@@ -13,7 +13,7 @@ import FirebaseFirestore
 
 
 struct AddNewMatTimeSection: View {
-    @Binding var selectedIslandID: UUID?          // The source of truth
+    @Binding var selectedIslandID: String?
     let islands: [PirateIsland]                  // All available islands
     
     var selectedIsland: PirateIsland? {
@@ -54,7 +54,7 @@ struct AddNewMatTimeSection: View {
     
     // MARK: - Custom initializer
     init(
-        selectedIslandID: Binding<UUID?>,         // pass the binding for selectedIslandID
+        selectedIslandID: Binding<String?>,         // pass the binding for selectedIslandID
         islands: [PirateIsland],                 // pass the array of islands
         selectedDay: Binding<DayOfWeek?>,
         viewModel: AppDayOfWeekViewModel,

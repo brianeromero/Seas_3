@@ -36,7 +36,7 @@ extension PirateIsland {
     @NSManaged public var createdByUserId: String?
     @NSManaged public var createdTimestamp: Date?
     @NSManaged public var gymWebsite: URL?
-    @NSManaged public var islandID: UUID?
+    @NSManaged public var islandID: String?
     @NSManaged public var islandLocation: String?
     @NSManaged public var country: String?  // NEW ATTRIBUTE
     @NSManaged public var islandName: String?
@@ -138,7 +138,7 @@ extension PirateIsland {
         var data: [String: Any] = [:]
         
         // Add properties to the dictionary
-        data["islandID"] = islandID?.uuidString
+        data["islandID"] = islandID
         data["islandName"] = islandName
         data["islandLocation"] = islandLocation
         data["latitude"] = latitude
