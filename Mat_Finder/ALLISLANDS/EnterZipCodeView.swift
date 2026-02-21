@@ -109,25 +109,54 @@ struct EnterZipCodeView: View {
     // MARK: - Map Section
     private var mapSection: some View {
 
-        ZStack(alignment: .top) {
+        ZStack {
 
+            // Map
             IslandMKMapView(
                 islands: enterZipCodeViewModel.pirateIslands,
                 selectedIsland: $selectedIsland,
                 showModal: $showModal,
-                region: enterZipCodeViewModel.region
+                region: enterZipCodeViewModel.region,
+                onRegionChanged: { newRegion in
+
+                    let epsilon = 0.0001
+
+                    let latDiff =
+                    abs(newRegion.center.latitude -
+                        enterZipCodeViewModel.region.center.latitude)
+
+                    let lonDiff =
+                    abs(newRegion.center.longitude -
+                        enterZipCodeViewModel.region.center.longitude)
+
+                    if latDiff > epsilon || lonDiff > epsilon {
+
+                        pendingRegion = newRegion
+                        showSearchThisArea = true
+                    }
+                }
             )
             .id(enterZipCodeViewModel.pirateIslands.map(\.objectID))
 
 
-            if showSearchThisArea {
+            // Floating Apple-style button
+            VStack {
 
-                searchThisAreaButton
+                if showSearchThisArea {
+
+                    searchThisAreaButton
+                        .transition(
+                            .move(edge: .top)
+                            .combined(with: .opacity)
+                        )
+                }
+
+                Spacer()
             }
+            .padding(.top, 12)
         }
+        .animation(.easeInOut(duration: 0.25), value: showSearchThisArea)
     }
-
-
 
     // MARK: - Helpers
     private func updateCamera(to coordinate: CLLocationCoordinate2D) {
@@ -143,22 +172,36 @@ struct EnterZipCodeView: View {
     }
 
     private var searchThisAreaButton: some View {
+
         Button {
+
             guard let region = pendingRegion else { return }
 
             showSearchThisArea = false
 
             enterZipCodeViewModel.userDidMoveMap(to: region)
+
         } label: {
+
             Text("Search this Area")
                 .font(.headline)
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 18)
                 .padding(.vertical, 10)
-                .background(.blue)
-                .foregroundColor(.white)
-                .cornerRadius(22)
-                .shadow(radius: 4)
+
+                // ✅ CHANGE STARTS HERE
+                .background(.ultraThinMaterial)
+
+                .overlay(
+                    Capsule()
+                        .stroke(Color.white.opacity(0.25), lineWidth: 1)
+                )
+
+                .clipShape(Capsule())
+
+                .shadow(color: .black.opacity(0.25), radius: 6, y: 3)
+                // ✅ CHANGE ENDS HERE
         }
+
         .padding(.top, 12)
     }
 }

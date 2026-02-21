@@ -79,23 +79,20 @@ class EnterZipCodeViewModel: ObservableObject {
         let request: NSFetchRequest<PirateIsland> =
             PirateIsland.fetchRequest()
 
-
         do {
 
-            let islands =
-                try context.fetch(request)
+            let islands = try context.fetch(request)
 
+            pirateIslands = islands.filter {
 
-            self.pirateIslands =
-                islands.filter {
+                CLLocation(
+                    latitude: $0.latitude,
+                    longitude: $0.longitude
+                )
+                .distance(from: location) <= radius
+            }
 
-                    CLLocation(
-                        latitude: $0.latitude,
-                        longitude: $0.longitude
-                    )
-                    .distance(from: location)
-                    <= radius
-                }
+            print("Found gyms:", pirateIslands.count)
 
         }
         catch {
@@ -103,7 +100,6 @@ class EnterZipCodeViewModel: ObservableObject {
             print(error)
         }
     }
-
 
     func updateRegion(_ location: CLLocation) {
 
@@ -118,22 +114,29 @@ class EnterZipCodeViewModel: ObservableObject {
         )
     }
 
-
-    func userDidMoveMap(
-        to region: MKCoordinateRegion
-    ) {
+    func userDidMoveMap(to region: MKCoordinateRegion) {
 
         self.region = region
 
+        let center = CLLocation(
+            latitude: region.center.latitude,
+            longitude: region.center.longitude
+        )
 
+        let edge = CLLocation(
+            latitude: region.center.latitude + region.span.latitudeDelta / 2,
+            longitude: region.center.longitude
+        )
+
+        let radius = center.distance(from: edge)
+
+        // ✅ ADD IT RIGHT HERE
+        self.currentRadius = radius / metersPerMile
+
+        // Then fetch
         fetchPirateIslandsNear(
-
-            CLLocation(
-                latitude: region.center.latitude,
-                longitude: region.center.longitude
-            ),
-
-            within: currentRadius * metersPerMile
+            center,
+            within: radius
         )
     }
 }

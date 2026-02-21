@@ -342,6 +342,8 @@ struct IslandMKMapView: UIViewRepresentable {
 
     var region: MKCoordinateRegion
 
+    var onRegionChanged: ((MKCoordinateRegion) -> Void)?   // ✅ ADD THIS
+    
 
     func makeUIView(context: Context) -> MKMapView {
 
@@ -361,6 +363,11 @@ struct IslandMKMapView: UIViewRepresentable {
         )
         
         mapView.preferredConfiguration = MKStandardMapConfiguration()
+        
+        // ✅ ADD THIS LINE HERE
+        mapView.isRotateEnabled = false
+        mapView.isPitchEnabled = false
+        mapView.showsCompass = false
 
         return mapView
     }
@@ -518,7 +525,15 @@ struct IslandMKMapView: UIViewRepresentable {
 
             parent.showModal = true
         }
+        
+        func mapViewDidChangeVisibleRegion(_ mapView: MKMapView) {
+
+            parent.onRegionChanged?(mapView.region)
+        }
+        
     }
+    
+    
 }
 
 
