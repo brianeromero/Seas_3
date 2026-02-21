@@ -1360,35 +1360,63 @@ final class AppDayOfWeekViewModel: ObservableObject {
 
             // 3️⃣ Fetch merged islands from Core Data on the main actor (UI-safe)
             await MainActor.run {
+
                 do {
-                    let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
-                    fetchRequest.predicate = NSPredicate(format: "ANY appDayOfWeeks.day == %@", day.rawValue)
+
+                    let fetchRequest: NSFetchRequest<PirateIsland> =
+                    PirateIsland.fetchRequest()
+
+                    fetchRequest.predicate =
+                    NSPredicate(format: "ANY appDayOfWeeks.day == %@", day.rawValue)
 
                     let islands = try viewContext.fetch(fetchRequest)
 
-                    // Prepare array of islands with MatTime children filtered by day
-                    let islandsWithMatTimes: [(PirateIsland, [MatTime])] = islands.map { island in
-                        let filteredDays = (island.appDayOfWeeks?.compactMap { $0 as? AppDayOfWeek } ?? [])
+                    let islandsWithMatTimes =
+                    islands.compactMap { island -> (PirateIsland, [MatTime])? in
+
+                        let filteredDays =
+                        (island.appDayOfWeeks?.compactMap { $0 as? AppDayOfWeek } ?? [])
                             .filter { $0.day == day.rawValue }
 
-                        let matTimes = filteredDays.flatMap { dayOfWeek in
-                            (dayOfWeek.matTimes?.compactMap { $0 as? MatTime }) ?? []
+                        let matTimes =
+                        filteredDays.flatMap {
+                            ($0.matTimes?.compactMap { $0 as? MatTime }) ?? []
                         }
+
+                        guard !matTimes.isEmpty else { return nil }
 
                         return (island, matTimes)
                     }
 
                     self.islandsWithMatTimes = islandsWithMatTimes
-                    print("✨ Updated islandsWithMatTimes with \(islandsWithMatTimes.count) islands for day \(day.rawValue).")
+
+                    print("✅ CoreData fetch success: \(islandsWithMatTimes.count)")
+
                 } catch {
-                    print("❌ MainActor: Error fetching islands from Core Data: \(error)")
+
+                    print("❌ CoreData fetch failed:", error)
+
+                    self.islandsWithMatTimes = []
                 }
             }
 
             // 4️⃣ Optionally update Firestore documents with any synced day info
-            for (island, ref) in islandsToUpdateInFirestore {
-                let days = island.appDayOfWeeks?.compactMap { ($0 as? AppDayOfWeek)?.day } ?? []
-                print("    ☁️ Firestore Update: Updating 'days' for \(island.islandName ?? "Unnamed") with \(days)")
+            for (backgroundIsland, ref) in islandsToUpdateInFirestore {
+
+                let islandID = backgroundIsland.objectID
+
+                let mainIsland =
+                    viewContext.object(with: islandID) as? PirateIsland
+
+                let days =
+                    mainIsland?.appDayOfWeeks?.compactMap {
+                        ($0 as? AppDayOfWeek)?.day
+                    } ?? []
+
+                print(
+                    "☁️ Firestore Update: Updating 'days' for \(mainIsland?.islandName ?? "Unnamed") with \(days)"
+                )
+
                 try await ref.updateData(["days": days])
             }
 

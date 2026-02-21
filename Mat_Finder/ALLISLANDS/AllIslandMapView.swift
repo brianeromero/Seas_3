@@ -429,37 +429,43 @@ struct IslandMKMapView: UIViewRepresentable {
             with islands: [PirateIsland]
         ) {
 
+            // NEW set
             var newAnnotations: [String: IslandAnnotation] = [:]
 
             for island in islands {
 
                 guard let id = island.islandID else { continue }
 
-                newAnnotations[id] = IslandAnnotation(island: island)
+                if let existing = currentAnnotations[id] {
+
+                    // reuse existing annotation
+                    newAnnotations[id] = existing
+
+                } else {
+
+                    // create new annotation
+                    let annotation = IslandAnnotation(island: island)
+
+                    newAnnotations[id] = annotation
+
+                    mapView.addAnnotation(annotation)
+                }
             }
 
 
-            let toRemove = currentAnnotations.keys.filter {
-                newAnnotations[$0] == nil
+            // REMOVE annotations no longer valid
+            for (id, annotation) in currentAnnotations {
+
+                if newAnnotations[id] == nil {
+
+                    mapView.removeAnnotation(annotation)
+                }
             }
 
-            let toAdd = newAnnotations.keys.filter {
-                currentAnnotations[$0] == nil
-            }
 
-
-            mapView.removeAnnotations(
-                toRemove.compactMap { currentAnnotations[$0] }
-            )
-
-            mapView.addAnnotations(
-                toAdd.compactMap { newAnnotations[$0] }
-            )
-
-
+            // save new state
             currentAnnotations = newAnnotations
         }
-
 
         func mapView(
             _ mapView: MKMapView,
@@ -483,10 +489,9 @@ struct IslandMKMapView: UIViewRepresentable {
 
 
             view.markerTintColor = .systemRed
-
             view.clusteringIdentifier = "gym"
-
             view.displayPriority = .defaultHigh
+            view.animatesWhenAdded = true
 
             return view
         }
