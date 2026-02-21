@@ -53,7 +53,6 @@
 		0C33DC052CC095CF002C4835 /* FirebaseMLModelDownloader in Frameworks */ = {isa = PBXBuildFile; productRef = 0C33DC042CC095CF002C4835 /* FirebaseMLModelDownloader */; };
 		0C33DC152CC09E7C002C4835 /* PrivacyPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C33DC142CC09E7C002C4835 /* PrivacyPolicy.swift */; };
 		0C33DC172CC09FBC002C4835 /* TermsOfService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C33DC162CC09FBC002C4835 /* TermsOfService.swift */; };
-		0C35D9B22F48E80E0048D205 /* PirateIslandUUIDToStringMapping.xcmappingmodel in Sources */ = {isa = PBXBuildFile; fileRef = 0C35D9B12F48E80E0048D205 /* PirateIslandUUIDToStringMapping.xcmappingmodel */; };
 		0C380A642F32B32500274EFA /* MFINDER_BOLDw.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C380A632F32B32500274EFA /* MFINDER_BOLDw.png */; };
 		0C380A652F32B32500274EFA /* MFINDER_BOLDb.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C380A622F32B32500274EFA /* MFINDER_BOLDb.png */; };
 		0C4B34362C61A32700FD6893 /* PirateIslandDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4B34352C61A32700FD6893 /* PirateIslandDataManager.swift */; };
@@ -209,7 +208,6 @@
 		0C33DC142CC09E7C002C4835 /* PrivacyPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyPolicy.swift; sourceTree = "<group>"; };
 		0C33DC162CC09FBC002C4835 /* TermsOfService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TermsOfService.swift; sourceTree = "<group>"; };
 		0C35D9B02F48E6C40048D205 /* Mat_Finder_v2.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = Mat_Finder_v2.xcdatamodel; sourceTree = "<group>"; };
-		0C35D9B12F48E80E0048D205 /* PirateIslandUUIDToStringMapping.xcmappingmodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcmappingmodel; path = PirateIslandUUIDToStringMapping.xcmappingmodel; sourceTree = "<group>"; };
 		0C380A622F32B32500274EFA /* MFINDER_BOLDb.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = MFINDER_BOLDb.png; sourceTree = "<group>"; };
 		0C380A632F32B32500274EFA /* MFINDER_BOLDw.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = MFINDER_BOLDw.png; sourceTree = "<group>"; };
 		0C4A7B4A2CC0D43A008CE1EA /* iAd.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = iAd.framework; path = System/Library/Frameworks/iAd.framework; sourceTree = SDKROOT; };
@@ -733,7 +731,6 @@
 				0CCA11C62C79105F003CAB7C /* Review+CoreDataProperties.swift */,
 				0CD376DE2CED4C7200491DD8 /* AdSettings+CoreDataClass.swift */,
 				0CD376DF2CED4C7200491DD8 /* AdSettings+CoreDataProperties.swift */,
-				0C35D9B12F48E80E0048D205 /* PirateIslandUUIDToStringMapping.xcmappingmodel */,
 			);
 			path = CoreDataItems;
 			sourceTree = "<group>";
@@ -1076,7 +1073,6 @@
 				0C07B0AA2C2D007000D0BFB2 /* GIFBackgroundView.swift in Sources */,
 				0C524E952C308E4A008D6623 /* EnterZipCodeViewModel.swift in Sources */,
 				0C07B0AC2C2D009300D0BFB2 /* SwiftGIF.swift in Sources */,
-				0C35D9B22F48E80E0048D205 /* PirateIslandUUIDToStringMapping.xcmappingmodel in Sources */,
 				0C07B09C2C2CFFA500D0BFB2 /* AllEnteredLocations.swift in Sources */,
 				0C524E8E2C2F4241008D6623 /* DayOfWeekUtils.swift in Sources */,
 				0C07B07F2C2CFE1C00D0BFB2 /* IslandDetailView.swift in Sources */,
