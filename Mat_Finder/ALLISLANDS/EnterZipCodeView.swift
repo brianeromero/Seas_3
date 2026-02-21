@@ -44,9 +44,11 @@ struct EnterZipCodeView: View {
                             updateCamera(to: coordinate)
 
                             await MainActor.run {
-                                enterZipCodeViewModel.updateMarkersForCenter(
-                                    coordinate,
-                                    span: enterZipCodeViewModel.region.span
+                                enterZipCodeViewModel.userDidMoveMap(
+                                    to: MKCoordinateRegion(
+                                        center: coordinate,
+                                        span: enterZipCodeViewModel.region.span
+                                    )
                                 )
                                 showSearchThisArea = false
                             }
@@ -106,28 +108,24 @@ struct EnterZipCodeView: View {
 
     // MARK: - Map Section
     private var mapSection: some View {
+
         ZStack(alignment: .top) {
-            IslandMapView(
-                viewModel: appDayOfWeekViewModel,
+
+            IslandMKMapView(
+                islands: enterZipCodeViewModel.pirateIslands,
                 selectedIsland: $selectedIsland,
                 showModal: $showModal,
-                selectedAppDayOfWeek: $selectedAppDayOfWeek,
-                selectedDay: $selectedDay,
-                allEnteredLocationsViewModel: allEnteredLocationsViewModel,
-                enterZipCodeViewModel: enterZipCodeViewModel,
-                onMapRegionChange: { region in
-                    pendingRegion = region
-                    showSearchThisArea = true
-                }
+                region: enterZipCodeViewModel.region
             )
+            .id(enterZipCodeViewModel.pirateIslands.map(\.objectID))
+
 
             if showSearchThisArea {
+
                 searchThisAreaButton
             }
         }
     }
-
-
 
 
 

@@ -18,11 +18,9 @@ struct DayOfWeekSearchView: View {
     @State private var selectedIsland: PirateIsland?
     @State private var selectedAppDayOfWeek: AppDayOfWeek?
 
-    @State private var equatableRegionWrapper = EquatableMKCoordinateRegion(
-        region: MKCoordinateRegion(
-            center: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
-            span: MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1)
-        )
+    @State private var region = MKCoordinateRegion(
+        center: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
+        span: MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1)
     )
 
     @ObservedObject private var userLocationMapViewModel = UserLocationMapViewModel.shared
@@ -44,11 +42,11 @@ struct DayOfWeekSearchView: View {
 
                 ErrorView(errorMessage: $errorMessage)
 
-                SearchableClusterMap(
-                    region: $equatableRegionWrapper.region,
-                    markers: viewModel.displayedMarkers,
-                    onRegionSearchRequested: handleRegionSearch,
-                    onMarkerTap: handleMarkerTap
+                IslandMKMapView(
+                    islands: viewModel.islandsWithMatTimes.map(\.0),
+                    selectedIsland: $selectedIsland,
+                    showModal: $showModal,
+                    region: region
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -88,47 +86,22 @@ struct DayOfWeekSearchView: View {
         }
     }
 
-    private func handleRegionSearch(_ newRegion: MKCoordinateRegion) {
-        guard let selectedDay else { return }
-
-        Task {
-            // Fetch islands for the selected day
-            await viewModel.fetchIslands(forDay: selectedDay)
-            // Update clusters automatically for the new region
-            await MainActor.run {
-                viewModel.updateClusters(for: newRegion)
-            }
-        }
-    }
-
-    private func handleMarkerTap(_ marker: CustomMapMarker) {
-        guard let island = marker.pirateIsland else { return }
-        selectedIsland = island
-        showModal = true
-    }
 
     // MARK: - Data Updates
 
     private func updateIslandsAndRegion() async {
+
         guard let selectedDay else {
             errorMessage = "Day of week is not selected."
             return
         }
 
-        // 1️⃣ Fetch islands for the selected day
         await viewModel.fetchIslands(forDay: selectedDay)
 
-        // 2️⃣ Update clusters for the current region immediately
-        await MainActor.run {
-            viewModel.updateClusters(for: equatableRegionWrapper.region)
-        }
-
-        // 3️⃣ Optionally, center map on user location
         if let location = userLocationMapViewModel.userLocation {
             updateRegion(center: location.coordinate)
         }
     }
-
 
     private func updateSelectedIsland(from newIsland: PirateIsland?) {
         guard let newIsland else { return }
@@ -143,22 +116,27 @@ struct DayOfWeekSearchView: View {
     }
 
     private func updateRegion(center: CLLocationCoordinate2D) {
+
+        let islands = viewModel.islandsWithMatTimes.map(\.0)
+
+        guard !islands.isEmpty else { return }
+
+        let latitudes = islands.map { $0.latitude }
+        let longitudes = islands.map { $0.longitude }
+
+        let minLat = latitudes.min() ?? center.latitude
+        let maxLat = latitudes.max() ?? center.latitude
+
+        let minLon = longitudes.min() ?? center.longitude
+        let maxLon = longitudes.max() ?? center.longitude
+
+        let span = MKCoordinateSpan(
+            latitudeDelta: max(maxLat - minLat, 0.05),
+            longitudeDelta: max(maxLon - minLon, 0.05)
+        )
+
         withAnimation {
-            equatableRegionWrapper.region = MapUtils.updateRegion(
-                markers: viewModel.islandsWithMatTimes.map {
-                    CustomMapMarker(
-                        id: $0.0.islandID ?? UUID().uuidString, // ✅ Use UUID string
-                        coordinate: CLLocationCoordinate2D(
-                            latitude: $0.0.latitude,
-                            longitude: $0.0.longitude
-                        ),
-                        title: $0.0.islandName ?? "Unnamed Gym",
-                        pirateIsland: $0.0
-                    )
-                },
-                selectedRadius: radius,
-                center: center
-            )
+            region = MKCoordinateRegion(center: center, span: span)
         }
     }
 }

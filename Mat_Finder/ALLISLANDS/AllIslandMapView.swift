@@ -10,18 +10,6 @@ import os
 import OSLog
 
 
-struct EquatableMKCoordinateRegion: Equatable {
-    var region: MKCoordinateRegion
-
-    static func == (lhs: EquatableMKCoordinateRegion, rhs: EquatableMKCoordinateRegion) -> Bool {
-        // Use a small epsilon for floating-point comparison robustness
-        let epsilon: CLLocationDegrees = 0.0000001
-        return abs(lhs.region.center.latitude - rhs.region.center.latitude) < epsilon &&
-               abs(lhs.region.center.longitude - rhs.region.center.longitude) < epsilon &&
-               abs(lhs.region.span.latitudeDelta - rhs.region.span.latitudeDelta) < epsilon &&
-               abs(lhs.region.span.longitudeDelta - rhs.region.span.longitudeDelta) < epsilon
-    }
-}
 
 // Default region for initialization
 private let defaultRegion = MKCoordinateRegion(
@@ -30,299 +18,528 @@ private let defaultRegion = MKCoordinateRegion(
 )
 
 struct ConsolidatedIslandMapView: View {
-    @Environment(\.managedObjectContext) private var viewContext
-    @FetchRequest(entity: PirateIsland.entity(), sortDescriptors: [])
+
+    @Environment(\.managedObjectContext)
+    private var viewContext
+
+    @FetchRequest(
+        entity: PirateIsland.entity(),
+        sortDescriptors: []
+    )
     private var islands: FetchedResults<PirateIsland>
 
-    @ObservedObject var enterZipCodeViewModel: EnterZipCodeViewModel
-    @StateObject private var viewModel: AppDayOfWeekViewModel
-    @ObservedObject private var locationManager: UserLocationMapViewModel
+    @ObservedObject
+    var enterZipCodeViewModel: EnterZipCodeViewModel
 
-    @State private var selectedRadius: Double = 5.0
-    
-    @State private var isClusteringEnabled: Bool = true
-    private let clusterBreakLatitudeDelta: Double = 0.15
-    private let clusterRadiusMiles: Double = 10.0
-    
-    // ⬇️ REPLACED: equatableRegion is no longer the map's source of truth.
-    // ⭐️ NEW: Use MapCameraPosition for iOS 17 Map.
-    @State private var cameraPosition: MapCameraPosition = .region(defaultRegion)
-    
-    @State private var pirateMarkers: [CustomMapMarker] = []
-    @State private var showModal = false
-    @State private var selectedIsland: PirateIsland?
-    @State private var selectedAppDayOfWeek: AppDayOfWeek?
-    @State private var selectedDay: DayOfWeek? = .monday
-    @State private var fetchedLocation: CLLocation?
 
-    @Binding var navigationPath: NavigationPath
+    @StateObject
+    private var viewModel: AppDayOfWeekViewModel
 
-    private let log = os.Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.mat_Finder",
-                                category: "AllIslandMapView")
+
+    @ObservedObject
+    private var locationManager: UserLocationMapViewModel
+
+
+    @State
+    private var selectedRadius: Double = 5.0
+
+
+    @State
+    private var cameraPosition: MapCameraPosition =
+        .region(defaultRegion)
+
+
+    @State
+    private var showModal = false
+
+
+    @State
+    private var selectedIsland: PirateIsland?
+
+
+    @State
+    private var selectedAppDayOfWeek: AppDayOfWeek?
+
+
+    @State
+    private var selectedDay: DayOfWeek? = .monday
+
+
+    @Binding
+    var navigationPath: NavigationPath
+
+
+
+
+    // MARK: Init
 
     init(
         viewModel: AppDayOfWeekViewModel,
         enterZipCodeViewModel: EnterZipCodeViewModel,
         navigationPath: Binding<NavigationPath>
     ) {
-        // Ensure you initialize all state properties that don't have an initial value declared above
-        _viewModel = StateObject(wrappedValue: viewModel)
-        self.enterZipCodeViewModel = enterZipCodeViewModel
-        _locationManager = ObservedObject(wrappedValue: UserLocationMapViewModel.shared)
-        _selectedDay = State(initialValue: .monday)
-        self._navigationPath = navigationPath
-        
-        // This initialization is fine, but you must ensure MapKit types are available.
-        // If your target is < iOS 17, you need @available guards. Assuming iOS 17+.
+
+        _viewModel =
+            StateObject(wrappedValue: viewModel)
+
+        self.enterZipCodeViewModel =
+            enterZipCodeViewModel
+
+        _locationManager =
+            ObservedObject(
+                wrappedValue:
+                    UserLocationMapViewModel.shared
+            )
+
+        _navigationPath =
+            navigationPath
     }
 
+
+
+    // MARK: Body
+
     var body: some View {
+
         VStack {
+
             if locationManager.userLocation != nil {
+
                 makeMapView()
+
                 makeRadiusPicker()
+
             } else {
+
                 ProgressView("Fetching user location…")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .onAppear {
-                        log.debug("🕐 Waiting for user location…")
-                    }
+                    .frame(
+                        maxWidth: .infinity,
+                        maxHeight: .infinity
+                    )
             }
         }
+
         .navigationBarTitleDisplayMode(.inline)
+
         .toolbar {
+
             ToolbarItem(placement: .principal) {
+
                 Text("Gyms Near Me")
                     .font(.title)
                     .fontWeight(.bold)
-                    .foregroundColor(.primary)
             }
         }
+
         .overlay(overlayContentView())
-        .onAppear(perform: onAppear)
-        .onChange(of: locationManager.userLocation) { _, newValue in
+
+        .onAppear {
+
+            onAppear()
+        }
+
+        .onChange(of: locationManager.userLocation) {
+
+            _, newValue in
+
             onChangeUserLocation(newValue)
         }
-        .onChange(of: selectedRadius) { _, newValue in
+
+        .onChange(of: selectedRadius) {
+
+            _, newValue in
+
             onChangeSelectedRadius(newValue)
         }
-
     }
 
-    // MARK: - Map
-    // ⭐️ NEW: Map view using the iOS 17 API
+
+
+    // MARK: Map View
     private func makeMapView() -> some View {
-            Map(position: $cameraPosition, interactionModes: .all) {
-                UserAnnotation()
-                
-                ForEach(pirateMarkers) { marker in
-                    Annotation("", coordinate: marker.coordinate, anchor: .center) {
-                        if marker.pirateIsland != nil {
-                            mapAnnotationView(for: marker)
-                        } else {
-                            clusterView(for: marker)
-                        }
-                    }
-                }
-            }
-            // ✅ CHANGED: frequency set to .continuous for instant clustering
-            .onMapCameraChange(frequency: .continuous) { context in
-                updateMarkers(for: context.region)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding()
-            .onAppear {
-                log.debug("🗺️ Map view appeared with \(pirateMarkers.count) markers.")
-                updateMarkers(for: cameraPosition.region ?? defaultRegion)
-            }
-        }
+
+        IslandMKMapView(
+            islands: Array(islands),
+            selectedIsland: $selectedIsland,
+            showModal: $showModal,
+            region: cameraPosition.region ?? defaultRegion
+        )
+    }
+
+
+    // MARK: Radius Picker
 
     private func makeRadiusPicker() -> some View {
-        RadiusPicker(selectedRadius: $selectedRadius)
-            .padding()
+
+        RadiusPicker(
+            selectedRadius: $selectedRadius
+        )
+
+        .padding()
     }
+
+
+
+    // MARK: Overlay
 
     private func overlayContentView() -> some View {
+
         ZStack {
+
             if showModal {
-                Color.primary.opacity(0.2)
-                    .edgesIgnoringSafeArea(.all)
-                    .onTapGesture { showModal = false }
+
+                Color.black.opacity(0.2)
+                    .ignoresSafeArea()
+
+                    .onTapGesture {
+
+                        showModal = false
+                    }
+
+
 
                 if selectedIsland != nil {
+
                     IslandModalContainer(
-                        selectedIsland: $selectedIsland,
-                        viewModel: viewModel,
-                        selectedDay: $selectedDay,
-                        showModal: $showModal,
-                        enterZipCodeViewModel: enterZipCodeViewModel,
-                        selectedAppDayOfWeek: $selectedAppDayOfWeek,
-                        navigationPath: $navigationPath
+
+                        selectedIsland:
+                            $selectedIsland,
+
+                        viewModel:
+                            viewModel,
+
+                        selectedDay:
+                            $selectedDay,
+
+                        showModal:
+                            $showModal,
+
+                        enterZipCodeViewModel:
+                            enterZipCodeViewModel,
+
+                        selectedAppDayOfWeek:
+                            $selectedAppDayOfWeek,
+
+                        navigationPath:
+                            $navigationPath
                     )
-                    .frame(maxWidth: 600, maxHeight: 600)
+
+                    .frame(
+                        maxWidth: 600,
+                        maxHeight: 600
+                    )
+
                     .background(Color(.systemBackground))
-                    .cornerRadius(10)
+
+                    .cornerRadius(12)
+
                     .padding()
-                    .transition(.opacity)
                 }
             }
         }
-        .animation(.easeInOut, value: showModal)
+
+        .animation(
+            .easeInOut,
+            value: showModal
+        )
     }
 
-    private func mapAnnotationView(for marker: CustomMapMarker) -> some View {
-        VStack {
-            Text(marker.title ?? "")
-                .font(.caption)
-                .padding(5)
-                .background(Color(.systemBackground))
-                .cornerRadius(5)
-                .foregroundColor(.primary)
-            CustomMarkerView()
-                .onTapGesture {
-                    if let pirateIsland = marker.pirateIsland {
-                        selectedIsland = pirateIsland
-                        showModal = true
-                    }
-                }
-        }
-    }
 
-    // MARK: - Helpers
+
+    // MARK: Location Handling
+
     private func onAppear() {
+
         if locationManager.userLocation == nil {
+
             locationManager.startLocationServices()
-        } else if let loc = locationManager.userLocation {
-            updateRegion(loc, radius: selectedRadius)
+
+        } else if let location =
+                    locationManager.userLocation {
+
+            updateRegion(
+                location,
+                radius: selectedRadius
+            )
         }
-        // Ensure markers are loaded on initial appear
-        updateMarkers(for: cameraPosition.region ?? defaultRegion)
     }
 
-    private func onChangeUserLocation(_ newUserLocation: CLLocation?) {
-        guard let newUserLocation else { return }
-        // Keep zoom/center synced with user location
-        let newRegion = MKCoordinateRegion(
-            center: newUserLocation.coordinate,
-            latitudinalMeters: selectedRadius * 1609.34,
-            longitudinalMeters: selectedRadius * 1609.34
+
+
+    private func onChangeUserLocation(
+        _ location: CLLocation?
+    ) {
+
+        guard let location else { return }
+
+
+        updateRegion(
+            location,
+            radius: selectedRadius
         )
-        // ⭐️ UPDATED: Set cameraPosition directly
-        cameraPosition = .region(newRegion)
-        // No need to manually update markers, as the cameraPosition change
-        // will cause a Map redraw and subsequent .onMapCameraChange call (or related update)
-        // but for safety/immediacy, call it here too.
-        updateMarkers(for: newRegion)
     }
 
-    private func onChangeSelectedRadius(_ newRadius: Double) {
-        // Safely get the current center from the cameraPosition
-        guard let center = cameraPosition.region?.center else { return }
+
+
+    private func onChangeSelectedRadius(
+        _ radius: Double
+    ) {
+
+        guard let center =
+            cameraPosition.region?.center
+        else { return }
+
+
+        let region =
+            MKCoordinateRegion(
+                center: center,
+                latitudinalMeters:
+                    radius * 1609.34,
+                longitudinalMeters:
+                    radius * 1609.34
+            )
+
+
+        cameraPosition =
+            .region(region)
+    }
+
+
+
+    private func updateRegion(
+        _ location: CLLocation,
+        radius: Double
+    ) {
+
+        let region =
+            MKCoordinateRegion(
+
+                center:
+                    location.coordinate,
+
+                latitudinalMeters:
+                    radius * 1609.34,
+
+                longitudinalMeters:
+                    radius * 1609.34
+            )
+
+
+        cameraPosition =
+            .region(region)
+    }
+
+}
+
+// MARK: - MKMapView Wrapper with Clustering
+
+struct IslandMKMapView: UIViewRepresentable {
+
+    var islands: [PirateIsland]
+
+    @Binding var selectedIsland: PirateIsland?
+    @Binding var showModal: Bool
+
+    var region: MKCoordinateRegion
+
+
+    func makeUIView(context: Context) -> MKMapView {
+
+        let mapView = MKMapView()
+
+        mapView.delegate = context.coordinator
+
+        mapView.setRegion(region, animated: false)
+
+        mapView.showsUserLocation = true
+
+        mapView.pointOfInterestFilter = .excludingAll
+
+        mapView.register(
+            MKMarkerAnnotationView.self,
+            forAnnotationViewWithReuseIdentifier: "marker"
+        )
         
-        let newRegion = MKCoordinateRegion(
-            center: center,
-            latitudinalMeters: newRadius * 1609.34,
-            longitudinalMeters: newRadius * 1609.34
+        mapView.preferredConfiguration = MKStandardMapConfiguration()
+
+        return mapView
+    }
+
+
+    func updateUIView(_ mapView: MKMapView, context: Context) {
+
+        context.coordinator.updateAnnotations(
+            on: mapView,
+            with: islands
         )
-        // ⭐️ UPDATED: Set cameraPosition directly
-        cameraPosition = .region(newRegion)
-        
-        // When radius changes, update markers based on the new, smaller/larger region
-        updateMarkers(for: newRegion)
-    }
 
-    private func updateRegion(_ location: CLLocation, radius: Double) {
-        let newRegion = MKCoordinateRegion(
-            center: location.coordinate,
-            latitudinalMeters: radius * 1609.34,
-            longitudinalMeters: radius * 1609.34
-        )
-        // ⭐️ UPDATED: Set cameraPosition directly
-        cameraPosition = .region(newRegion)
-    }
+        if !context.coordinator.isSameRegion(region) {
 
-    // This helper remains the same and correctly filters the islands based on the region
-    private func updateMarkers(for region: MKCoordinateRegion) {
-        // 1. Update the clustering toggle based on zoom level
-        let newClusteringState = region.span.latitudeDelta > clusterBreakLatitudeDelta
-        if isClusteringEnabled != newClusteringState {
-            isClusteringEnabled = newClusteringState
-        }
+            mapView.setRegion(region, animated: true)
 
-        // 2. Filter islands within the current visible bounds
-        let minLat = region.center.latitude - region.span.latitudeDelta / 2
-        let maxLat = region.center.latitude + region.span.latitudeDelta / 2
-        let minLon = region.center.longitude - region.span.longitudeDelta / 2
-        let maxLon = region.center.longitude + region.span.longitudeDelta / 2
-
-        let filteredIslands = islands.filter { island in
-            (island.latitude >= minLat && island.latitude <= maxLat) &&
-            (island.longitude >= minLon && island.longitude <= maxLon)
-        }
-
-        // 3. Create initial individual markers
-        let rawMarkers = filteredIslands.map { island in
-            CustomMapMarker.forPirateIsland(island) // Ensure your CustomMapMarker has this helper
-        }
-
-        // 4. Run Clustering Algorithm
-        if !isClusteringEnabled {
-            self.pirateMarkers = rawMarkers
-        } else {
-            self.pirateMarkers = performClustering(on: rawMarkers)
+            context.coordinator.lastRegion = region
         }
     }
 
-    // Helper method for the clustering logic
-    private func performClustering(on markers: [CustomMapMarker]) -> [CustomMapMarker] {
-        var clusters: [CustomMapMarker] = []
-        var unclustered = markers
+    func makeCoordinator() -> Coordinator {
 
-        while !unclustered.isEmpty {
-            let marker = unclustered.removeFirst()
-            var clusterGroup = [marker]
+        Coordinator(self)
+    }
 
-            unclustered = unclustered.filter { otherMarker in
-                let distance = marker.coordinate.distance(to: otherMarker.coordinate)
-                if distance <= clusterRadiusMiles * 1609.34 {
-                    clusterGroup.append(otherMarker)
-                    return false
-                }
-                return true
+    class Coordinator: NSObject, MKMapViewDelegate {
+
+        var parent: IslandMKMapView
+        var currentAnnotations: [String: IslandAnnotation] = [:]
+        var lastRegion: MKCoordinateRegion?
+
+        init(_ parent: IslandMKMapView) {
+
+            self.parent = parent
+        }
+
+
+        // ✅ MOVE THIS FUNCTION HERE
+        func isSameRegion(_ newRegion: MKCoordinateRegion) -> Bool {
+
+            guard let lastRegion else { return false }
+
+            let epsilon = 0.0001
+
+            return
+
+                abs(lastRegion.center.latitude - newRegion.center.latitude) < epsilon &&
+
+                abs(lastRegion.center.longitude - newRegion.center.longitude) < epsilon &&
+
+                abs(lastRegion.span.latitudeDelta - newRegion.span.latitudeDelta) < epsilon &&
+
+                abs(lastRegion.span.longitudeDelta - newRegion.span.longitudeDelta) < epsilon
+        }
+
+
+        func updateAnnotations(
+            on mapView: MKMapView,
+            with islands: [PirateIsland]
+        ) {
+
+            var newAnnotations: [String: IslandAnnotation] = [:]
+
+            for island in islands {
+
+                guard let id = island.islandID else { continue }
+
+                newAnnotations[id] = IslandAnnotation(island: island)
             }
 
-            if clusterGroup.count > 4 { // Threshold for showing a cluster
-                let avgLat = clusterGroup.map { $0.coordinate.latitude }.reduce(0, +) / Double(clusterGroup.count)
-                let avgLon = clusterGroup.map { $0.coordinate.longitude }.reduce(0, +) / Double(clusterGroup.count)
-                clusters.append(
-                    CustomMapMarker.forCluster(
-                        at: CLLocationCoordinate2D(latitude: avgLat, longitude: avgLon),
-                        count: clusterGroup.count
+
+            let toRemove = currentAnnotations.keys.filter {
+                newAnnotations[$0] == nil
+            }
+
+            let toAdd = newAnnotations.keys.filter {
+                currentAnnotations[$0] == nil
+            }
+
+
+            mapView.removeAnnotations(
+                toRemove.compactMap { currentAnnotations[$0] }
+            )
+
+            mapView.addAnnotations(
+                toAdd.compactMap { newAnnotations[$0] }
+            )
+
+
+            currentAnnotations = newAnnotations
+        }
+
+
+        func mapView(
+            _ mapView: MKMapView,
+            viewFor annotation: MKAnnotation
+        ) -> MKAnnotationView? {
+
+            if annotation is MKUserLocation {
+
+                return nil
+            }
+
+
+            guard let annotation = annotation as? IslandAnnotation
+            else { return nil }
+
+
+            let view = mapView.dequeueReusableAnnotationView(
+                withIdentifier: "marker",
+                for: annotation
+            ) as! MKMarkerAnnotationView
+
+
+            view.markerTintColor = .systemRed
+
+            view.clusteringIdentifier = "gym"
+
+            view.displayPriority = .defaultHigh
+
+            return view
+        }
+
+
+        func mapView(
+            _ mapView: MKMapView,
+            didSelect view: MKAnnotationView
+        ) {
+
+            if let cluster = view.annotation as? MKClusterAnnotation {
+
+                let region = MKCoordinateRegion(
+                    center: cluster.coordinate,
+                    span: MKCoordinateSpan(
+                        latitudeDelta:
+                            mapView.region.span.latitudeDelta / 2,
+
+                        longitudeDelta:
+                            mapView.region.span.longitudeDelta / 2
                     )
                 )
-            } else {
-                clusters.append(contentsOf: clusterGroup)
+
+                mapView.setRegion(region, animated: true)
+
+                return
             }
+
+
+            guard let annotation =
+                view.annotation as? IslandAnnotation
+            else { return }
+
+
+            parent.selectedIsland = annotation.island
+
+            parent.showModal = true
         }
-        return clusters
     }
-    
-    private func clusterView(for marker: CustomMapMarker) -> some View {
-        ZStack {
-            Circle()
-                .fill(Color.red.opacity(0.8))
-                .frame(width: 40, height: 40)
-            Text("\(marker.count ?? 1)")
-                .foregroundColor(.white)
-                .font(.caption).fontWeight(.bold)
-        }
-        .onTapGesture {
-            withAnimation(.easeInOut) {
-                cameraPosition = .region(MKCoordinateRegion(
-                    center: marker.coordinate,
-                    span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
-                ))
-            }
-        }
+}
+
+
+
+
+class IslandAnnotation: NSObject, MKAnnotation {
+
+    let island: PirateIsland
+    var coordinate: CLLocationCoordinate2D
+    var title: String?
+    init(island: PirateIsland) {
+
+        self.island = island
+        self.coordinate =
+            CLLocationCoordinate2D(
+                latitude: island.latitude,
+                longitude: island.longitude
+            )
+
+        self.title = island.islandName
+
+        super.init()
     }
 }

@@ -16,7 +16,6 @@
 		0C07B0772C2CFD6700D0BFB2 /* EditExistingIsland.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0762C2CFD6700D0BFB2 /* EditExistingIsland.swift */; };
 		0C07B0792C2CFDBB00D0BFB2 /* PirateIslandView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0782C2CFDBB00D0BFB2 /* PirateIslandView.swift */; };
 		0C07B07B2C2CFDDE00D0BFB2 /* AddIslandFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B07A2C2CFDDE00D0BFB2 /* AddIslandFormView.swift */; };
-		0C07B07D2C2CFDFE00D0BFB2 /* IslandMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B07C2C2CFDFE00D0BFB2 /* IslandMapView.swift */; };
 		0C07B07F2C2CFE1C00D0BFB2 /* IslandDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B07E2C2CFE1C00D0BFB2 /* IslandDetailView.swift */; };
 		0C07B0812C2CFE3600D0BFB2 /* IslandMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0802C2CFE3600D0BFB2 /* IslandMap.swift */; };
 		0C07B0832C2CFE5000D0BFB2 /* GeocodingUtility.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0822C2CFE5000D0BFB2 /* GeocodingUtility.swift */; };
@@ -55,7 +54,6 @@
 		0C33DC152CC09E7C002C4835 /* PrivacyPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C33DC142CC09E7C002C4835 /* PrivacyPolicy.swift */; };
 		0C33DC172CC09FBC002C4835 /* TermsOfService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C33DC162CC09FBC002C4835 /* TermsOfService.swift */; };
 		0C35D9B22F48E80E0048D205 /* PirateIslandUUIDToStringMapping.xcmappingmodel in Sources */ = {isa = PBXBuildFile; fileRef = 0C35D9B12F48E80E0048D205 /* PirateIslandUUIDToStringMapping.xcmappingmodel */; };
-		0C380A5F2F2FEFA500274EFA /* SearchableClusterMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C380A5E2F2FEFA200274EFA /* SearchableClusterMap.swift */; };
 		0C380A642F32B32500274EFA /* MFINDER_BOLDw.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C380A632F32B32500274EFA /* MFINDER_BOLDw.png */; };
 		0C380A652F32B32500274EFA /* MFINDER_BOLDb.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C380A622F32B32500274EFA /* MFINDER_BOLDb.png */; };
 		0C4B34362C61A32700FD6893 /* PirateIslandDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4B34352C61A32700FD6893 /* PirateIslandDataManager.swift */; };
@@ -163,7 +161,6 @@
 		0C07B0762C2CFD6700D0BFB2 /* EditExistingIsland.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditExistingIsland.swift; sourceTree = "<group>"; };
 		0C07B0782C2CFDBB00D0BFB2 /* PirateIslandView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PirateIslandView.swift; sourceTree = "<group>"; };
 		0C07B07A2C2CFDDE00D0BFB2 /* AddIslandFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddIslandFormView.swift; sourceTree = "<group>"; };
-		0C07B07C2C2CFDFE00D0BFB2 /* IslandMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandMapView.swift; sourceTree = "<group>"; };
 		0C07B07E2C2CFE1C00D0BFB2 /* IslandDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandDetailView.swift; sourceTree = "<group>"; };
 		0C07B0802C2CFE3600D0BFB2 /* IslandMap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandMap.swift; sourceTree = "<group>"; };
 		0C07B0822C2CFE5000D0BFB2 /* GeocodingUtility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeocodingUtility.swift; sourceTree = "<group>"; };
@@ -213,7 +210,6 @@
 		0C33DC162CC09FBC002C4835 /* TermsOfService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TermsOfService.swift; sourceTree = "<group>"; };
 		0C35D9B02F48E6C40048D205 /* Mat_Finder_v2.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = Mat_Finder_v2.xcdatamodel; sourceTree = "<group>"; };
 		0C35D9B12F48E80E0048D205 /* PirateIslandUUIDToStringMapping.xcmappingmodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcmappingmodel; path = PirateIslandUUIDToStringMapping.xcmappingmodel; sourceTree = "<group>"; };
-		0C380A5E2F2FEFA200274EFA /* SearchableClusterMap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchableClusterMap.swift; sourceTree = "<group>"; };
 		0C380A622F32B32500274EFA /* MFINDER_BOLDb.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = MFINDER_BOLDb.png; sourceTree = "<group>"; };
 		0C380A632F32B32500274EFA /* MFINDER_BOLDw.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = MFINDER_BOLDw.png; sourceTree = "<group>"; };
 		0C4A7B4A2CC0D43A008CE1EA /* iAd.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = iAd.framework; path = System/Library/Frameworks/iAd.framework; sourceTree = SDKROOT; };
@@ -472,7 +468,6 @@
 		0C07B0862C2CFE8200D0BFB2 /* SearchByDayOfWeek */ = {
 			isa = PBXGroup;
 			children = (
-				0C380A5E2F2FEFA200274EFA /* SearchableClusterMap.swift */,
 				0C955BEC2C764D9B00D03CAB /* DayOfWeekSearchView.swift */,
 				0C524E8D2C2F4241008D6623 /* DayOfWeekUtils.swift */,
 				0CEC327C2C41A2FE00F0747F /* SchedulesView */,
@@ -528,7 +523,6 @@
 				0C07B0AF2C2D00BE00D0BFB2 /* CustomMarkerView.swift */,
 				0C07B0B12C2D00DC00D0BFB2 /* CustomMapMarker.swift */,
 				0C07B0B32C2D00F300D0BFB2 /* CustomPin.swift */,
-				0C07B07C2C2CFDFE00D0BFB2 /* IslandMapView.swift */,
 			);
 			path = ALLISLANDS;
 			sourceTree = "<group>";
@@ -1065,13 +1059,11 @@
 				0C955BEB2C75AE6700D03CAB /* Utilities.swift in Sources */,
 				0C07B0D32C2D033700D0BFB2 /* AppState.swift in Sources */,
 				0C07B0A62C2D002D00D0BFB2 /* SceneLoader.swift in Sources */,
-				0C07B07D2C2CFDFE00D0BFB2 /* IslandMapView.swift in Sources */,
 				0C8817752C3371B7008FE469 /* MapDetails.swift in Sources */,
 				0C2EE2AF2C9DEF110029432F /* ViewReviewSearch.swift in Sources */,
 				0C8AEC292C5C246800D38635 /* AddNewMatTimeSection.swift in Sources */,
 				0C07B0B22C2D00DC00D0BFB2 /* CustomMapMarker.swift in Sources */,
 				0C6F7BDE2C7B146200072237 /* Extensions.swift in Sources */,
-				0C380A5F2F2FEFA500274EFA /* SearchableClusterMap.swift in Sources */,
 				0CEC32822C41CA3C00F0747F /* AllpIslandScheduleView.swift in Sources */,
 				0CEC32792C41907200F0747F /* StoryboardViewControllerRepresentable.swift in Sources */,
 				0C6F7BD92C79193B00072237 /* Review+CoreDataClass.swift in Sources */,
