@@ -94,7 +94,7 @@ struct IslandMenu2: View {
         case addNewGym = "Add New Gym"
         case updateExistingGyms = "Update Existing Gyms"
         case addOrEditScheduleOpenMat = "Add or Edit Schedule/Open Mat"
-        case searchReviews = "Search Reviews"
+        case searchReviews = "Read Reviews"
         case submitReview = "Submit a Review"
         case faqDisclaimer = "FAQ & Disclaimer"
 

@@ -63,7 +63,7 @@ struct AllpIslandScheduleView: View {
         
         return Group {
             if !schedulesForDay.isEmpty {
-                Section(header: Text(day.displayName)) {
+                Section(header: Text(day.ultraShortDisplayName)) {
                     ForEach(schedulesForDay, id: \.0) { island, matTimes in
                         islandSection(island: island, matTimes: matTimes)
                     }

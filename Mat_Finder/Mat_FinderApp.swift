@@ -329,7 +329,7 @@ struct AppRootDestinationView: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .principal) {
-                        Text("All Gyms")
+                        Text("Select Gym - Reviews")
                             .font(.title)
                             .fontWeight(.bold)
                             .foregroundColor(.primary)

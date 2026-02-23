@@ -10,12 +10,40 @@ import SwiftUI
 
 
 enum DayOfWeek: String, CaseIterable, Hashable, Identifiable, Comparable {
+
     case sunday, monday, tuesday, wednesday, thursday, friday, saturday
 
     var id: String { rawValue }
 
     var displayName: String {
         rawValue.capitalized
+    }
+
+    // 3-letter version (Mon, Tue, Wed)
+    var shortDisplayName: String {
+        String(displayName.prefix(3))
+    }
+
+    // 1-letter version (M, T, W)
+    var veryShortDisplayName: String {
+        String(displayName.prefix(1))
+    }
+
+    // ✅ Apple-style version (Sun, M, T, W, Th, F, Sat)
+    var ultraShortDisplayName: String {
+
+        switch self {
+
+        case .sunday: return "Sun"
+        case .monday: return "M"
+        case .tuesday: return "T"
+        case .wednesday: return "W"
+        case .thursday: return "Th"
+        case .friday: return "F"
+        case .saturday: return "Sat"
+
+        }
+
     }
 
     var number: Int {
@@ -35,20 +63,15 @@ enum DayOfWeek: String, CaseIterable, Hashable, Identifiable, Comparable {
     }
 
     static func from(displayName: String) -> DayOfWeek? {
-        print("Attempting to create DayOfWeek from displayName: \(displayName)")
-        guard let day = DayOfWeek.allCases.first(where: { $0.displayName == displayName }) else {
-            print("Error: Invalid displayName: \(displayName)")
-            return nil
+        DayOfWeek.allCases.first {
+            $0.displayName == displayName
         }
-        print("Created DayOfWeek: \(day)")
-        return day
     }
 
-    /// Converts 24-hour time string to 12-hour time string
     static func formatTime(from twentyFourHourTime: String) -> String {
-        guard let date = AppDateFormatter.twentyFourHour.date(from: twentyFourHourTime) else {
-            return twentyFourHourTime
-        }
+        guard let date = AppDateFormatter.twentyFourHour.date(from: twentyFourHourTime)
+        else { return twentyFourHourTime }
+
         return AppDateFormatter.twelveHour.string(from: date)
     }
 }

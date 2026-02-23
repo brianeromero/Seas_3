@@ -32,7 +32,7 @@ struct ViewScheduleForIsland: View {
                                 await viewModel.loadSchedules(for: island)
                             }
                         } label: {
-                            Text(day.displayName)
+                            Text(day.ultraShortDisplayName)
                                 .font(.headline)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 6)

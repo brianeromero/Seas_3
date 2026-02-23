@@ -1,5 +1,5 @@
 //
-//  ScheduleFormView.swift
+//  NEW ScheduleFormView.swift
 //  Mat_Finder
 //
 //  Created by Brian Romero on 7/30/24.
@@ -44,140 +44,209 @@ extension MatTime {
 
 
 struct ScheduleFormView: View {
-    @Environment(\.managedObjectContext) private var viewContext
-
+    
+    @Environment(\.managedObjectContext)
+    private var viewContext
+    
     let islands: [PirateIsland]
-
-    @State private var selectedIslandID: String? // <- use String
+    
+    @State private var selectedIslandID: String?
     
     var selectedIsland: PirateIsland? {
         islands.first { $0.islandID == selectedIslandID }
     }
-
+    
     let initialSelectedIsland: PirateIsland?
-
+    
     @Binding var matTimes: [MatTime]
-
+    
     @ObservedObject var viewModel: AppDayOfWeekViewModel
-
-    @State private var selectedDay: DayOfWeek?
-    @State private var selectedAppDayOfWeek: AppDayOfWeek?
-
+    
+    
+    // MARK: VIEW STATE
+    
+    @State private var selectedDay: DayOfWeek? = nil
+    
+    @State private var showingAddSchedule = false
+    
+    
+    // Alerts
+    
     @State private var showingAlert = false
     @State private var alertTitle = ""
     @State private var alertMessage = ""
-
-    @State private var showReview = false
-
-    @State private var isLoading = false
-    @State private var isAppDayOfWeekLoaded = false
     
+    @State private var showReview = false
+    
+    
+    // MARK: BODY
     
     var body: some View {
-        Form {
+        
+        VStack(alignment: .leading, spacing: 24) {   // ✅ FIX HERE
 
-            // MARK: - Island Selection
-            IslandSection(
-                islands: islands,
-                selectedIslandID: $selectedIslandID,
-                showReview: $showReview
-            )
-
-            .onAppear { Task { await handleOnAppear() } }
-            .onChange(of: selectedIsland) { _, _ in Task { await setupInitialSelection() } }
-
-            // MARK: - Day Selection
-            daySelectionSection
-
-            // MARK: - Add New Mat Time Section (FIELDS + BUTTON)
-            Section {
-                if selectedIsland != nil { // unwrap the computed property
-                    AddNewMatTimeSection(
-                        selectedIslandID: $selectedIslandID,
-                        islands: islands,
-                        selectedDay: $selectedDay,
-                        viewModel: viewModel,
-                        selectIslandAndDay: { island, day in await selectIslandAndDay(island, day) },
-                        showAlert: $showingAlert,
-                        alertTitle: $alertTitle,
-                        alertMessage: $alertMessage
-                    )
-
-                } else {
-                    Text("Please select a gym first")
-                }
-
-                // Always enabled button
-                Button(action: {
-                    NotificationCenter.default.post(name: .addNewMatTimeTapped, object: nil)
-                }) {
-                    Text("Add New Mat Time")
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
-                }
-            }
-
-            // MARK: - Scheduled Mat Times
-            if let island = selectedIsland, let day = selectedDay {
-                ScheduledMatTimesSection(
-                    island: island,
-                    day: day,
-                    viewModel: viewModel,
-                    matTimesForDay: $viewModel.matTimesForDay,
-                    selectedDay: $selectedDay
-                )
-            } else {
-                Text("Please select a day and gym to view schedule.")
-                    .font(.footnote)
-                    .foregroundColor(.secondary)
-            }
-
+            islandSection
+            
+            viewDaySection
+            
+            scheduleListSection
+            
+            addScheduleButton
+            
         }
-        .navigationTitle("Schedule Entry")
+        .padding()
+        .background(Color(.systemGroupedBackground))
+        .navigationTitle("Schedule")
+        
+        .onAppear {
+            
+            viewModel.selectedDay = selectedDay ?? .monday
+            
+            Task {
+                await handleOnAppear()
+            }
+            
+        }
+        
+        .sheet(isPresented: $showingAddSchedule) {
+            
+            NavigationStack {
+                
+                AddNewMatTimeSection2(
+                    selectedIslandID: $selectedIslandID,
+                    islands: islands,
+                    viewModel: viewModel,
+                    showAlert: $showingAlert,
+                    alertTitle: $alertTitle,
+                    alertMessage: $alertMessage,
+                    selectIslandAndDay: selectIslandAndDay
+                )
+                
+            }
+            
+        }
+        
         .alert(isPresented: $showingAlert) {
+            
             Alert(
                 title: Text(alertTitle),
                 message: Text(alertMessage),
                 dismissButton: .default(Text("OK"))
             )
+            
+        }
+        
+    }
+}
+
+
+ 
+
+// MARK: -addScheduleButton
+
+private extension ScheduleFormView {
+
+    var addScheduleButton: some View {
+
+        Button {
+
+            showingAddSchedule = true
+
+        } label: {
+
+            HStack {
+
+                Image(systemName: "plus.circle.fill")
+
+                Text("Add Schedule")
+
+            }
+            .font(.headline)
+            .frame(maxWidth: .infinity)
+            .padding()
+            .background(Color.accentColor)
+            .foregroundColor(.white)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
         }
     }
 }
 
-// MARK: - Day Selection Section
 private extension ScheduleFormView {
 
-    var daySelectionSection: some View {
-        Section(header: Text("Select Day")) {
-            Picker("Day", selection: $selectedDay) {
-                ForEach(DayOfWeek.allCases, id: \.self) { day in
-                    Text(day.displayName).tag(day as DayOfWeek?)
-                }
+    var islandSection: some View {
+
+        IslandSection(
+            islands: islands,
+            selectedIslandID: $selectedIslandID,
+            showReview: $showReview
+        )
+
+    }
+
+}
+
+private extension ScheduleFormView {
+
+    var scheduleListSection: some View {
+
+        Group {
+
+            if let island = selectedIsland,
+               let selectedDay {
+
+                ScheduledMatTimesSection(
+                    island: island,
+                    day: selectedDay,
+                    viewModel: viewModel,
+                    matTimesForDay: $viewModel.matTimesForDay,
+                    selectedDay: Binding(
+                        get: { selectedDay },
+                        set: { self.selectedDay = $0 }
+                    )
+                )
+
             }
-            .pickerStyle(.segmented)
+            else {
+
+                Text("...or click 'Add Schedule' to Add Mat Times")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+            }
+
         }
-        .onChange(of: selectedDay) { _, newDay in
-            guard let newDay, let island = selectedIsland else { return }
 
-            Task {
-                isLoading = true
+    }
 
-                if let appDay = await selectIslandAndDay(island, newDay) {
-                    viewModel.selectedAppDayOfWeek = appDay
-                    isAppDayOfWeekLoaded = true
-                } /*else {
-                    viewModel.selectedAppDayOfWeek = nil
-                    isAppDayOfWeekLoaded = false
-                    alertTitle = "No Schedule Available"
-                    alertMessage = "No mat times have been entered for \(newDay.displayName) at \(island.islandName ?? "this gym")."
-                    showingAlert = true
+}
+
+private extension ScheduleFormView {
+
+    var viewDaySection: some View {
+
+        VStack(alignment: .leading, spacing: 8) {
+
+            Text("Select a Day to View Available Mat Times")
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            ScheduleDaySelector(
+                island: selectedIsland,
+                selectedDay: $selectedDay,
+                viewModel: viewModel
+            )
+            .onChange(of: selectedDay) { _, newDay in
+
+                guard let newDay else { return }
+
+                viewModel.selectedDay = newDay
+
+                Task {
+                    await setupInitialSelection()
                 }
-*/
-                isLoading = false
+
             }
+
         }
     }
 }
@@ -209,10 +278,12 @@ private extension ScheduleFormView {
 
 
     func setupInitialSelection() async {
-        guard let island = selectedIsland else { return }
 
-        let day = selectedDay ?? .monday
-        let (_, fetchedMatTimes) = await viewModel.fetchCurrentDayOfWeek(
+        guard let island = selectedIsland else { return }
+        guard let day = selectedDay else { return }
+
+        let (_, fetchedMatTimes) =
+        await viewModel.fetchCurrentDayOfWeek(
             for: island,
             day: day,
             selectedDayBinding: Binding(
@@ -222,7 +293,13 @@ private extension ScheduleFormView {
         )
 
         if let fetchedMatTimes {
-            viewModel.matTimesForDay[day] = fetchedMatTimes
+
+            await MainActor.run {
+
+                viewModel.matTimesForDay[day] = fetchedMatTimes
+
+            }
+
         }
 
     }

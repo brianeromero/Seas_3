@@ -64,7 +64,7 @@ struct DayColumn: View {
 
     var body: some View {
         VStack {
-            Text(day.displayName)
+            Text(day.ultraShortDisplayName)
                 .font(.headline)
                 .bold()
                 .padding(.vertical, 8)

@@ -48,7 +48,7 @@ struct IslandScheduleView: View {
                                         }
                                     },
                                     label: {
-                                        Text(day.displayName)
+                                        Text(day.ultraShortDisplayName)
                                             .font(.subheadline)
                                             .padding(.top)
                                     }

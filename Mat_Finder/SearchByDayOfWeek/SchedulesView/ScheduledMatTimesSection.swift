@@ -177,7 +177,50 @@ struct ScheduledMatTimesSection: View {
     }
 
     func sortMatTimes(_ matTimes: [MatTime]) -> [MatTime] {
-        matTimes.sorted { $0.time ?? "" < $1.time ?? "" }
+
+        matTimes.sorted {
+
+            guard
+                let t1 = $0.time,
+                let t2 = $1.time,
+                let d1 = parseTime(t1),
+                let d2 = parseTime(t2)
+            else {
+                return false
+            }
+
+            return d1 < d2
+        }
+
+    }
+    
+    func parseTime(_ string: String) -> Date? {
+
+        let formats = [
+
+            "HH:mm",        // 18:00
+            "H:mm",         // 5:35
+            "h:mm a",       // 5:35 AM
+            "hh:mm a"       // 09:00 AM
+
+        ]
+
+        let formatter = DateFormatter()
+
+        for format in formats {
+
+            formatter.dateFormat = format
+
+            if let date = formatter.date(from: string) {
+
+                return date
+
+            }
+
+        }
+
+        return nil
+
     }
 
     // ✅ Corrected deleteMatTime: just triggers alert

@@ -27,7 +27,7 @@ struct pIslandScheduleView: View {
                                 self.selectedDay = day // Update selectedDay
                                 viewModel.fetchAppDayOfWeekAndUpdateList(for: selectedIsland, day: day, context: viewModel.viewContext)
                             }) {
-                                Text(day.displayName)
+                                Text(day.ultraShortDisplayName)
                                     .font(.headline)
                                     .foregroundColor(selectedDay == day ? .blue : .black)
                                     .padding()
