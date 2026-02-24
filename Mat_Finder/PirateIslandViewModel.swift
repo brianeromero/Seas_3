@@ -102,8 +102,8 @@ public class PirateIslandViewModel: ObservableObject {
         let coordinates = try await geocodeAddress(islandDetails.fullAddress.cleanedForGeocoding)
 
         // Step 5: Create NSManagedObject in a background context
-        let backgroundContext = persistenceController.container.newBackgroundContext()
-        backgroundContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+        let backgroundContext =
+        persistenceController.newBackgroundContext()
 
         // ✅ Thread-safe copies
         let islandName = islandDetails.islandName
@@ -142,15 +142,31 @@ public class PirateIslandViewModel: ObservableObject {
             newIslandObjectID = newIsland.objectID
         }
 
-        // Step 6: Fetch on main context and upload to Firestore
-        let mainContextIsland = try persistenceController.container.viewContext.existingObject(with: newIslandObjectID) as! PirateIsland
-        let islandData = try FirestoreIslandData(from: mainContextIsland)
+        // Step 6: Fetch on main context safely and upload to Firestore
+
+        let viewContext = persistenceController.viewContext
+
+
+        let mainContextIsland =
+        try await viewContext.perform {
+
+            try viewContext.existingObject(
+                with: newIslandObjectID
+            ) as! PirateIsland
+        }
+
+
+        let islandData =
+        try FirestoreIslandData(from: mainContextIsland)
+
+
         try await FirestoreManager.shared.saveIslandToFirestore(
+
             islandData: islandData,
             selectedCountry: selectedCountry,
-            createdByUser: createdByUser  // <-- Pass User, not String
-            
+            createdByUser: createdByUser
         )
+
 
         return mainContextIsland
     }

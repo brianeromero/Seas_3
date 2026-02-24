@@ -253,7 +253,7 @@ class AppDayOfWeekRepository: ObservableObject {
     func fetchSchedules(for island: PirateIsland) async -> [AppDayOfWeek] {
         print("AppDayOfWeekRepository.fetchSchedules - START")
         
-        let backgroundContext = PersistenceController.shared.container.newBackgroundContext()
+        let backgroundContext = PersistenceController.shared.newBackgroundContext()
         let islandObjectID = island.objectID
 
         return await withCheckedContinuation { continuation in
@@ -284,7 +284,7 @@ class AppDayOfWeekRepository: ObservableObject {
     func fetchSchedules(for island: PirateIsland, day: DayOfWeek) async -> [AppDayOfWeek] {
         print("AppDayOfWeekRepository.fetchSchedules (with day) - START")
         
-        let backgroundContext = PersistenceController.shared.container.newBackgroundContext()
+        let backgroundContext = PersistenceController.shared.newBackgroundContext()
         let islandObjectID = island.objectID
         let dayValue = day.rawValue
 
@@ -401,8 +401,8 @@ class AppDayOfWeekRepository: ObservableObject {
    
     // MARK: - New fetchAllIslands Method
     func fetchAllIslands(forDay day: String) async throws -> [NSManagedObjectID] {
-        let backgroundContext = PersistenceController.shared.container.newBackgroundContext()
-        
+        let backgroundContext = PersistenceController.shared.newBackgroundContext()
+    
         let dayLowercased = day.lowercased() // Sendable primitive
         
         return try await withCheckedThrowingContinuation { continuation in
@@ -433,7 +433,7 @@ class AppDayOfWeekRepository: ObservableObject {
     
     // MARK: - NEW: fetchSchedulesObjectIDs for a specific island
     func fetchSchedulesObjectIDs(for island: PirateIsland) async -> [NSManagedObjectID] {
-        let backgroundContext = PersistenceController.shared.container.newBackgroundContext()
+        let backgroundContext = PersistenceController.shared.newBackgroundContext()
         let islandObjectID = island.objectID
         
         return await withCheckedContinuation { continuation in

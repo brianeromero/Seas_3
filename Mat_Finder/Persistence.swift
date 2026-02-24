@@ -53,22 +53,22 @@ final class PersistenceController: ObservableObject {
     private init(inMemory: Bool = false) {
         self.firestoreManager = FirestoreManager.shared
         container = NSPersistentContainer(name: "Mat_Finder")
-
+        
         guard let description = container.persistentStoreDescriptions.first else {
             fatalError("❌ No persistent store description found.")
         }
-
+        
         if inMemory {
             description.url = URL(fileURLWithPath: "/dev/null")
             FirestoreManager.shared.disabled = true
         }
-
+        
         // 🔥 LIGHTWEIGHT MIGRATION ENABLED
         description.setOption(true as NSNumber,
                               forKey: NSMigratePersistentStoresAutomaticallyOption)
         description.setOption(true as NSNumber,
                               forKey: NSInferMappingModelAutomaticallyOption)
-
+        
         container.loadPersistentStores { description, error in
             if let error = error as NSError? {
                 print("🔥 Persistent Store Load Error:")
@@ -79,13 +79,77 @@ final class PersistenceController: ObservableObject {
                 print("✅ Persistent Store Loaded: \(description.url?.absoluteString ?? "unknown")")
             }
         }
-
+        
+        // ✅ REQUIRED FOR BACKGROUND SAVE MERGING
         container.viewContext.automaticallyMergesChangesFromParent = true
         container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
-
+        container.viewContext.shouldDeleteInaccessibleFaults = true
+        container.viewContext.transactionAuthor = "main"
+        
         container.viewContext.perform {
             print("✅ ViewContext running on main thread: \(Thread.isMainThread)")
         }
+        
+        
+        // ✅ ADD THIS BLOCK RIGHT HERE
+        NotificationCenter.default.addObserver(
+            forName: .NSManagedObjectContextDidSave,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            
+            guard let self = self else { return }
+            
+            guard let context =
+                    notification.object as? NSManagedObjectContext
+            else { return }
+            
+            // Prevent self-merge
+            if context === self.container.viewContext {
+                return
+            }
+            
+            // Only merge background + firestore
+            if context.transactionAuthor == "firestore" ||
+                context.transactionAuthor == "background" {
+                
+                self.container.viewContext.mergeChanges(
+                    fromContextDidSave: notification
+                )
+            }
+        }
+    }
+    
+    func newBackgroundContext() -> NSManagedObjectContext {
+
+        let context = container.newBackgroundContext()
+
+        // ❌ REMOVE THIS LINE
+        // context.automaticallyMergesChangesFromParent = true
+
+        // ✅ KEEP THIS
+        context.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+
+        context.transactionAuthor = "background"
+
+        return context
+    }
+    
+    func newFirestoreContext() -> NSManagedObjectContext {
+
+        let context =
+            container.newBackgroundContext()
+
+        context.mergePolicy =
+            NSMergeByPropertyObjectTrumpMergePolicy
+
+        context.transactionAuthor =
+            "firestore"
+
+        // ✅ CRITICAL FIX
+        context.automaticallyMergesChangesFromParent = false
+
+        return context
     }
     
     // MARK: - Core Data Methods

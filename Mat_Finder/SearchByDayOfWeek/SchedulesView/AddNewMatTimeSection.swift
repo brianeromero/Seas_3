@@ -247,7 +247,7 @@ struct AddNewMatTimeSection: View {
                 appDayOfWeekToUseID = existingAppDayOfWeek.objectID
             } else {
                 let selectedIslandID = selectedIsland.objectID
-                let backgroundContext = PersistenceController.shared.container.newBackgroundContext()
+                let backgroundContext = PersistenceController.shared.newBackgroundContext()
                 backgroundContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
 
                 // Capture safe strings before entering performAndWait
@@ -422,16 +422,26 @@ struct AddNewMatTimeSection: View {
             // 3️⃣ Prepare Firestore data using background context
             var matTimeDataToSave: [String: Any] = [:]
             var matTimeUUIDString: String = ""
-            var appDayOfWeekRefForFirestore: DocumentReference?
+            var _: DocumentReference?
 
-            let contextForFirestore = PersistenceController.shared.container.newBackgroundContext()
+            let contextForFirestore =
+            PersistenceController.shared.newFirestoreContext()
 
             try await contextForFirestore.perform {
+
                 guard
-                    let matTimeOnBGContext = try contextForFirestore.existingObject(with: matTimeObjectID) as? MatTime,
-                    let matTimeID = matTimeOnBGContext.id,
-                    let appDayOfWeekOnBGContext = try contextForFirestore.existingObject(with: appDayOfWeekID) as? AppDayOfWeek,
-                    let appDayOfWeekHumanID = appDayOfWeekOnBGContext.appDayOfWeekID
+                    let matTimeOnBGContext =
+                        try contextForFirestore.existingObject(with: matTimeObjectID) as? MatTime,
+
+                    let matTimeID =
+                        matTimeOnBGContext.id,
+
+                    let appDayOfWeekOnBGContext =
+                        try contextForFirestore.existingObject(with: appDayOfWeekID) as? AppDayOfWeek,
+
+                    let appDayOfWeekHumanID =
+                        appDayOfWeekOnBGContext.appDayOfWeekID
+
                 else {
                     throw NSError(domain: "FirestoreSerializationError", code: 202,
                                   userInfo: [NSLocalizedDescriptionKey: "Failed to rehydrate MatTime or AppDayOfWeek for Firestore serialization."])
@@ -439,14 +449,19 @@ struct AddNewMatTimeSection: View {
 
                 matTimeUUIDString = matTimeID.uuidString
 
-                // Human-readable Firestore reference
-                appDayOfWeekRefForFirestore = Firestore.firestore()
+                let appDayOfWeekRef =
+                Firestore.firestore()
                     .collection("AppDayOfWeek")
                     .document(appDayOfWeekHumanID)
 
-                var data = matTimeOnBGContext.toFirestoreData()
-                data["appDayOfWeek"] = appDayOfWeekRefForFirestore
-                matTimeDataToSave = data
+                var data =
+                matTimeOnBGContext.toFirestoreData()
+
+                data["appDayOfWeek"] =
+                appDayOfWeekRef
+
+                matTimeDataToSave =
+                data
             }
 
             // 4️⃣ Sanity check
@@ -538,114 +553,224 @@ struct AddNewMatTimeSection: View {
         matTime = nil // Reset the matTime being edited
     }
     
-    // MARK: - updateMatTime (Adjusted to use NSManagedObjectID and human-readable Firestore ID)
+    // MARK: - updateMatTime (SAFE VERSION)
     func updateMatTime(_ matTimeObjectID: NSManagedObjectID) {
+
         Task {
+
             guard let appDayOfWeek = viewModel.selectedAppDayOfWeek else {
+
                 print("❌ No selectedAppDayOfWeek found for update.")
                 return
             }
 
             do {
-                // Capture the objectID early (safe to share across threads)
-                let appDayOfWeekObjectID = appDayOfWeek.objectID
 
-                // Step 1: Update or create in Core Data
-                let updatedMatTimeObjectID = try await viewModel.updateOrCreateMatTime(
+                // Capture IDs early
+                let appDayOfWeekObjectID =
+                appDayOfWeek.objectID
+
+
+                // -------------------------------------------------
+                // STEP 1: Update Core Data (background save)
+                // -------------------------------------------------
+
+                let updatedMatTimeObjectID =
+                try await viewModel.updateOrCreateMatTime(
+
                     matTimeObjectID,
-                    time: formatDateToString(selectedTime),
-                    type: determineMatTimeType(),
+
+                    time:
+                        formatDateToString(selectedTime),
+
+                    type:
+                        determineMatTimeType(),
+
                     gi: gi,
+
                     noGi: noGi,
+
                     openMat: openMat,
+
                     restrictions: restrictions,
-                    restrictionDescription: restrictions ? restrictionDescriptionInput : "",
-                    goodForBeginners: goodForBeginners,
-                    kids: kids,
-                    for: appDayOfWeekObjectID
+
+                    restrictionDescription:
+                        restrictions
+                        ? restrictionDescriptionInput
+                        : "",
+
+                    goodForBeginners:
+                        goodForBeginners,
+
+                    kids:
+                        kids,
+
+                    for:
+                        appDayOfWeekObjectID
                 )
 
-                // Step 2: Initialize variables for Firestore upload
-                var matTimeDataToSave: [String: Any] = [:]
-                var updatedMatTimeUUIDString: String = ""
-                var appDayOfWeekUUIDStringForFirestore: String = ""
-                var appDayOfWeekRefForFirestore: DocumentReference?
 
-                // Step 3: Use background context safely
-                let contextForFirestore = PersistenceController.shared.container.newBackgroundContext()
+
+                // -------------------------------------------------
+                // ✅ CRITICAL FIX
+                // Refetch on MAIN CONTEXT
+                // -------------------------------------------------
+
+                let updatedMatTime =
+                try viewModel.viewContext.existingObject(
+                    with: updatedMatTimeObjectID
+                ) as! MatTime
+
+
+                await MainActor.run {
+
+                    viewModel.matTime =
+                    updatedMatTime
+
+                }
+
+
+
+                // -------------------------------------------------
+                // STEP 2: Prepare Firestore Data (background context)
+                // -------------------------------------------------
+
+                var matTimeDataToSave: [String: Any] = [:]
+
+                var updatedMatTimeUUIDString = ""
+
+                let contextForFirestore =
+                PersistenceController.shared.newFirestoreContext()
 
                 try await contextForFirestore.perform {
+
                     guard
-                        let matTimeOnBGContext = try contextForFirestore.existingObject(with: updatedMatTimeObjectID) as? MatTime,
-                        let matTimeID = matTimeOnBGContext.id,
-                        let appDayOfWeekOnBGContext = try contextForFirestore.existingObject(with: appDayOfWeekObjectID) as? AppDayOfWeek,
-                        let appDayOfWeekHumanID = appDayOfWeekOnBGContext.appDayOfWeekID
+
+                        let matTimeOnBGContext =
+                            try contextForFirestore.existingObject(
+                                with: updatedMatTimeObjectID
+                            ) as? MatTime,
+
+                        let matTimeID =
+                            matTimeOnBGContext.id,
+
+                        let appDayOfWeekOnBGContext =
+                            try contextForFirestore.existingObject(
+                                with: appDayOfWeekObjectID
+                            ) as? AppDayOfWeek,
+
+                        let appDayOfWeekHumanID =
+                            appDayOfWeekOnBGContext.appDayOfWeekID
+
                     else {
+
                         throw NSError(
-                            domain: "FirestoreSerializationError",
+                            domain:
+                                "FirestoreSerializationError",
+
                             code: 203,
-                            userInfo: [NSLocalizedDescriptionKey: "Failed to rehydrate matTime or appDayOfWeek for Firestore update."]
+
+                            userInfo: [
+                                NSLocalizedDescriptionKey:
+                                "Failed to rehydrate objects."
+                            ]
                         )
                     }
 
-                    // Use UUID for MatTime and human-readable ID for AppDayOfWeek
-                    updatedMatTimeUUIDString = matTimeID.uuidString
-                    appDayOfWeekUUIDStringForFirestore = appDayOfWeekHumanID
 
-                    appDayOfWeekRefForFirestore = Firestore.firestore()
+                    updatedMatTimeUUIDString =
+                    matTimeID.uuidString
+
+                    let appDayOfWeekRef =
+                    Firestore.firestore()
                         .collection("AppDayOfWeek")
-                        .document(appDayOfWeekUUIDStringForFirestore)
+                        .document(appDayOfWeekHumanID)
 
-                    var data = matTimeOnBGContext.toFirestoreData()
-                    data["appDayOfWeek"] = appDayOfWeekRefForFirestore
-                    matTimeDataToSave = data
+                    var data =
+                    matTimeOnBGContext.toFirestoreData()
+
+                    data["appDayOfWeek"] =
+                    appDayOfWeekRef
+
+                    matTimeDataToSave =
+                    data
                 }
 
-                // Step 4: Sanity check before uploading
-                guard !updatedMatTimeUUIDString.isEmpty, !matTimeDataToSave.isEmpty else {
-                    throw NSError(
-                        domain: "FirestoreError",
-                        code: 205,
-                        userInfo: [NSLocalizedDescriptionKey: "Firestore update data not prepared."]
-                    )
-                }
 
-                // Step 5: Upload to Firestore
-                let matTimeRef = Firestore.firestore().collection("MatTime").document(updatedMatTimeUUIDString)
-                try await matTimeRef.setData(matTimeDataToSave)
-                print("✅ MatTime updated to Firestore: \(updatedMatTimeUUIDString)")
+                // -------------------------------------------------
+                // STEP 3: Upload to Firestore
+                // -------------------------------------------------
 
-                // Step 6: UI feedback
+                let matTimeRef =
+                Firestore.firestore()
+                    .collection("MatTime")
+                    .document(updatedMatTimeUUIDString)
+
+
+                try await matTimeRef.setData(
+                    matTimeDataToSave
+                )
+
+
+                print(
+                    "✅ MatTime updated to Firestore: \(updatedMatTimeUUIDString)"
+                )
+
+
+
+                // -------------------------------------------------
+                // STEP 4: UI Updates
+                // -------------------------------------------------
+
                 await MainActor.run {
+
                     presentAlert(
+
                         title: "Updated",
-                        message: "Mat time updated successfully."
+
+                        message:
+                        "Mat time updated successfully."
                     )
 
-                    self.resetStateVariables()
 
-                    // Refresh selected day to reload mat times
-                    if let currentSelectedDay = self.selectedDay {
-                        self.selectedDay = nil
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                            self.selectedDay = currentSelectedDay
+                    resetStateVariables()
+
+
+
+                    if let currentSelectedDay =
+                        selectedDay {
+
+                        selectedDay = nil
+
+                        DispatchQueue.main.asyncAfter(
+                            deadline: .now() + 0.1
+                        ) {
+
+                            self.selectedDay =
+                            currentSelectedDay
                         }
                     }
                 }
 
-            } catch {
+
+            }
+
+
+            catch {
+
                 await MainActor.run {
-                    
+
                     presentAlert(
+
                         title: "Error",
-                        message: "Failed to update mat time: \(error.localizedDescription)."
+
+                        message:
+                        "Failed to update mat time: \(error.localizedDescription)"
                     )
                 }
             }
         }
     }
-
-
     
     func populateFieldsFromMatTime(_ matTime: MatTime) {
         selectedTime = AppDateFormatter.stringToDate(matTime.time ?? "") ?? Date().roundToNearestHour()

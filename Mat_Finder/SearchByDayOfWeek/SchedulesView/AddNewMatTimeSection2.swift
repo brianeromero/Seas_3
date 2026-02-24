@@ -431,7 +431,7 @@ extension AddNewMatTimeSection2 {
             """
             Added: \(addedCount)
 
-            Skipped duplicates: \(skippedCount)
+            Skipped duplicate entry: \(skippedCount)
             """
 
             showAlert = true
@@ -465,7 +465,7 @@ extension AddNewMatTimeSection2 {
         let islandNameSafe = island.islandName ?? ""
 
         let context =
-            PersistenceController.shared.container.newBackgroundContext()
+        PersistenceController.shared.newBackgroundContext()
 
         return try await context.perform {
 
@@ -522,7 +522,7 @@ extension AddNewMatTimeSection2 {
             AppDateFormatter.twentyFourHour.string(from: time)
 
         let context =
-            PersistenceController.shared.container.newBackgroundContext()
+        PersistenceController.shared.newBackgroundContext()
 
 
         // ✅ CHECK DUPLICATE
@@ -606,7 +606,7 @@ extension AddNewMatTimeSection2 {
     ) async throws {
 
         let context =
-        PersistenceController.shared.container.newBackgroundContext()
+        PersistenceController.shared.newFirestoreContext()
 
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
 

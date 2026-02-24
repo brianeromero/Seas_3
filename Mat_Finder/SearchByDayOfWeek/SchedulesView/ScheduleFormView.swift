@@ -90,22 +90,31 @@ struct ScheduleFormView: View {
             viewDaySection
             
             scheduleListSection
-            
-            addScheduleButton
-            
+                        
         }
         .padding()
         .background(Color(.systemGroupedBackground))
         .navigationTitle("Schedule")
-        
+
+        // ✅ ADD IT RIGHT HERE
+        .safeAreaInset(edge: .bottom) {
+
+            addScheduleButton
+                .padding(.horizontal)
+                .padding(.top, 8)
+                .padding(.bottom, 8)
+                .background(.ultraThinMaterial)
+
+        }
+
         .onAppear {
-            
+
             viewModel.selectedDay = selectedDay ?? .monday
-            
+
             Task {
                 await handleOnAppear()
             }
-            
+
         }
         
         .sheet(isPresented: $showingAddSchedule) {
@@ -189,32 +198,57 @@ private extension ScheduleFormView {
 
     var scheduleListSection: some View {
 
-        Group {
+        VStack(alignment: .leading, spacing: 12) {
 
             if let island = selectedIsland,
                let selectedDay {
 
-                ScheduledMatTimesSection(
-                    island: island,
-                    day: selectedDay,
-                    viewModel: viewModel,
-                    matTimesForDay: $viewModel.matTimesForDay,
-                    selectedDay: Binding(
-                        get: { selectedDay },
-                        set: { self.selectedDay = $0 }
+                let matTimes = viewModel.matTimesForDay[selectedDay] ?? []
+
+                if matTimes.isEmpty {
+
+                    Text("""
+                    No mat times entered for \(selectedDay.displayName) at \(island.islandName ?? "").
+
+                    Click the button below to add a schedule.
+                    """)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .padding(.top, 12)
+                    
+                } else {
+
+                    ScheduledMatTimesSection(
+                        island: island,
+                        day: selectedDay,
+                        viewModel: viewModel,
+                        matTimesForDay: $viewModel.matTimesForDay,
+                        selectedDay: Binding(
+                            get: { selectedDay },
+                            set: { self.selectedDay = $0 }
+                        )
                     )
-                )
 
-            }
-            else {
+                    Text("Click the button below to edit or add a schedule.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.top, 8)   // ✅ ADD HERE
 
-                Text("...or click 'Add Schedule' to Add Mat Times")
+                }
+
+            } else {
+
+                Text("...or Click the button below to add a schedule.")
                     .font(.caption)
                     .foregroundColor(.secondary)
+                    .padding(.top, 8)   // ✅ ADD HERE
 
             }
 
+            Spacer()
+
         }
+        .frame(maxWidth: .infinity, alignment: .top)
 
     }
 
