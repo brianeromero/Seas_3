@@ -210,7 +210,7 @@ private extension ScheduleFormView {
                     Text("""
                     No mat times entered for \(selectedDay.displayName) at \(island.islandName ?? "").
 
-                    Click the button below to add a schedule.
+                    Click the button below to add schedule.
                     """)
                     .font(.subheadline)
                     .foregroundColor(.secondary)
@@ -229,7 +229,7 @@ private extension ScheduleFormView {
                         )
                     )
 
-                    Text("Click the button below to edit or add a schedule.")
+                    Text("Click the button below to edit or add schedule.")
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .padding(.top, 8)   // ✅ ADD HERE
@@ -238,7 +238,7 @@ private extension ScheduleFormView {
 
             } else {
 
-                Text("...or Click the button below to add a schedule.")
+                Text("Click the Button Below to Add Schedule.")
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .padding(.top, 8)   // ✅ ADD HERE
