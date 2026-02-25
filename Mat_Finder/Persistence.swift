@@ -52,18 +52,11 @@ final class PersistenceController: ObservableObject {
         }
 
 
-        // ✅ Migration
+        // ✅ Lightweight migration (Cloud-safe fix)
 
-        description.setOption(
-            true as NSNumber,
-            forKey: NSMigratePersistentStoresAutomaticallyOption
-        )
+        description.shouldMigrateStoreAutomatically = true
 
-        description.setOption(
-            true as NSNumber,
-            forKey: NSInferMappingModelAutomaticallyOption
-        )
-
+        description.shouldInferMappingModelAutomatically = true
 
 
         container.loadPersistentStores {
