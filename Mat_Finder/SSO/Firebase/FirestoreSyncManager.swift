@@ -1821,78 +1821,127 @@ extension FirestoreSyncManager {
             NSManagedObjectContext
         ) async -> Void
     ) {
-        
+
         let db = Firestore.firestore()
-        
-        let listener =
-        db.collection(collectionName)
+
+        let listener = db.collection(collectionName)
             .addSnapshotListener { [weak self] snapshot, error in
-                
+
                 guard self != nil else { return }
-                
+
+                // -----------------------------------------
+                // Error handling
+                // -----------------------------------------
                 if let error {
-                    
+
                     Task { @MainActor in
-                        
+
                         Self.log(
-                            "Listener error: \(error.localizedDescription)",
+                            "❌ Listener error: \(error.localizedDescription)",
                             level: .error,
                             collection: collectionName
                         )
                     }
-                    
+
                     return
                 }
-                
+
                 guard let snapshot else { return }
-                
-                for change in snapshot.documentChanges {
-                    
-                    Task(priority: .utility) {
-                        
-                        // ✅ CRITICAL FIX #1
-                        // Create NEW context per change
+
+
+                // -----------------------------------------
+                // Ignore local writes (prevents sync loop)
+                // -----------------------------------------
+                if snapshot.metadata.hasPendingWrites {
+
+                    Task { @MainActor in
+
+                        Self.log(
+                            "⏭️ Skipping local pending writes (snapshot)",
+                            level: .info,
+                            collection: collectionName
+                        )
+                    }
+
+                    return
+                }
+
+
+                // -----------------------------------------
+                // Process snapshot in ONE background task
+                // -----------------------------------------
+                Task(priority: .utility) {
+
+                    // ✅ Run ONCE per snapshot (performance fix)
+                    await PersistenceController.shared.waitForBackgroundSaves()
+
+
+                    for change in snapshot.documentChanges {
+
+                        // -----------------------------------------
+                        // Ignore local writes per document
+                        // -----------------------------------------
+                        if change.document.metadata.hasPendingWrites {
+
+                            await MainActor.run {
+
+                                Self.log(
+                                    "⏭️ Skipping local pending writes (document)",
+                                    level: .info,
+                                    collection: collectionName
+                                )
+                            }
+
+                            continue
+                        }
+
+
+                        // -----------------------------------------
+                        // Create isolated background context
+                        // -----------------------------------------
                         let backgroundContext =
                         PersistenceController.shared
                             .newFirestoreContext()
-                        
-                        // ✅ CRITICAL FIX #2
-                        // Ensure parent relationships merged first
-                        await PersistenceController.shared
-                            .waitForBackgroundSaves()
-                        
-                        // ✅ Perform sync
+
+
+                        // -----------------------------------------
+                        // Perform sync handler
+                        // -----------------------------------------
                         await handler(
                             change,
                             backgroundContext
                         )
-                        
-                        // ✅ Save safely
+
+
+                        // -----------------------------------------
+                        // Save safely
+                        // -----------------------------------------
                         await backgroundContext.perform {
-                            
+
+                            guard backgroundContext.hasChanges else {
+                                return
+                            }
+
                             do {
-                                
-                                if backgroundContext.hasChanges {
-                                    
-                                    try backgroundContext.save()
-                                    
-                                    Task { @MainActor in
-                                        
-                                        Self.log(
-                                            "✅ Listener saved change \(change.document.documentID)",
-                                            level: .success,
-                                            collection: collectionName
-                                        )
-                                    }
+
+                                try backgroundContext.save()
+
+                                Task { @MainActor in
+
+                                    Self.log(
+                                        "✅ Listener saved change \(change.document.documentID)",
+                                        level: .success,
+                                        collection: collectionName
+                                    )
                                 }
-                                
+
                             }
                             catch {
-                                
+
                                 backgroundContext.rollback()
-                                
+
                                 Task { @MainActor in
-                                    
+
                                     Self.log(
                                         "❌ Listener save failed: \(error.localizedDescription)",
                                         level: .error,
@@ -1904,8 +1953,11 @@ extension FirestoreSyncManager {
                     }
                 }
             }
-        
-        // Store listener safely
+
+
+        // -----------------------------------------
+        // Store listener
+        // -----------------------------------------
         Self.listenerRegistrations.append(listener)
     }
 }

@@ -1545,6 +1545,13 @@ final class AppDayOfWeekViewModel: ObservableObject {
             print("Failed to fetch AppDayOfWeek from Firestore: \(error.localizedDescription)")
         }
     }
+    
+    @MainActor
+    func clearSchedule() {
+
+        matTimesForDay.removeAll()
+
+    }
 }
 
 extension PirateIsland {

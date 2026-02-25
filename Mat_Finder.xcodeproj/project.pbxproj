@@ -57,7 +57,6 @@
 		0C380A652F32B32500274EFA /* MFINDER_BOLDb.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C380A622F32B32500274EFA /* MFINDER_BOLDb.png */; };
 		0C4B34362C61A32700FD6893 /* PirateIslandDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4B34352C61A32700FD6893 /* PirateIslandDataManager.swift */; };
 		0C4F3C412C3C4645008D04B9 /* IslandScheduleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4F3C402C3C4645008D04B9 /* IslandScheduleView.swift */; };
-		0C5014FB2F4F52A700F08620 /* PirateIslandUUIDToStringMapping.xcmappingmodel in Sources */ = {isa = PBXBuildFile; fileRef = 0C5014FA2F4F52A700F08620 /* PirateIslandUUIDToStringMapping.xcmappingmodel */; };
 		0C524E8C2C2F408F008D6623 /* ExampleUsuageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C524E8B2C2F408F008D6623 /* ExampleUsuageView.swift */; };
 		0C524E8E2C2F4241008D6623 /* DayOfWeekUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C524E8D2C2F4241008D6623 /* DayOfWeekUtils.swift */; };
 		0C524E8F2C2F8592008D6623 /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0A12C2CFFFD00D0BFB2 /* LocationManager.swift */; };
@@ -219,7 +218,6 @@
 		0C4B34352C61A32700FD6893 /* PirateIslandDataManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PirateIslandDataManager.swift; sourceTree = "<group>"; };
 		0C4F3C402C3C4645008D04B9 /* IslandScheduleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandScheduleView.swift; sourceTree = "<group>"; };
 		0C4F6C0C2DCC26B200FCE285 /* AppAuth.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = AppAuth.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		0C5014FA2F4F52A700F08620 /* PirateIslandUUIDToStringMapping.xcmappingmodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcmappingmodel; path = PirateIslandUUIDToStringMapping.xcmappingmodel; sourceTree = "<group>"; };
 		0C524E8B2C2F408F008D6623 /* ExampleUsuageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExampleUsuageView.swift; sourceTree = "<group>"; };
 		0C524E8D2C2F4241008D6623 /* DayOfWeekUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayOfWeekUtils.swift; sourceTree = "<group>"; };
 		0C524E922C308DB9008D6623 /* AllEnteredLocationsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AllEnteredLocationsViewModel.swift; sourceTree = "<group>"; };
@@ -736,7 +734,6 @@
 				0CCA11C62C79105F003CAB7C /* Review+CoreDataProperties.swift */,
 				0CD376DE2CED4C7200491DD8 /* AdSettings+CoreDataClass.swift */,
 				0CD376DF2CED4C7200491DD8 /* AdSettings+CoreDataProperties.swift */,
-				0C5014FA2F4F52A700F08620 /* PirateIslandUUIDToStringMapping.xcmappingmodel */,
 			);
 			path = CoreDataItems;
 			sourceTree = "<group>";
@@ -1127,7 +1124,6 @@
 				0C4B34362C61A32700FD6893 /* PirateIslandDataManager.swift in Sources */,
 				0CF13E7E2C2A36B500D714C0 /* UserInfo+CoreDataProperties.swift in Sources */,
 				0C07B0852C2CFE6200D0BFB2 /* AdditionalGymInfo.swift in Sources */,
-				0C5014FB2F4F52A700F08620 /* PirateIslandUUIDToStringMapping.xcmappingmodel in Sources */,
 				0C73776F2F4B3B5000931FBE /* AddNewMatTimeSection2.swift in Sources */,
 				0C07B0732C2CFD2800D0BFB2 /* AddNewIsland.swift in Sources */,
 				0C07B0752C2CFD4900D0BFB2 /* EditExistingIslandList.swift in Sources */,

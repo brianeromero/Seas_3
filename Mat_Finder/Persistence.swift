@@ -86,8 +86,7 @@ final class PersistenceController: ObservableObject {
                 self.container.viewContext
 
 
-            viewContext.automaticallyMergesChangesFromParent = true
-
+            viewContext.automaticallyMergesChangesFromParent = false
             viewContext.mergePolicy =
                 NSMergeByPropertyObjectTrumpMergePolicy
 
@@ -203,12 +202,13 @@ final class PersistenceController: ObservableObject {
 
         try await MainActor.run {
 
-            if self.viewContext.hasChanges {
+            guard self.viewContext.hasChanges else { return }
 
-                try self.viewContext.save()
+            self.viewContext.processPendingChanges()
 
-                print("💾 Core Data save successful")
-            }
+            try self.viewContext.save()
+
+            print("💾 Core Data save successful")
         }
     }
 
@@ -265,17 +265,66 @@ final class PersistenceController: ObservableObject {
         request.predicate = NSPredicate(format: "islandID == %@", islandID.uuidString)
         
         if let existing = try await fetch(request).first {
-            existing.islandName = name
-            existing.islandLocation = location
-            existing.country = country
-            existing.createdByUserId = createdByUserId
-            existing.createdTimestamp = createdTimestamp
-            existing.lastModifiedByUserId = lastModifiedByUserId
-            existing.lastModifiedTimestamp = lastModifiedTimestamp
-            existing.latitude = latitude
-            existing.longitude = longitude
-            existing.gymWebsite = gymWebsiteURL
-            try await saveContext()
+
+            var didChange = false
+
+            if existing.islandName != name {
+                existing.islandName = name
+                didChange = true
+            }
+
+            if existing.islandLocation != location {
+                existing.islandLocation = location
+                didChange = true
+            }
+
+            if existing.country != country {
+                existing.country = country
+                didChange = true
+            }
+
+            if existing.createdByUserId != createdByUserId {
+                existing.createdByUserId = createdByUserId
+                didChange = true
+            }
+
+            if existing.createdTimestamp != createdTimestamp {
+                existing.createdTimestamp = createdTimestamp
+                didChange = true
+            }
+
+            if existing.lastModifiedByUserId != lastModifiedByUserId {
+                existing.lastModifiedByUserId = lastModifiedByUserId
+                didChange = true
+            }
+
+            if existing.lastModifiedTimestamp != lastModifiedTimestamp {
+                existing.lastModifiedTimestamp = lastModifiedTimestamp
+                didChange = true
+            }
+
+            if existing.latitude != latitude {
+                existing.latitude = latitude
+                didChange = true
+            }
+
+            if existing.longitude != longitude {
+                existing.longitude = longitude
+                didChange = true
+            }
+
+            if existing.gymWebsite != gymWebsiteURL {
+                existing.gymWebsite = gymWebsiteURL
+                didChange = true
+            }
+
+            if didChange {
+                try await saveContext()
+                print("💾 Updated PirateIsland \(islandID)")
+            } else {
+                print("⏭️ No changes — skipping save \(islandID)")
+            }
+
             return existing
         } else {
             let newIsland = PirateIsland(context: viewContext)
@@ -332,11 +381,27 @@ final class PersistenceController: ObservableObject {
     
     func fetchSingle(entityName: String) async throws -> NSManagedObject? {
         if entityName == "PirateIsland" {
-            guard let snapshot = try await firestoreManager.getDocuments(in: .pirateIslands).first else { return nil }
+
+            guard let snapshot = try await firestoreManager.getDocuments(in: .pirateIslands).first else {
+                return nil
+            }
+
+            let id = snapshot.documentID
+
+            let request: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
+            request.predicate = NSPredicate(format: "islandID == %@", id)
+            request.fetchLimit = 1
+
+            if let existing = try viewContext.fetch(request).first {
+                return existing
+            }
+
             let island = PirateIsland(context: viewContext)
-            island.islandID = snapshot.documentID  // ✅ Assign string directly
+            island.islandID = id
             island.islandName = snapshot.get("islandName") as? String
+
             try await saveContext()
+
             return island
         }
 

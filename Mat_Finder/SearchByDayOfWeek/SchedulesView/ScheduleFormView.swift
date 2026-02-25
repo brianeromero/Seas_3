@@ -146,6 +146,34 @@ struct ScheduleFormView: View {
         }
         
     }
+    
+    private func preloadAllDays() async {
+
+        guard let island = selectedIsland else { return }
+
+        viewModel.clearSchedule()
+
+        for day in DayOfWeek.allCases {
+
+            let (_, matTimes) =
+            await viewModel.fetchCurrentDayOfWeek(
+                for: island,
+                day: day,
+                selectedDayBinding: .constant(day)
+            )
+
+            if let matTimes {
+
+                await MainActor.run {
+
+                    viewModel.matTimesForDay[day] = matTimes
+
+                }
+
+            }
+        }
+    }
+    
 }
 
 
@@ -189,6 +217,13 @@ private extension ScheduleFormView {
             selectedIslandID: $selectedIslandID,
             showReview: $showReview
         )
+        .onChange(of: selectedIslandID) { _, _ in
+
+            Task {
+                await preloadAllDays()
+            }
+
+        }
 
     }
 
@@ -275,10 +310,6 @@ private extension ScheduleFormView {
 
                 viewModel.selectedDay = newDay
 
-                Task {
-                    await setupInitialSelection()
-                }
-
             }
 
         }
@@ -287,27 +318,23 @@ private extension ScheduleFormView {
 
 // MARK: - Lifecycle / Setup
 private extension ScheduleFormView {
-
     func handleOnAppear() async {
 
-        // 🧪 DEBUG — add temporarily
-        print("🧭 initialSelectedIsland:",
-              initialSelectedIsland?.islandName ?? "nil")
-        print("🧭 selectedIslandID (before):",
-              selectedIslandID ?? "nil") // ✅ no .uuidString
-
         if selectedIslandID == nil {
+
             if let initial = initialSelectedIsland {
-                selectedIslandID = initial.islandID // String? ✅
-            } else if let first = islands.first {
-                selectedIslandID = first.islandID // String? ✅
+
+                selectedIslandID = initial.islandID
+
+            } else {
+
+                selectedIslandID = islands.first?.islandID
+
             }
         }
 
-        print("🧭 selectedIslandID (after):",
-              selectedIslandID ?? "nil") // ✅ no .uuidString
+        await preloadAllDays()
 
-        await setupInitialSelection()
     }
 
 
@@ -372,7 +399,6 @@ private extension ScheduleFormView {
     }
 
 }
-
 
 
 struct CornerRadiusStyle: ViewModifier {
