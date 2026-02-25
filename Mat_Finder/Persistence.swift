@@ -15,141 +15,221 @@ import FirebaseAuth
 final class PersistenceController: ObservableObject {
 
     // MARK: - Singleton Instance
+
     static let shared = PersistenceController()
 
     // MARK: - Core Data & Firestore
+
     let container: NSPersistentContainer
+
     let firestoreManager: FirestoreManager
 
     var viewContext: NSManagedObjectContext { container.viewContext }
 
-    
-    // MARK: - Preview Provider
-    static var preview: PersistenceController = {
-        let result = PersistenceController(inMemory: true)
-        let viewContext = result.container.viewContext
 
-        let dummyIsland = PirateIsland(context: viewContext)
-        dummyIsland.islandID = UUID().uuidString
-        dummyIsland.islandName = "Preview Island"
-        dummyIsland.islandLocation = "Fictional Place"
-        dummyIsland.country = "Imagination Land"
-        dummyIsland.createdByUserId = "preview_user"
-        dummyIsland.createdTimestamp = Date()
-        dummyIsland.lastModifiedByUserId = "preview_user"
-        dummyIsland.lastModifiedTimestamp = Date()
-        dummyIsland.latitude = 34.0522
-        dummyIsland.longitude = -118.2437
-        dummyIsland.gymWebsite = URL(string: "https://example.com")
-
-        do { try viewContext.save() }
-        catch { fatalError("Preview save failed: \(error)") }
-
-        return result
-    }()
-
-    
     // MARK: - Initializer
+
     private init(inMemory: Bool = false) {
-        self.firestoreManager = FirestoreManager.shared
+
+        firestoreManager = FirestoreManager.shared
+
         container = NSPersistentContainer(name: "Mat_Finder")
-        
-        guard let description = container.persistentStoreDescriptions.first else {
+
+        guard let description =
+            container.persistentStoreDescriptions.first
+        else {
+
             fatalError("❌ No persistent store description found.")
         }
-        
+
+
         if inMemory {
-            description.url = URL(fileURLWithPath: "/dev/null")
+
+            description.url =
+                URL(fileURLWithPath: "/dev/null")
+
             FirestoreManager.shared.disabled = true
         }
-        
-        // 🔥 LIGHTWEIGHT MIGRATION ENABLED
-        description.setOption(true as NSNumber,
-                              forKey: NSMigratePersistentStoresAutomaticallyOption)
-        description.setOption(true as NSNumber,
-                              forKey: NSInferMappingModelAutomaticallyOption)
-        
-        container.loadPersistentStores { description, error in
-            if let error = error as NSError? {
-                print("🔥 Persistent Store Load Error:")
-                print(error)
-                print(error.userInfo)
-                fatalError("Unresolved error \(error), \(error.userInfo)")
-            } else {
-                print("✅ Persistent Store Loaded: \(description.url?.absoluteString ?? "unknown")")
+
+
+        // ✅ Migration
+
+        description.setOption(
+            true as NSNumber,
+            forKey: NSMigratePersistentStoresAutomaticallyOption
+        )
+
+        description.setOption(
+            true as NSNumber,
+            forKey: NSInferMappingModelAutomaticallyOption
+        )
+
+
+
+        container.loadPersistentStores {
+            [weak self] description, error in
+
+            guard let self else { return }
+
+            if let error {
+
+                fatalError(
+                    "❌ Persistent store load error: \(error)"
+                )
             }
-        }
-        
-        // ✅ REQUIRED FOR BACKGROUND SAVE MERGING
-        container.viewContext.automaticallyMergesChangesFromParent = true
-        container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
-        container.viewContext.shouldDeleteInaccessibleFaults = true
-        container.viewContext.transactionAuthor = "main"
-        
-        container.viewContext.perform {
-            print("✅ ViewContext running on main thread: \(Thread.isMainThread)")
-        }
-        
-        
-        // ✅ ADD THIS BLOCK RIGHT HERE
-        NotificationCenter.default.addObserver(
-            forName: .NSManagedObjectContextDidSave,
-            object: nil,
-            queue: .main
-        ) { [weak self] notification in
-            
-            guard let self = self else { return }
-            
-            guard let context =
-                    notification.object as? NSManagedObjectContext
-            else { return }
-            
-            // Prevent self-merge
-            if context === self.container.viewContext {
-                return
+
+
+            print(
+                "✅ Persistent Store Loaded:",
+                description.url?.absoluteString ?? ""
+            )
+
+
+            // =====================================================
+            // ✅ CRITICAL FIX #1
+            // =====================================================
+
+            let viewContext =
+                self.container.viewContext
+
+
+            viewContext.automaticallyMergesChangesFromParent = true
+
+            viewContext.mergePolicy =
+                NSMergeByPropertyObjectTrumpMergePolicy
+
+            viewContext.shouldDeleteInaccessibleFaults = true
+
+            viewContext.undoManager = nil
+
+            viewContext.transactionAuthor = "viewContext"
+
+
+            // =====================================================
+            // ✅ CRITICAL FIX #2
+            // Forces MainActor ownership
+            // =====================================================
+
+            viewContext.performAndWait {
+
+                viewContext.name = "viewContext"
             }
-            
-            // Only merge background + firestore
-            if context.transactionAuthor == "firestore" ||
-                context.transactionAuthor == "background" {
-                
-                self.container.viewContext.mergeChanges(
-                    fromContextDidSave: notification
+
+
+            // =====================================================
+            // ⭐ FINAL SAFETY FIX — ADD THIS BLOCK
+            // =====================================================
+
+            viewContext.perform {
+
+                viewContext.processPendingChanges()
+
+                print("✅ Core Data viewContext fully initialized and safe")
+            }
+
+        }
+    }
+
+
+    // MARK: - SAFE VIEW CONTEXT SAVE
+
+    func saveViewContext() {
+
+        let context = container.viewContext
+
+        guard context.hasChanges else { return }
+
+        context.performAndWait {
+
+            do {
+
+                try context.save()
+
+            }
+            catch {
+
+                context.rollback()
+
+                print(
+                    "❌ viewContext save error:",
+                    error
                 )
             }
         }
     }
-    
+
+
+    // MARK: - Background Context
+
     func newBackgroundContext() -> NSManagedObjectContext {
 
-        let context = container.newBackgroundContext()
+        let context =
+            container.newBackgroundContext()
 
-        // ❌ REMOVE THIS LINE
-        // context.automaticallyMergesChangesFromParent = true
+        // ✅ DO NOT SET PARENT
+        // container already manages hierarchy safely
 
-        // ✅ KEEP THIS
-        context.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+        context.mergePolicy =
+            NSMergeByPropertyObjectTrumpMergePolicy
+
+        context.undoManager = nil
 
         context.transactionAuthor = "background"
 
+        context.automaticallyMergesChangesFromParent = false
+
         return context
     }
-    
+
+
+
+    // MARK: - Firestore Context
+
     func newFirestoreContext() -> NSManagedObjectContext {
 
         let context =
             container.newBackgroundContext()
 
+        // ✅ DO NOT SET PARENT
+
         context.mergePolicy =
             NSMergeByPropertyObjectTrumpMergePolicy
 
-        context.transactionAuthor =
-            "firestore"
+        context.undoManager = nil
 
-        // ✅ CRITICAL FIX
+        context.transactionAuthor = "firestore"
+
         context.automaticallyMergesChangesFromParent = false
 
         return context
+    }
+
+    // MARK: - Save (MainActor Safe)
+
+    func saveContext() async throws {
+
+        try await MainActor.run {
+
+            if self.viewContext.hasChanges {
+
+                try self.viewContext.save()
+
+                print("💾 Core Data save successful")
+            }
+        }
+    }
+
+
+
+    // MARK: - Wait for background saves
+
+    func waitForBackgroundSaves() async {
+
+        await MainActor.run {
+
+            self.saveViewContext()
+
+        }
     }
     
     // MARK: - Core Data Methods
@@ -164,22 +244,7 @@ final class PersistenceController: ObservableObject {
     }
 
 
-    // MARK: - Save Context
-    func saveContext() async throws {
-        guard viewContext.hasChanges else {
-            print("💤 No Core Data changes to save")
-            return
-        }
 
-        do {
-            try viewContext.save()
-            print("💾 Core Data save successful")
-        } catch {
-            viewContext.rollback()
-            print("❌ Core Data save failed: \(error)")
-            throw error
-        }
-    }
 
     
     // MARK: - PirateIsland CRUD
@@ -369,6 +434,88 @@ final class PersistenceController: ObservableObject {
         }
     }
     
+    // MARK: - Delete Local Record (Firestore authoritative)
+    func deleteLocalRecord(
+        forCollection collectionName: String,
+        recordId: String
+    ) async {
+
+        let context = container.newBackgroundContext()
+
+        await context.perform {
+
+            let entityName: String
+
+            switch collectionName {
+
+            case "pirateIslands":
+                entityName = "PirateIsland"
+
+            case "reviews":
+                entityName = "Review"
+
+            case "AppDayOfWeek":
+                entityName = "AppDayOfWeek"
+
+            case "MatTime":
+                entityName = "MatTime"
+
+            default:
+                return
+            }
+
+            let fetchRequest = NSFetchRequest<NSManagedObject>(entityName: entityName)
+
+            switch collectionName {
+
+            case "pirateIslands":
+
+                fetchRequest.predicate =
+                NSPredicate(format: "islandID == %@", recordId)
+
+            case "AppDayOfWeek":
+
+                fetchRequest.predicate =
+                NSPredicate(format: "appDayOfWeekID == %@", recordId)
+
+            case "MatTime":
+
+                guard let uuid = UUID(uuidString: recordId) else { return }
+
+                fetchRequest.predicate =
+                NSPredicate(format: "id == %@", uuid as CVarArg)
+
+            case "reviews":
+
+                guard let uuid = UUID(uuidString: recordId) else { return }
+
+                fetchRequest.predicate =
+                NSPredicate(format: "reviewID == %@", uuid as CVarArg)
+
+            default:
+                return
+            }
+
+            fetchRequest.fetchLimit = 1
+
+            do {
+
+                if let object = try context.fetch(fetchRequest).first {
+
+                    context.delete(object)
+
+                    try context.save()
+
+                    print("🗑️ Core Data deleted \(collectionName) \(recordId)")
+                }
+
+            } catch {
+
+                print("❌ Core Data delete error:", error)
+            }
+        }
+    }
+    
     // MARK: - Delete/Edit Records
     func deleteRecord(record: NSManagedObject) async throws {
         viewContext.delete(record)
@@ -448,11 +595,4 @@ extension PersistenceController {
         }
     }
 
-    /// Ensures Core Data background merges complete before dependent downloads begin
-    func waitForBackgroundSaves() async throws {
-        await container.viewContext.perform {
-            // Forces all background context changes to merge
-            self.container.viewContext.refreshAllObjects()
-        }
-    }
 }

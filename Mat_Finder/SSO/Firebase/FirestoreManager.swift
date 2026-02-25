@@ -100,37 +100,107 @@ public class FirestoreManager {
 
     
     /// Sets up a real-time listener for general collection changes.
-    /// This is an example of how you could adapt your existing `listenForChanges`
-    /// to store and manage its listener registration.
-    func startListeningForCollection(collection: Collection, completion: @escaping ([QueryDocumentSnapshot]?) -> Void) {
+    /// Safely stores and manages listener registration.
+    /// Prevents duplicates, memory leaks, and zombie listeners.
+    func startListeningForCollection(
+        collection: Collection,
+        completion: @escaping ([QueryDocumentSnapshot]?) -> Void
+    ) {
+
         if disabled { return }
 
-        // Decide if you need separate listener properties for each collection,
-        // or a dictionary if you'll listen to many dynamically.
-        // For simplicity, let's assume we manage specific ones for now.
-        // If this is for `appDayOfWeeks`, you'd do:
-        // appDayOfWeeksListener?.remove()
-        // appDayOfWeeksListener = nil
 
-        print("FirestoreManager: Starting listening for changes in collection: \(collection.rawValue)")
+        print(
+            "FirestoreManager: Starting listening for changes in collection: \(collection.rawValue)"
+        )
 
-        // For `appDayOfWeeks` listener:
-        if collection == .appDayOfWeeks {
-            appDayOfWeeksListener?.remove() // Remove previous listener if it exists
-            appDayOfWeeksListener = db.collection(collection.rawValue).addSnapshotListener { snapshot, error in
-                if let error = error {
-                    print("Error listening for changes in \(collection.rawValue): \(error.localizedDescription)")
-                    completion(nil)
-                } else {
-                    print("Changes detected in collection: \(collection.rawValue)")
-                    completion(snapshot?.documents)
-                }
-            }
+
+        // ✅ Remove existing listener first (CRITICAL FIX)
+        switch collection {
+
+        case .appDayOfWeeks:
+
+            appDayOfWeeksListener?.remove()
+            appDayOfWeeksListener = nil
+
+        case .pirateIslands:
+
+            pirateIslandsListener?.remove()
+            pirateIslandsListener = nil
+
+        default:
+            break
         }
-        // Add more `if` blocks for other specific collections you want to listen to.
-        // Or, for a more general approach, you could use a `[Collection: ListenerRegistration]` dictionary.
-    }
 
+
+        // ✅ Create new listener safely
+        let newListener =
+            db.collection(collection.rawValue)
+                .addSnapshotListener { [weak self] snapshot, error in
+
+
+                    // ✅ Prevent memory leak / zombie listener
+                    guard self != nil else {
+
+                        print(
+                            "FirestoreManager deallocated — listener ignored"
+                        )
+
+                        return
+                    }
+
+
+                    if let error = error {
+
+                        print(
+                            "FirestoreManager Listener Error (\(collection.rawValue)): \(error.localizedDescription)"
+                        )
+
+                        completion(nil)
+
+                        return
+                    }
+
+
+                    guard let snapshot = snapshot else {
+
+                        print(
+                            "FirestoreManager Listener Snapshot NIL (\(collection.rawValue))"
+                        )
+
+                        completion(nil)
+
+                        return
+                    }
+
+
+                    print(
+                        "FirestoreManager: Changes detected in collection: \(collection.rawValue)"
+                    )
+
+
+                    completion(snapshot.documents)
+                }
+
+
+        // ✅ Store listener reference (CRITICAL FIX)
+        switch collection {
+
+        case .appDayOfWeeks:
+
+            appDayOfWeeksListener = newListener
+
+        case .pirateIslands:
+
+            pirateIslandsListener = newListener
+
+        default:
+
+            print(
+                "FirestoreManager: Listener created but not stored for collection: \(collection.rawValue)"
+            )
+        }
+    }
 
     
     
@@ -265,18 +335,57 @@ public class FirestoreManager {
     }
     
     // MARK: - Real-Time Updates
-    func listenForChanges(in collection: Collection, completion: @escaping ([QueryDocumentSnapshot]?) -> Void) {
+
+    func listenForChanges(
+        in collection: Collection,
+        completion: @escaping ([QueryDocumentSnapshot]?) -> Void
+    ) {
+
         if disabled { return }
+
         print("Listening for changes in collection: \(collection.rawValue)")
-        db.collection(collection.rawValue).addSnapshotListener { snapshot, error in
-            if let error = error {
-                print("Error listening for changes: \(error.localizedDescription)")
-                completion(nil)
-            } else {
-                print("Changes detected in collection: \(collection.rawValue)")
-                completion(snapshot?.documents)
+
+
+        db.collection(collection.rawValue)
+            .addSnapshotListener { [weak self] snapshot, error in
+
+
+                // ✅ CRITICAL FIX
+                guard self != nil else {
+
+                    print("FirestoreManager deallocated — listener ignored")
+
+                    return
+                }
+
+
+                if let error = error {
+
+                    print(
+                        "Error listening for changes: \(error.localizedDescription)"
+                    )
+
+                    completion(nil)
+
+                    return
+                }
+
+
+                guard let snapshot = snapshot else {
+
+                    completion(nil)
+
+                    return
+                }
+
+
+                print(
+                    "Changes detected in collection: \(collection.rawValue)"
+                )
+
+
+                completion(snapshot.documents)
             }
-        }
     }
 
     // MARK: - Advanced Operations

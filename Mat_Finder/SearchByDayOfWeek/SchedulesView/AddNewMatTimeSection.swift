@@ -21,8 +21,6 @@ struct AddNewMatTimeSection: View {
     }
     
     @Binding var selectedDay: DayOfWeek?
-    @StateObject var matTimesViewModel = MatTimesViewModel()
-//    @Binding var daySelected: Bool
     @State var matTime: MatTime?
     @State private var isMatTimeSet: Bool = false
     @State private var selectedTime: Date = Date().roundToNearestHour()

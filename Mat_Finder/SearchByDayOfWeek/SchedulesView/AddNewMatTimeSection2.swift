@@ -454,65 +454,102 @@ extension AddNewMatTimeSection2 {
 // MARK: - CoreData + Firestore
 
 extension AddNewMatTimeSection2 {
-
-
     func getOrCreateAppDay(
         island: PirateIsland,
         day: DayOfWeek
     ) async throws -> NSManagedObjectID {
 
-        let islandObjectID = island.objectID
-        let islandNameSafe = island.islandName ?? ""
+        let islandObjectID =
+            island.objectID
+
+        let islandNameSafe =
+            island.islandName ?? ""
 
         let context =
-        PersistenceController.shared.newBackgroundContext()
+            PersistenceController.shared
+                .newBackgroundContext()
 
-        return try await context.perform {
+        // =====================================================
+        // STEP 1: Create Core Data record
+        // =====================================================
 
-            let islandBG =
-                try context.existingObject(
-                    with: islandObjectID
-                ) as! PirateIsland
+        let objectID: NSManagedObjectID =
+            try await context.perform {
+
+                let islandBG =
+                    try context.existingObject(
+                        with: islandObjectID
+                    ) as! PirateIsland
 
 
-            // ✅ LOOK FOR EXISTING
-            let fetch: NSFetchRequest<AppDayOfWeek> =
-                AppDayOfWeek.fetchRequest()
+                let fetch: NSFetchRequest<AppDayOfWeek> =
+                    AppDayOfWeek.fetchRequest()
 
-            fetch.fetchLimit = 1
+                fetch.fetchLimit = 1
 
-            fetch.predicate = NSPredicate(
-                format: "pIsland == %@ AND day == %@",
-                islandBG,
-                day.rawValue
-            )
+                fetch.predicate =
+                    NSPredicate(
+                        format:
+                        "pIsland == %@ AND day == %@",
+                        islandBG,
+                        day.rawValue
+                    )
 
-            if let existing = try context.fetch(fetch).first {
 
-                return existing.objectID
+                if let existing =
+                    try context.fetch(fetch).first {
+
+                    return existing.objectID
+                }
+
+
+                // CREATE NEW
+
+                let new =
+                    AppDayOfWeek(context: context)
+
+
+                new.id = UUID()
+
+                new.day =
+                    day.rawValue
+
+
+                new.appDayOfWeekID =
+                    "\(islandNameSafe)-\(day.rawValue)"
+
+
+                new.name =
+                    "\(islandNameSafe) - \(day.rawValue)"
+
+
+                new.createdTimestamp =
+                    Date()
+
+
+                new.pIsland =
+                    islandBG
+
+
+                try context.save()
+
+                return new.objectID
+
             }
 
 
-            // ✅ CREATE NEW DAY
-            let new = AppDayOfWeek(context: context)
+        // =====================================================
+        // STEP 2: Save to Firestore OUTSIDE context
+        // =====================================================
 
-            new.id = UUID()
+        try await saveAppDayToFirestore(
+            objectID: objectID
+        )
 
-            new.day = day.rawValue
 
-            new.appDayOfWeekID =
-                "\(islandNameSafe)-\(day.rawValue)"
-
-            new.pIsland = islandBG
-
-            try context.save()
-
-            return new.objectID
-
-        }
-
+        return objectID
     }
-
+    
     func createMatTimeSafe(
         appDayID: NSManagedObjectID,
         time: Date
@@ -592,6 +629,103 @@ extension AddNewMatTimeSection2 {
 
 
         return true
+    }
+    
+    
+    
+    func saveAppDayToFirestore(
+        objectID: NSManagedObjectID
+    ) async throws {
+
+        let context =
+            PersistenceController.shared
+                .newFirestoreContext()
+
+        // STEP 1: Read Core Data safely
+
+        let result: (
+            id: String,
+            day: String,
+            name: String,
+            created: Date,
+            islandID: String,
+            islandName: String
+        ) = try await context.perform {
+
+            let app =
+                try context.existingObject(
+                    with: objectID
+                ) as! AppDayOfWeek
+
+
+            guard let id =
+                app.appDayOfWeekID,
+                  let island =
+                app.pIsland
+            else {
+
+                throw NSError(
+                    domain: "AppDayOfWeek",
+                    code: 0,
+                    userInfo: [
+                        NSLocalizedDescriptionKey:
+                        "Missing required data"
+                    ]
+                )
+            }
+
+            return (
+
+                id: id,
+
+                day: app.day,
+
+                name: app.name ?? "",
+
+                created:
+                    app.createdTimestamp ?? Date(),
+
+                islandID:
+                    island.islandID ?? "",
+
+                islandName:
+                    island.islandName ?? ""
+            )
+        }
+
+
+        // STEP 2: Save to Firestore OUTSIDE Core Data
+
+        let data: [String: Any] = [
+
+            "appDayOfWeekID":
+                result.id,
+
+            "day":
+                result.day,
+
+            "name":
+                result.name,
+
+            "createdTimestamp":
+                Timestamp(date: result.created),
+
+            "pIsland": [
+
+                "islandID":
+                    result.islandID,
+
+                "islandName":
+                    result.islandName
+            ]
+        ]
+
+
+        try await Firestore
+            .firestore()
+            .collection("AppDayOfWeek")
+            .document(result.id)
+            .setData(data)
     }
 }
 

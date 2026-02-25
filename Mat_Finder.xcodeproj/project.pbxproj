@@ -109,7 +109,6 @@
 		0CDA09542EA99E250095AA59 /* google_logo@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 0CDA09502EA99E250095AA59 /* google_logo@2x.png */; };
 		0CDA09552EA99E250095AA59 /* google_logo@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 0CDA09512EA99E250095AA59 /* google_logo@3x.png */; };
 		0CDA09562EA99E250095AA59 /* google_logo@1x.png in Resources */ = {isa = PBXBuildFile; fileRef = 0CDA094F2EA99E250095AA59 /* google_logo@1x.png */; };
-		0CDBEA302D024CA500559B6A /* MatTimesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CDBEA2F2D024CA500559B6A /* MatTimesViewModel.swift */; };
 		0CDF61CF2C3C9BE900A8A0BF /* IslandScheduleAsCal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CDF61CE2C3C9BE900A8A0BF /* IslandScheduleAsCal.swift */; };
 		0CDF61D12C3CA0F400A8A0BF /* ScheduleDetailModal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CDF61D02C3CA0F400A8A0BF /* ScheduleDetailModal.swift */; };
 		0CEB03962C2B9B73007CA3CC /* PirateIslandViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CEB03952C2B9B73007CA3CC /* PirateIslandViewModel.swift */; };
@@ -268,7 +267,6 @@
 		0CDA094F2EA99E250095AA59 /* google_logo@1x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "google_logo@1x.png"; sourceTree = "<group>"; };
 		0CDA09502EA99E250095AA59 /* google_logo@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "google_logo@2x.png"; sourceTree = "<group>"; };
 		0CDA09512EA99E250095AA59 /* google_logo@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "google_logo@3x.png"; sourceTree = "<group>"; };
-		0CDBEA2F2D024CA500559B6A /* MatTimesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatTimesViewModel.swift; sourceTree = "<group>"; };
 		0CDF61CE2C3C9BE900A8A0BF /* IslandScheduleAsCal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandScheduleAsCal.swift; sourceTree = "<group>"; };
 		0CDF61D02C3CA0F400A8A0BF /* ScheduleDetailModal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleDetailModal.swift; sourceTree = "<group>"; };
 		0CEB03952C2B9B73007CA3CC /* PirateIslandViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PirateIslandViewModel.swift; sourceTree = "<group>"; };
@@ -602,7 +600,6 @@
 				0C73776E2F4B3B5000931FBE /* AddNewMatTimeSection2.swift */,
 				0CD4E2BE2C7CDA0C005082AC /* ScheduledMatTimesSection.swift */,
 				0C1893D42C7F9621007BFADB /* ViewScheduleforIsland.swift */,
-				0CDBEA2F2D024CA500559B6A /* MatTimesViewModel.swift */,
 				0CC8AA302DEA5451001D9E9F /* EditMatTimeView.swift */,
 				0C7377702F4CD7A000931FBE /* ScheduleDaySelector.swift */,
 			);
@@ -1144,7 +1141,6 @@
 				0C07B0B92C2D017500D0BFB2 /* AboutUs.swift in Sources */,
 				0C6F7BDC2C7931E600072237 /* GymMatReviewSelect.swift in Sources */,
 				0CC8AA312DEA5476001D9E9F /* EditMatTimeView.swift in Sources */,
-				0CDBEA302D024CA500559B6A /* MatTimesViewModel.swift in Sources */,
 				0C07B0A42C2D002000D0BFB2 /* EnterZipCodeView.swift in Sources */,
 				0C524E8F2C2F8592008D6623 /* LocationManager.swift in Sources */,
 				0C07B0992C2CFF8500D0BFB2 /* GymMatReviewView.swift in Sources */,
@@ -1402,7 +1398,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.1.1;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"\"-ObjC -lc++ -lsqlite3 -lstdc++ -lz\"",
@@ -1514,7 +1510,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.1.1;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"\"-ObjC -lc++ -lsqlite3 -lstdc++ -lz\"",
