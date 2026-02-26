@@ -9,16 +9,14 @@ import SwiftUI
 import CoreData
 import os
 
-
-
 enum AppScreen: Hashable, Identifiable, Codable {
-    case login             // ← add this
+
+    case login
     case review(String)
     case viewAllReviews(String)
     case selectGymForReview
     case searchReviews
 
-    // Existing App-level screens
     case profile
     case allLocations
     case currentLocation
@@ -30,158 +28,304 @@ enum AppScreen: Hashable, Identifiable, Codable {
     case addOrEditScheduleOpenMat
     case faqDisclaimer
 
-    // New sub-screens for FAQ/Disclaimer
     case aboutus
     case disclaimer
     case faq
-    
+
     case islandMenu2
 
-    
-    case viewSchedule(String) // new case
+    case viewSchedule(String)
 
-    
+    // ✅ ADD THIS LINE
+    case addSchedule(String)
+
+
+
     var id: String {
-        switch self {
-        case .login: return "login"
-        case .review(let id): return "review-\(id)"
-        case .viewAllReviews(let id): return "viewAllReviews-\(id)"
-        case .selectGymForReview: return "selectGymForReview"
-        case .searchReviews: return "searchReviews"
-        case .profile: return "profile"
-        case .allLocations: return "allLocations"
-        case .currentLocation: return "currentLocation"
-        case .postalCode: return "postalCode"
-        case .dayOfWeek: return "dayOfWeek"
-        case .addNewGym: return "addNewGym"
-        case .updateExistingGyms: return "updateExistingGyms"
-        case .editExistingIsland(let id): return "editExistingIsland-\(id)"
-        case .addOrEditScheduleOpenMat: return "addOrEditScheduleOpenMat"
-        case .faqDisclaimer: return "faqDisclaimer"
-        
-        // New ID cases
-        case .aboutus: return "aboutus"
-        case .disclaimer: return "disclaimer"
-        case .faq: return "faq"
-            
-        case .viewSchedule(let id): return "viewSchedule-\(id)"
 
-            
-            
+        switch self {
+
+        case .login:
+            return "login"
+
+        case .review(let id):
+            return "review-\(id)"
+
+        case .viewAllReviews(let id):
+            return "viewAllReviews-\(id)"
+
+        case .selectGymForReview:
+            return "selectGymForReview"
+
+        case .searchReviews:
+            return "searchReviews"
+
+        case .profile:
+            return "profile"
+
+        case .allLocations:
+            return "allLocations"
+
+        case .currentLocation:
+            return "currentLocation"
+
+        case .postalCode:
+            return "postalCode"
+
+        case .dayOfWeek:
+            return "dayOfWeek"
+
+        case .addNewGym:
+            return "addNewGym"
+
+        case .updateExistingGyms:
+            return "updateExistingGyms"
+
+        case .editExistingIsland(let id):
+            return "editExistingIsland-\(id)"
+
+        case .addOrEditScheduleOpenMat:
+            return "addOrEditScheduleOpenMat"
+
+        case .faqDisclaimer:
+            return "faqDisclaimer"
+
+        case .aboutus:
+            return "aboutus"
+
+        case .disclaimer:
+            return "disclaimer"
+
+        case .faq:
+            return "faq"
+
+        case .viewSchedule(let id):
+            return "viewSchedule-\(id)"
+
+        // ✅ ADD THIS BLOCK
+        case .addSchedule(let id):
+            return "addSchedule-\(id)"
+
+
         case .islandMenu2:
             return "islandMenu2"
         }
     }
 
+
+
     private enum CodingKeys: String, CodingKey {
-        case review, viewAllReviews, selectGymForReview, searchReviews
-        case profile, allLocations, currentLocation, postalCode, dayOfWeek
-        case addNewGym, updateExistingGyms, editExistingIsland
-        case addOrEditScheduleOpenMat, faqDisclaimer
-        
-        // New CodingKeys
-        case aboutus, disclaimer, faq
-        
+
+        case review
+        case viewAllReviews
+        case selectGymForReview
+        case searchReviews
+
+        case profile
+        case allLocations
+        case currentLocation
+        case postalCode
+        case dayOfWeek
+
+        case addNewGym
+        case updateExistingGyms
+        case editExistingIsland
+        case addOrEditScheduleOpenMat
+
+        case faqDisclaimer
+
+        case aboutus
+        case disclaimer
+        case faq
+
         case viewSchedule
-        case login   // ← add this
+
+        case login
         case islandMenu2
 
-
-
+        // ✅ ADD THIS LINE
+        case addSchedule
     }
 
+
+
     init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        if let id = try container.decodeIfPresent(String.self, forKey: .review) {
+
+        let container =
+            try decoder.container(keyedBy: CodingKeys.self)
+
+        if let id =
+            try container.decodeIfPresent(String.self, forKey: .review) {
+
             self = .review(id)
-        } else if let id = try container.decodeIfPresent(String.self, forKey: .viewAllReviews) {
+
+        } else if let id =
+            try container.decodeIfPresent(String.self, forKey: .viewAllReviews) {
+
             self = .viewAllReviews(id)
+
         } else if container.contains(.selectGymForReview) {
+
             self = .selectGymForReview
+
         } else if container.contains(.searchReviews) {
+
             self = .searchReviews
+
         } else if container.contains(.profile) {
+
             self = .profile
+
         } else if container.contains(.allLocations) {
+
             self = .allLocations
+
         } else if container.contains(.currentLocation) {
+
             self = .currentLocation
+
         } else if container.contains(.postalCode) {
+
             self = .postalCode
+
         } else if container.contains(.dayOfWeek) {
+
             self = .dayOfWeek
+
         } else if container.contains(.addNewGym) {
+
             self = .addNewGym
+
         } else if container.contains(.updateExistingGyms) {
+
             self = .updateExistingGyms
-        } else if let id = try container.decodeIfPresent(String.self, forKey: .editExistingIsland) {
+
+        } else if let id =
+            try container.decodeIfPresent(String.self, forKey: .editExistingIsland) {
+
             self = .editExistingIsland(id)
+
         } else if container.contains(.addOrEditScheduleOpenMat) {
+
             self = .addOrEditScheduleOpenMat
+
         } else if container.contains(.faqDisclaimer) {
+
             self = .faqDisclaimer
+
         } else if container.contains(.aboutus) {
+
             self = .aboutus
+
         } else if container.contains(.disclaimer) {
+
             self = .disclaimer
+
         } else if container.contains(.faq) {
+
             self = .faq
-        } else if let id = try container.decodeIfPresent(String.self, forKey: .viewSchedule) {
+
+        } else if let id =
+            try container.decodeIfPresent(String.self, forKey: .viewSchedule) {
+
             self = .viewSchedule(id)
-        } else {
-            throw DecodingError.dataCorruptedError(forKey: .review, in: container, debugDescription: "Unknown AppScreen case")
+
+        }
+
+        // ✅ ADD THIS BLOCK
+        else if let id =
+            try container.decodeIfPresent(String.self, forKey: .addSchedule) {
+
+            self = .addSchedule(id)
+
+        }
+
+        else {
+
+            throw DecodingError.dataCorruptedError(
+                forKey: .review,
+                in: container,
+                debugDescription: "Unknown AppScreen case"
+            )
         }
     }
 
+
+
     func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
+
+        var container =
+            encoder.container(keyedBy: CodingKeys.self)
+
         switch self {
+
         case .review(let id):
             try container.encode(id, forKey: .review)
+
         case .viewAllReviews(let id):
             try container.encode(id, forKey: .viewAllReviews)
+
         case .selectGymForReview:
             try container.encodeNil(forKey: .selectGymForReview)
+
         case .searchReviews:
             try container.encodeNil(forKey: .searchReviews)
+
         case .profile:
             try container.encodeNil(forKey: .profile)
+
         case .allLocations:
             try container.encodeNil(forKey: .allLocations)
+
         case .currentLocation:
             try container.encodeNil(forKey: .currentLocation)
+
         case .postalCode:
             try container.encodeNil(forKey: .postalCode)
+
         case .dayOfWeek:
             try container.encodeNil(forKey: .dayOfWeek)
+
         case .addNewGym:
             try container.encodeNil(forKey: .addNewGym)
+
         case .updateExistingGyms:
             try container.encodeNil(forKey: .updateExistingGyms)
+
         case .editExistingIsland(let id):
             try container.encode(id, forKey: .editExistingIsland)
+
         case .addOrEditScheduleOpenMat:
             try container.encodeNil(forKey: .addOrEditScheduleOpenMat)
+
         case .faqDisclaimer:
             try container.encodeNil(forKey: .faqDisclaimer)
-        
-        // New encode cases
+
         case .aboutus:
             try container.encodeNil(forKey: .aboutus)
+
         case .disclaimer:
             try container.encodeNil(forKey: .disclaimer)
+
         case .faq:
             try container.encodeNil(forKey: .faq)
+
         case .viewSchedule(let id):
             try container.encode(id, forKey: .viewSchedule)
+
+        // ✅ ADD THIS BLOCK
+        case .addSchedule(let id):
+            try container.encode(id, forKey: .addSchedule)
+
+
         case .login:
             try container.encodeNil(forKey: .login)
+
         case .islandMenu2:
             try container.encodeNil(forKey: .islandMenu2)
         }
     }
 }
-
 enum SortType: String, CaseIterable, Identifiable {
     case latest = "Latest"
     case oldest = "Oldest"

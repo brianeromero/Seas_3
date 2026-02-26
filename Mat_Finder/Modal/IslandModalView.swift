@@ -44,6 +44,7 @@ struct IslandModalView: View {
     @Binding var selectedAppDayOfWeek: AppDayOfWeek?
     @ObservedObject private var authViewModel = AuthViewModel.shared
     
+    
     init(
         customMapMarker: CustomMapMarker?,
         islandName: String,
@@ -171,17 +172,22 @@ struct IslandModalView: View {
     
     private func modalContent(island: PirateIsland) -> some View {
         VStack(alignment: .leading, spacing: 16) {
+
             Text(islandName)
                 .font(.system(size: 20, weight: .bold))
                 .fontDesign(.rounded)
                 .foregroundColor(.primary)
 
             locationSection
+
             websiteSection
+
             scheduleSection(for: island)
+
             reviewsSection
 
             Spacer()
+
         }
         .padding()
         .background(Color(.systemBackground))
@@ -191,7 +197,6 @@ struct IslandModalView: View {
             closeButton
         }
     }
-
     
     private var locationSection: some View {
         Button(action: { openInMaps(address: islandLocation) }) {
@@ -240,9 +245,26 @@ struct IslandModalView: View {
                     "Schedule Not Available",
                     isPresented: $showNoScheduleAlert
                 ) {
-                    Button("OK", role: .cancel) { }
+
+                    Button("Add Schedule") {
+
+                        guard let island = selectedIsland else { return }
+
+                        navigationPath.append(
+                            AppScreen.addSchedule(
+                                island.objectID.uriRepresentation().absoluteString
+                            )
+                        )
+
+                        showModal = false
+                    }
+
+                    Button("Cancel", role: .cancel) { }
+
                 } message: {
+
                     Text("There are no scheduled mat times associated with this gym.")
+
                 }
         )
     }
@@ -382,6 +404,52 @@ struct IslandModalView: View {
 
         if let appleURL = URL(string: "http://maps.apple.com/?address=\(encoded)") {
             UIApplication.shared.open(appleURL)
+        }
+    }
+}
+struct AddScheduleWrapperView: View {
+
+    let island: PirateIsland
+
+    @ObservedObject
+    var viewModel: AppDayOfWeekViewModel
+
+    @State private var selectedIslandID: String?
+
+    @State private var showAlert = false
+    @State private var alertTitle = ""
+    @State private var alertMessage = ""
+
+
+    var body: some View {
+
+        Form {
+
+            AddNewMatTimeSection2(
+
+                selectedIslandID: $selectedIslandID,
+
+                islands: [island],
+
+                viewModel: viewModel,
+
+                showAlert: $showAlert,
+
+                alertTitle: $alertTitle,
+
+                alertMessage: $alertMessage
+
+            ) { island, day in
+
+                return nil
+
+            }
+
+        }
+        .onAppear {
+
+            selectedIslandID = island.islandID
+
         }
     }
 }

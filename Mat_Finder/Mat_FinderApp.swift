@@ -493,6 +493,31 @@ struct AppRootDestinationView: View {
             .onAppear {
                 print("🧭 Navigating to screen: .login (LoginParentView)")
             }
+            
+        case .addSchedule(let islandIDString):
+
+            if let objectID =
+                viewContext.persistentStoreCoordinator?
+                    .managedObjectID(
+                        forURIRepresentation: URL(string: islandIDString)!
+                    ),
+               let island =
+                try? viewContext.existingObject(with: objectID)
+                    as? PirateIsland {
+
+                AddScheduleWrapperView(
+                    island: island,
+                    viewModel: appDayOfWeekViewModel
+                )
+                .onAppear {
+                    print("🧭 Navigating to screen: .addSchedule -> \(island.islandName ?? "Unknown")")
+                }
+
+            } else {
+
+                Text("Error: Island not found for adding schedule.")
+
+            }
 
         case .islandMenu2:
             IslandMenu2(
