@@ -15,32 +15,19 @@ struct RestrictionsView: View {
 
     var body: some View {
 
-        VStack(alignment: .leading, spacing: 12) {
+        Toggle(isOn: $restrictions) {
 
-            Toggle(isOn: $restrictions) {
+            Label("Restrictions", systemImage: "exclamationmark.circle")
+                .foregroundStyle(.orange)
 
-                Label {
+        }
 
-                    Text("Restrictions")
+        if restrictions {
 
-                } icon: {
-
-                    Image(systemName: "exclamationmark.circle")
-                        .foregroundStyle(.orange)
-
-                }
-
-            }
-
-            if restrictions {
-
-                TextField(
-                    "White Gis Only, Competition Class, etc.",
-                    text: $restrictionDescriptionInput
-                )
-                .textFieldStyle(.roundedBorder)
-
-            }
+            TextField(
+                "White Gis Only, Competition Class, etc.",
+                text: $restrictionDescriptionInput
+            )
 
         }
 

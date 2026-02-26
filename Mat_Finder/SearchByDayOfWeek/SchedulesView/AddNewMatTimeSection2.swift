@@ -77,25 +77,20 @@ struct AddNewMatTimeSection2: View {
     // MARK: UI
     var body: some View {
 
-        Group {
+        Form {
 
             Section("CLASS Type") {
                 classTypeSection
             }
-            .padding(.vertical, 8)
-
 
             Section("DAYS") {
                 daysSection
+                    .listRowInsets(EdgeInsets())
             }
-            .padding(.vertical, 8)
-
 
             Section("TIMES - add one or multiple") {
                 timesSection
             }
-            .padding(.vertical, 8)
-
 
             Section("OPTIONS") {
 
@@ -104,8 +99,6 @@ struct AddNewMatTimeSection2: View {
                 Toggle("Good for Beginners", isOn: $goodForBeginners)
 
             }
-            .padding(.vertical, 8)
-
 
             Section("RESTRICTIONS") {
 
@@ -113,19 +106,20 @@ struct AddNewMatTimeSection2: View {
                     restrictions: $restrictions,
                     restrictionDescriptionInput: $restrictionText
                 )
+                .listRowInsets(EdgeInsets())
 
             }
-            .padding(.vertical, 8)
 
-
-            Section {
-                addButton
-            }
+            Color.clear
+                .frame(height: 80)
+                .listRowBackground(Color.clear)
 
         }
-
-        .scrollContentBackground(.hidden)
-        .background(Color(.systemGroupedBackground))
+        .formStyle(GroupedFormStyle())
+        .scrollDismissesKeyboard(.interactively)
+        .safeAreaInset(edge: .bottom) {
+            addButtonFooter
+        }
         .navigationTitle("Add Schedule")
         .navigationBarTitleDisplayMode(.inline)
         .showAlert(
@@ -167,8 +161,8 @@ extension AddNewMatTimeSection2 {
         AppleStyleDaySelector(
             selectedDays: $selectedDays
         )
-        .listRowInsets(EdgeInsets()) // ✅ removes Form padding
         .padding(.vertical, 4)
+
     }
 
     var timesSection: some View {
@@ -231,13 +225,10 @@ extension AddNewMatTimeSection2 {
     
     }
     
-
-
     var addButton: some View {
 
         Button {
 
-            // ✅ HAPTIC FEEDBACK
             UIImpactFeedbackGenerator(style: .medium)
                 .impactOccurred()
 
@@ -257,9 +248,11 @@ extension AddNewMatTimeSection2 {
 
                     Text("Add Schedule")
                         .fontWeight(.semibold)
+
                 }
 
                 Spacer()
+
             }
             .padding()
             .background(
@@ -269,12 +262,31 @@ extension AddNewMatTimeSection2 {
             )
             .foregroundColor(.white)
             .clipShape(RoundedRectangle(cornerRadius: 12))
+
+            // ✅ Bonus Enhancement Applied
+            .opacity(isSaving ? 0.6 : 1.0)
+            .scaleEffect(isSaving ? 0.98 : 1)
+            .animation(.easeInOut, value: isSaving)
+
         }
         .disabled(isSaving)
-        .animation(.spring(response: 0.3), value: isSaving)
-        .listRowBackground(Color.clear)
-    }
 
+    }
+    
+    var addButtonFooter: some View {
+
+        addButton
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+            .padding(.bottom, 12)
+            .background(
+                Color(.systemBackground)
+                    .opacity(0.95)
+                    .shadow(color: .black.opacity(0.08), radius: 8, y: -2)
+            )
+
+    }
+ 
 }
 
 // MARK: - Actions
