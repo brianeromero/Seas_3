@@ -487,7 +487,8 @@ final class PersistenceController: ObservableObject {
         case let island as PirateIsland: return island.islandID
         case let review as Review: return review.reviewID.uuidString
         case let matTime as MatTime: return matTime.id?.uuidString
-        case let appDay as AppDayOfWeek: return appDay.id?.uuidString
+        case let appDay as AppDayOfWeek:
+            return appDay.appDayOfWeekID   // ✅ CORRECT
         default: return nil
         }
     }
@@ -644,7 +645,10 @@ extension PersistenceController {
             // ✅ Non-optional UUID, will use the second overload automatically
             return try fetchLocalRecords(forEntity: Review.self, keyPath: \Review.reviewID)
         case "AppDayOfWeek":
-            return try fetchLocalRecords(forEntity: AppDayOfWeek.self, keyPath: \AppDayOfWeek.id)
+            return try fetchLocalRecords(
+                forEntity: AppDayOfWeek.self,
+                keyPath: \AppDayOfWeek.appDayOfWeekID
+            )
         case "MatTime":
             return try fetchLocalRecords(forEntity: MatTime.self, keyPath: \MatTime.id)
         default:

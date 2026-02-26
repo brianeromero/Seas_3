@@ -662,7 +662,14 @@ class FirestoreSyncManager {
             (try? await PersistenceController.shared
                 .fetchLocalRecords(forCollection: collectionName)) ?? []
 
+        // ✅ ADD THESE LINES RIGHT HERE
+        Self.log("🧪 DEBUG LOCAL IDS: \(refreshedLocalRecords)",
+                 level: .warning,
+                 collection: collectionName)
 
+        Self.log("🧪 DEBUG FIRESTORE IDS: \(firestoreRecords)",
+                 level: .warning,
+                 collection: collectionName)
 
         let finalLocalCount =
             refreshedLocalRecords.count
