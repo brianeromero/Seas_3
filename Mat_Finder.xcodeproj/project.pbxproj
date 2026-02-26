@@ -87,8 +87,8 @@
 		0C9861BC2F33B66C00B4B96C /* MFINDER_circle.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C9861BB2F33B66C00B4B96C /* MFINDER_circle.png */; };
 		0C98D2C72DA5949B000583ED /* ToggleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C98D2C62DA5949B000583ED /* ToggleView.swift */; };
 		0C9B5F292E260B9100C643B7 /* DaysOfWeekFormViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C9B5F282E260B9100C643B7 /* DaysOfWeekFormViewModel.swift */; };
-		0CADDAB42F50B927001C2C13 /* flashing1.gif in Resources */ = {isa = PBXBuildFile; fileRef = 0CADDAB32F50B927001C2C13 /* flashing1.gif */; };
 		0CADDAB62F50C52C001C2C13 /* SwiftUIGIFView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CADDAB52F50C52C001C2C13 /* SwiftUIGIFView.swift */; };
+		0CADDAB82F50E575001C2C13 /* flashing1.gif in Resources */ = {isa = PBXBuildFile; fileRef = 0CADDAB72F50E575001C2C13 /* flashing1.gif */; };
 		0CB6E1E72EAC09F600BE4016 /* Mat_Finder.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 0CB6E1E52EAC09F600BE4016 /* Mat_Finder.xcdatamodeld */; };
 		0CBA130A2CC19BC700A74C2A /* CryptoSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 0CBA13092CC19BC700A74C2A /* CryptoSwift */; };
 		0CC1120F2C45F7D80066CF80 /* MatTime+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC1120D2C45F7D80066CF80 /* MatTime+CoreDataClass.swift */; };
@@ -249,8 +249,8 @@
 		0C9B5F282E260B9100C643B7 /* DaysOfWeekFormViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DaysOfWeekFormViewModel.swift; sourceTree = "<group>"; };
 		0CA142232C3EF19900C366CF /* MainLoginViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainLoginViewController.swift; sourceTree = "<group>"; };
 		0CA142252C3EF7F200C366CF /* IslandScheduleAsCalViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandScheduleAsCalViewController.swift; sourceTree = "<group>"; };
-		0CADDAB32F50B927001C2C13 /* flashing1.gif */ = {isa = PBXFileReference; lastKnownFileType = image.gif; path = flashing1.gif; sourceTree = "<group>"; };
 		0CADDAB52F50C52C001C2C13 /* SwiftUIGIFView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftUIGIFView.swift; sourceTree = "<group>"; };
+		0CADDAB72F50E575001C2C13 /* flashing1.gif */ = {isa = PBXFileReference; lastKnownFileType = image.gif; path = flashing1.gif; sourceTree = "<group>"; };
 		0CB6E1E62EAC09F600BE4016 /* Mat_Finder.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = Mat_Finder.xcdatamodel; sourceTree = "<group>"; };
 		0CBA13292CC19D0C00A74C2A /* MapKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MapKit.framework; path = System/Library/Frameworks/MapKit.framework; sourceTree = SDKROOT; };
 		0CBA132B2CC19D1600A74C2A /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = System/Library/Frameworks/CoreData.framework; sourceTree = SDKROOT; };
@@ -669,12 +669,12 @@
 				0C07B0842C2CFE6200D0BFB2 /* AdditionalGymInfo.swift */,
 				0C07B0C02C2D01F300D0BFB2 /* CustomUnarchiveTransformer.swift */,
 				0CEB03952C2B9B73007CA3CC /* PirateIslandViewModel.swift */,
+				0CADDAB72F50E575001C2C13 /* flashing1.gif */,
 				0CDA094F2EA99E250095AA59 /* google_logo@1x.png */,
 				0CDA09502EA99E250095AA59 /* google_logo@2x.png */,
 				0CDA09512EA99E250095AA59 /* google_logo@3x.png */,
 				0C07B0C52C2D022C00D0BFB2 /* calendar Image.png */,
 				0C07B0C42C2D022C00D0BFB2 /* flashing.gif */,
-				0CADDAB32F50B927001C2C13 /* flashing1.gif */,
 				0C07B0C92C2D022D00D0BFB2 /* flashing2.gif */,
 				0C9861B32F33B20C00B4B96C /* Disclaimer.png */,
 				0C9861B42F33B20C00B4B96C /* FAQ.png */,
@@ -878,7 +878,7 @@
 			files = (
 				0CD930AB2C33D4D90051E923 /* Assets.xcassets in Resources */,
 				0CD930B22C33D4FE0051E923 /* MF_little_trans .png in Resources */,
-				0CADDAB42F50B927001C2C13 /* flashing1.gif in Resources */,
+				0CADDAB82F50E575001C2C13 /* flashing1.gif in Resources */,
 				0C9861B22F33ABCD00B4B96C /* MFINDER_BOLDb-nobackground.png in Resources */,
 				0C0739952F27D3DE00313B25 /* MF_little.png in Resources */,
 				0CD930AD2C33D4F00051E923 /* calendar Image.png in Resources */,
