@@ -400,54 +400,91 @@ final class AppDayOfWeekViewModel: ObservableObject {
     // MARK: - Fetch Current Day Of Week
     // Populates the matTimesForDay dictionary with the scheduled mat times for each day
     @MainActor
-    func fetchCurrentDayOfWeek(for island: PirateIsland, day: DayOfWeek, selectedDayBinding: Binding<DayOfWeek?>) async -> (AppDayOfWeek?, [MatTime]?) {
+    func fetchCurrentDayOfWeek(
+        for island: PirateIsland,
+        day: DayOfWeek,
+        selectedDayBinding: Binding<DayOfWeek?>
+    ) async -> (AppDayOfWeek?, [MatTime]?) {
+
         print("Fetching current day of week for island: \(island.islandName ?? ""), day: \(day)")
-        
+
         let context = repository.getViewContext()
-        
+
         // Step 1: Check Core Data
-        if let existingAppDayOfWeek = repository.fetchAppDayOfWeek(for: day.rawValue, pirateIsland: island, context: context) {
-            print("✅ Found AppDayOfWeek in Core Data")
+        if let existing = repository.fetchAppDayOfWeek(
+            for: day.rawValue,
+            pirateIsland: island,
+            context: context
+        ) {
+
             selectedDayBinding.wrappedValue = day
-            return (existingAppDayOfWeek, existingAppDayOfWeek.matTimes?.allObjects as? [MatTime] ?? [])
+
+            return (
+                existing,
+                existing.matTimes?.allObjects as? [MatTime]
+            )
         }
-        
+
         print("❌ Not found in Core Data. Checking Firestore...")
-        
-        // Step 2: Check Firestore
-        do {
-            let document = try await firestore.collection("appDayOfWeek").document(day.rawValue).getDocument()
-            
-            if let data = document.data() {
-                print("✅ Found AppDayOfWeek in Firestore")
-                
-                // Fetch or create in Core Data but do not create a new Firestore entry
-                if let newAppDayOfWeek = repository.fetchOrCreateAppDayOfWeek(for: day.rawValue, pirateIsland: island, context: context) {
-                    newAppDayOfWeek.configure(data: data) // Populate with Firestore data
-                    
-                    // Save Core Data context
-                    try context.save()
-                    
-                    selectedDayBinding.wrappedValue = day
-                    return (newAppDayOfWeek, newAppDayOfWeek.matTimes?.allObjects as? [MatTime] ?? [])
-                }
-            } else {
-                print("❌ Not found in Firestore either.")
-            }
-        } catch {
-            print("❌ Error fetching from Firestore: \(error.localizedDescription)")
+
+
+        // ✅ FIX: use correct document ID
+
+        guard let islandName = island.islandName else {
+
+            print("❌ Missing island name")
+
+            return (nil, nil)
         }
-        
-        // 🚨 Show alert message if no data exists
-        alertTitle = "No Mat Times Available"
-        alertMessage = "No mat times have been entered for \(day.displayName) at \(island.islandName ?? "this gym")."
-        showAlert = true
-        
-        print("❌ No AppDayOfWeek found")
+
+        let docID = "\(islandName)-\(day.rawValue)"
+
+
+        do {
+
+            let document =
+            try await firestore
+                .collection("AppDayOfWeek")
+                .document(docID)
+                .getDocument()
+
+
+            if let data = document.data() {
+
+                print("✅ Found AppDayOfWeek in Firestore")
+
+
+                if let new =
+                    repository.fetchOrCreateAppDayOfWeek(
+                        for: docID,
+                        pirateIsland: island,
+                        context: context
+                    )
+                {
+
+                    new.configure(data: data)
+
+                    try context.save()
+
+                    selectedDayBinding.wrappedValue = day
+
+                    return (
+                        new,
+                        new.matTimes?.allObjects as? [MatTime]
+                    )
+                }
+
+            }
+
+        }
+        catch {
+
+            print("❌ Firestore error:", error)
+        }
+
+
         return (nil, nil)
     }
-    
-    
     
     // MARK: - Add or Update Mat Time
     func addOrUpdateMatTime(
