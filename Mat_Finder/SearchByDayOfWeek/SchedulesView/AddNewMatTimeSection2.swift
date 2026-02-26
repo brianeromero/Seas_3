@@ -79,25 +79,44 @@ struct AddNewMatTimeSection2: View {
 
         Group {
 
-            Section("CLASS TYPE") {
+            Section("CLASS Type") {
                 classTypeSection
             }
+            .padding(.vertical, 8)
 
-            Section {
-                kidsSection
-            }
 
             Section("DAYS") {
                 daysSection
             }
+            .padding(.vertical, 8)
 
-            Section("TIMES") {
+
+            Section("TIMES - add one or multiple") {
                 timesSection
             }
+            .padding(.vertical, 8)
+
 
             Section("OPTIONS") {
-                optionsSection
+
+                Toggle("Kids Class", isOn: $kidsClass)
+
+                Toggle("Good for Beginners", isOn: $goodForBeginners)
+
             }
+            .padding(.vertical, 8)
+
+
+            Section("RESTRICTIONS") {
+
+                RestrictionsView(
+                    restrictions: $restrictions,
+                    restrictionDescriptionInput: $restrictionText
+                )
+
+            }
+            .padding(.vertical, 8)
+
 
             Section {
                 addButton
@@ -141,11 +160,7 @@ extension AddNewMatTimeSection2 {
     }
 
 
-    var kidsSection: some View {
 
-        Toggle("Kids Class", isOn: $kidsClass)
-
-    }
 
     var daysSection: some View {
 
@@ -213,36 +228,9 @@ extension AddNewMatTimeSection2 {
         }
         .padding(.vertical, 4)
 
+    
     }
-
-
-    var optionsSection: some View {
-
-        VStack(spacing: 12) {
-
-            Toggle(
-                "Good for Beginners",
-                isOn: $goodForBeginners
-            )
-
-            Toggle(
-                "Restrictions",
-                isOn: $restrictions
-            )
-
-            if restrictions {
-
-                TextField(
-                    "Description",
-                    text: $restrictionText
-                )
-                .textFieldStyle(.roundedBorder)
-
-            }
-
-        }
-
-    }
+    
 
 
     var addButton: some View {
