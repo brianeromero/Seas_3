@@ -138,27 +138,32 @@ extension UIImage {
 }
 
 struct GIFView: UIViewRepresentable {
-    private let name: String
 
-    init(name: String) {
-        self.name = name
-    }
+    let name: String
 
-    func makeUIView(context: Context) -> UIImageView {
+    func makeUIView(context: Context) -> UIView {
+
+        let container = UIView()
+
         let imageView = UIImageView()
-        imageView.contentMode = .scaleAspectFill
-        
-        DispatchQueue.main.async {
-            if let gifImage = UIImage.gifImageWithName(name) {
-                imageView.image = gifImage
-            } else {
-                // Handle error if gifImageWithName returns nil
-                print("Failed to load GIF named: \(name)")
-            }
-        }
 
-        return imageView
+        imageView.image = UIImage.gifImageWithName(name)
+        imageView.contentMode = .scaleAspectFill
+        imageView.clipsToBounds = true
+
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+
+        container.addSubview(imageView)
+
+        NSLayoutConstraint.activate([
+            imageView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            imageView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            imageView.topAnchor.constraint(equalTo: container.topAnchor),
+            imageView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+        ])
+
+        return container
     }
 
-    func updateUIView(_ uiView: UIImageView, context: Context) {}
+    func updateUIView(_ uiView: UIView, context: Context) {}
 }

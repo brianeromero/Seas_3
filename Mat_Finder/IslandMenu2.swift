@@ -217,13 +217,14 @@ struct IslandMenu2: View {
                 .frame(maxWidth: .infinity, alignment: .center)
         }
         .background(
-            ZStack {
-                GIFView(name: "flashing2")
-                    .frame(width: 500, height: 450)
-                    .offset(x: 100, y: -230)
-                    .ignoresSafeArea()
+            GeometryReader { geo in
 
-                Color.white.opacity(0.1)
+                SwiftUIGIFView(name: "flashing1")
+                    .frame(width: 140, height: 440)
+                    .position(
+                        x: geo.size.width * 0.75,   // left 25%
+                        y: geo.size.height * 0.25   // up 10%
+                    )
             }
         )
         .navigationBarHidden(true)
