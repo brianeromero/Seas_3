@@ -219,7 +219,7 @@ struct IslandMenu2: View {
         .background(
             GeometryReader { geo in
 
-                SwiftUIGIFView(name: "flashing7")
+                SwiftUIGIFView(name: "flashing16")
                     .frame(width: 140, height: 440)
                     .position(
                         x: geo.size.width * 0.75,   // left 25%
