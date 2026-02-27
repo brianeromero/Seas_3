@@ -407,6 +407,7 @@ struct IslandModalView: View {
         }
     }
 }
+
 struct AddScheduleWrapperView: View {
 
     let island: PirateIsland
@@ -421,35 +422,36 @@ struct AddScheduleWrapperView: View {
     @State private var alertMessage = ""
 
 
+    // ✅ CLEAN INITIALIZER
+    init(
+        island: PirateIsland,
+        viewModel: AppDayOfWeekViewModel
+    ) {
+
+        self.island = island
+        self.viewModel = viewModel
+
+        // ✅ SET STATE HERE INSTEAD OF onAppear
+        _selectedIslandID =
+            State(initialValue: island.islandID)
+    }
+
+
     var body: some View {
 
-        Form {
+        AddNewMatTimeSection2(
+            selectedIslandID: $selectedIslandID,
+            islands: [island],
+            viewModel: viewModel,
+            showAlert: $showAlert,
+            alertTitle: $alertTitle,
+            alertMessage: $alertMessage
+        ) { island, day in
 
-            AddNewMatTimeSection2(
-
-                selectedIslandID: $selectedIslandID,
-
-                islands: [island],
-
-                viewModel: viewModel,
-
-                showAlert: $showAlert,
-
-                alertTitle: $alertTitle,
-
-                alertMessage: $alertMessage
-
-            ) { island, day in
-
-                return nil
-
-            }
+            return nil
 
         }
-        .onAppear {
 
-            selectedIslandID = island.islandID
-
-        }
     }
+
 }

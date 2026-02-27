@@ -463,7 +463,11 @@ extension AddNewMatTimeSection2 {
             island.objectID
 
         let islandNameSafe =
-            island.islandName ?? ""
+            (island.islandName ?? "")
+                .replacingOccurrences(of: "/", with: "-")
+                .replacingOccurrences(of: "\\", with: "-")
+                .replacingOccurrences(of: "#", with: "")
+                .replacingOccurrences(of: "?", with: "")
 
         let context =
             PersistenceController.shared
@@ -516,7 +520,7 @@ extension AddNewMatTimeSection2 {
 
 
                 new.appDayOfWeekID =
-                    "\(islandNameSafe)-\(day.rawValue)"
+                    UUID().uuidString
 
 
                 new.name =

@@ -156,6 +156,8 @@ private extension ViewScheduleForIsland {
 
                     Text("""
                     No mat times entered for \(selectedDay.displayName) at \(island.islandName ?? "").
+
+                    Click the button below to add schedule.
                     """)
                     .font(.subheadline)
                     .foregroundColor(.secondary)
@@ -172,14 +174,20 @@ private extension ViewScheduleForIsland {
                         selectedDay: $viewModel.selectedDay
                     )
 
+                    Text("Click the button below to edit or add schedule.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.top, 8)
+
                 }
 
             }
             else {
 
-                Text("Select a day to view schedule.")
+                Text("Select a day to view schedule.\n\nClick the button below to add schedule.")
                     .font(.caption)
                     .foregroundColor(.secondary)
+                    .padding(.top, 8)
 
             }
 
@@ -188,8 +196,10 @@ private extension ViewScheduleForIsland {
         }
         .frame(maxWidth: .infinity, alignment: .top)
 
-        // ⭐ ADD THIS LINE
-        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: viewModel.matTimesForDay)
+        .animation(
+            .spring(response: 0.35, dampingFraction: 0.8),
+            value: viewModel.matTimesForDay
+        )
     }
 
 }
