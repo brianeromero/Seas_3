@@ -117,10 +117,16 @@ struct ScheduleFormView: View {
 
         }
         
-        .sheet(isPresented: $showingAddSchedule) {
-            
+        .sheet(
+            isPresented: $showingAddSchedule,
+            onDismiss: {
+                Task {
+                    await preloadAllDays()
+                }
+            }
+        ) {
             NavigationStack {
-                
+
                 AddNewMatTimeSection2(
                     selectedIslandID: $selectedIslandID,
                     islands: islands,
@@ -130,9 +136,8 @@ struct ScheduleFormView: View {
                     alertMessage: $alertMessage,
                     selectIslandAndDay: selectIslandAndDay
                 )
-                
+
             }
-            
         }
         
         .alert(isPresented: $showingAlert) {

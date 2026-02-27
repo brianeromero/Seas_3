@@ -25,7 +25,7 @@ enum ClassType: String, CaseIterable, Identifiable {
 
 struct AddNewMatTimeSection2: View {
     
-
+    @Environment(\.dismiss) private var dismiss
     // MARK: - Inputs
 
     @Binding var selectedIslandID: String?
@@ -435,7 +435,7 @@ extension AddNewMatTimeSection2 {
             """
 
             showAlert = true
-
+            dismiss()
             reset()
 
         }

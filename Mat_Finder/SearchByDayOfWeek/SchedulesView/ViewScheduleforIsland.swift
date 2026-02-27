@@ -25,44 +25,50 @@ struct ViewScheduleForIsland: View {
 
 
     var body: some View {
-
+        
         VStack(alignment: .leading, spacing: 24) {
-
+            
             headerSection
-
+            
             daySelectorSection
-
+            
             scheduleSection
-
+            
         }
         .padding()
         .background(Color(.systemGroupedBackground))
         .navigationTitle("Schedule")
         .navigationBarTitleDisplayMode(.inline)
-
+        
         .safeAreaInset(edge: .bottom) {
-
+            
             addScheduleButton
-
+            
         }
-
+        
         .alert(alertTitle, isPresented: $showAlert) {
-
+            
             Button("OK", role: .cancel) { }
-
+            
         } message: {
-
+            
             Text(alertMessage)
-
+            
         }
-
-        .sheet(isPresented: $showingAddSchedule) {
-
+        
+        .sheet(
+            isPresented: $showingAddSchedule,
+            onDismiss: {
+                Task {
+                    await viewModel.loadSchedules(for: island)
+                }
+            }
+        ) {
             NavigationStack {
 
                 AddNewMatTimeSection2(
 
-                    selectedIslandID: $selectedIslandID,   // ✅ REAL binding
+                    selectedIslandID: $selectedIslandID,
 
                     islands: [island],
 
@@ -79,19 +85,6 @@ struct ViewScheduleForIsland: View {
                 )
 
             }
-
-            // ✅ AUTO REFRESH AFTER SAVE
-            .onDisappear {
-
-                Task {
-
-                    await viewModel.loadSchedules(for: island)
-
-
-                }
-
-            }
-
         }
         
         .onAppear {
