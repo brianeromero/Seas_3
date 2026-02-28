@@ -11,10 +11,12 @@
         <attribute name="day" attributeType="String"/>
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="name" optional="YES" attributeType="String"/>
+        <attribute name="pirateIslandID" optional="YES" attributeType="String"/>
         <relationship name="matTimes" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="MatTime" inverseName="appDayOfWeek" inverseEntity="MatTime"/>
         <relationship name="pIsland" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PirateIsland" inverseName="appDayOfWeeks" inverseEntity="PirateIsland"/>
     </entity>
     <entity name="MatTime" representedClassName="MatTime" syncable="YES">
+        <attribute name="appDayOfWeekID" optional="YES" attributeType="String"/>
         <attribute name="createdTimestamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="gi" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="goodForBeginners" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>

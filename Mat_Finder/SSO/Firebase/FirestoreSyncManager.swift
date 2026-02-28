@@ -5,7 +5,6 @@
 //  Created by Brian Romero on 5/23/25.
 //
 
-
 import Foundation
 import FirebaseAuth
 import FirebaseFirestore
@@ -167,6 +166,7 @@ class FirestoreSyncManager {
             await PersistenceController.shared.waitForBackgroundSaves()
 
 
+            
 
             // 3️⃣ MatTime
             try await downloadCollection(
@@ -191,6 +191,17 @@ class FirestoreSyncManager {
             await PersistenceController.shared.waitForBackgroundSaves()
 
 
+            // ✅ NOW THIS IS THE CORRECT PLACE
+
+            let context = await MainActor.run {
+                PersistenceController.shared.newFirestoreContext()
+            }
+
+            try await repairRelationshipsAndCaches(context: context)
+
+            await context.perform {
+                context.reset()
+            }
 
             // ---------------------------------------------------------
             // SAFE UI LOGGING
@@ -297,70 +308,79 @@ class FirestoreSyncManager {
         documents: [QueryDocumentSnapshot]
     ) async {
 
-        let context =
-            await PersistenceController.shared.newFirestoreContext()
-
-        for doc in documents {
-
-            switch collectionName {
-
-            case "pirateIslands":
-
-                await Self.syncPirateIslandStatic(
-                    docSnapshot: doc,
-                    context: context
-                )
-
-            case "AppDayOfWeek":
-
-                await Self.syncAppDayOfWeekStatic(
-                    docSnapshot: doc,
-                    context: context
-                )
-
-            case "MatTime":
-
-                await Self.syncMatTimeStatic(
-                    docSnapshot: doc,
-                    context: context
-                )
-
-            case "reviews":
-
-                await Self.syncReviewStatic(
-                    docSnapshot: doc,
-                    context: context
-                )
-
-            default:
-                break
-            }
+        let context = await MainActor.run {
+            PersistenceController.shared.newFirestoreContext()
         }
 
-        await context.perform {
+        do {
 
-            guard context.hasChanges else { return }
+            // STEP 1: Sync all objects
 
-            context.processPendingChanges()
+            for doc in documents {
 
-            do {
-                try context.save()
-            }
-            catch {
+                switch collectionName {
 
-                context.rollback()
+                case "pirateIslands":
+                    await Self.syncPirateIslandStatic(docSnapshot: doc, context: context)
 
-                Task { @MainActor in
+                case "reviews":
+                    await Self.syncReviewStatic(docSnapshot: doc, context: context)
 
-                    FirestoreSyncManager.log(
-                        "❌ Batch save failed",
-                        level: .error
-                    )
+                case "AppDayOfWeek":
+                    await Self.syncAppDayOfWeekStatic(docSnapshot: doc, context: context)
+
+                case "MatTime":
+                    await Self.syncMatTimeStatic(docSnapshot: doc, context: context)
+
+                default:
+                    break
                 }
             }
+
+
+            // STEP 2: Save once
+
+            try await context.perform {
+
+                guard context.hasChanges else { return }
+
+                context.processPendingChanges()
+
+                try context.save()
+            }
+
+
+            // ✅ STEP 3: Reset ONLY (no repair here)
+
+            await context.perform {
+
+                context.refreshAllObjects()
+
+                context.reset()
+            }
+
+
+            FirestoreSyncManager.log(
+                "✅ Transaction complete",
+                level: .success,
+                collection: collectionName
+            )
+
+        }
+        catch {
+
+            await context.perform {
+                context.rollback()
+            }
+
+            FirestoreSyncManager.log(
+                "❌ Transaction failed: \(error)",
+                level: .error,
+                collection: collectionName
+            )
         }
     }
-    
+                
     private func checkLocalRecordsAndCreateFirestoreRecordsIfNecessary(
         collectionName: String,
         querySnapshot: QuerySnapshot?
@@ -1015,19 +1035,102 @@ class FirestoreSyncManager {
         records: [String]
     ) async {
 
-        for record in records {
+        guard !records.isEmpty else { return }
 
-            await PersistenceController.shared.deleteLocalRecord(
-                forCollection: collectionName,
-                recordId: record
-            )
-
-            Self.log(
-                "🗑️ Deleted local orphaned record \(record)",
-                level: .warning,
-                collection: collectionName
-            )
+        let context = await MainActor.run {
+            PersistenceController.shared.newFirestoreContext()
         }
+
+        await context.perform {
+
+            for record in records {
+
+                switch collectionName {
+
+                case "pirateIslands":
+
+                    Self.deleteEntity(
+                        ofType: PirateIsland.self,
+                        idString: record,
+                        keyPath: \.islandID,
+                        context: context
+                    )
+
+
+                case "reviews":
+
+                    Self.deleteEntity(
+                        ofType: Review.self,
+                        idString: record,
+                        keyPath: \.reviewID,
+                        context: context
+                    )
+
+
+                case "MatTime":
+
+                    Self.deleteEntity(
+                        ofType: MatTime.self,
+                        idString: record,
+                        keyPath: \.id,
+                        context: context
+                    )
+
+
+                case "AppDayOfWeek":
+
+                    Self.deleteEntity(
+                        ofType: AppDayOfWeek.self,
+                        idString: record,
+                        keyPath: \.appDayOfWeekID,
+                        context: context
+                    )
+
+
+                default:
+
+                    FirestoreSyncManager.log(
+                        "❌ Unknown collection \(collectionName)",
+                        level: .error,
+                        collection: collectionName
+                    )
+                }
+            }
+
+
+            guard context.hasChanges else { return }
+
+
+            context.processPendingChanges()
+
+
+            do {
+
+                try context.save()
+
+                FirestoreSyncManager.log(
+                    "💾 Deleted \(records.count) local orphaned records",
+                    level: .success,
+                    collection: collectionName
+                )
+
+
+                context.reset()
+            }
+            catch {
+
+                context.rollback()
+
+                FirestoreSyncManager.log(
+                    "❌ Failed deleting local records: \(error)",
+                    level: .error,
+                    collection: collectionName
+                )
+            }
+        }
+
+
+        await PersistenceController.shared.waitForBackgroundSaves()
     }
 
     private func downloadFirestoreRecordsToLocal(
@@ -1035,50 +1138,29 @@ class FirestoreSyncManager {
         records: [String]
     ) async {
 
-        guard !records.isEmpty else {
+        guard !records.isEmpty else { return }
 
-            Self.log(
-                "⚠️ No Firestore records found to download",
-                level: .warning,
-                collection: collectionName
-            )
-
-            return
+        let context = await MainActor.run {
+            PersistenceController.shared.newFirestoreContext()
         }
-
-
-        Self.log(
-            "🚀 Batch downloading \(records.count) records",
-            level: .download,
-            collection: collectionName
-        )
-
-
-
-        let context =
-            await PersistenceController.shared.newFirestoreContext()
-
 
         let db = Firestore.firestore()
 
-        let collectionRef =
-            db.collection(collectionName)
-
-
+        let collectionRef = db.collection(collectionName)
 
         var downloadedCount = 0
-
         var errorCount = 0
 
+        let chunkSize = 10
 
 
-        let chunkSize = 10   // Firestore limit
+        do {
 
+            // =====================================================
+            // STEP 1: Process ALL batches first
+            // =====================================================
 
-
-        for chunk in records.chunked(into: chunkSize) {
-
-            do {
+            for chunk in records.chunked(into: chunkSize) {
 
                 let snapshot =
                     try await collectionRef
@@ -1089,98 +1171,77 @@ class FirestoreSyncManager {
                         .getDocuments()
 
 
-
                 for docSnapshot in snapshot.documents {
 
                     switch collectionName {
 
                     case "pirateIslands":
-
-                        await Self.syncPirateIslandStatic(
-                            docSnapshot: docSnapshot,
-                            context: context
-                        )
-
+                        await Self.syncPirateIslandStatic(docSnapshot: docSnapshot, context: context)
 
                     case "reviews":
-
-                        await Self.syncReviewStatic(
-                            docSnapshot: docSnapshot,
-                            context: context
-                        )
-
+                        await Self.syncReviewStatic(docSnapshot: docSnapshot, context: context)
 
                     case "MatTime":
-
-                        await Self.syncMatTimeStatic(
-                            docSnapshot: docSnapshot,
-                            context: context
-                        )
-
+                        await Self.syncMatTimeStatic(docSnapshot: docSnapshot, context: context)
 
                     case "AppDayOfWeek":
-
-                        await Self.syncAppDayOfWeekStatic(
-                            docSnapshot: docSnapshot,
-                            context: context
-                        )
-
+                        await Self.syncAppDayOfWeekStatic(docSnapshot: docSnapshot, context: context)
 
                     default:
-
                         errorCount += 1
-
-                        continue
                     }
-
-
 
                     downloadedCount += 1
                 }
-
-
-
-                // SAVE AFTER EACH BATCH
-
-                await context.perform {
-
-                    guard context.hasChanges else { return }
-
-                    do {
-
-                        try context.save()
-
-                    }
-                    catch {
-
-                        context.rollback()
-
-                        errorCount += 1
-                    }
-                }
-
             }
-            catch {
-
-                errorCount += chunk.count
 
 
-                Self.log(
-                    "❌ Batch fetch failed: \(error.localizedDescription)",
-                    level: .error,
-                    collection: collectionName
-                )
+            // =====================================================
+            // STEP 2: SAVE ONCE (transaction)
+            // =====================================================
+
+            try await context.perform {
+
+                guard context.hasChanges else { return }
+
+                context.processPendingChanges()
+
+                try context.save()
             }
+
+
+            // =====================================================
+            // STEP 3: Reset LAST
+            // =====================================================
+
+            await context.perform {
+
+                context.refreshAllObjects()
+
+                context.reset()
+            }
+
+
+            FirestoreSyncManager.log(
+                "🏁 Batch download complete: \(downloadedCount) success, \(errorCount) errors",
+                level: .success,
+                collection: collectionName
+            )
+
         }
+        catch {
 
+            await context.perform {
 
+                context.rollback()
+            }
 
-        Self.log(
-            "🏁 Batch download complete: \(downloadedCount) success, \(errorCount) errors",
-            level: errorCount == 0 ? .success : .warning,
-            collection: collectionName
-        )
-
+            FirestoreSyncManager.log(
+                "❌ Batch transaction failed: \(error)",
+                level: .error,
+                collection: collectionName
+            )
+        }
 
 
         await PersistenceController.shared.waitForBackgroundSaves()
@@ -1608,7 +1669,7 @@ class FirestoreSyncManager {
             do {
 
                 // =====================================================
-                // Resolve UUID
+                // Resolve UUID safely
                 // =====================================================
 
                 let uuid =
@@ -1637,31 +1698,34 @@ class FirestoreSyncManager {
                     ?? MatTime(context: context)
 
 
+                // =====================================================
+                // CRITICAL FIX #1
+                // Persist ID
+                // =====================================================
+
                 matTime.id = uuid
 
+
                 // =====================================================
-                // CRITICAL FIX — Permanent Object ID
+                // ⭐ CRITICAL FIX #2
+                // Persist foreign key
+                // THIS enables relationship self-repair
                 // =====================================================
 
-                do {
+                matTime.appDayOfWeekID = appDayID
 
-                    if matTime.objectID.isTemporaryID {
 
-                        try context.obtainPermanentIDs(for: [matTime])
-                    }
+                // =====================================================
+                // Permanent Object ID
+                // =====================================================
 
+                if matTime.objectID.isTemporaryID {
+
+                    try? context.obtainPermanentIDs(
+                        for: [matTime]
+                    )
                 }
-                catch {
 
-                    Task { @MainActor in
-
-                        FirestoreSyncManager.log(
-                            "❌ Failed to obtain permanent MatTime ID",
-                            level: .error,
-                            collection: "MatTime"
-                        )
-                    }
-                }
 
                 // =====================================================
                 // Map fields
@@ -1700,17 +1764,18 @@ class FirestoreSyncManager {
 
 
                 // =====================================================
-                // RELATIONSHIP
+                // RELATIONSHIP RESOLUTION
                 // =====================================================
 
                 if let cachedObjectID,
                    let cachedAppDay =
-                    try? context.existingObject(with: cachedObjectID)
-                    as? AppDayOfWeek {
+                    try? context.existingObject(
+                        with: cachedObjectID
+                    ) as? AppDayOfWeek {
 
                     matTime.appDayOfWeek = cachedAppDay
-
                 }
+
                 else {
 
                     let adoFetch: NSFetchRequest<AppDayOfWeek> =
@@ -1725,44 +1790,42 @@ class FirestoreSyncManager {
                     adoFetch.fetchLimit = 1
 
 
-                    guard let fetched =
-                        try context.fetch(adoFetch).first
-                    else {
+                    if let fetched =
+                        try context.fetch(adoFetch).first {
 
-                        context.rollback()
+                        matTime.appDayOfWeek = fetched
 
-                        Task { @MainActor in
 
-                            FirestoreSyncManager.log(
-                                "❌ Parent AppDayOfWeek missing (\(appDayID))",
-                                level: .error,
-                                collection: "MatTime"
+                        // =====================================================
+                        // Repair cache
+                        // =====================================================
+
+                        if fetched.objectID.isTemporaryID {
+
+                            try? context.obtainPermanentIDs(
+                                for: [fetched]
                             )
                         }
 
-                        return
+                        let permanentID =
+                            fetched.objectID
+
+
+                        Task { @MainActor in
+
+                            FirestoreSyncManager.shared
+                                .appDayCache[appDayID] =
+                                permanentID
+                        }
                     }
 
+                    else {
 
-                    matTime.appDayOfWeek = fetched
-
-
-                    // =====================================================
-                    // Repair cache safely
-                    // =====================================================
-
-                    if fetched.objectID.isTemporaryID {
-
-                        try? context.obtainPermanentIDs(for: [fetched])
-                    }
-
-                    let permanentID = fetched.objectID
-
-                    Task { @MainActor in
-
-                        FirestoreSyncManager.shared
-                            .appDayCache[appDayID] =
-                            permanentID
+                        FirestoreSyncManager.log(
+                            "⚠️ AppDayOfWeek missing — relationship will auto-repair later",
+                            level: .warning,
+                            collection: "MatTime"
+                        )
                     }
                 }
 
@@ -1783,11 +1846,8 @@ class FirestoreSyncManager {
                     }
                 }
 
-
-                // permanentMatTimeID is available if you later want to cache MatTime too
-
-
             }
+
             catch {
 
                 context.rollback()
@@ -1820,27 +1880,58 @@ class FirestoreSyncManager {
 
         let docID = docSnapshot.documentID
 
+
         // =====================================================
-        // Extract PirateIsland reference BEFORE context.perform
+        // UNIVERSAL PirateIsland decoder
+        // Supports:
+        // DocumentReference
+        // Map
+        // String
         // =====================================================
 
-        let pirateIslandID =
-            (docSnapshot.get("pIsland") as? DocumentReference)?
-                .documentID
+        let pirateIslandID: String? = {
 
+            if let ref =
+                docSnapshot.get("pIsland") as? DocumentReference {
 
-        let cachedIslandObjectID: NSManagedObjectID? =
-            await MainActor.run {
-
-                guard let pirateIslandID else { return nil }
-
-                return FirestoreSyncManager.shared
-                    .pirateIslandCache[pirateIslandID]
+                return ref.documentID
             }
 
+            if let map =
+                docSnapshot.get("pIsland") as? [String: Any] {
+
+                return map["islandID"] as? String
+            }
+
+            if let string =
+                docSnapshot.get("pIsland") as? String {
+
+                return string
+            }
+
+            return nil
+
+        }()
+
+
 
         // =====================================================
-        // Core Data Work
+        // Read cache safely
+        // =====================================================
+
+        let cachedIslandObjectID: NSManagedObjectID? =
+        await MainActor.run {
+
+            guard let id = pirateIslandID else { return nil }
+
+            return FirestoreSyncManager.shared
+                .pirateIslandCache[id]
+        }
+
+
+
+        // =====================================================
+        // Core Data work
         // =====================================================
 
         await context.perform {
@@ -1848,7 +1939,7 @@ class FirestoreSyncManager {
             do {
 
                 // =====================================================
-                // STEP 1: FETCH OR CREATE
+                // FETCH OR CREATE
                 // =====================================================
 
                 let fetchRequest: NSFetchRequest<AppDayOfWeek> =
@@ -1856,7 +1947,6 @@ class FirestoreSyncManager {
 
                 let uuidVersion =
                     UUID.fromStringID(docID).uuidString
-
 
                 fetchRequest.predicate =
                     NSPredicate(
@@ -1881,8 +1971,17 @@ class FirestoreSyncManager {
                     }()
 
 
+
                 // =====================================================
-                // STEP 2: PERMANENT OBJECT ID (CRITICAL FIX)
+                // ⭐ CRITICAL FIX — STORE FOREIGN KEY
+                // =====================================================
+
+                ado.pirateIslandID = pirateIslandID
+
+
+
+                // =====================================================
+                // Permanent Object ID
                 // =====================================================
 
                 var permanentObjectID: NSManagedObjectID?
@@ -1902,7 +2001,7 @@ class FirestoreSyncManager {
                     Task { @MainActor in
 
                         FirestoreSyncManager.log(
-                            "❌ Failed to obtain permanent ID",
+                            "❌ Failed permanent ID",
                             level: .error,
                             collection: "AppDayOfWeek"
                         )
@@ -1910,8 +2009,9 @@ class FirestoreSyncManager {
                 }
 
 
+
                 // =====================================================
-                // STEP 3: CACHE SAFELY
+                // Cache AppDay
                 // =====================================================
 
                 if let permanentObjectID {
@@ -1925,8 +2025,9 @@ class FirestoreSyncManager {
                 }
 
 
+
                 // =====================================================
-                // STEP 4: REQUIRED FIELD
+                // Required field
                 // =====================================================
 
                 guard let day =
@@ -1948,30 +2049,22 @@ class FirestoreSyncManager {
 
                 ado.day = day
 
+                ado.name =
+                    docSnapshot.get("name") as? String ?? ""
+
+
 
                 // =====================================================
-                // STEP 5: PIRATE ISLAND RELATIONSHIP
+                // RELATIONSHIP FIX
                 // =====================================================
 
-                if let cachedIslandObjectID {
+                if let cachedIslandObjectID,
+                   let cachedIsland =
+                        try? context.existingObject(
+                            with: cachedIslandObjectID
+                        ) as? PirateIsland {
 
-                    if let island =
-                        try? context.existingObject(with: cachedIslandObjectID)
-                        as? PirateIsland {
-
-                        ado.pIsland = island
-                    }
-                    else {
-
-                        Task { @MainActor in
-
-                            FirestoreSyncManager.log(
-                                "⚠️ Cached PirateIsland invalid — repairing",
-                                level: .warning,
-                                collection: "AppDayOfWeek"
-                            )
-                        }
-                    }
+                    ado.pIsland = cachedIsland
                 }
                 else if let pirateIslandID {
 
@@ -1993,14 +2086,17 @@ class FirestoreSyncManager {
                         ado.pIsland = island
 
 
-                        // ⭐ CRITICAL FIX — ensure permanent ID before caching
+                        // Cache permanent ID
 
                         if island.objectID.isTemporaryID {
 
-                            try? context.obtainPermanentIDs(for: [island])
+                            try? context.obtainPermanentIDs(
+                                for: [island]
+                            )
                         }
 
-                        let permanentID = island.objectID
+                        let permanentID =
+                            island.objectID
 
 
                         Task { @MainActor in
@@ -2010,10 +2106,23 @@ class FirestoreSyncManager {
                                 permanentID
                         }
                     }
+                    else {
+
+                        Task { @MainActor in
+
+                            FirestoreSyncManager.log(
+                                "❌ PirateIsland not found for AppDayOfWeek \(docID)",
+                                level: .error,
+                                collection: "AppDayOfWeek"
+                            )
+                        }
+                    }
                 }
 
+
+
                 // =====================================================
-                // STEP 6: FINAL LOG
+                // Final log
                 // =====================================================
 
                 if context.hasChanges {
@@ -2044,6 +2153,216 @@ class FirestoreSyncManager {
             }
         }
     }
+    
+    private func repairRelationshipsAndCaches(
+        context: NSManagedObjectContext
+    ) async throws {
+
+        // =====================================================
+        // STEP 1: Rebuild PirateIsland cache
+        // =====================================================
+
+        let islands: [(String, NSManagedObjectID)] =
+        try await context.perform {
+
+            let request: NSFetchRequest<PirateIsland> =
+                PirateIsland.fetchRequest()
+
+            return try context.fetch(request).compactMap {
+
+                guard let id = $0.islandID else { return nil }
+
+                if $0.objectID.isTemporaryID {
+                    try? context.obtainPermanentIDs(for: [$0])
+                }
+
+                return (id, $0.objectID)
+            }
+        }
+
+        await MainActor.run {
+
+            for (id, objectID) in islands {
+
+                pirateIslandCache[id] = objectID
+            }
+        }
+
+
+
+        // =====================================================
+        // STEP 2: Rebuild AppDayOfWeek cache
+        // =====================================================
+
+        let days: [(String, NSManagedObjectID)] =
+        try await context.perform {
+
+            let request: NSFetchRequest<AppDayOfWeek> =
+                AppDayOfWeek.fetchRequest()
+
+            return try context.fetch(request).compactMap {
+
+                guard let id = $0.appDayOfWeekID else { return nil }
+
+                if $0.objectID.isTemporaryID {
+                    try? context.obtainPermanentIDs(for: [$0])
+                }
+
+                return (id, $0.objectID)
+            }
+        }
+
+        await MainActor.run {
+
+            for (id, objectID) in days {
+
+                appDayCache[id] = objectID
+            }
+        }
+
+
+
+        // =====================================================
+        // STEP 3: Repair AppDayOfWeek → PirateIsland
+        // USING FOREIGN KEY
+        // =====================================================
+
+        try await context.perform {
+
+            let request: NSFetchRequest<AppDayOfWeek> =
+                AppDayOfWeek.fetchRequest()
+
+            let days = try context.fetch(request)
+
+            for day in days {
+
+                if day.pIsland != nil { continue }
+
+                guard let islandID =
+                    day.pirateIslandID
+                else { continue }
+
+
+                let islandFetch: NSFetchRequest<PirateIsland> =
+                    PirateIsland.fetchRequest()
+
+                islandFetch.predicate =
+                    NSPredicate(
+                        format: "islandID == %@",
+                        islandID
+                    )
+
+                islandFetch.fetchLimit = 1
+
+
+                if let island =
+                    try context.fetch(islandFetch).first {
+
+                    day.pIsland = island
+
+                    FirestoreSyncManager.log(
+                        "🔧 Repaired AppDayOfWeek → PirateIsland",
+                        level: .success,
+                        collection: "Repair"
+                    )
+                }
+            }
+        }
+
+
+
+        // =====================================================
+        // STEP 4: Repair MatTime → AppDayOfWeek
+        // USING FOREIGN KEY
+        // =====================================================
+
+        try await context.perform {
+
+            let request: NSFetchRequest<MatTime> =
+                MatTime.fetchRequest()
+
+            let mats = try context.fetch(request)
+
+            for mat in mats {
+
+                if mat.appDayOfWeek != nil { continue }
+
+                guard let appDayID =
+                    mat.appDayOfWeekID
+                else { continue }
+
+
+                let fetch: NSFetchRequest<AppDayOfWeek> =
+                    AppDayOfWeek.fetchRequest()
+
+                fetch.predicate =
+                    NSPredicate(
+                        format: "appDayOfWeekID == %@",
+                        appDayID
+                    )
+
+                fetch.fetchLimit = 1
+
+
+                if let ado =
+                    try context.fetch(fetch).first {
+
+                    mat.appDayOfWeek = ado
+
+                    FirestoreSyncManager.log(
+                        "🔧 Repaired MatTime → AppDayOfWeek",
+                        level: .success,
+                        collection: "Repair"
+                    )
+                }
+            }
+        }
+
+
+
+        // =====================================================
+        // STEP 5: Save repairs
+        // =====================================================
+
+        try await context.perform {
+
+            if context.hasChanges {
+
+                try context.save()
+
+                FirestoreSyncManager.log(
+                    "💾 Relationship repair saved",
+                    level: .success,
+                    collection: "Repair"
+                )
+            }
+        }
+    }
+    
+    @MainActor
+    func inferPirateIslandID(
+        from day: AppDayOfWeek
+    ) -> String? {
+
+        // your Firestore structure stores islandID inside name
+
+        if let name = day.name {
+
+            // example:
+            // "Dojo by Leo Vieira - Jiu Jitsu - thursday"
+
+            let islands =
+                pirateIslandCache.keys
+
+            return islands.first {
+
+                name.contains($0)
+            }
+        }
+
+        return nil
+    }
+    
 }
 
 extension FirestoreSyncManager {
@@ -2119,7 +2438,6 @@ extension FirestoreSyncManager {
     }
     
     
-    
     // MARK: - Generic listener
     @MainActor
     private func listenToCollection(
@@ -2158,7 +2476,7 @@ extension FirestoreSyncManager {
 
 
                 // -----------------------------------------
-                // Ignore local writes (prevents sync loop)
+                // Ignore local writes
                 // -----------------------------------------
                 if snapshot.metadata.hasPendingWrites {
 
@@ -2176,16 +2494,21 @@ extension FirestoreSyncManager {
 
 
                 // -----------------------------------------
-                // Process snapshot in ONE background task
+                // ✅ Correct processing
                 // -----------------------------------------
                 Task(priority: .utility) {
 
+                    // ✅ Create ONE context per snapshot
+                    let backgroundContext = await MainActor.run {
 
+                        PersistenceController.shared
+                            .newFirestoreContext()
+                    }
+
+
+                    // ✅ Process ALL changes first
                     for change in snapshot.documentChanges {
 
-                        // -----------------------------------------
-                        // Ignore local writes per document
-                        // -----------------------------------------
                         if change.document.metadata.hasPendingWrites {
 
                             await MainActor.run {
@@ -2200,72 +2523,101 @@ extension FirestoreSyncManager {
                             continue
                         }
 
-
-                        // -----------------------------------------
-                        // Create isolated background context
-                        // -----------------------------------------
-                        let backgroundContext =
-                        PersistenceController.shared
-                            .newFirestoreContext()
-
-
-                        // -----------------------------------------
-                        // Perform sync handler
-                        // -----------------------------------------
                         await handler(
                             change,
                             backgroundContext
                         )
+                    }
 
 
-                        // -----------------------------------------
-                        // Save safely
-                        // -----------------------------------------
-                        await backgroundContext.perform {
 
-                            guard backgroundContext.hasChanges else {
-                                return
+                    // -----------------------------------------
+                    // ✅ Save ONCE
+                    // -----------------------------------------
+                    await backgroundContext.perform {
+
+                        guard backgroundContext.hasChanges else { return }
+
+                        backgroundContext.processPendingChanges()
+
+                        do {
+
+                            try backgroundContext.save()
+
+                        }
+                        catch {
+
+                            backgroundContext.rollback()
+
+                            Task { @MainActor in
+
+                                Self.log(
+                                    "❌ Listener save failed: \(error.localizedDescription)",
+                                    level: .error,
+                                    collection: collectionName
+                                )
                             }
 
-                            // ⭐ FINAL SAFETY FIX
-                            backgroundContext.processPendingChanges()
-
-                            do {
-
-                                try backgroundContext.save()
-
-                                Task { @MainActor in
-
-                                    Self.log(
-                                        "✅ Listener saved change \(change.document.documentID)",
-                                        level: .success,
-                                        collection: collectionName
-                                    )
-                                }
-
-                            }
-                            catch {
-
-                                backgroundContext.rollback()
-
-                                Task { @MainActor in
-
-                                    Self.log(
-                                        "❌ Listener save failed: \(error.localizedDescription)",
-                                        level: .error,
-                                        collection: collectionName
-                                    )
-                                }
-                            }
+                            return
                         }
                     }
+
+
+
+                    // -----------------------------------------
+                    // ✅ Repair cache AFTER save
+                    // -----------------------------------------
+                    do {
+
+                        try await FirestoreSyncManager.shared
+                            .repairRelationshipsAndCaches(
+                                context: backgroundContext
+                            )
+
+                    }
+                    catch {
+
+                        await MainActor.run {
+
+                            Self.log(
+                                "❌ Cache repair failed after batch",
+                                level: .error,
+                                collection: collectionName
+                            )
+                        }
+                    }
+
+
+
+                    // -----------------------------------------
+                    // ✅ Reset LAST
+                    // -----------------------------------------
+                    await backgroundContext.perform {
+
+                        backgroundContext.refreshAllObjects()
+
+                        backgroundContext.reset()
+                    }
+
+
+
+                    // -----------------------------------------
+                    // Log success
+                    // -----------------------------------------
+                    await MainActor.run {
+
+                        Self.log(
+                            "✅ Listener batch saved successfully",
+                            level: .success,
+                            collection: collectionName
+                        )
+                    }
+
                 }
             }
 
 
-        // -----------------------------------------
         // Store listener
-        // -----------------------------------------
         Self.listenerRegistrations.append(listener)
     }
 }
@@ -2274,76 +2626,86 @@ extension FirestoreSyncManager {
 extension FirestoreSyncManager {
     
     // MARK: - Handlers for document changes
-    
     static func handlePirateIslandChange(
         _ change: DocumentChange,
         _ context: NSManagedObjectContext
     ) async {
-        
+
         switch change.type {
-            
+
+        // =====================================================
+        // ADDED / MODIFIED
+        // =====================================================
+
         case .added, .modified:
-            
+
+            // ✅ Only mutate Core Data
+            // ❌ DO NOT repair cache here
             await syncPirateIslandStatic(
                 docSnapshot: change.document,
                 context: context
             )
-            
+
+
+
+        // =====================================================
+        // REMOVED
+        // =====================================================
+
         case .removed:
-            
+
+            // ✅ Only delete
+            // ❌ DO NOT repair cache here
             await context.perform {
-                
+
                 deleteEntity(
                     ofType: PirateIsland.self,
                     idString: change.document.documentID,
                     keyPath: \.islandID,
                     context: context
                 )
-                
-                do {
-                    if context.hasChanges {
-                        try context.save()
-                    }
-                } catch {
-                    context.rollback()
-                }
             }
         }
     }
-    
     
     static func handleReviewChange(
         _ change: DocumentChange,
         _ context: NSManagedObjectContext
     ) async {
-        
+
         switch change.type {
-            
+
+        // =====================================================
+        // ADDED / MODIFIED
+        // =====================================================
+
         case .added, .modified:
-            
+
+            // ✅ Only mutate Core Data
+            // ❌ DO NOT repair cache here
             await syncReviewStatic(
                 docSnapshot: change.document,
                 context: context
             )
-            
+
+
+
+        // =====================================================
+        // REMOVED
+        // =====================================================
+
         case .removed:
-            
+
+            // ✅ Only delete
+            // ❌ DO NOT repair cache here
             await context.perform {
-                
+
                 deleteEntity(
                     ofType: Review.self,
                     idString: change.document.documentID,
                     keyPath: \.reviewID,
                     context: context
                 )
-                
-                do {
-                    if context.hasChanges {
-                        try context.save()
-                    }
-                } catch {
-                    context.rollback()
-                }
             }
         }
     }
@@ -2353,104 +2715,86 @@ extension FirestoreSyncManager {
         _ change: DocumentChange,
         _ context: NSManagedObjectContext
     ) async {
-        
+
         switch change.type {
-            
+
+        // =====================================================
+        // ADDED / MODIFIED
+        // =====================================================
+
         case .added, .modified:
-            
+
+            // ✅ Only mutate Core Data
+            // ❌ DO NOT repair cache here
             await syncAppDayOfWeekStatic(
                 docSnapshot: change.document,
                 context: context
             )
-            
+
+
+
+        // =====================================================
+        // REMOVED
+        // =====================================================
+
         case .removed:
-            
+
+            // ✅ Only delete
+            // ❌ DO NOT repair cache here
             await context.perform {
-                
+
                 deleteEntity(
                     ofType: AppDayOfWeek.self,
                     idString: change.document.documentID,
                     keyPath: \.appDayOfWeekID,
                     context: context
                 )
-                
-                do {
-                    if context.hasChanges {
-                        try context.save()
-                    }
-                } catch {
-                    context.rollback()
-                }
             }
         }
     }
-    
-    
+
+
     static func handleMatTimeChange(
         _ change: DocumentChange,
         _ context: NSManagedObjectContext
     ) async {
-        
+
         switch change.type {
-            
+
+        // =====================================================
+        // ADDED / MODIFIED
+        // =====================================================
+
         case .added, .modified:
-            
-            
+
+            // ✅ Only mutate Core Data
+            // ❌ DO NOT repair cache here
             await syncMatTimeStatic(
                 docSnapshot: change.document,
                 context: context
             )
-            
-            await context.perform {
-                
-                do {
-                    
-                    if context.hasChanges {
-                        
-                        try context.save()
-                        
-                        Self.log(
-                            "✅ Listener saved MatTime \(change.document.documentID)",
-                            level: .success,
-                            collection: "MatTime"
-                        )
-                    }
-                    
-                } catch {
-                    
-                    context.rollback()
-                    
-                    Self.log(
-                        "❌ Listener failed saving MatTime \(change.document.documentID): \(error)",
-                        level: .error,
-                        collection: "MatTime"
-                    )
-                }
-            }
-            
-            
+
+
+
+        // =====================================================
+        // REMOVED
+        // =====================================================
+
         case .removed:
-            
+
+            // ✅ Only delete
+            // ❌ DO NOT repair cache here
             await context.perform {
-                
+
                 deleteEntity(
                     ofType: MatTime.self,
                     idString: change.document.documentID,
                     keyPath: \.id,
                     context: context
                 )
-                
-                do {
-                    if context.hasChanges {
-                        try context.save()
-                    }
-                } catch {
-                    context.rollback()
-                }
             }
         }
     }
-    
     
     // MARK: - Generic delete helper (UUID + String safe)
     

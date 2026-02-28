@@ -58,67 +58,41 @@ final class PersistenceController: ObservableObject {
 
         description.shouldInferMappingModelAutomatically = true
 
-
-        container.loadPersistentStores {
-            [weak self] description, error in
+        container.loadPersistentStores { [weak self] description, error in
 
             guard let self else { return }
 
             if let error {
-
-                fatalError(
-                    "❌ Persistent store load error: \(error)"
-                )
+                fatalError("❌ Persistent store load error: \(error)")
             }
 
-
-            print(
-                "✅ Persistent Store Loaded:",
-                description.url?.absoluteString ?? ""
-            )
+            print("✅ Persistent Store Loaded:",
+                  description.url?.absoluteString ?? "")
 
 
-            // =====================================================
-            // ✅ CRITICAL FIX #1
-            // =====================================================
-
-            let viewContext =
-                self.container.viewContext
+            let viewContext = self.container.viewContext
 
 
-            viewContext.automaticallyMergesChangesFromParent = false
-            viewContext.mergePolicy =
-                NSMergeByPropertyObjectTrumpMergePolicy
-
-            viewContext.shouldDeleteInaccessibleFaults = true
+            // 🚀 PERFORMANCE OPTIMIZATIONS
 
             viewContext.undoManager = nil
 
+            viewContext.shouldDeleteInaccessibleFaults = true
+
+            viewContext.automaticallyMergesChangesFromParent = true
+
+            viewContext.mergePolicy =
+            NSMergeByPropertyObjectTrumpMergePolicy
+
             viewContext.transactionAuthor = "viewContext"
 
-
-            // =====================================================
-            // ✅ CRITICAL FIX #2
-            // Forces MainActor ownership
-            // =====================================================
-
-            viewContext.performAndWait {
-
-                viewContext.name = "viewContext"
-            }
-
-
-            // =====================================================
-            // ⭐ FINAL SAFETY FIX — ADD THIS BLOCK
-            // =====================================================
 
             viewContext.perform {
 
                 viewContext.processPendingChanges()
 
-                print("✅ Core Data viewContext fully initialized and safe")
+                print("✅ Core Data fully optimized")
             }
-
         }
     }
 
@@ -168,30 +142,33 @@ final class PersistenceController: ObservableObject {
 
         context.transactionAuthor = "background"
 
-        context.automaticallyMergesChangesFromParent = false
-
+        context.automaticallyMergesChangesFromParent = true
+        
         return context
     }
 
 
 
     // MARK: - Firestore Context
-
     func newFirestoreContext() -> NSManagedObjectContext {
 
-        let context =
-            container.newBackgroundContext()
+        let context = container.newBackgroundContext()
 
-        // ✅ DO NOT SET PARENT
+        // ✅ Name (great for debugging)
+        context.name = "firestoreContext"
 
+        // ✅ CRITICAL — prevents duplicates and resolves conflicts
         context.mergePolicy =
-            NSMergeByPropertyObjectTrumpMergePolicy
+        NSMergeByPropertyObjectTrumpMergePolicy
 
+        // ✅ Apple performance optimization
         context.undoManager = nil
 
-        context.transactionAuthor = "firestore"
+        // ✅ CRITICAL FIX — must be TRUE
+        context.automaticallyMergesChangesFromParent = true
 
-        context.automaticallyMergesChangesFromParent = false
+        // ✅ Prevent sync loops
+        context.transactionAuthor = "firestore"
 
         return context
     }
@@ -499,7 +476,8 @@ final class PersistenceController: ObservableObject {
         recordId: String
     ) async {
 
-        let context = container.newBackgroundContext()
+        // ✅ CRITICAL FIX: use your configured transactional context
+        let context = newBackgroundContext()
 
         await context.perform {
 
@@ -523,54 +501,91 @@ final class PersistenceController: ObservableObject {
                 return
             }
 
-            let fetchRequest = NSFetchRequest<NSManagedObject>(entityName: entityName)
+            let fetchRequest =
+            NSFetchRequest<NSManagedObject>(
+                entityName: entityName
+            )
 
             switch collectionName {
 
             case "pirateIslands":
 
                 fetchRequest.predicate =
-                NSPredicate(format: "islandID == %@", recordId)
+                NSPredicate(
+                    format: "islandID == %@",
+                    recordId
+                )
+
 
             case "AppDayOfWeek":
 
                 fetchRequest.predicate =
-                NSPredicate(format: "appDayOfWeekID == %@", recordId)
+                NSPredicate(
+                    format: "appDayOfWeekID == %@",
+                    recordId
+                )
+
 
             case "MatTime":
 
-                guard let uuid = UUID(uuidString: recordId) else { return }
+                guard let uuid =
+                UUID(uuidString: recordId)
+                else { return }
 
                 fetchRequest.predicate =
-                NSPredicate(format: "id == %@", uuid as CVarArg)
+                NSPredicate(
+                    format: "id == %@",
+                    uuid as CVarArg
+                )
+
 
             case "reviews":
 
-                guard let uuid = UUID(uuidString: recordId) else { return }
+                guard let uuid =
+                UUID(uuidString: recordId)
+                else { return }
 
                 fetchRequest.predicate =
-                NSPredicate(format: "reviewID == %@", uuid as CVarArg)
+                NSPredicate(
+                    format: "reviewID == %@",
+                    uuid as CVarArg
+                )
 
             default:
                 return
             }
 
+
             fetchRequest.fetchLimit = 1
+
 
             do {
 
-                if let object = try context.fetch(fetchRequest).first {
+                if let object =
+                    try context.fetch(fetchRequest).first {
 
                     context.delete(object)
 
-                    try context.save()
+                    context.processPendingChanges()
 
-                    print("🗑️ Core Data deleted \(collectionName) \(recordId)")
+                    try context.save()
+                    context.reset() // ⭐ ADD THIS LINE
+
+
+                    print(
+                        "🗑️ Core Data deleted \(collectionName) \(recordId)"
+                    )
                 }
 
-            } catch {
+            }
+            catch {
 
-                print("❌ Core Data delete error:", error)
+                context.rollback()
+
+                print(
+                    "❌ Core Data delete error:",
+                    error
+                )
             }
         }
     }

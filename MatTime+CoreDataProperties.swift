@@ -28,6 +28,8 @@ extension MatTime {
     @NSManaged public var kids: Bool
     @NSManaged public var createdTimestamp: Date?
     
+    // ⭐ ADD IT RIGHT HERE
+    @NSManaged public var appDayOfWeekID: String?
     @NSManaged public var appDayOfWeek: AppDayOfWeek?
 
 }

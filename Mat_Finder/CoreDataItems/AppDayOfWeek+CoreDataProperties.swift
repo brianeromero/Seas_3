@@ -2,9 +2,6 @@
 //  AppDayOfWeek+CoreDataProperties.swift
 //  Mat_Finder
 //
-//  Created by Brian Romero on 6/24/24.
-//
-//
 
 import Foundation
 import CoreData
@@ -12,20 +9,46 @@ import CoreData
 extension AppDayOfWeek {
 
     @nonobjc public class func fetchRequest() -> NSFetchRequest<AppDayOfWeek> {
-        return NSFetchRequest<AppDayOfWeek>(entityName: "AppDayOfWeek")
+        NSFetchRequest<AppDayOfWeek>(entityName: "AppDayOfWeek")
     }
 
-    @NSManaged public var day: String // Changed from Optional to non-Optional
-    @NSManaged public var pIsland: PirateIsland?
+    // =====================================================
+    // Existing fields
+    // =====================================================
+
+    @NSManaged public var day: String
+
     @NSManaged public var name: String?
+
     @NSManaged public var appDayOfWeekID: String?
-    @NSManaged public var matTimes: NSSet?
+
     @NSManaged public var createdTimestamp: Date?
+
     @NSManaged public var id: UUID?
 
 
-    
+    // =====================================================
+    // ⭐ CRITICAL ADD — FOREIGN KEY
+    // =====================================================
+
+    /// Permanent foreign key to PirateIsland
+    /// Enables automatic relationship repair
+    @NSManaged public var pirateIslandID: String?
+
+
+    // =====================================================
+    // Relationships
+    // =====================================================
+
+    @NSManaged public var pIsland: PirateIsland?
+
+    @NSManaged public var matTimes: NSSet?
+
+
+    // =====================================================
     // Generated Accessors
+    // =====================================================
+
     @objc(addMatTimesObject:)
     @NSManaged public func addToMatTimes(_ value: MatTime)
 
@@ -37,8 +60,6 @@ extension AppDayOfWeek {
 
     @objc(removeMatTimes:)
     @NSManaged public func removeFromMatTimes(_ values: NSSet)
-    
 }
 
-extension AppDayOfWeek : Identifiable {
-}
+extension AppDayOfWeek: Identifiable {}
