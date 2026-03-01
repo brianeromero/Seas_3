@@ -55,13 +55,16 @@ struct ViewScheduleForIsland: View {
             Text(alertMessage)
             
         }
-        
         .sheet(
             isPresented: $showingAddSchedule,
             onDismiss: {
+
                 Task {
-                    await viewModel.loadSchedules(for: island)
+
+                    await viewModel.preloadAllSchedules(for: island)
+
                 }
+
             }
         ) {
             NavigationStack {
@@ -89,20 +92,24 @@ struct ViewScheduleForIsland: View {
         
         .onAppear {
 
-            selectedIslandID = island.islandID   // ✅ ADD THIS
+            selectedIslandID = island.islandID
 
             if viewModel.selectedDay == nil {
+
                 viewModel.selectedDay = .monday
+
             }
 
             Task {
 
-                await viewModel.loadSchedules(for: island)
+                await viewModel.preloadAllSchedules(for: island)
 
             }
 
         }
     }
+    
+    
 }
 
 
@@ -137,7 +144,6 @@ private extension ViewScheduleForIsland {
         }
 
     }
-
 }
 
 

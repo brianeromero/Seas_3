@@ -1589,6 +1589,39 @@ final class AppDayOfWeekViewModel: ObservableObject {
         matTimesForDay.removeAll()
 
     }
+    
+    // MARK: - Unified Schedule Preloader (Production-grade)
+    func preloadAllSchedules(for island: PirateIsland) async {
+
+        // Clear existing cached schedules
+        await MainActor.run {
+            self.clearSchedule()
+        }
+
+        // Fetch schedules for every day
+        for day in DayOfWeek.allCases {
+
+            let (_, matTimes) =
+            await fetchCurrentDayOfWeek(
+                for: island,
+                day: day,
+                selectedDayBinding: .constant(day)
+            )
+
+            if let matTimes {
+
+                await MainActor.run {
+
+                    self.matTimesForDay[day] = matTimes
+
+                }
+
+            }
+
+        }
+
+    }
+    
 }
 
 extension PirateIsland {
@@ -1610,6 +1643,9 @@ extension PirateIsland {
             // TODO: create or fetch AppDayOfWeek objects and associate
         }
     }
+    
+    
+    
 }
 
 
