@@ -216,6 +216,13 @@ struct AppRootView: View {
             navigationPath = NavigationPath()
             AppRouter.shared.currentScreen = .main
         }
+        
+        // MARK: - Navigate To Login
+        .onReceive(NotificationCenter.default.publisher(for: .navigateToLogin)) { _ in
+            print("🧭 AppRootView received navigateToLogin")
+
+            navigationPath.append(AppScreen.login)
+        }
 
         // MARK: - React to Account Creation
         .onChange(of: authenticationState.accountCreatedSuccessfully) { oldValue, newValue in

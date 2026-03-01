@@ -26,4 +26,9 @@ extension Notification.Name {
 
     // ✅ MatTime
     static let addNewMatTimeTapped = Notification.Name("AddNewMatTimeTapped")
+    
+    
+    // 🧭 Navigation (OPTIONAL)
+    static let navigateToLogin = Notification.Name("NavigateToLogin") // ✅ ADD THIS
+    
 }

@@ -237,7 +237,7 @@ struct IslandMenu2: View {
             Alert(
                 title: Text("Login Required"),
                 message: Text(alertMessage),
-                primaryButton: .default(Text("Login In/Create An Account")) {
+                primaryButton: .default(Text("Login /Create An Account")) {
                     print("➡️ Alert Create An Account/Login tapped, appending to navigationPath")
                     navigationPath.append(AppScreen.login)
                 },

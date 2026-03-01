@@ -11,7 +11,10 @@ import CoreData
 
 
 struct ViewScheduleForIsland: View {
-
+    @EnvironmentObject var authViewModel: AuthViewModel
+    @EnvironmentObject var authenticationState: AuthenticationState
+    @Environment(\.dismiss) var dismiss
+    
     @ObservedObject var viewModel: AppDayOfWeekViewModel
     
     @State private var showingAddSchedule = false
@@ -21,6 +24,9 @@ struct ViewScheduleForIsland: View {
     @State private var showAlert = false
     @State private var alertTitle = ""
     @State private var alertMessage = ""
+    
+    @State private var showLoginPrompt = false
+    
     let island: PirateIsland
 
 
@@ -46,14 +52,23 @@ struct ViewScheduleForIsland: View {
             
         }
         
-        .alert(alertTitle, isPresented: $showAlert) {
-            
-            Button("OK", role: .cancel) { }
-            
+        .alert(alertTitle, isPresented: $showLoginPrompt) {
+
+            Button("Login / Create Account") {
+
+                NotificationCenter.default.post(
+                    name: .navigateToLogin,
+                    object: nil
+                )
+
+            }
+
+            Button("Cancel", role: .cancel) { }
+
         } message: {
-            
+
             Text(alertMessage)
-            
+
         }
         .sheet(
             isPresented: $showingAddSchedule,
@@ -217,7 +232,19 @@ private extension ViewScheduleForIsland {
 
         Button {
 
-            showingAddSchedule = true
+            if authenticationState.isAuthenticated {
+
+                showingAddSchedule = true
+
+            } else {
+
+                alertTitle = "Login Required"
+
+                alertMessage = "You must be logged in to access this feature."
+
+                showLoginPrompt = true
+
+            }
 
         } label: {
 
