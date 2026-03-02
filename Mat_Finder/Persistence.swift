@@ -30,34 +30,34 @@ final class PersistenceController: ObservableObject {
     // MARK: - Initializer
 
     private init(inMemory: Bool = false) {
-
+        
         firestoreManager = FirestoreManager.shared
-
+        
         container = NSPersistentContainer(name: "Mat_Finder")
-
+        
         guard let description =
-            container.persistentStoreDescriptions.first
+                container.persistentStoreDescriptions.first
         else {
-
+            
             fatalError("❌ No persistent store description found.")
         }
-
-
+        
+        
         if inMemory {
-
+            
             description.url =
-                URL(fileURLWithPath: "/dev/null")
-
+            URL(fileURLWithPath: "/dev/null")
+            
             FirestoreManager.shared.disabled = true
         }
-
-
+        
+        
         // ✅ Lightweight migration (Cloud-safe fix)
-
+        
         description.shouldMigrateStoreAutomatically = true
-
+        
         description.shouldInferMappingModelAutomatically = true
-
+        
         container.loadPersistentStores { [weak self] description, error in
 
             guard let self else { return }
@@ -69,33 +69,75 @@ final class PersistenceController: ObservableObject {
             print("✅ Persistent Store Loaded:",
                   description.url?.absoluteString ?? "")
 
+            // ✅ ADD THIS DEBUG CODE RIGHT HERE
+            print("📦 STORE URL:",
+                  description.url?.path ?? "nil")
 
+            if let path = description.url?.path {
+
+                print("📦 STORE EXISTS:",
+                      FileManager.default.fileExists(atPath: path))
+            }
+            
+            
             let viewContext = self.container.viewContext
-
-
+            
+            
             // 🚀 PERFORMANCE OPTIMIZATIONS
-
+            
             viewContext.undoManager = nil
-
+            
             viewContext.shouldDeleteInaccessibleFaults = true
-
+            
             viewContext.automaticallyMergesChangesFromParent = true
-
+            
             viewContext.mergePolicy =
             NSMergeByPropertyObjectTrumpMergePolicy
-
+            
             viewContext.transactionAuthor = "viewContext"
-
-
+            
+            
             viewContext.perform {
-
+                
                 viewContext.processPendingChanges()
-
+                
                 print("✅ Core Data fully optimized")
+            }
+            
+            // =====================================================
+            // ✅ APPLE-LEVEL AUTO MERGE FIX (ADD THIS HERE)
+            // =====================================================
+            
+            NotificationCenter.default.addObserver(
+                forName: .NSManagedObjectContextDidSave,
+                object: nil,
+                queue: nil
+            ) { [weak self] notification in
+
+                guard let self else { return }
+
+                // Extract context safely OUTSIDE Task
+                guard let savedContext =
+                    notification.object as? NSManagedObjectContext
+                else { return }
+
+                // Ignore viewContext saves
+                if savedContext === self.container.viewContext {
+                    return
+                }
+
+                // Hop to MainActor safely
+                Task { @MainActor [weak self] in
+
+                    guard let self else { return }
+
+                    self.viewContext.mergeChanges(
+                        fromContextDidSave: notification
+                    )
+                }
             }
         }
     }
-
 
     // MARK: - SAFE VIEW CONTEXT SAVE
 
@@ -471,13 +513,14 @@ final class PersistenceController: ObservableObject {
     }
     
     // MARK: - Delete Local Record (Firestore authoritative)
+    // MARK: - Delete Local Record (Firestore authoritative)
     func deleteLocalRecord(
         forCollection collectionName: String,
         recordId: String
     ) async {
 
-        // ✅ CRITICAL FIX: use your configured transactional context
-        let context = newBackgroundContext()
+        // ✅ FIX 1: USE firestoreContext (NOT backgroundContext)
+        let context = newFirestoreContext()
 
         await context.perform {
 
@@ -529,7 +572,7 @@ final class PersistenceController: ObservableObject {
             case "MatTime":
 
                 guard let uuid =
-                UUID(uuidString: recordId)
+                    UUID(uuidString: recordId)
                 else { return }
 
                 fetchRequest.predicate =
@@ -542,7 +585,7 @@ final class PersistenceController: ObservableObject {
             case "reviews":
 
                 guard let uuid =
-                UUID(uuidString: recordId)
+                    UUID(uuidString: recordId)
                 else { return }
 
                 fetchRequest.predicate =
@@ -554,7 +597,6 @@ final class PersistenceController: ObservableObject {
             default:
                 return
             }
-
 
             fetchRequest.fetchLimit = 1
 
@@ -569,7 +611,22 @@ final class PersistenceController: ObservableObject {
                     context.processPendingChanges()
 
                     try context.save()
-                    context.reset() // ⭐ ADD THIS LINE
+
+
+                    // ✅ FIX 2: CRITICAL REFRESH PIPELINE
+
+                    context.refreshAllObjects()
+
+                    context.reset()
+
+                    if let parent = context.parent {
+
+                        parent.performAndWait {
+
+                            parent.refreshAllObjects()
+
+                        }
+                    }
 
 
                     print(
@@ -589,7 +646,7 @@ final class PersistenceController: ObservableObject {
             }
         }
     }
-    
+
     // MARK: - Delete/Edit Records
     func deleteRecord(record: NSManagedObject) async throws {
         viewContext.delete(record)
@@ -650,26 +707,74 @@ extension PersistenceController {
         return try viewContext.fetch(request).compactMap { $0[keyPath: keyPath] }
     }
     
-    
     func fetchLocalRecords(forCollection collectionName: String) async throws -> [String]? {
-        switch collectionName {
-        case "pirateIslands":
-            // ✅ Correct property name: islandID (UUID?)
-            return try fetchLocalRecords(forEntity: PirateIsland.self, keyPath: \PirateIsland.islandID)
-        case "reviews":
-            // ✅ Non-optional UUID, will use the second overload automatically
-            return try fetchLocalRecords(forEntity: Review.self, keyPath: \Review.reviewID)
-        case "AppDayOfWeek":
-            return try fetchLocalRecords(
-                forEntity: AppDayOfWeek.self,
-                keyPath: \AppDayOfWeek.appDayOfWeekID
-            )
-        case "MatTime":
-            return try fetchLocalRecords(forEntity: MatTime.self, keyPath: \MatTime.id)
-        default:
-            print("⚠️ Unknown collection: \(collectionName)")
-            return nil
+
+        let context = newFirestoreContext()
+
+        return try await context.perform {
+
+            switch collectionName {
+
+            case "pirateIslands":
+
+                let request =
+                    NSFetchRequest<PirateIsland>(
+                        entityName: "PirateIsland"
+                    )
+
+                request.returnsObjectsAsFaults = false
+                request.includesPropertyValues = true
+
+                return try context.fetch(request)
+                    .compactMap { $0.islandID }
+
+
+            case "reviews":
+
+                let request =
+                    NSFetchRequest<Review>(
+                        entityName: "Review"
+                    )
+
+                request.returnsObjectsAsFaults = false
+                request.includesPropertyValues = true
+
+                return try context.fetch(request)
+                    .map { $0.reviewID.uuidString }
+
+
+            case "AppDayOfWeek":
+
+                let request =
+                    NSFetchRequest<AppDayOfWeek>(
+                        entityName: "AppDayOfWeek"
+                    )
+
+                request.returnsObjectsAsFaults = false
+                request.includesPropertyValues = true
+
+                return try context.fetch(request)
+                    .compactMap { $0.appDayOfWeekID }
+
+
+            case "MatTime":
+
+                let request =
+                    NSFetchRequest<MatTime>(
+                        entityName: "MatTime"
+                    )
+
+                request.returnsObjectsAsFaults = false
+                request.includesPropertyValues = true
+
+                return try context.fetch(request)
+                    .compactMap { $0.id?.uuidString }
+
+
+            default:
+
+                return nil
+            }
         }
     }
-
 }

@@ -435,10 +435,12 @@ class FirestoreSyncManager {
                     let db = Firestore.firestore().collection(collectionName)
                     
                     for chunk in localRecords.chunked(into: 10) {
-                        let idsWithVariants = chunk.flatMap { id in [id, id.replacingOccurrences(of: "-", with: "")] }
+                        _ = chunk.flatMap { id in [id, id.replacingOccurrences(of: "-", with: "")] }
                         
                         do {
-                            let snapshot = try await db.whereField("id", in: idsWithVariants).getDocuments()
+                            let snapshot = try await db
+                                .whereField(FieldPath.documentID(), in: chunk)
+                                .getDocuments()
                             let foundIDs = snapshot.documents.compactMap { $0.documentID }
                             
                             for record in chunk where !foundIDs.contains(where: { $0 == record || $0.replacingOccurrences(of: "-", with: "") == $0 }) {
@@ -526,7 +528,6 @@ class FirestoreSyncManager {
         }
 
 
-        // ✅ FIX: explicitly store Task result first
         let result = Task { () -> (Int, Int) in
 
             var uploaded = 0
@@ -534,7 +535,18 @@ class FirestoreSyncManager {
 
             for record in records {
 
+                // =====================================================
+                // 🚨 CRITICAL DEBUG LOG — ADD THIS
+                // =====================================================
+
+                Self.log(
+                    "🚨 UPLOAD ATTEMPT — resurrecting local record: \(record)",
+                    level: .error,
+                    collection: collectionName
+                )
+
                 var localRecord: AnyObject?
+
 
                 // Fetch local object
                 if collectionName == "pirateIslands" {
@@ -573,29 +585,28 @@ class FirestoreSyncManager {
 
                 guard let localRecord else {
 
-                    errors += 1
+                    Self.log(
+                        "❌ Local record not found during upload: \(record)",
+                        level: .error,
+                        collection: collectionName
+                    )
 
-                    await MainActor.run {
-                        ToastThrottler.shared.postToast(
-                            for: collectionName,
-                            action: "failed to fetch record \(record)",
-                            type: .error,
-                            isPersistent: true
-                        )
-                    }
+                    errors += 1
 
                     continue
                 }
 
 
-                // Map data
                 var recordData: [String: Any] = [:]
+
 
                 switch collectionName {
 
                 case "pirateIslands":
 
-                    guard let pirateIsland = localRecord as? PirateIsland else { continue }
+                    guard let pirateIsland = localRecord as? PirateIsland else {
+                        continue
+                    }
 
                     recordData = [
                         "id": pirateIsland.islandID ?? "",
@@ -681,7 +692,6 @@ class FirestoreSyncManager {
                 }
 
 
-                // Upload
                 do {
 
                     try await collectionRef
@@ -691,27 +701,18 @@ class FirestoreSyncManager {
                     uploaded += 1
 
                     Self.log(
-                        "Uploaded local record \(record)",
-                        level: .success,
+                        "🔥 CONFIRMED UPLOAD — record resurrected: \(record)",
+                        level: .error,
                         collection: collectionName
                     )
 
-                } catch {
+                }
+                catch {
 
                     errors += 1
 
-                    await MainActor.run {
-
-                        ToastThrottler.shared.postToast(
-                            for: collectionName,
-                            action: "failed upload \(record)",
-                            type: .error,
-                            isPersistent: true
-                        )
-                    }
-
                     Self.log(
-                        "Upload failed \(record): \(error.localizedDescription)",
+                        "❌ Upload failed \(record): \(error.localizedDescription)",
                         level: .error,
                         collection: collectionName
                     )
@@ -719,16 +720,10 @@ class FirestoreSyncManager {
             }
 
             return (uploaded, errors)
-
         }
 
 
-        // ✅ SAFE destructuring
         let (uploadedCount, errorCount) = await result.value
-
-
-        let finalLevel: LogLevel =
-            errorCount > 0 ? .warning : .finished
 
 
         Self.log(
@@ -737,12 +732,10 @@ class FirestoreSyncManager {
             success: \(uploadedCount)
             failed: \(errorCount)
             """,
-            level: finalLevel,
+            level: errorCount > 0 ? .warning : .finished,
             collection: collectionName
         )
     }
-    
-    
     // MARK: - Main download & sync coordinator
     private func syncRecords(
         localRecords: [String],
@@ -750,32 +743,68 @@ class FirestoreSyncManager {
         collectionName: String
     ) async {
 
+        // ============================================================
+        // ✅ MASTER NORMALIZATION FUNCTION (ADD HERE)
+        // ============================================================
+
+        func normalize(_ id: String) -> String {
+            id
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .replacingOccurrences(of: "-", with: "")
+                .lowercased()
+        }
+
+
+        // ============================================================
+        // ✅ DEBUG RAW VALUES (ADD HERE)
+        // ============================================================
+
+        Self.log(
+            "🧪 LOCAL RAW: \(localRecords)",
+            level: .error,
+            collection: collectionName
+        )
+
+        Self.log(
+            "🧪 FIRESTORE RAW: \(firestoreRecords)",
+            level: .error,
+            collection: collectionName
+        )
+
+
+        // ============================================================
         // Normalize for comparison
+        // ============================================================
+
         let normalizedFirestoreRecords =
-            firestoreRecords.map {
-                $0.replacingOccurrences(of: "-", with: "")
-            }
+            firestoreRecords.map { normalize($0) }
 
         let normalizedLocalRecords =
-            localRecords.map {
-                $0.replacingOccurrences(of: "-", with: "")
-            }
+            localRecords.map { normalize($0) }
 
+
+        // ============================================================
         // Identify local records missing in Firestore
+        // ============================================================
+
         let localRecordsNotInFirestore =
             localRecords.filter {
 
                 !normalizedFirestoreRecords.contains(
-                    $0.replacingOccurrences(of: "-", with: "")
+                    normalize($0)
                 )
             }
 
+
+        // ============================================================
         // Identify Firestore records missing locally
+        // ============================================================
+
         let firestoreRecordsNotInLocal =
             firestoreRecords.filter {
 
                 !normalizedLocalRecords.contains(
-                    $0.replacingOccurrences(of: "-", with: "")
+                    normalize($0)
                 )
             }
 
@@ -794,7 +823,9 @@ class FirestoreSyncManager {
 
 
 
+        // ============================================================
         // MARK: Delete orphaned local
+        // ============================================================
 
         if !localRecordsNotInFirestore.isEmpty {
 
@@ -820,7 +851,9 @@ class FirestoreSyncManager {
 
 
 
+        // ============================================================
         // MARK: Download missing Firestore records
+        // ============================================================
 
         if !firestoreRecordsNotInLocal.isEmpty {
 
@@ -846,7 +879,9 @@ class FirestoreSyncManager {
 
 
 
+        // ============================================================
         // MARK: Completion summary
+        // ============================================================
 
         Self.log(
         """
@@ -861,7 +896,7 @@ class FirestoreSyncManager {
 
 
         // ============================================================
-        // ⭐ CRITICAL FIX: WAIT FOR CORE DATA MERGE
+        // WAIT FOR CORE DATA MERGE
         // ============================================================
 
         await PersistenceController.shared.waitForBackgroundSaves()
@@ -869,41 +904,34 @@ class FirestoreSyncManager {
 
 
         // ============================================================
-        // MARK: FINAL INTEGRITY CHECK
+        // FINAL INTEGRITY CHECK
         // ============================================================
 
         let refreshedLocalRecords =
             (try? await PersistenceController.shared
                 .fetchLocalRecords(forCollection: collectionName)) ?? []
 
-        // ✅ ADD THESE LINES RIGHT HERE
-        Self.log("🧪 DEBUG LOCAL IDS: \(refreshedLocalRecords)",
-                 level: .warning,
-                 collection: collectionName)
-
-        Self.log("🧪 DEBUG FIRESTORE IDS: \(firestoreRecords)",
-                 level: .warning,
-                 collection: collectionName)
-
-        let finalLocalCount =
-            refreshedLocalRecords.count
 
 
-        let initialFirestoreCount =
-            firestoreRecords.count
+        Self.log(
+            "🧪 DEBUG LOCAL IDS AFTER DELETE: \(refreshedLocalRecords)",
+            level: .warning,
+            collection: collectionName
+        )
+
+        Self.log(
+            "🧪 DEBUG FIRESTORE IDS: \(firestoreRecords)",
+            level: .warning,
+            collection: collectionName
+        )
 
 
 
         let refreshedLocalNormalized =
-            refreshedLocalRecords.map {
-                $0.replacingOccurrences(of: "-", with: "")
-            }
-
+            refreshedLocalRecords.map { normalize($0) }
 
         let firestoreNormalized =
-            firestoreRecords.map {
-                $0.replacingOccurrences(of: "-", with: "")
-            }
+            firestoreRecords.map { normalize($0) }
 
 
 
@@ -911,7 +939,7 @@ class FirestoreSyncManager {
             firestoreRecords.filter {
 
                 !refreshedLocalNormalized.contains(
-                    $0.replacingOccurrences(of: "-", with: "")
+                    normalize($0)
                 )
             }
 
@@ -921,26 +949,28 @@ class FirestoreSyncManager {
             refreshedLocalRecords.filter {
 
                 !firestoreNormalized.contains(
-                    $0.replacingOccurrences(of: "-", with: "")
+                    normalize($0)
                 )
             }
 
 
 
         let countDifference =
-            abs(finalLocalCount - initialFirestoreCount)
+            abs(refreshedLocalRecords.count - firestoreRecords.count)
 
 
 
         Self.log(
-            "Integrity check → local=\(finalLocalCount), firestore=\(initialFirestoreCount)",
+            "Integrity check → local=\(refreshedLocalRecords.count), firestore=\(firestoreRecords.count)",
             level: .sync,
             collection: collectionName
         )
 
 
 
-        // MARK: Toast + logging
+        // ============================================================
+        // Toast + logging
+        // ============================================================
 
         DispatchQueue.main.async {
 
@@ -956,51 +986,6 @@ class FirestoreSyncManager {
                 collection: collectionName
                 )
 
-
-                if !missingLocalFinal.isEmpty {
-
-                    Self.log(
-                        "⬇️ Missing locally IDs: \(missingLocalFinal)",
-                        level: .warning,
-                        collection: collectionName
-                    )
-                }
-
-
-                if !missingRemoteFinal.isEmpty {
-
-                    Self.log(
-                        "⬆️ Missing in Firestore IDs: \(missingRemoteFinal)",
-                        level: .warning,
-                        collection: collectionName
-                    )
-                }
-
-
-
-                var toastMessage = "Needs sync"
-
-
-                if !missingLocalFinal.isEmpty {
-
-                    toastMessage += "\n⬇️ Missing locally: \(missingLocalFinal.count)"
-                }
-
-
-                if !missingRemoteFinal.isEmpty {
-
-                    toastMessage += "\n⬆️ Missing in cloud: \(missingRemoteFinal.count)"
-                }
-
-
-
-                ToastThrottler.shared.postToast(
-                    for: collectionName,
-                    action: toastMessage,
-                    type: .info,
-                    isPersistent: false
-                )
-
             }
             else {
 
@@ -1009,27 +994,11 @@ class FirestoreSyncManager {
                     level: .success,
                     collection: collectionName
                 )
-
-
-
-                let action =
-                    localRecordsNotInFirestore.isEmpty &&
-                    firestoreRecordsNotInLocal.isEmpty
-                    ? "Already Synced"
-                    : "Synced successfully"
-
-
-
-                ToastThrottler.shared.postToast(
-                    for: collectionName,
-                    action: action,
-                    type: .success,
-                    isPersistent: false
-                )
             }
         }
     }
-    
+
+
     private func deleteLocalRecords(
         collectionName: String,
         records: [String]
@@ -1052,7 +1021,7 @@ class FirestoreSyncManager {
                     Self.deleteEntity(
                         ofType: PirateIsland.self,
                         idString: record,
-                        keyPath: \.islandID,
+                        fieldName: "islandID",
                         context: context
                     )
 
@@ -1062,7 +1031,7 @@ class FirestoreSyncManager {
                     Self.deleteEntity(
                         ofType: Review.self,
                         idString: record,
-                        keyPath: \.reviewID,
+                        fieldName: "reviewID",
                         context: context
                     )
 
@@ -1072,7 +1041,7 @@ class FirestoreSyncManager {
                     Self.deleteEntity(
                         ofType: MatTime.self,
                         idString: record,
-                        keyPath: \.id,
+                        fieldName: "id",
                         context: context
                     )
 
@@ -1082,11 +1051,9 @@ class FirestoreSyncManager {
                     Self.deleteEntity(
                         ofType: AppDayOfWeek.self,
                         idString: record,
-                        keyPath: \.appDayOfWeekID,
+                        fieldName: "appDayOfWeekID",
                         context: context
                     )
-
-
                 default:
 
                     FirestoreSyncManager.log(
@@ -1108,14 +1075,22 @@ class FirestoreSyncManager {
 
                 try context.save()
 
+                // 🚨 CRITICAL APPLE-LEVEL FIX
+                context.refreshAllObjects()
+                context.reset()
+
+                // ✅ SAFER parent refresh (ADD THIS HERE)
+                if let parent = context.parent {
+                    parent.performAndWait {
+                        parent.refreshAllObjects()
+                    }
+                }
+
                 FirestoreSyncManager.log(
                     "💾 Deleted \(records.count) local orphaned records",
                     level: .success,
                     collection: collectionName
                 )
-
-
-                context.reset()
             }
             catch {
 
@@ -2661,7 +2636,7 @@ extension FirestoreSyncManager {
                 deleteEntity(
                     ofType: PirateIsland.self,
                     idString: change.document.documentID,
-                    keyPath: \.islandID,
+                    fieldName: "islandID",
                     context: context
                 )
             }
@@ -2703,7 +2678,7 @@ extension FirestoreSyncManager {
                 deleteEntity(
                     ofType: Review.self,
                     idString: change.document.documentID,
-                    keyPath: \.reviewID,
+                    fieldName: "reviewID",
                     context: context
                 )
             }
@@ -2746,7 +2721,7 @@ extension FirestoreSyncManager {
                 deleteEntity(
                     ofType: AppDayOfWeek.self,
                     idString: change.document.documentID,
-                    keyPath: \.appDayOfWeekID,
+                    fieldName: "appDayOfWeekID",
                     context: context
                 )
             }
@@ -2789,115 +2764,76 @@ extension FirestoreSyncManager {
                 deleteEntity(
                     ofType: MatTime.self,
                     idString: change.document.documentID,
-                    keyPath: \.id,
+                    fieldName: "id",
                     context: context
                 )
             }
         }
     }
     
-    // MARK: - Generic delete helper (UUID + String safe)
-    
-    private static func deleteEntity<T: NSManagedObject, V>(
+    // MARK: - Generic delete helper
+    private static func deleteEntity<T: NSManagedObject>(
         ofType type: T.Type,
         idString: String,
-        keyPath: KeyPath<T, V>,
+        fieldName: String,
         context: NSManagedObjectContext
     ) {
-        
+
         let fetchRequest =
-        NSFetchRequest<T>(
-            entityName: String(describing: type)
-        )
-        
-        let keyPathString =
-        NSExpression(forKeyPath: keyPath).keyPath
-        
-        
-        // ✅ FIX: Support BOTH UUID and String IDs safely
-        
-        if V.self == UUID.self {
-            
-            let uuid =
-            UUID(uuidString: idString)
-            ?? UUID.fromStringID(idString)
-            
-            fetchRequest.predicate =
-            NSPredicate(
-                format: "%K == %@",
-                keyPathString,
-                uuid as CVarArg
+            NSFetchRequest<T>(
+                entityName: String(describing: type)
             )
-            
-        }
-        else if V.self == String.self {
-            
-            fetchRequest.predicate =
+
+        // ✅ ONLY exact match — Apple safe
+        fetchRequest.predicate =
             NSPredicate(
                 format: "%K == %@",
-                keyPathString,
+                fieldName,
                 idString
             )
-            
-        }
-        else {
-            
-            // Unsupported type safeguard
-            
-            Task { @MainActor in
-                
-                Self.log(
-                    "❌ Unsupported ID type for delete: \(type)",
-                    level: .error,
-                    collection: String(describing: type)
-                )
-            }
-            
-            return
-        }
-        
-        
+
         fetchRequest.fetchLimit = 1
-        
-        
+
         do {
-            
+
             if let object =
                 try context.fetch(fetchRequest).first {
-                
+
                 context.delete(object)
-                
-                
+
+                context.processPendingChanges()
+
                 Task { @MainActor in
-                    
+
                     Self.log(
-                        "🗑️ Deleted \(type) with ID \(idString)",
-                        level: .warning,
+                        "🗑️ SUCCESSFULLY DELETED \(type): \(idString)",
+                        level: .success,
                         collection: String(describing: type)
                     )
                 }
+
             }
             else {
-                
+
                 Task { @MainActor in
-                    
+
                     Self.log(
-                        "ℹ️ Delete skipped — no matching object for ID \(idString)",
-                        level: .info,
+                        "❌ DELETE FAILED — NOT FOUND: \(idString)",
+                        level: .error,
                         collection: String(describing: type)
                     )
                 }
             }
-            
+
         }
         catch {
-            
+
             context.rollback()
-            
+
             Task { @MainActor in
-                
+
                 Self.log(
-                    "❌ Delete failed for \(type): \(error.localizedDescription)",
+                    "❌ DELETE ERROR: \(error)",
                     level: .error,
                     collection: String(describing: type)
                 )
