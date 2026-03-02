@@ -53,7 +53,7 @@ struct AboutUsView: View {
                             .multilineTextAlignment(.leading)
                     },
                     label: {
-                        Text("WHO ARE YOU? WHAT IS THIS APP?")
+                        Text("WHO ARE WE? WHAT IS THIS APP?")
                             .font(.title3)
                             .foregroundColor(.primary)
                             .bold()
