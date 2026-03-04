@@ -17,7 +17,9 @@ struct EditMatTimeView: View {
     @State private var restrictionDescription: String
     @State private var goodForBeginners: Bool
     @State private var kids: Bool
+    @State private var womensOnly: Bool
     @State private var selectedTime: Date
+
 
     // NEW: Success alert flag
     @State private var showSuccessAlert = false
@@ -37,8 +39,8 @@ struct EditMatTimeView: View {
         _restrictionDescription = State(initialValue: matTime.restrictionDescription ?? "")
         _goodForBeginners = State(initialValue: matTime.goodForBeginners)
         _kids = State(initialValue: matTime.kids)
+        _womensOnly = State(initialValue: matTime.womensOnly)   // ✅ FIXED
 
-        // ✅ Use safe parsing for the existing time
         let parsedDate: Date
         if let timeString = matTime.time,
            let date = AppDateFormatter.stringToDate(timeString) {
@@ -54,7 +56,6 @@ struct EditMatTimeView: View {
         }
         _selectedTime = State(initialValue: parsedDate)
     }
-
 
     var body: some View {
         NavigationView {
@@ -80,6 +81,8 @@ struct EditMatTimeView: View {
                 Section(header: Text("Additional Info")) {
                     Toggle("Good for Beginners", isOn: $goodForBeginners)
                     Toggle("Kids Class", isOn: $kids)
+                    Toggle("Women’s Class", isOn: $womensOnly)   // ✅ NEW
+
                 }
             }
             .navigationTitle("Edit Mat Time")
@@ -97,7 +100,6 @@ struct EditMatTimeView: View {
 
 
     private func saveChanges() {
-        // Update local MatTime properties
         matTime.time = AppDateFormatter.twelveHour.string(from: selectedTime)
         matTime.gi = gi
         matTime.noGi = noGi
@@ -106,8 +108,8 @@ struct EditMatTimeView: View {
         matTime.restrictionDescription = restrictionDescription.isEmpty ? nil : restrictionDescription
         matTime.goodForBeginners = goodForBeginners
         matTime.kids = kids
+        matTime.womensOnly = womensOnly   // ✅ REQUIRED
 
-        // Call the viewModel to update Core Data & Firestore
         Task {
             do {
                 try await viewModel.updateMatTime(matTime)

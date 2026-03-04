@@ -60,7 +60,7 @@ struct AddNewMatTimeSection2: View {
 
     @State private var kidsClass = false
     @State private var goodForBeginners = false
-
+    @State private var womensOnly = false   // ✅ NEW
 
     // MARK: - Restrictions
 
@@ -93,11 +93,9 @@ struct AddNewMatTimeSection2: View {
             }
 
             Section("OPTIONS") {
-
                 Toggle("Kids Class", isOn: $kidsClass)
-
                 Toggle("Good for Beginners", isOn: $goodForBeginners)
-
+                Toggle("Women’s Class", isOn: $womensOnly)
             }
 
             Section("RESTRICTIONS") {
@@ -450,17 +448,16 @@ extension AddNewMatTimeSection2 {
     }
 }
 
-
 // MARK: - CoreData + Firestore
 
 extension AddNewMatTimeSection2 {
+
     func getOrCreateAppDay(
         island: PirateIsland,
         day: DayOfWeek
     ) async throws -> NSManagedObjectID {
 
-        let islandObjectID =
-            island.objectID
+        let islandObjectID = island.objectID
 
         let islandNameSafe =
             (island.islandName ?? "")
@@ -474,7 +471,7 @@ extension AddNewMatTimeSection2 {
                 .newBackgroundContext()
 
         // =====================================================
-        // STEP 1: Create Core Data record
+        // STEP 1: Create / Fetch Core Data record
         // =====================================================
 
         let objectID: NSManagedObjectID =
@@ -485,7 +482,6 @@ extension AddNewMatTimeSection2 {
                         with: islandObjectID
                     ) as! PirateIsland
 
-
                 let fetch: NSFetchRequest<AppDayOfWeek> =
                     AppDayOfWeek.fetchRequest()
 
@@ -493,54 +489,52 @@ extension AddNewMatTimeSection2 {
 
                 fetch.predicate =
                     NSPredicate(
-                        format:
-                        "pIsland == %@ AND day == %@",
+                        format: "pIsland == %@ AND day == %@",
                         islandBG,
                         day.rawValue
                     )
 
-
+                // ✅ Return existing if found
                 if let existing =
                     try context.fetch(fetch).first {
 
                     return existing.objectID
                 }
 
-
+                // =====================================================
                 // CREATE NEW
+                // =====================================================
+
+                guard let islandID = islandBG.islandID else {
+                    throw NSError(
+                        domain: "AppDayOfWeek",
+                        code: 0,
+                        userInfo: [
+                            NSLocalizedDescriptionKey:
+                                "Missing islandID on PirateIsland"
+                        ]
+                    )
+                }
 
                 let new =
                     AppDayOfWeek(context: context)
 
-
                 new.id = UUID()
+                new.day = day.rawValue
+                new.appDayOfWeekID = UUID().uuidString
+                new.name = "\(islandNameSafe) - \(day.rawValue)"
+                new.createdTimestamp = Date()
 
-                new.day =
-                    day.rawValue
+                // Relationship
+                new.pIsland = islandBG
 
-
-                new.appDayOfWeekID =
-                    UUID().uuidString
-
-
-                new.name =
-                    "\(islandNameSafe) - \(day.rawValue)"
-
-
-                new.createdTimestamp =
-                    Date()
-
-
-                new.pIsland =
-                    islandBG
-
+                // ✅ NEW — keep string ID in sync with relationship
+                new.pirateIslandID = islandID
 
                 try context.save()
 
                 return new.objectID
-
             }
-
 
         // =====================================================
         // STEP 2: Save to Firestore OUTSIDE context
@@ -550,10 +544,9 @@ extension AddNewMatTimeSection2 {
             objectID: objectID
         )
 
-
         return objectID
     }
-    
+
     func createMatTimeSafe(
         appDayID: NSManagedObjectID,
         time: Date
@@ -622,6 +615,8 @@ extension AddNewMatTimeSection2 {
             goodForBeginners: goodForBeginners,
 
             kids: kidsClass,
+            womensOnly: womensOnly,   // ✅ NEW
+
 
             for: appDayID
         )
@@ -820,18 +815,14 @@ extension AddNewMatTimeSection2 {
     func reset() {
 
         selectedDays.removeAll()
-
         selectedTimes.removeAll()
-
         classType = .gi
-
         kidsClass = false
-
+        womensOnly = false   // ✅ NEW
         goodForBeginners = false
-
         restrictions = false
-
         restrictionText = ""
+        
     }
 
 }
@@ -940,6 +931,24 @@ struct AppleStyleDaySelector: View {
 
             selectedDays.insert(day)
 
+        }
+    }
+}
+
+
+
+extension Date {
+    /// Rounds the date to the nearest hour, either up or down.
+    func roundToNearestHour() -> Date {
+        let calendar = Calendar.current
+        let minuteComponent = calendar.component(.minute, from: self)
+        
+        if minuteComponent >= 30 {
+            // Round up to the next hour
+            return calendar.date(byAdding: .minute, value: 60 - minuteComponent, to: self)!
+        } else {
+            // Round down to the current hour
+            return calendar.date(byAdding: .minute, value: -minuteComponent, to: self)!
         }
     }
 }

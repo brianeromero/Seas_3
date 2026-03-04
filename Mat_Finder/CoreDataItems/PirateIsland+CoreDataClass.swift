@@ -4,29 +4,33 @@
 //
 //  Created by Brian Romero on 6/24/24.
 //
-//
 
 import Foundation
 import CoreData
 
 @objc(PirateIsland)
 public class PirateIsland: NSManagedObject {
+
+    // MARK: - Lifecycle
     
     override public func awakeFromInsert() {
         super.awakeFromInsert()
-        
-        // Ensure islandID is set
-        if self.islandID == nil {
-            self.islandID = UUID().uuidString // generate a unique string if needed
+
+        if islandID == nil {
+            islandID = UUID().uuidString
         }
-        print("Gym object created with ID: \(self.islandID ?? "unknown")")
+
+        hasDropInFee = HasDropInFee.notConfirmed.rawValue
+        dropInFeeAmount = 0
+        dropInFeeNote = nil
+
+        print("Gym object created with ID: \(islandID ?? "unknown")")
     }
+
+    // MARK: - Equality
     
+    /// Two PirateIsland objects are equal if they share the same stable islandID.
     public static func == (lhs: PirateIsland, rhs: PirateIsland) -> Bool {
-        lhs.islandID == rhs.islandID &&
-        lhs.islandName == rhs.islandName &&
-        lhs.islandLocation == rhs.islandLocation &&
-        lhs.latitude == rhs.latitude &&
-        lhs.longitude == rhs.longitude
+        return lhs.islandID == rhs.islandID
     }
 }

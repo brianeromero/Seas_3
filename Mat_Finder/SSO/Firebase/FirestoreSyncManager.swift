@@ -610,8 +610,8 @@ class FirestoreSyncManager {
 
                     recordData = [
                         "id": pirateIsland.islandID ?? "",
-                        "name": pirateIsland.islandName ?? "",
-                        "location": pirateIsland.islandLocation ?? "",
+                        "islandName": pirateIsland.islandName ?? "",
+                        "islandLocation": pirateIsland.islandLocation ?? "",
                         "country": pirateIsland.country ?? "",
                         "createdByUserId": pirateIsland.createdByUserId ?? "",
                         "createdTimestamp": pirateIsland.createdTimestamp ?? Date(),
@@ -619,7 +619,12 @@ class FirestoreSyncManager {
                         "latitude": pirateIsland.latitude,
                         "longitude": pirateIsland.longitude,
                         "lastModifiedByUserId": pirateIsland.lastModifiedByUserId ?? "",
-                        "lastModifiedTimestamp": pirateIsland.lastModifiedTimestamp ?? Date()
+                        "lastModifiedTimestamp": pirateIsland.lastModifiedTimestamp ?? Date(),
+
+                        // ✅ NEW FIELDS
+                        "hasDropInFee": pirateIsland.dropInFeeStatus.rawValue,
+                        "dropInFeeAmount": pirateIsland.dropInFeeAmount,
+                        "dropInFeeNote": pirateIsland.dropInFeeNote ?? ""
                     ]
 
 
@@ -652,6 +657,7 @@ class FirestoreSyncManager {
                         "restrictionDescription": matTime.restrictionDescription ?? "",
                         "goodForBeginners": matTime.goodForBeginners,
                         "kids": matTime.kids,
+                        "womensOnly": matTime.womensOnly,   // ✅ ADD THIS
                         "createdTimestamp": matTime.createdTimestamp ?? Date()
                     ]
 
@@ -1348,6 +1354,17 @@ class FirestoreSyncManager {
                 island.latitude = latitude
                 island.longitude = longitude
                 island.gymWebsite = gymWebsite
+                // ✅ NEW DROP-IN FEE FIELDS
+
+                island.hasDropInFee =
+                    (data["hasDropInFee"] as? Int16)
+                    ?? Int16(data["hasDropInFee"] as? Int ?? 0)
+
+                island.dropInFeeAmount =
+                    data["dropInFeeAmount"] as? Double ?? 0
+
+                island.dropInFeeNote =
+                    data["dropInFeeNote"] as? String
 
 
                 // =====================================================
@@ -1732,6 +1749,9 @@ class FirestoreSyncManager {
 
                 matTime.kids =
                     docSnapshot.get("kids") as? Bool ?? false
+                
+                matTime.womensOnly =
+                    docSnapshot.get("womensOnly") as? Bool ?? false
 
                 matTime.createdTimestamp =
                     (docSnapshot.get("createdTimestamp") as? Timestamp)?

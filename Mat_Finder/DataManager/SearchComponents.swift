@@ -116,9 +116,9 @@ struct IslandListItem: View {
     var body: some View {
         os_log("Rendering IslandListItem for %@", log: logger, island.islandName ?? "Unknown")
         return VStack(alignment: .leading) {
-            Text(island.islandName ?? "Unknown Gym") // Now this Text view will re-render
+            Text(island.safeIslandName)
                 .font(.headline)
-            Text(island.islandLocation ?? "")       // when island.islandLocation changes
+            Text(island.safeIslandLocation)
                 .font(.subheadline)
                 .lineLimit(nil)
         }

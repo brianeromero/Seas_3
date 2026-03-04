@@ -469,24 +469,20 @@ struct AppRootDestinationView: View {
                     print("🧭 Navigating to screen: .faq (FAQView)")
                 }
         case .viewSchedule(let islandIDString):
-            if let objectID = viewContext.persistentStoreCoordinator?.managedObjectID(
-                forURIRepresentation: URL(string: islandIDString)!
-            ) {
-                if let island = try? viewContext.existingObject(with: objectID) as? PirateIsland {
+            if let objectID = viewContext.persistentStoreCoordinator?
+                .managedObjectID(forURIRepresentation: URL(string: islandIDString)!),
+               let island = try? viewContext.existingObject(with: objectID) as? PirateIsland {
 
-                    IslandScheduleView(
-                        viewModel: appDayOfWeekViewModel,
-                        pIsland: island
-                    )
-                    .onAppear {
-                        print("🧭 Navigating to screen: .viewSchedule -> \(island.islandName ?? "Unknown")")
-                    }
-
-                } else {
-                    Text("Error: Island not found for schedule.")
+                ViewScheduleForIsland2(
+                    viewModel: appDayOfWeekViewModel,
+                    island: island
+                )
+                .onAppear {
+                    print("🧭 Navigating to ViewScheduleForIsland2 -> \(island.islandName ?? "Unknown")")
                 }
+
             } else {
-                Text("Error: Invalid Island ID for schedule.")
+                Text("Error: Island not found for schedule.")
             }
         case .login:
             LoginView(

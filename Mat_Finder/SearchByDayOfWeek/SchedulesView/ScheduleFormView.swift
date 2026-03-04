@@ -30,6 +30,8 @@ extension MatTime {
         guard let timeString = time,
               let date = timeString.toTimeDate() else { return "" }
 
+        let womensOnlyValue = womensOnly
+
         return """
         \(date.toTimeString()) \
         - Gi: \(gi), \
@@ -37,11 +39,11 @@ extension MatTime {
         Open Mat: \(openMat), \
         Restrictions: \(restrictions), \
         Good for Beginners: \(goodForBeginners), \
-        Kids: \(kids)
+        Kids: \(kids), \
+        Women’s Only: \(womensOnlyValue)
         """
     }
 }
-
 
 struct ScheduleFormView: View {
     
@@ -58,7 +60,6 @@ struct ScheduleFormView: View {
     
     let initialSelectedIsland: PirateIsland?
     
-    @Binding var matTimes: [MatTime]
     
     @ObservedObject var viewModel: AppDayOfWeekViewModel
     
@@ -78,19 +79,20 @@ struct ScheduleFormView: View {
     
     @State private var showReview = false
     
+    @State private var editingMatTime: MatTime?
+    @State private var showEditSheet = false
+    
     
     // MARK: BODY
     
     var body: some View {
         
-        VStack(alignment: .leading, spacing: 24) {   // ✅ FIX HERE
-
-            islandSection
-            
-            viewDaySection
-            
-            scheduleListSection
-                        
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                islandSection
+                viewDaySection
+                scheduleListSection
+            }
         }
         .padding()
         .background(Color(.systemGroupedBackground))
@@ -126,7 +128,6 @@ struct ScheduleFormView: View {
             }
         ) {
             NavigationStack {
-
                 AddNewMatTimeSection2(
                     selectedIslandID: $selectedIslandID,
                     islands: islands,
@@ -136,7 +137,15 @@ struct ScheduleFormView: View {
                     alertMessage: $alertMessage,
                     selectIslandAndDay: selectIslandAndDay
                 )
+            }
+        }
 
+        .sheet(isPresented: $showEditSheet) {
+            if let editingMatTime {
+                EditMatTimeView(
+                    matTime: editingMatTime,
+                    viewModel: viewModel
+                )
             }
         }
         
@@ -235,10 +244,8 @@ private extension ScheduleFormView {
 }
 
 private extension ScheduleFormView {
-
     var scheduleListSection: some View {
-
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
 
             if let island = selectedIsland,
                let selectedDay {
@@ -255,25 +262,34 @@ private extension ScheduleFormView {
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .padding(.top, 12)
-                    
+
                 } else {
 
-                    ScheduledMatTimesSection(
-                        island: island,
-                        day: selectedDay,
-                        viewModel: viewModel,
-                        matTimesForDay: $viewModel.matTimesForDay,
-                        selectedDay: Binding(
-                            get: { selectedDay },
-                            set: { self.selectedDay = $0 }
-                        )
-                    )
+                    ForEach(matTimes, id: \.objectID) { matTime in
+                        ScheduleCard(matTime: matTime, island: island)
+
+                        HStack {
+                            Spacer()
+
+                            Button {
+                                editingMatTime = matTime
+                                showEditSheet = true
+                            } label: {
+                                Image(systemName: "pencil")
+                            }
+
+                            Button(role: .destructive) {
+                                deleteMatTime(matTime)
+                            } label: {
+                                Image(systemName: "trash")
+                            }
+                        }
+                    }
 
                     Text("Click the button below to edit or add schedule.")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                        .padding(.top, 8)   // ✅ ADD HERE
-
+                        .padding(.top, 8)
                 }
 
             } else {
@@ -281,17 +297,12 @@ private extension ScheduleFormView {
                 Text("Click the Button Below to Add Schedule.")
                     .font(.caption)
                     .foregroundColor(.secondary)
-                    .padding(.top, 8)   // ✅ ADD HERE
-
+                    .padding(.top, 8)
             }
 
             Spacer()
-
         }
-        .frame(maxWidth: .infinity, alignment: .top)
-
     }
-
 }
 
 private extension ScheduleFormView {
@@ -341,35 +352,6 @@ private extension ScheduleFormView {
         await preloadAllDays()
 
     }
-
-
-    func setupInitialSelection() async {
-
-        guard let island = selectedIsland else { return }
-        guard let day = selectedDay else { return }
-
-        let (_, fetchedMatTimes) =
-        await viewModel.fetchCurrentDayOfWeek(
-            for: island,
-            day: day,
-            selectedDayBinding: Binding(
-                get: { viewModel.selectedDay },
-                set: { viewModel.selectedDay = $0 }
-            )
-        )
-
-        if let fetchedMatTimes {
-
-            await MainActor.run {
-
-                viewModel.matTimesForDay[day] = fetchedMatTimes
-
-            }
-
-        }
-
-    }
-
 }
 
 // MARK: - Data Helpers
@@ -398,9 +380,23 @@ private extension ScheduleFormView {
         }
     }
     
-    func addNewMatTime() {
-        print("✅ Add New Mat Time tapped")
-        // Your existing add logic lives here
+
+    func deleteMatTime(_ matTime: MatTime) {
+        Task {
+            do {
+                try await viewModel.removeMatTime(matTime)
+
+                await MainActor.run {
+                    if let selectedDay {
+                        viewModel.matTimesForDay[selectedDay]?
+                            .removeAll { $0.objectID == matTime.objectID }
+                    }
+                }
+
+            } catch {
+                print("Delete failed: \(error.localizedDescription)")
+            }
+        }
     }
 
 }

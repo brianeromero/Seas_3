@@ -662,8 +662,11 @@ class AuthViewModel: ObservableObject {
         // Update UI state
         await MainActor.run {
             userSession = authResult.user
-            currentUser = User.fromUserInfo(userInfo) // convert UserInfo -> User
+            currentUser = User.fromUserInfo(userInfo)
         }
+
+        // 🔥 LOAD FAVORITES AFTER SUCCESSFUL LOGIN
+        await FavoriteManager.shared.loadFavorites()
     }
 
 
@@ -898,6 +901,9 @@ class AuthViewModel: ObservableObject {
     func logout() async throws {
         try await signOut()
 
+        // 🔥 CLEAR FAVORITES CACHE
+        FavoriteManager.shared.clearFavorites()
+
         authenticationState.isAuthenticated = false
         authenticationState.isLoggedIn = false
         authenticationState.didJustCreateAccount = false
@@ -974,6 +980,10 @@ class AuthViewModel: ObservableObject {
             ], merge: true)
             
             logger.info("User uploaded to Firestore: \(appUser.name, privacy: .public)")
+            
+            // 🔥 LOAD FAVORITES AFTER LOGIN
+            await FavoriteManager.shared.loadFavorites()
+            
         } catch {
             logger.error("Failed to upload user to Firestore: \(error.localizedDescription, privacy: .public)")
         }

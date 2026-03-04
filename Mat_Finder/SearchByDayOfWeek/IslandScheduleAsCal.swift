@@ -131,17 +131,27 @@ struct MatTimeRow: View {
         VStack(alignment: .leading) {
             Text(matTime.time ?? "")
                 .font(.headline)
+
             Text("Gi: \(matTime.gi ? "Yes" : "No"), No Gi: \(matTime.noGi ? "Yes" : "No"), Open Mat: \(matTime.openMat ? "Yes" : "No")")
                 .font(.subheadline)
+
             Text("Restrictions: \(matTime.restrictions ? "Yes" : "No")")
                 .font(.body)
+
             if matTime.goodForBeginners {
                 Text("Good for Beginners")
                     .font(.body)
             }
+
             if matTime.kids {
                 Text("Kids Class")
                     .font(.body)
+            }
+
+            if matTime.womensOnly {   // ✅ NEW
+                Text("Women’s Only")
+                    .font(.body)
+                    .foregroundColor(.pink)
             }
         }
     }
@@ -173,10 +183,17 @@ private func scheduleView(for schedule: AppDayOfWeek) -> some View {
                     HStack {
                         Label("Gi", systemImage: matTime.gi ? "checkmark.circle.fill" : "xmark.circle")
                             .foregroundColor(matTime.gi ? .green : .red)
+
                         Label("NoGi", systemImage: matTime.noGi ? "checkmark.circle.fill" : "xmark.circle")
                             .foregroundColor(matTime.noGi ? .green : .red)
+
                         Label("Open Mat", systemImage: matTime.openMat ? "checkmark.circle.fill" : "xmark.circle")
                             .foregroundColor(matTime.openMat ? .green : .red)
+                    }
+
+                    if matTime.womensOnly {   // ✅ NEW
+                        Label("Women’s Only", systemImage: "person.2.fill")
+                            .foregroundColor(.pink)
                     }
                     if matTime.restrictions {
                         Text("Restrictions: \(matTime.restrictionDescription ?? "Yes")")
@@ -207,68 +224,3 @@ struct EventView: View {
         scheduleView(for: event)
     }
 }
-
-/*
-struct IslandScheduleAsCal_Previews: PreviewProvider {
-    static var previews: some View {
-        let persistenceController = PersistenceController.preview
-        
-        // Create a mock PirateIsland instance
-        let mockIsland = PirateIsland(context: persistenceController.container.viewContext)
-        mockIsland.islandID = UUID()
-        mockIsland.islandName = "Mock Gym"
-
-        // Create mock AppDayOfWeek instances
-        let appDayOfWeek1 = AppDayOfWeek(context: persistenceController.container.viewContext)
-        appDayOfWeek1.appDayOfWeekID = UUID().uuidString
-        appDayOfWeek1.day = DayOfWeek.monday.rawValue
-        appDayOfWeek1.name = "Morning Class"
-        
-        let appDayOfWeek2 = AppDayOfWeek(context: persistenceController.container.viewContext)
-        appDayOfWeek2.appDayOfWeekID = UUID().uuidString
-        appDayOfWeek2.day = DayOfWeek.tuesday.rawValue
-        appDayOfWeek2.name = "Evening Class"
-        
-        // Create MatTime instances and associate them with AppDayOfWeek
-        let matTime1 = MatTime(context: persistenceController.container.viewContext)
-        matTime1.id = UUID()
-        matTime1.time = "10:00"
-        matTime1.gi = true
-        matTime1.noGi = false
-        matTime1.openMat = false
-        matTime1.restrictions = false
-        matTime1.restrictionDescription = nil
-        matTime1.goodForBeginners = true
-        matTime1.kids = false
-
-        let matTime2 = MatTime(context: persistenceController.container.viewContext)
-        matTime2.id = UUID()
-        matTime2.time = "18:00"
-        matTime2.gi = false
-        matTime2.noGi = true
-        matTime2.openMat = true
-        matTime2.restrictions = true
-        matTime2.restrictionDescription = "Limited Space"
-        matTime2.goodForBeginners = false
-        matTime2.kids = true
-        
-        // Associate MatTime with AppDayOfWeek
-        appDayOfWeek1.addToMatTimes(matTime1)
-        appDayOfWeek2.addToMatTimes(matTime2)
-        
-        // Initialize EnterZipCodeViewModel
-        let mockEnterZipCodeViewModel = EnterZipCodeViewModel(repository: AppDayOfWeekRepository(persistenceController: persistenceController), persistenceController: persistenceController)
-        
-        // Initialize the view model
-        let viewModel = AppDayOfWeekViewModel(
-            selectedIsland: mockIsland,
-            repository: AppDayOfWeekRepository(persistenceController: persistenceController),
-            enterZipCodeViewModel: mockEnterZipCodeViewModel
-        )
-        viewModel.appDayOfWeekList = [appDayOfWeek1, appDayOfWeek2]
-
-        return IslandScheduleAsCal(viewModel: viewModel, pIsland: mockIsland)
-            .previewDisplayName("Gym Schedule Preview")
-    }
-}
-*/

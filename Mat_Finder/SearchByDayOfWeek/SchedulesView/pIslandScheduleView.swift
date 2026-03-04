@@ -42,30 +42,42 @@ struct pIslandScheduleView: View {
                         List {
                             ForEach(matTimes.sorted { $0.time ?? "" < $1.time ?? "" }, id: \.self) { matTime in
                                 VStack(alignment: .leading) {
+
                                     Text("Time: \(formatTime(matTime.time ?? "Unknown"))")
                                         .font(.headline)
+
                                     HStack {
                                         Label("Gi", systemImage: matTime.gi ? "checkmark.circle.fill" : "xmark.circle")
                                             .foregroundColor(matTime.gi ? .green : .red)
+
                                         Label("NoGi", systemImage: matTime.noGi ? "checkmark.circle.fill" : "xmark.circle")
                                             .foregroundColor(matTime.noGi ? .green : .red)
+
                                         Label("Open Mat", systemImage: matTime.openMat ? "checkmark.circle.fill" : "xmark.circle")
                                             .foregroundColor(matTime.openMat ? .green : .red)
                                     }
+
                                     if matTime.restrictions {
                                         Text("Restrictions: \(matTime.restrictionDescription ?? "Yes")")
                                             .font(.caption)
                                             .foregroundColor(.red)
                                     }
+
                                     if matTime.goodForBeginners {
                                         Text("Good for Beginners")
                                             .font(.caption)
                                             .foregroundColor(.blue)
                                     }
+
                                     if matTime.kids {
                                         Text("Kids Class")
                                             .font(.caption)
                                             .foregroundColor(.blue)
+                                    }
+
+                                    if matTime.womensOnly {
+                                        Label("Women’s Only", systemImage: "person.2.fill")
+                                            .foregroundColor(.pink)
                                     }
                                 }
                                 .padding()

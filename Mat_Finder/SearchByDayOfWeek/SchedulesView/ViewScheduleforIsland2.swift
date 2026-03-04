@@ -1,5 +1,5 @@
 //
-//  ViewScheduleForIsland.swift
+//  ViewScheduleForIsland2.swift
 //  Mat_Finder
 //
 //  Created by Brian Romero on 8/28/24.
@@ -10,7 +10,7 @@ import SwiftUI
 import CoreData
 
 
-struct ViewScheduleForIsland: View {
+struct ViewScheduleForIsland2: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @EnvironmentObject var authenticationState: AuthenticationState
     @Environment(\.dismiss) var dismiss
@@ -109,18 +109,13 @@ struct ViewScheduleForIsland: View {
 
             selectedIslandID = island.islandID
 
-            if viewModel.selectedDay == nil {
-
-                viewModel.selectedDay = .monday
-
-            }
+            // 🔥 FORCE RESET STATE
+            viewModel.selectedDay = .monday
+            viewModel.matTimesForDay = [:]
 
             Task {
-
                 await viewModel.preloadAllSchedules(for: island)
-
             }
-
         }
     }
     
@@ -128,7 +123,7 @@ struct ViewScheduleForIsland: View {
 }
 
 
-private extension ViewScheduleForIsland {
+private extension ViewScheduleForIsland2 {
 
     var headerSection: some View {
 
@@ -139,7 +134,7 @@ private extension ViewScheduleForIsland {
 
 }
 
-private extension ViewScheduleForIsland {
+private extension ViewScheduleForIsland2 {
 
     var daySelectorSection: some View {
 
@@ -161,12 +156,11 @@ private extension ViewScheduleForIsland {
     }
 }
 
-
-private extension ViewScheduleForIsland {
+private extension ViewScheduleForIsland2 {
 
     var scheduleSection: some View {
 
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
 
             if let selectedDay = viewModel.selectedDay {
 
@@ -184,49 +178,37 @@ private extension ViewScheduleForIsland {
                     .foregroundColor(.secondary)
                     .padding(.top, 12)
 
-                }
-                else {
+                } else {
 
-                    ScheduledMatTimesSection(
-                        island: island,
-                        day: selectedDay,
-                        viewModel: viewModel,
-                        matTimesForDay: $viewModel.matTimesForDay,
-                        selectedDay: $viewModel.selectedDay
-                    )
+                    ForEach(matTimes) { matTime in
+                        ScheduleCard(matTime: matTime, island: island)
+                    }
 
                     Text("Click the button below to edit or add schedule.")
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .padding(.top, 8)
-
                 }
 
-            }
-            else {
+            } else {
 
                 Text("Select a day to view schedule.\n\nClick the button below to add schedule.")
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .padding(.top, 8)
-
             }
 
             Spacer()
-
         }
         .frame(maxWidth: .infinity, alignment: .top)
-
         .animation(
             .spring(response: 0.35, dampingFraction: 0.8),
             value: viewModel.matTimesForDay
         )
     }
-
 }
 
-
-private extension ViewScheduleForIsland {
+private extension ViewScheduleForIsland2 {
 
     var addScheduleButton: some View {
 
@@ -266,7 +248,7 @@ private extension ViewScheduleForIsland {
 
 }
 
-private extension ViewScheduleForIsland {
+private extension ViewScheduleForIsland2 {
 
     func selectIslandAndDay(
         _ island: PirateIsland,

@@ -129,7 +129,6 @@ struct DaysOfWeekFormView: View {
             destination: ScheduleFormView(
                 islands: Array(islands),
                 initialSelectedIsland: island,   // ✅ REQUIRED
-                matTimes: .constant([]),
                 viewModel: appDayOfWeekViewModel
             )
         ) {

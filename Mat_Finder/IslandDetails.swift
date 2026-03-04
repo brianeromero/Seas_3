@@ -25,6 +25,11 @@ public class IslandDetails: ObservableObject, Equatable {
             
     @Published var gymWebsite: String = "" { didSet { validateForm() } }
     @Published var gymWebsiteURL: URL?
+    
+    
+    @Published var hasDropInFee: HasDropInFee = .notConfirmed { didSet { validateForm() } }
+    @Published var dropInFeeAmount: Double = 0 { didSet { validateForm() } }
+    @Published var dropInFeeNote: String = "" { didSet { validateForm() } }
 
     @Published var neighborhood: String = "" { didSet { validateForm() } }
     @Published var complement: String = "" { didSet { validateForm() } }
@@ -98,21 +103,26 @@ public class IslandDetails: ObservableObject, Equatable {
     }
 
     // MARK: - Initializer
-    init(islandName: String = "",
-         street: String = "",
-         city: String = "",
-         state: String = "",
-         postalCode: String = "",
-         latitude: Double? = nil,
-         longitude: Double? = nil,
-         selectedCountry: Country? = nil,
-         country: String = "",
-         county: String = "",
-         additionalInfo: String = "",
-         requiredAddressFields: [AddressFieldType] = [],
-         gymWebsite: String = "",
-         gymWebsiteURL: URL? = nil,
-         islandID: String? = nil) { // ADD THIS PARAMETER TO THE INITIALIZER
+    init(
+        islandName: String = "",
+        street: String = "",
+        city: String = "",
+        state: String = "",
+        postalCode: String = "",
+        latitude: Double? = nil,
+        longitude: Double? = nil,
+        selectedCountry: Country? = nil,
+        country: String = "",
+        county: String = "",
+        additionalInfo: String = "",
+        requiredAddressFields: [AddressFieldType] = [],
+        gymWebsite: String = "",
+        gymWebsiteURL: URL? = nil,
+        islandID: String? = nil,
+        hasDropInFee: HasDropInFee = .notConfirmed,
+        dropInFeeAmount: Double = 0,
+        dropInFeeNote: String = ""
+    ) {
         self.islandName = islandName
         self.street = street
         self.city = city
@@ -127,14 +137,19 @@ public class IslandDetails: ObservableObject, Equatable {
         self.requiredAddressFields = requiredAddressFields
         self.gymWebsite = gymWebsite
         self.gymWebsiteURL = gymWebsiteURL
-        self.islandID = islandID // ASSIGN THE NEW PROPERTY
+        self.islandID = islandID
+        
+        self.hasDropInFee = hasDropInFee
+        self.dropInFeeAmount = dropInFeeAmount
+        self.dropInFeeNote = dropInFeeNote
+
         validateForm()
     }
     
     // MARK: - Validation Logic
     private func validateForm() {
-        //os_log("Validating form 789: islandName = %@", log: .default, type: .debug, islandName)
 
+        // Validate required address fields
         let fieldsValid = requiredAddressFields.allSatisfy { field in
             switch field {
             case .street: return !street.isEmpty
@@ -163,13 +178,24 @@ public class IslandDetails: ObservableObject, Equatable {
             }
         }
 
-        isIslandNameValid = !islandName.isEmpty
+        // Validate gym name
+        isIslandNameValid = !islandName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         islandNameErrorMessage = isIslandNameValid ? "" : "Gym name cannot be empty."
 
-        isFormValid = fieldsValid && isIslandNameValid
+        // Validate drop-in rules
+        let dropInValid: Bool = {
+            guard hasDropInFee == .hasFee else { return true }
+            return dropInFeeAmount > 0 ||
+            !dropInFeeNote
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .isEmpty
+        }()
+        
+        // Final form validation
+        isFormValid = fieldsValid && isIslandNameValid && dropInValid
+
         onValidationChange?(isFormValid)
     }
-
     
     // MARK: - Update Required Address
     func updateRequiredAddressFields() {
@@ -205,7 +231,10 @@ public class IslandDetails: ObservableObject, Equatable {
         lhs.region == rhs.region &&      // Added region
         lhs.island == rhs.island &&
         lhs.gymWebsite == rhs.gymWebsite && // Added gymWebsite
-        lhs.islandID == rhs.islandID // ADD THIS FOR EQUATABLE
+        lhs.islandID == rhs.islandID && // ADD THIS FOR EQUATABLE
+        lhs.hasDropInFee == rhs.hasDropInFee &&
+        lhs.dropInFeeAmount == rhs.dropInFeeAmount &&
+        lhs.dropInFeeNote == rhs.dropInFeeNote
     }
 
 }
@@ -214,7 +243,7 @@ extension IslandDetails: CustomStringConvertible {
     public var description: String {
         return """
         IslandDetails:
-        - ID: \(islandID ?? "nil")   // ✅ fixed
+        - ID: \(islandID ?? "nil")
         - Name: \(islandName)
         - Street: \(street)
         - City: \(city)

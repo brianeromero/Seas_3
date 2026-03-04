@@ -92,9 +92,11 @@ struct IslandFormSections: View {
             countryPickerSection
             islandDetailsSection
             websiteSection
+            dropInSection
         }
         .padding(.horizontal)
         .padding(.top)
+        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: islandDetails.hasDropInFee)
         .onAppear {
             Task { await countryService.fetchCountries() }
         }
@@ -244,6 +246,51 @@ struct IslandFormSections: View {
                 .onChange(of: islandDetails.gymWebsite) { _, newWebsite in
                     processWebsiteURL(newWebsite)
                 }
+        }
+    }
+    
+    // MARK: - Drop-In Section
+    var dropInSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+
+            Text("Drop-In Policy")
+                .font(.headline)
+
+            Picker("Drop-In Status", selection: $islandDetails.hasDropInFee) {
+                Text("Needs Confirmation").tag(HasDropInFee.notConfirmed)
+                Text("No Drop-Ins").tag(HasDropInFee.noDropInFee)
+                Text("Has Drop-In Fee").tag(HasDropInFee.hasFee)
+            }
+            .pickerStyle(.segmented)
+
+            if islandDetails.hasDropInFee == .hasFee {
+
+                VStack(alignment: .leading, spacing: 8) {
+
+                    Text("Drop-In Fee Amount")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    TextField(
+                        "Enter Amount",
+                        value: $islandDetails.dropInFeeAmount,
+                        format: .currency(code: Locale.current.currency?.identifier ?? "USD")
+                    )
+                    .keyboardType(.decimalPad)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+
+                    Text("Additional Notes (Optional)")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    TextField(
+                        "Enter Notes",
+                        text: $islandDetails.dropInFeeNote
+                    )
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
         }
     }
 

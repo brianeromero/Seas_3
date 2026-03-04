@@ -5,8 +5,6 @@
 //  Created by Brian Romero on 10/14/25.
 //
 
-
-
 import Foundation
 import SwiftUI
 import CoreData
@@ -19,6 +17,9 @@ struct AllReviewsView: View {
     @State private var selectedSortType: SortType = .latest
     @State private var allReviews: [Review] = []
     @State private var averageRating: Double = 0.0
+    
+    let island: PirateIsland   // 👈 ADD THIS
+
     
     var body: some View {
         ScrollView {
@@ -75,9 +76,13 @@ struct AllReviewsView: View {
     
     // MARK: - Load Reviews
     private func loadAllReviews() {
-        os_log("AllReviewsView: Loading all reviews", log: logger, type: .info)
+        os_log("AllReviewsView: Loading reviews", log: logger, type: .info)
         
-        let request = Review.fetchRequest() as! NSFetchRequest<Review>
+        let request = NSFetchRequest<Review>(entityName: "Review")
+        
+        // ✅ Filter by THIS island
+        request.predicate = NSPredicate(format: "island == %@", island)
+        
         request.sortDescriptors = [
             NSSortDescriptor(key: selectedSortType.sortKey, ascending: selectedSortType.ascending)
         ]
@@ -86,12 +91,18 @@ struct AllReviewsView: View {
             let reviews = try viewContext.fetch(request)
             allReviews = reviews
             
-            let ratings = reviews.map { Double($0.stars) }
-            averageRating = ratings.isEmpty ? 0.0 : ratings.reduce(0, +) / Double(ratings.count)
+            // ✅ Use shared average calculator
+            Task {
+                averageRating = await ReviewUtils.fetchAverageRating(
+                    for: island,
+                    in: viewContext
+                )
+            }
             
-            os_log("AllReviewsView: Loaded %d reviews", log: logger, type: .info, reviews.count)
+            os_log("Loaded %d reviews for island", log: logger, type: .info, reviews.count)
+            
         } catch {
-            os_log("AllReviewsView: Failed to fetch reviews: %@", log: logger, type: .error, error.localizedDescription)
+            os_log("Fetch failed: %@", log: logger, type: .error, error.localizedDescription)
             allReviews = []
             averageRating = 0.0
         }
@@ -99,23 +110,25 @@ struct AllReviewsView: View {
     
     // MARK: - Delete Review
     private func deleteReview(_ review: Review) {
-        // 1️⃣ Capture ID before deleting
         let reviewIDString = review.reviewID.uuidString
         
-        // 2️⃣ Delete from Core Data
         viewContext.delete(review)
         do {
             try viewContext.save()
             allReviews.removeAll { $0.objectID == review.objectID }
+
+            // ✅ Recalculate average immediately
+            averageRating = allReviews.isEmpty ? 0.0 :
+                allReviews.reduce(0.0) { $0 + Double($1.stars) } / Double(allReviews.count)
+            
+
         } catch {
             os_log("Failed to delete review from Core Data: %@", type: .error, error.localizedDescription)
         }
 
-        // 3️⃣ Delete from Firestore (safe to use captured ID)
         Task {
             do {
                 try await FirestoreManager.shared.deleteDocument(in: .reviews, id: reviewIDString)
-                print("Review deleted from Firestore successfully")
             } catch {
                 print("Failed to delete review from Firestore: \(error.localizedDescription)")
             }
@@ -171,5 +184,109 @@ struct ReviewSummaryView: View {
             .padding(.vertical, 4)
         }
         .padding(.horizontal, 16)
+    }
+}
+
+
+struct AdminReviewsView: View {
+    @Environment(\.managedObjectContext) private var viewContext
+    @State private var allReviews: [Review] = []
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 12) {
+
+                if allReviews.isEmpty {
+                    Text("No reviews found.")
+                        .foregroundColor(.secondary)
+                        .padding()
+                } else {
+                    ForEach(allReviews, id: \.objectID) { review in
+                        HStack(alignment: .top) {
+                            AdminReviewRow(review: review)
+
+                            Spacer()
+
+                            Button(role: .destructive) {
+                                deleteReview(review)
+                            } label: {
+                                Image(systemName: "trash")
+                                    .foregroundColor(.red)
+                            }
+                            .buttonStyle(BorderlessButtonStyle())
+                        }
+                        .padding(.horizontal)
+                    }
+                }
+            }
+            .padding(.top)
+        }
+        .navigationTitle("All Reviews")
+        .onAppear(perform: loadReviews)
+    }
+
+    private func loadReviews() {
+        let request: NSFetchRequest<Review> = Review.fetchRequest() as! NSFetchRequest<Review>
+        request.sortDescriptors = [
+            NSSortDescriptor(key: "createdTimestamp", ascending: false)
+        ]
+
+        do {
+            allReviews = try viewContext.fetch(request)
+        } catch {
+            print("Failed to fetch reviews: \(error.localizedDescription)")
+        }
+    }
+
+    private func deleteReview(_ review: Review) {
+        let reviewIDString = review.reviewID.uuidString
+
+        viewContext.delete(review)
+
+        do {
+            try viewContext.save()
+            allReviews.removeAll { $0.objectID == review.objectID }
+        } catch {
+            print("Core Data delete failed")
+        }
+
+        Task {
+            try? await FirestoreManager.shared.deleteDocument(in: .reviews, id: reviewIDString)
+        }
+    }
+}
+
+struct AdminReviewRow: View {
+    let review: Review
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            
+            HStack {
+                Text(review.island?.islandName ?? "Unknown Gym")
+                    .font(.headline)
+                
+                Spacer()
+                
+                Text(review.createdTimestamp, style: .date)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            
+            HStack {
+                ForEach(0..<Int(review.stars), id: \.self) { _ in
+                    Image(systemName: "star.fill")
+                        .foregroundColor(.yellow)
+                        .font(.caption)
+                }
+            }
+            
+            Text(review.review)
+                .font(.body)
+            
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(10)
     }
 }

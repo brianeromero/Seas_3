@@ -9,14 +9,12 @@ import Foundation
 import SwiftUI
 import CoreLocation
 
-
 struct IslandModalView: View {
+    
     @Environment(\.managedObjectContext) var viewContext
-    @ObservedObject var enterZipCodeViewModel: EnterZipCodeViewModel
     @Binding var selectedDay: DayOfWeek?
     @Binding var showModal: Bool
     @State private var isLoadingData: Bool = false
-    @State private var showReview: Bool = false
     
     @State private var currentAverageStarRating: Double = 0.0
     @State private var currentReviews: [Review] = []
@@ -24,80 +22,59 @@ struct IslandModalView: View {
     @Binding var navigationPath: NavigationPath
     @State private var showNoScheduleAlert = false
     
-    var isLoading: Bool {
-        islandSchedules.isEmpty && !scheduleExists || isLoadingData
-    }
-    
     let customMapMarker: CustomMapMarker?
     @State private var scheduleExists: Bool = false
-    @State private var islandSchedules: [(PirateIsland, [MatTime])] = []
-    let islandName: String
-    let islandLocation: String
-    let formattedCoordinates: String
-    let createdTimestamp: String
-    let formattedTimestamp: String
-    let gymWebsite: URL?
-    let dayOfWeekData: [DayOfWeek]
     
     @Binding var selectedIsland: PirateIsland?
     @ObservedObject var viewModel: AppDayOfWeekViewModel
     @Binding var selectedAppDayOfWeek: AppDayOfWeek?
-    @ObservedObject private var authViewModel = AuthViewModel.shared
     
+    @ObservedObject private var favoriteManager = FavoriteManager.shared
     
     init(
         customMapMarker: CustomMapMarker?,
-        islandName: String,
-        islandLocation: String,
-        formattedCoordinates: String,
-        createdTimestamp: String,
-        formattedTimestamp: String,
-        gymWebsite: URL?,
-        dayOfWeekData: [DayOfWeek],
         selectedAppDayOfWeek: Binding<AppDayOfWeek?>,
         selectedIsland: Binding<PirateIsland?>,
         viewModel: AppDayOfWeekViewModel,
         selectedDay: Binding<DayOfWeek?>,
         showModal: Binding<Bool>,
-        enterZipCodeViewModel: EnterZipCodeViewModel,
         navigationPath: Binding<NavigationPath>
     ) {
         self.customMapMarker = customMapMarker
-        self.islandName = islandName
-        self.islandLocation = islandLocation
-        self.formattedCoordinates = formattedCoordinates
-        self.createdTimestamp = createdTimestamp
-        self.formattedTimestamp = formattedTimestamp
-        self.gymWebsite = gymWebsite
-        self.dayOfWeekData = dayOfWeekData
         self._selectedAppDayOfWeek = selectedAppDayOfWeek
         self._selectedIsland = selectedIsland
         self.viewModel = viewModel
         self._selectedDay = selectedDay
         self._showModal = showModal
-        self.enterZipCodeViewModel = enterZipCodeViewModel
         self._navigationPath = navigationPath
     }
-
-
+    
     var body: some View {
-        ZStack {
-            // Dimmed blurred background
-            Rectangle()
-                .fill(.ultraThinMaterial)
-                .ignoresSafeArea(edges: .bottom)
-                .onTapGesture { showModal = false }
-
-            contentView
-        }
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button("Dismiss") { showModal = false }
+        Group {
+            if isLoadingData {
+                ProgressView("Loading...")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if let island = selectedIsland {
+                modalContent(island: island)
+            } else {
+                Text("Island unavailable.")
             }
         }
-        .navigationTitle(selectedIsland?.islandName ?? "Island Details")
+        .navigationTitle(selectedIsland?.safeIslandName ?? "Details")
         .navigationBarTitleDisplayMode(.inline)
-        .interactiveDismissDisabled(false)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button("Close", role: .cancel) {
+                    showModal = false
+                }
+            }
+            
+            if let island = selectedIsland {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    favoriteButton(for: island)
+                }
+            }
+        }
         .onAppear {
             loadIslandData()
         }
@@ -127,8 +104,14 @@ struct IslandModalView: View {
                 callerFunction: "IslandModalView.onAppear"
             )
             
-            let avgRating = Double(await fetchedAvgRating)
+            let avgRating = await fetchedAvgRating
             let reviews = await fetchedReviews
+            
+            if let islandID = island.islandID {
+                await MainActor.run {
+                    _ = favoriteManager.isFavorite(islandID: islandID)
+                }
+            }
             
             await MainActor.run {
                 scheduleExists = hasSchedule
@@ -138,195 +121,96 @@ struct IslandModalView: View {
             }
         }
     }
-
-
-    // MARK: - Content Views
-    @ViewBuilder
-    private var contentView: some View {
-        if isLoadingData {
-            ZStack {
-                Rectangle()
-                    .fill(.ultraThinMaterial)
-                    .cornerRadius(12)
-                    .shadow(radius: 10)
-                    .frame(width: 200, height: 80)
-                ProgressView("Loading schedules...")
-                    .font(.system(size: 16, weight: .semibold, design: .rounded))
-                    .foregroundColor(.primary)
+     
+    
+    private func favoriteButton(for island: PirateIsland) -> some View {
+        Button {
+            toggleFavorite(for: island)
+            
+            let generator = UIImpactFeedbackGenerator(style: .light)
+            generator.impactOccurred()
+            
+        } label: {
+            if let islandID = island.islandID {
+                Image(
+                    systemName:
+                        favoriteManager.isFavorite(islandID: islandID)
+                    ? "heart.fill"
+                    : "heart"
+                )
+                .foregroundColor(
+                    favoriteManager.isFavorite(islandID: islandID)
+                    ? .red
+                    : .primary
+                )
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else if let island = selectedIsland, selectedDay != nil {
-            modalContent(island: island)
-        } else {
-            Text("Error: selectedIsland or selectedDay is nil.")
-                .font(.system(size: 14, weight: .bold))
-                .foregroundColor(.primary)
-                .padding()
-                .background(.ultraThinMaterial)
-                .cornerRadius(12)
-                .shadow(radius: 5)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         }
     }
-
+    
+    
     
     private func modalContent(island: PirateIsland) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-
-            Text(islandName)
-                .font(.system(size: 20, weight: .bold))
-                .fontDesign(.rounded)
-                .foregroundColor(.primary)
-
-            locationSection
-
-            websiteSection
-
-            scheduleSection(for: island)
-
-            reviewsSection
-
-            Spacer()
-
-        }
-        .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(10)
-        .frame(maxWidth: 600, maxHeight: 600)
-        .overlay(alignment: .topTrailing) {
-            closeButton
-        }
-    }
-    
-    private var locationSection: some View {
-        Button(action: { openInMaps(address: islandLocation) }) {
-            Text(islandLocation)
-                .font(.system(size: 16, weight: .semibold, design: .rounded))
-                .foregroundColor(.accentColor)
-                .underline() // optional, looks more like a typical hyperlink
-        }
-        .buttonStyle(.plain)
-    }
-    
-    private var websiteSection: some View {
-        Group {
-            if let gymWebsite = gymWebsite {
-                HStack {
-                    Text("Website:")
-                        .foregroundColor(.primary)
-                        .font(.system(size: 16, weight: .semibold))
-                        .fontDesign(.rounded)
-
-                    Spacer()
-
-                    Link("Visit Website", destination: gymWebsite)
-                        .font(.system(size: 16, weight: .semibold, design: .rounded))
-                        .foregroundColor(.accentColor)
-                        .underline() // optional, looks more like a typical hyperlink
+        List {
+            
+            // MARK: Location Section
+            Section {
+                
+                Button {
+                    openInMaps(address: island.safeIslandLocation)
+                } label: {
+                    Label(island.safeIslandLocation, systemImage: "mappin.and.ellipse")
                 }
-                .padding(.top, 10)
-            } else {
-                Text("No website available.")
-                    .font(.system(size: 16, weight: .semibold))
-                    .fontDesign(.rounded)
-                    .foregroundColor(.secondary)
-                    .padding(.top, 10)
-            }
-        }
-    }
-
-    private func scheduleSection(for island: PirateIsland) -> some View {
-        let hasSchedules = (island.appDayOfWeeks as? Set<AppDayOfWeek>)?
-            .contains(where: { $0.hasMatTimes }) ?? false
-        
-        return AnyView(
-            content(for: island, hasSchedules: hasSchedules)
-                .alert(
-                    "Schedule Not Available",
-                    isPresented: $showNoScheduleAlert
-                ) {
-
-                    Button("Add Schedule") {
-
-                        guard let island = selectedIsland else { return }
-
-                        navigationPath.append(
-                            AppScreen.addSchedule(
-                                island.objectID.uriRepresentation().absoluteString
-                            )
-                        )
-
-                        showModal = false
+                
+                if let gymWebsite = island.gymWebsite {
+                    Link(destination: gymWebsite) {
+                        Label("Visit Website", systemImage: "globe")
                     }
-
-                    Button("Cancel", role: .cancel) { }
-
-                } message: {
-
-                    Text("There are no scheduled mat times associated with this gym.")
-
                 }
-        )
-    }
-    
-
-    @ViewBuilder
-    private func content(for island: PirateIsland, hasSchedules: Bool) -> some View {
-        if hasSchedules {
-            NavigationLink(
-                destination: ViewScheduleForIsland(viewModel: viewModel, island: island)
-            ) {
-                Text("View Schedule")
-                    .font(.system(size: 16, weight: .semibold))
-                    .fontDesign(.rounded)
-                    .foregroundColor(.accentColor)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(Color.accentColor.opacity(0.1)) // optional visual styling
-                    .cornerRadius(10)
             }
-            .buttonStyle(.plain)
-        } else {
-            Button {
-                showNoScheduleAlert = true
-            } label: {
-                Text("View Schedule")
-                    .font(.system(size: 16, weight: .semibold))
-                    .fontDesign(.rounded)
-                    .foregroundColor(.accentColor)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(Color.gray.opacity(0.2)) // optional styling for disabled
-                    .cornerRadius(10)
-            }
-            .buttonStyle(.plain)
-        }
-    }
-    
-
-    private var reviewsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-
-            // WHEN REVIEWS EXIST
-            if !currentReviews.isEmpty {
+            
+            // MARK: Fees Section
+            Section("Fees") {
                 HStack {
-                    Text("Average Rating:")
-                        .foregroundColor(.primary)
-                        .font(.system(size: 16, weight: .semibold))
-                        .fontDesign(.rounded)
-
+                    Text("Drop-In")
                     Spacer()
-
-                    HStack(spacing: 2) {
-                        let starIcons = StarRating.getStars(for: currentAverageStarRating)
-                        ForEach(starIcons, id: \.self) { iconName in
-                            Image(systemName: iconName)
+                    Text(island.dropInDisplayText)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(dropInColor(for: island).opacity(0.15))
+                        .foregroundColor(dropInColor(for: island))
+                        .clipShape(Capsule())
+                }
+            }
+            
+            // MARK: Schedule Section
+            Section {
+                scheduleSection(for: island)
+            }
+            
+            // MARK: Reviews Section
+            Section("Reviews") {
+                
+                if !currentReviews.isEmpty {
+                    
+                    HStack(spacing: 6) {
+                        
+                        let stars = StarRating.getStars(for: currentAverageStarRating)
+                        
+                        ForEach(stars, id: \.self) { icon in
+                            Image(systemName: icon)
+                                .font(.footnote)
                                 .foregroundColor(.yellow)
                         }
+                        
+                        Text(String(format: "%.1f", currentAverageStarRating))
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                        
+                        Text("(\(currentReviews.count))")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
                     }
-                }
-
-                if let island = selectedIsland {
+                    
                     Button {
                         navigationPath.append(
                             AppScreen.viewAllReviews(
@@ -335,26 +219,14 @@ struct IslandModalView: View {
                         )
                         showModal = false
                     } label: {
-                        Text("View All Reviews")
-                            .font(.system(size: 16, weight: .semibold))
-                            .fontDesign(.rounded)
-                            .foregroundColor(.accentColor)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                            .background(Color.accentColor.opacity(0.1))
-                            .cornerRadius(10)
+                        Label("View All Reviews", systemImage: "text.bubble")
                     }
-                    .buttonStyle(.plain)
-                }
-
-            } else {
-                // WHEN NO REVIEWS EXIST
-                Text("No reviews available.")
-                    .font(.system(size: 16, weight: .semibold))
-                    .fontDesign(.rounded)
-                    .foregroundColor(.secondary)
-
-                if let island = selectedIsland {
+                    
+                } else {
+                    
+                    Text("No reviews yet.")
+                        .foregroundColor(.secondary)
+                    
                     Button {
                         navigationPath.append(
                             AppScreen.review(
@@ -363,41 +235,83 @@ struct IslandModalView: View {
                         )
                         showModal = false
                     } label: {
-                        Text("Be the first to write a review!")
-                            .font(.system(size: 16, weight: .semibold))
-                            .fontDesign(.rounded)
-                            .foregroundColor(.accentColor)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                            .background(Color.accentColor.opacity(0.1))
-                            .cornerRadius(10)
+                        Label("Write a Review", systemImage: "square.and.pencil")
                     }
-                    .buttonStyle(.plain)
                 }
             }
         }
-        .padding(.top, 20)
+        .listStyle(.insetGrouped)
     }
+     
+     
 
-
-
-    private var closeButton: some View {
-        Button {
-            showModal = false
+    private func scheduleSection(for island: PirateIsland) -> some View {
+        
+        let hasSchedules = (island.appDayOfWeeks as? Set<AppDayOfWeek>)?
+            .contains(where: { $0.hasMatTimes }) ?? false
+        
+        return Button {
+            if hasSchedules {
+                navigationPath.append(
+                    AppScreen.viewSchedule(
+                        island.objectID.uriRepresentation().absoluteString
+                    )
+                )
+                showModal = false
+            } else {
+                showNoScheduleAlert = true
+            }
         } label: {
-            Image(systemName: "xmark.circle.fill")
-                .font(.system(size: 24, weight: .semibold))
-                .foregroundColor(.secondary)
-                .padding(8)
+            Label("View Schedule", systemImage: "calendar")
+        }
+        .alert("Schedule Not Available",
+               isPresented: $showNoScheduleAlert) {
+            Button("Add Schedule") {
+                navigationPath.append(
+                    AppScreen.addSchedule(
+                        island.objectID.uriRepresentation().absoluteString
+                    )
+                )
+                showModal = false
+            }
+            
+            Button("Cancel", role: .cancel) { }
         }
     }
 
-    
+    private func dropInColor(for island: PirateIsland) -> Color {
+        switch island.dropInFeeStatus {
+        case .notConfirmed:
+            return .orange
+        case .noDropInFee:
+            return .red
+        case .hasFee:
+            return .green
+        }
+    }
+
+    private func toggleFavorite(for island: PirateIsland) {
+
+        guard let islandID = island.islandID else { return }
+
+        Task {
+            if favoriteManager.isFavorite(islandID: islandID) {
+                await favoriteManager.removeFavorite(islandID: islandID)
+            } else {
+                await favoriteManager.addFavorite(islandID: islandID)
+            }
+        }
+    }
+  
     private func openInMaps(address: String) {
-        let encoded = address.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-        
+
+        let encoded = address.addingPercentEncoding(
+            withAllowedCharacters: .urlQueryAllowed
+        ) ?? ""
+
         if let googleURL = URL(string: "comgooglemaps://?q=\(encoded)"),
            UIApplication.shared.canOpenURL(googleURL) {
+
             UIApplication.shared.open(googleURL)
             return
         }
@@ -416,26 +330,21 @@ struct AddScheduleWrapperView: View {
     var viewModel: AppDayOfWeekViewModel
 
     @State private var selectedIslandID: String?
-
     @State private var showAlert = false
     @State private var alertTitle = ""
     @State private var alertMessage = ""
 
-
-    // ✅ CLEAN INITIALIZER
     init(
         island: PirateIsland,
         viewModel: AppDayOfWeekViewModel
     ) {
-
         self.island = island
         self.viewModel = viewModel
 
-        // ✅ SET STATE HERE INSTEAD OF onAppear
-        _selectedIslandID =
-            State(initialValue: island.islandID)
+        _selectedIslandID = State(
+            initialValue: island.islandID
+        )
     }
-
 
     var body: some View {
 
@@ -449,9 +358,6 @@ struct AddScheduleWrapperView: View {
         ) { island, day in
 
             return nil
-
         }
-
     }
-
 }

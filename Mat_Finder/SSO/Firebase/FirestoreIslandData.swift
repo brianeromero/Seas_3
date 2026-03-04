@@ -20,6 +20,11 @@ struct FirestoreIslandData {
     let longitude: Double
     let gymWebsite: String
 
+    // ✅ NEW FIELDS
+    let hasDropInFee: Int16
+    let dropInFeeAmount: Double
+    let dropInFeeNote: String
+
     init(from island: PirateIsland) throws {
         guard let id = island.islandID, !id.isEmpty else {
             throw PirateIslandError.missingID
@@ -36,5 +41,10 @@ struct FirestoreIslandData {
         self.latitude = island.latitude
         self.longitude = island.longitude
         self.gymWebsite = island.gymWebsite?.absoluteString ?? ""
+
+        // ✅ NEW MAPPING
+        self.hasDropInFee = island.hasDropInFee
+        self.dropInFeeAmount = island.dropInFeeAmount
+        self.dropInFeeNote = island.dropInFeeNote ?? ""
     }
 }

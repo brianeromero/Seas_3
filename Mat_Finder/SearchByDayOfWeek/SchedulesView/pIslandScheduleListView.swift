@@ -40,10 +40,16 @@ struct pIslandScheduleListView: View {
                                 .font(.caption)
                                 .foregroundColor(.blue)
                         }
+
                         if matTime.kids {
                             Text("Kids Class")
                                 .font(.caption)
                                 .foregroundColor(.blue)
+                        }
+
+                        if matTime.womensOnly {
+                            Label("Women’s Only", systemImage: "person.2.fill")
+                                .foregroundColor(.pink)
                         }
                     }
                     .padding()
@@ -83,7 +89,11 @@ struct ScheduleRow: View {
             }
             Text("Good for Beginners: \(matTime.goodForBeginners ? "Yes" : "No")")
                 .font(.caption)
+
             Text("Kids: \(matTime.kids ? "Yes" : "No")")
+                .font(.caption)
+
+            Text("Women’s Only: \(matTime.womensOnly ? "Yes" : "No")")   // ✅ NEW
                 .font(.caption)
         }
         .padding(.vertical, 5)

@@ -26,6 +26,7 @@ extension MatTime {
     @NSManaged public var restrictionDescription: String?
     @NSManaged public var goodForBeginners: Bool
     @NSManaged public var kids: Bool
+    @NSManaged public var womensOnly: Bool   // ✅ ADD THIS
     @NSManaged public var createdTimestamp: Date?
     
     // ⭐ ADD IT RIGHT HERE
@@ -48,7 +49,53 @@ extension MatTime {
             "restrictionDescription": self.restrictionDescription ?? "",
             "goodForBeginners": self.goodForBeginners,
             "kids": self.kids,
+            "womensOnly": self.womensOnly,   // ✅ ADD THIS
             "createdTimestamp": self.createdTimestamp ?? Date(),
         ]
+    }
+}
+
+
+extension MatTime {
+    // Configure from a Firestore-style dictionary
+    func configure(data: [String: Any]) {
+        self.time = data["time"] as? String
+        self.type = data["type"] as? String
+        self.gi = data["gi"] as? Bool ?? false
+        self.noGi = data["noGi"] as? Bool ?? false
+        self.openMat = data["openMat"] as? Bool ?? false
+        self.restrictions = data["restrictions"] as? Bool ?? false
+        self.restrictionDescription = data["restrictionDescription"] as? String ?? ""
+        self.goodForBeginners = data["goodForBeginners"] as? Bool ?? false
+        self.kids = data["kids"] as? Bool ?? false
+        self.womensOnly = data["womensOnly"] as? Bool ?? false
+        self.id = UUID(uuidString: data["id"] as? String ?? "") ?? UUID()
+        self.createdTimestamp = data["createdTimestamp"] as? Date ?? Date()
+    }
+
+    // Direct in-app configuration
+    func configure(
+        time: String? = nil,
+        type: String? = nil,
+        gi: Bool = false,
+        noGi: Bool = false,
+        openMat: Bool = false,
+        restrictions: Bool = false,
+        restrictionDescription: String? = "",
+        goodForBeginners: Bool = false,
+        kids: Bool = false,
+        womensOnly: Bool = false   // ✅ ADD
+    ) {
+        self.time = time
+        self.type = type
+        self.gi = gi
+        self.noGi = noGi
+        self.openMat = openMat
+        self.restrictions = restrictions
+        self.restrictionDescription = restrictionDescription
+        self.goodForBeginners = goodForBeginners
+        self.kids = kids
+        self.womensOnly = womensOnly   // ✅ ADD
+
     }
 }

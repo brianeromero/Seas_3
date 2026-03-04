@@ -21,24 +21,18 @@ struct IslandModalContainer: View {
     @State private var animateModal: Bool = false
 
     var body: some View {
-        if let selectedIsland = selectedIsland {
-            IslandModalView(
-                customMapMarker: nil,
-                islandName: selectedIsland.islandName ?? "",
-                islandLocation: selectedIsland.islandLocation ?? "",
-                formattedCoordinates: selectedIsland.formattedCoordinates,
-                createdTimestamp: selectedIsland.createdTimestamp?.description ?? "No timestamp available",
-                formattedTimestamp: selectedIsland.formattedTimestamp,
-                gymWebsite: selectedIsland.gymWebsite,
-                dayOfWeekData: [],
-                selectedAppDayOfWeek: $selectedAppDayOfWeek,
-                selectedIsland: $selectedIsland,
-                viewModel: viewModel,
-                selectedDay: $selectedDay,
-                showModal: $showModal,
-                enterZipCodeViewModel: enterZipCodeViewModel,
-                navigationPath: $navigationPath
-            )
+        if let _ = selectedIsland {
+            NavigationStack {
+                IslandModalView(
+                    customMapMarker: nil,
+                    selectedAppDayOfWeek: $selectedAppDayOfWeek,
+                    selectedIsland: $selectedIsland,
+                    viewModel: viewModel,
+                    selectedDay: $selectedDay,
+                    showModal: $showModal,
+                    navigationPath: $navigationPath
+                )
+            }
             .opacity(animateModal ? 1 : 0)
             .scaleEffect(animateModal ? 1 : 0.92)
             .onAppear {
@@ -49,8 +43,6 @@ struct IslandModalContainer: View {
             .onDisappear {
                 animateModal = false
             }
-        } else {
-            EmptyView()
         }
     }
 }

@@ -15,28 +15,33 @@ import OSLog
 
 struct ReviewUtils {
  
-    static func fetchAverageRating(for island: PirateIsland, in context: NSManagedObjectContext, callerFunction: String = #function) async -> Int16 {
-        let islandID = island.objectID // Capture the objectID outside the closure
-
+    static func fetchAverageRating(
+        for island: PirateIsland,
+        in context: NSManagedObjectContext,
+        callerFunction: String = #function
+    ) async -> Double {
+        
+        let islandID = island.objectID
+        
         return await context.perform {
-            // Rehydrate the island inside the context's queue
             guard let islandInContext = try? context.existingObject(with: islandID) as? PirateIsland else {
                 os_log("❌ Failed to rehydrate PirateIsland (caller: %@)", log: logger, type: .error, callerFunction)
-                return 0
+                return 0.0
             }
 
-            let fetchRequest: NSFetchRequest<Review> = NSFetchRequest<Review>(entityName: "Review")
+            let fetchRequest: NSFetchRequest<Review> = NSFetchRequest(entityName: "Review")
             fetchRequest.predicate = NSPredicate(format: "island == %@", islandInContext)
 
             do {
-                let reviewsArray = try context.fetch(fetchRequest)
-                guard !reviewsArray.isEmpty else { return 0 }
+                let reviews = try context.fetch(fetchRequest)
+                guard !reviews.isEmpty else { return 0.0 }
 
-                let totalStars = reviewsArray.reduce(0.0) { $0 + Double($1.stars) }
-                return Int16(round(totalStars / Double(reviewsArray.count)))
+                let totalStars = reviews.reduce(0.0) { $0 + Double($1.stars) }
+                return totalStars / Double(reviews.count)
+                
             } catch {
-                os_log("❌ Error fetching reviews (caller: %@): %@", log: logger, type: .error, callerFunction, error.localizedDescription)
-                return 0
+                os_log("❌ Error fetching average rating (caller: %@): %@", log: logger, type: .error, callerFunction, error.localizedDescription)
+                return 0.0
             }
         }
     }

@@ -88,7 +88,7 @@ struct AdminMenu: View {
 
                     // Reviews Section ✅ Updated — only AllReviewsView implemented
                     sectionHeader("Manage Reviews")
-                    menuLink("View All Reviews", destination: AllReviewsView())
+                    menuLink("View All Reviews", destination: AdminReviewsView())
                     menuLink("Moderate Reviews (Coming Soon)", destination:
                         Text("Moderation tools coming soon.")
                             .font(.headline)

@@ -22,8 +22,6 @@
 		0C07B0852C2CFE6200D0BFB2 /* AdditionalGymInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0842C2CFE6200D0BFB2 /* AdditionalGymInfo.swift */; };
 		0C07B08A2C2CFEB800D0BFB2 /* DaysOfWeekFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0892C2CFEB800D0BFB2 /* DaysOfWeekFormView.swift */; };
 		0C07B08C2C2CFED400D0BFB2 /* AppDayOfWeekViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B08B2C2CFED400D0BFB2 /* AppDayOfWeekViewModel.swift */; };
-		0C07B0922C2CFF2A00D0BFB2 /* SavedConfirmationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0912C2CFF2A00D0BFB2 /* SavedConfirmationView.swift */; };
-		0C07B0942C2CFF3B00D0BFB2 /* AddClassScheduleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0932C2CFF3B00D0BFB2 /* AddClassScheduleView.swift */; };
 		0C07B0992C2CFF8500D0BFB2 /* GymMatReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0982C2CFF8500D0BFB2 /* GymMatReviewView.swift */; };
 		0C07B09C2C2CFFA500D0BFB2 /* AllEnteredLocations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B09B2C2CFFA500D0BFB2 /* AllEnteredLocations.swift */; };
 		0C07B09E2C2CFFC400D0BFB2 /* AllIslandMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B09D2C2CFFC400D0BFB2 /* AllIslandMapView.swift */; };
@@ -41,12 +39,11 @@
 		0C07B0BB2C2D018D00D0BFB2 /* Disclaimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0BA2C2D018D00D0BFB2 /* Disclaimer.swift */; };
 		0C07B0BD2C2D01AB00D0BFB2 /* FAQ.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0BC2C2D01AB00D0BFB2 /* FAQ.swift */; };
 		0C07B0D32C2D033700D0BFB2 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0D22C2D033700D0BFB2 /* AppState.swift */; };
-		0C1635512C35D686008FC297 /* ClassScheduleRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1635502C35D686008FC297 /* ClassScheduleRow.swift */; };
-		0C1635522C35D6E2008FC297 /* AddOpenMatFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0952C2CFF5A00D0BFB2 /* AddOpenMatFormView.swift */; };
-		0C1635562C361CBB008FC297 /* OpenMats (by Day of Week).swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1635552C361CBB008FC297 /* OpenMats (by Day of Week).swift */; };
 		0C1893D12C7D18F0007BFADB /* ReviewUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1893D02C7D18F0007BFADB /* ReviewUtils.swift */; };
 		0C1893D32C7F95FB007BFADB /* ViewReviewforIsland.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1893D22C7F95FB007BFADB /* ViewReviewforIsland.swift */; };
-		0C1893D52C7F9621007BFADB /* ViewScheduleforIsland.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1893D42C7F9621007BFADB /* ViewScheduleforIsland.swift */; };
+		0C1D820C2F573881002F3E8A /* ViewScheduleforIsland2.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1D820B2F57387E002F3E8A /* ViewScheduleforIsland2.swift */; };
+		0C1D820E2F574348002F3E8A /* MatTime+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1D820D2F574348002F3E8A /* MatTime+Extensions.swift */; };
+		0C1D82102F57462B002F3E8A /* ScheduleCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1D820F2F57462B002F3E8A /* ScheduleCard.swift */; };
 		0C276CCC2CC9A8FD00A6B6D6 /* Mat_FinderAppCheckProviderFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C276CA72CC9A8FD00A6B6D6 /* Mat_FinderAppCheckProviderFactory.swift */; };
 		0C2CEC9D2CBA1F5400926D0D /* IslandFormSections.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C2CEC9C2CBA1F5400926D0D /* IslandFormSections.swift */; };
 		0C2EE2AF2C9DEF110029432F /* ViewReviewSearch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C2EE2AE2C9DEF110029432F /* ViewReviewSearch.swift */; };
@@ -59,7 +56,6 @@
 		0C380A652F32B32500274EFA /* MFINDER_BOLDb.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C380A622F32B32500274EFA /* MFINDER_BOLDb.png */; };
 		0C4B34362C61A32700FD6893 /* PirateIslandDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4B34352C61A32700FD6893 /* PirateIslandDataManager.swift */; };
 		0C4F3C412C3C4645008D04B9 /* IslandScheduleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4F3C402C3C4645008D04B9 /* IslandScheduleView.swift */; };
-		0C524E8C2C2F408F008D6623 /* ExampleUsuageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C524E8B2C2F408F008D6623 /* ExampleUsuageView.swift */; };
 		0C524E8E2C2F4241008D6623 /* DayOfWeekUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C524E8D2C2F4241008D6623 /* DayOfWeekUtils.swift */; };
 		0C524E8F2C2F8592008D6623 /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0A12C2CFFFD00D0BFB2 /* LocationManager.swift */; };
 		0C524E902C2F85B5008D6623 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0C22C2D020C00D0BFB2 /* AppDelegate.swift */; };
@@ -76,7 +72,6 @@
 		0C8817752C3371B7008FE469 /* MapDetails.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8817742C3371B7008FE469 /* MapDetails.swift */; };
 		0C8AEC252C59301F00D38635 /* ScheduleFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8AEC242C59301F00D38635 /* ScheduleFormView.swift */; };
 		0C8AEC272C59679300D38635 /* AppDayOfWeekFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8AEC262C59679300D38635 /* AppDayOfWeekFormView.swift */; };
-		0C8AEC292C5C246800D38635 /* AddNewMatTimeSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8AEC282C5C246800D38635 /* AddNewMatTimeSection.swift */; };
 		0C8B5B6B2CA12CE600C5694F /* IslandSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8B5B6A2CA12CE600C5694F /* IslandSection.swift */; };
 		0C8B5B6D2CA130D700C5694F /* ReviewDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8B5B6C2CA130D700C5694F /* ReviewDetailView.swift */; };
 		0C8E21762CCDB3690093CEB3 /* MenuItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8E21752CCDB3690093CEB3 /* MenuItem.swift */; };
@@ -98,7 +93,6 @@
 		0CC8AA312DEA5476001D9E9F /* EditMatTimeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC8AA302DEA5451001D9E9F /* EditMatTimeView.swift */; };
 		0CD376E02CED4C7200491DD8 /* AdSettings+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CD376DE2CED4C7200491DD8 /* AdSettings+CoreDataClass.swift */; };
 		0CD376E12CED4C7200491DD8 /* AdSettings+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CD376DF2CED4C7200491DD8 /* AdSettings+CoreDataProperties.swift */; };
-		0CD4E2BF2C7CDA0C005082AC /* ScheduledMatTimesSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CD4E2BE2C7CDA0C005082AC /* ScheduledMatTimesSection.swift */; };
 		0CD901502CB655B50097D71F /* DoNotStorePasswords.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CD9014F2CB655B40097D71F /* DoNotStorePasswords.swift */; };
 		0CD930AB2C33D4D90051E923 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0CF13E482C2A326A00D714C0 /* Assets.xcassets */; };
 		0CD930AC2C33D4DD0051E923 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0CF13E4B2C2A326A00D714C0 /* Preview Assets.xcassets */; };
@@ -170,9 +164,6 @@
 		0C07B0842C2CFE6200D0BFB2 /* AdditionalGymInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdditionalGymInfo.swift; sourceTree = "<group>"; };
 		0C07B0892C2CFEB800D0BFB2 /* DaysOfWeekFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DaysOfWeekFormView.swift; sourceTree = "<group>"; };
 		0C07B08B2C2CFED400D0BFB2 /* AppDayOfWeekViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDayOfWeekViewModel.swift; sourceTree = "<group>"; };
-		0C07B0912C2CFF2A00D0BFB2 /* SavedConfirmationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedConfirmationView.swift; sourceTree = "<group>"; };
-		0C07B0932C2CFF3B00D0BFB2 /* AddClassScheduleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddClassScheduleView.swift; sourceTree = "<group>"; };
-		0C07B0952C2CFF5A00D0BFB2 /* AddOpenMatFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddOpenMatFormView.swift; sourceTree = "<group>"; };
 		0C07B0982C2CFF8500D0BFB2 /* GymMatReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GymMatReviewView.swift; sourceTree = "<group>"; };
 		0C07B09B2C2CFFA500D0BFB2 /* AllEnteredLocations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AllEnteredLocations.swift; sourceTree = "<group>"; };
 		0C07B09D2C2CFFC400D0BFB2 /* AllIslandMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AllIslandMapView.swift; sourceTree = "<group>"; };
@@ -200,11 +191,11 @@
 		0C07B0C92C2D022D00D0BFB2 /* flashing2.gif */ = {isa = PBXFileReference; lastKnownFileType = image.gif; path = flashing2.gif; sourceTree = "<group>"; };
 		0C07B0CA2C2D022D00D0BFB2 /* MF_little_trans .png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "MF_little_trans .png"; sourceTree = "<group>"; };
 		0C07B0D22C2D033700D0BFB2 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
-		0C1635502C35D686008FC297 /* ClassScheduleRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClassScheduleRow.swift; sourceTree = "<group>"; };
-		0C1635552C361CBB008FC297 /* OpenMats (by Day of Week).swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OpenMats (by Day of Week).swift"; sourceTree = "<group>"; };
 		0C1893D02C7D18F0007BFADB /* ReviewUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewUtils.swift; sourceTree = "<group>"; };
 		0C1893D22C7F95FB007BFADB /* ViewReviewforIsland.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewReviewforIsland.swift; sourceTree = "<group>"; };
-		0C1893D42C7F9621007BFADB /* ViewScheduleforIsland.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewScheduleforIsland.swift; sourceTree = "<group>"; };
+		0C1D820B2F57387E002F3E8A /* ViewScheduleforIsland2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewScheduleforIsland2.swift; sourceTree = "<group>"; };
+		0C1D820D2F574348002F3E8A /* MatTime+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MatTime+Extensions.swift"; sourceTree = "<group>"; };
+		0C1D820F2F57462B002F3E8A /* ScheduleCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleCard.swift; sourceTree = "<group>"; };
 		0C276CA72CC9A8FD00A6B6D6 /* Mat_FinderAppCheckProviderFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Mat_FinderAppCheckProviderFactory.swift; sourceTree = "<group>"; };
 		0C2CEC9C2CBA1F5400926D0D /* IslandFormSections.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandFormSections.swift; sourceTree = "<group>"; };
 		0C2EE2AE2C9DEF110029432F /* ViewReviewSearch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewReviewSearch.swift; sourceTree = "<group>"; };
@@ -223,7 +214,6 @@
 		0C4B34352C61A32700FD6893 /* PirateIslandDataManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PirateIslandDataManager.swift; sourceTree = "<group>"; };
 		0C4F3C402C3C4645008D04B9 /* IslandScheduleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandScheduleView.swift; sourceTree = "<group>"; };
 		0C4F6C0C2DCC26B200FCE285 /* AppAuth.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = AppAuth.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		0C524E8B2C2F408F008D6623 /* ExampleUsuageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExampleUsuageView.swift; sourceTree = "<group>"; };
 		0C524E8D2C2F4241008D6623 /* DayOfWeekUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayOfWeekUtils.swift; sourceTree = "<group>"; };
 		0C524E922C308DB9008D6623 /* AllEnteredLocationsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AllEnteredLocationsViewModel.swift; sourceTree = "<group>"; };
 		0C524E942C308E4A008D6623 /* EnterZipCodeViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnterZipCodeViewModel.swift; sourceTree = "<group>"; };
@@ -237,7 +227,6 @@
 		0C8817742C3371B7008FE469 /* MapDetails.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapDetails.swift; sourceTree = "<group>"; };
 		0C8AEC242C59301F00D38635 /* ScheduleFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleFormView.swift; sourceTree = "<group>"; };
 		0C8AEC262C59679300D38635 /* AppDayOfWeekFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDayOfWeekFormView.swift; sourceTree = "<group>"; };
-		0C8AEC282C5C246800D38635 /* AddNewMatTimeSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddNewMatTimeSection.swift; sourceTree = "<group>"; };
 		0C8B5B6A2CA12CE600C5694F /* IslandSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandSection.swift; sourceTree = "<group>"; };
 		0C8B5B6C2CA130D700C5694F /* ReviewDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewDetailView.swift; sourceTree = "<group>"; };
 		0C8E21752CCDB3690093CEB3 /* MenuItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuItem.swift; sourceTree = "<group>"; };
@@ -266,7 +255,6 @@
 		0CCA11C62C79105F003CAB7C /* Review+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Review+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		0CD376DE2CED4C7200491DD8 /* AdSettings+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AdSettings+CoreDataClass.swift"; sourceTree = "<group>"; };
 		0CD376DF2CED4C7200491DD8 /* AdSettings+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AdSettings+CoreDataProperties.swift"; sourceTree = "<group>"; };
-		0CD4E2BE2C7CDA0C005082AC /* ScheduledMatTimesSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduledMatTimesSection.swift; sourceTree = "<group>"; };
 		0CD9014F2CB655B40097D71F /* DoNotStorePasswords.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoNotStorePasswords.swift; sourceTree = "<group>"; };
 		0CDA094F2EA99E250095AA59 /* google_logo@1x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "google_logo@1x.png"; sourceTree = "<group>"; };
 		0CDA09502EA99E250095AA59 /* google_logo@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "google_logo@2x.png"; sourceTree = "<group>"; };
@@ -363,6 +351,7 @@
 		0CDA09342EA94E2C0095AA59 /* Exceptions for "Modal" folder in "Mat_Finder" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				FavoriteManager.swift,
 				IslandModalContainer.swift,
 				IslandModalView.swift,
 				Tooltip.swift,
@@ -483,12 +472,6 @@
 				0C6F7BDD2C7B146200072237 /* Extensions.swift */,
 				0C524E962C30E859008D6623 /* AppDayOfWeek+Extensions..swift */,
 				0C07B0892C2CFEB800D0BFB2 /* DaysOfWeekFormView.swift */,
-				0C07B0912C2CFF2A00D0BFB2 /* SavedConfirmationView.swift */,
-				0C524E8B2C2F408F008D6623 /* ExampleUsuageView.swift */,
-				0C07B0932C2CFF3B00D0BFB2 /* AddClassScheduleView.swift */,
-				0C07B0952C2CFF5A00D0BFB2 /* AddOpenMatFormView.swift */,
-				0C1635502C35D686008FC297 /* ClassScheduleRow.swift */,
-				0C1635552C361CBB008FC297 /* OpenMats (by Day of Week).swift */,
 				0C4F3C402C3C4645008D04B9 /* IslandScheduleView.swift */,
 				0CDF61CE2C3C9BE900A8A0BF /* IslandScheduleAsCal.swift */,
 				0CDF61D02C3CA0F400A8A0BF /* ScheduleDetailModal.swift */,
@@ -601,12 +584,11 @@
 				0CEC32812C41CA3C00F0747F /* AllpIslandScheduleView.swift */,
 				0C8AEC262C59679300D38635 /* AppDayOfWeekFormView.swift */,
 				0C8AEC242C59301F00D38635 /* ScheduleFormView.swift */,
-				0C8AEC282C5C246800D38635 /* AddNewMatTimeSection.swift */,
 				0C73776E2F4B3B5000931FBE /* AddNewMatTimeSection2.swift */,
-				0CD4E2BE2C7CDA0C005082AC /* ScheduledMatTimesSection.swift */,
-				0C1893D42C7F9621007BFADB /* ViewScheduleforIsland.swift */,
+				0C1D820B2F57387E002F3E8A /* ViewScheduleforIsland2.swift */,
 				0CC8AA302DEA5451001D9E9F /* EditMatTimeView.swift */,
 				0C7377702F4CD7A000931FBE /* ScheduleDaySelector.swift */,
+				0C1D820F2F57462B002F3E8A /* ScheduleCard.swift */,
 			);
 			path = SchedulesView;
 			sourceTree = "<group>";
@@ -737,6 +719,7 @@
 				0CF13E742C2A36B500D714C0 /* AppDayOfWeek+CoreDataProperties.swift */,
 				0CC1120D2C45F7D80066CF80 /* MatTime+CoreDataClass.swift */,
 				0CC1120E2C45F7D80066CF80 /* MatTime+CoreDataProperties.swift */,
+				0C1D820D2F574348002F3E8A /* MatTime+Extensions.swift */,
 				0CF13E772C2A36B500D714C0 /* UserInfo+CoreDataClass.swift */,
 				0CF13E782C2A36B500D714C0 /* UserInfo+CoreDataProperties.swift */,
 				0CCA11C52C79105F003CAB7C /* Review+CoreDataClass.swift */,
@@ -836,7 +819,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1540;
-				LastUpgradeCheck = 2620;
+				LastUpgradeCheck = 2630;
 				TargetAttributes = {
 					0CF13E402C2A326700D714C0 = {
 						CreatedOnToolsVersion = 15.4;
@@ -1059,9 +1042,7 @@
 				0C2CEC9D2CBA1F5400926D0D /* IslandFormSections.swift in Sources */,
 				0CEC326D2C3EFF3100F0747F /* StoryboardViewController.swift in Sources */,
 				0C00087A2CAB092B00CA5181 /* ErrorHandling.swift in Sources */,
-				0C1635562C361CBB008FC297 /* OpenMats (by Day of Week).swift in Sources */,
 				0CF13E4E2C2A326A00D714C0 /* Persistence.swift in Sources */,
-				0CD4E2BF2C7CDA0C005082AC /* ScheduledMatTimesSection.swift in Sources */,
 				0C96BE1F2DB6E53F0021ACCC /* LoggingURLProtocol.swift in Sources */,
 				0CEC32802C41A46700F0747F /* pIslandScheduleListView.swift in Sources */,
 				0C955BED2C764D9B00D03CAB /* DayOfWeekSearchView.swift in Sources */,
@@ -1072,17 +1053,19 @@
 				0C07B0A62C2D002D00D0BFB2 /* SceneLoader.swift in Sources */,
 				0C8817752C3371B7008FE469 /* MapDetails.swift in Sources */,
 				0C2EE2AF2C9DEF110029432F /* ViewReviewSearch.swift in Sources */,
-				0C8AEC292C5C246800D38635 /* AddNewMatTimeSection.swift in Sources */,
 				0C07B0B22C2D00DC00D0BFB2 /* CustomMapMarker.swift in Sources */,
 				0C6F7BDE2C7B146200072237 /* Extensions.swift in Sources */,
 				0CEC32822C41CA3C00F0747F /* AllpIslandScheduleView.swift in Sources */,
 				0CEC32792C41907200F0747F /* StoryboardViewControllerRepresentable.swift in Sources */,
+				0C1D820E2F574348002F3E8A /* MatTime+Extensions.swift in Sources */,
+				0C1D82102F57462B002F3E8A /* ScheduleCard.swift in Sources */,
 				0C6F7BD92C79193B00072237 /* Review+CoreDataClass.swift in Sources */,
 				0C07B08C2C2CFED400D0BFB2 /* AppDayOfWeekViewModel.swift in Sources */,
 				0C07B0812C2CFE3600D0BFB2 /* IslandMap.swift in Sources */,
 				0C1893D32C7F95FB007BFADB /* ViewReviewforIsland.swift in Sources */,
 				0C07B0A82C2D004900D0BFB2 /* RenderingManager.swift in Sources */,
 				0CB6E1E72EAC09F600BE4016 /* Mat_Finder.xcdatamodeld in Sources */,
+				0C1D820C2F573881002F3E8A /* ViewScheduleforIsland2.swift in Sources */,
 				0CC29C802CEC49AA00FC48F9 /* IslandDetails.swift in Sources */,
 				0C07B0AA2C2D007000D0BFB2 /* GIFBackgroundView.swift in Sources */,
 				0C524E952C308E4A008D6623 /* EnterZipCodeViewModel.swift in Sources */,
@@ -1100,11 +1083,9 @@
 				0CF13E452C2A326700D714C0 /* Mat_FinderApp.swift in Sources */,
 				0C0008862CAB420100CA5181 /* Errors.swift in Sources */,
 				0CF13E792C2A36B500D714C0 /* AppDayOfWeek+CoreDataClass.swift in Sources */,
-				0C07B0942C2CFF3B00D0BFB2 /* AddClassScheduleView.swift in Sources */,
 				0CD376E02CED4C7200491DD8 /* AdSettings+CoreDataClass.swift in Sources */,
 				0CD376E12CED4C7200491DD8 /* AdSettings+CoreDataProperties.swift in Sources */,
 				0C9B5F292E260B9100C643B7 /* DaysOfWeekFormViewModel.swift in Sources */,
-				0C1893D52C7F9621007BFADB /* ViewScheduleforIsland.swift in Sources */,
 				0CC1120F2C45F7D80066CF80 /* MatTime+CoreDataClass.swift in Sources */,
 				0CC112102C45F7D80066CF80 /* MatTime+CoreDataProperties.swift in Sources */,
 				0C1893D12C7D18F0007BFADB /* ReviewUtils.swift in Sources */,
@@ -1114,7 +1095,6 @@
 				0C00086E2CA895D600CA5181 /* SearchComponents.swift in Sources */,
 				0C8E21762CCDB3690093CEB3 /* MenuItem.swift in Sources */,
 				0CF13E7A2C2A36B500D714C0 /* AppDayOfWeek+CoreDataProperties.swift in Sources */,
-				0C1635522C35D6E2008FC297 /* AddOpenMatFormView.swift in Sources */,
 				0C4F3C412C3C4645008D04B9 /* IslandScheduleView.swift in Sources */,
 				0CDF61D12C3CA0F400A8A0BF /* ScheduleDetailModal.swift in Sources */,
 				0C8B5B6B2CA12CE600C5694F /* IslandSection.swift in Sources */,
@@ -1129,9 +1109,7 @@
 				0CD901502CB655B50097D71F /* DoNotStorePasswords.swift in Sources */,
 				0CF13E7D2C2A36B500D714C0 /* UserInfo+CoreDataClass.swift in Sources */,
 				0CEB03962C2B9B73007CA3CC /* PirateIslandViewModel.swift in Sources */,
-				0C1635512C35D686008FC297 /* ClassScheduleRow.swift in Sources */,
 				0C07B0AE2C2D00A900D0BFB2 /* SharedTypes.swift in Sources */,
-				0C07B0922C2CFF2A00D0BFB2 /* SavedConfirmationView.swift in Sources */,
 				0C4B34362C61A32700FD6893 /* PirateIslandDataManager.swift in Sources */,
 				0CF13E7E2C2A36B500D714C0 /* UserInfo+CoreDataProperties.swift in Sources */,
 				0C07B0852C2CFE6200D0BFB2 /* AdditionalGymInfo.swift in Sources */,
@@ -1152,7 +1130,6 @@
 				0C07B0A42C2D002000D0BFB2 /* EnterZipCodeView.swift in Sources */,
 				0C524E8F2C2F8592008D6623 /* LocationManager.swift in Sources */,
 				0C07B0992C2CFF8500D0BFB2 /* GymMatReviewView.swift in Sources */,
-				0C524E8C2C2F408F008D6623 /* ExampleUsuageView.swift in Sources */,
 				0C524E932C308DB9008D6623 /* AllEnteredLocationsViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1406,7 +1383,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1.1.1;
+				MARKETING_VERSION = 1.1.2;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"\"-ObjC -lc++ -lsqlite3 -lstdc++ -lz\"",
@@ -1518,7 +1495,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1.1.1;
+				MARKETING_VERSION = 1.1.2;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"\"-ObjC -lc++ -lsqlite3 -lstdc++ -lz\"",

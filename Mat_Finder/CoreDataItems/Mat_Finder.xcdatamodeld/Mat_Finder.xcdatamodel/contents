@@ -28,13 +28,17 @@
         <attribute name="restrictions" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="time" optional="YES" attributeType="String"/>
         <attribute name="type" optional="YES" attributeType="String"/>
+        <attribute name="womensOnly" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <relationship name="appDayOfWeek" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="AppDayOfWeek" inverseName="matTimes" inverseEntity="AppDayOfWeek"/>
     </entity>
     <entity name="PirateIsland" representedClassName="PirateIsland" syncable="YES">
         <attribute name="country" optional="YES" attributeType="String"/>
         <attribute name="createdByUserId" optional="YES" attributeType="String"/>
         <attribute name="createdTimestamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="dropInFeeAmount" optional="YES" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="dropInFeeNote" optional="YES" attributeType="String"/>
         <attribute name="gymWebsite" optional="YES" attributeType="URI"/>
+        <attribute name="hasDropInFee" optional="YES" attributeType="Integer 16" usesScalarValueType="YES"/>
         <attribute name="islandID" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="islandLocation" attributeType="String"/>
         <attribute name="islandName" attributeType="String"/>

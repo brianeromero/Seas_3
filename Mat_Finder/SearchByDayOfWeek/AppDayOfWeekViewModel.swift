@@ -494,21 +494,38 @@ final class AppDayOfWeekViewModel: ObservableObject {
         noGi: Bool,
         openMat: Bool,
         restrictions: Bool,
-        restrictionDescription: String? = "OOGA BOOOGA1", // Default value
+        restrictionDescription: String? = "OOGA BOOOGA1",
         goodForBeginners: Bool,
         kids: Bool,
+        womensOnly: Bool,   // ✅ ADD THIS
         for day: DayOfWeek
     ) async {
+
         guard selectedIsland != nil else {
             print("Error: Selected gym is not set. Please select a gym before adding a mat time.")
             return
         }
-        await addMatTimes(day: day, matTimes: [
-            (time: time, type: type, gi: gi, noGi: noGi, openMat: openMat, restrictions: restrictions, restrictionDescription: restrictionDescription, goodForBeginners: goodForBeginners, kids: kids)
-        ])
+
+        await addMatTimes(
+            day: day,
+            matTimes: [
+                (
+                    time: time,
+                    type: type,
+                    gi: gi,
+                    noGi: noGi,
+                    openMat: openMat,
+                    restrictions: restrictions,
+                    restrictionDescription: restrictionDescription,
+                    goodForBeginners: goodForBeginners,
+                    kids: kids,
+                    womensOnly: womensOnly   // ✅ PASS THROUGH
+                )
+            ]
+        )
+
         print("Added/Updated MatTime")
     }
-    
     
     // MARK: - Update Or Create MatTime
     func updateOrCreateMatTime(
@@ -522,6 +539,7 @@ final class AppDayOfWeekViewModel: ObservableObject {
         restrictionDescription: String,
         goodForBeginners: Bool,
         kids: Bool,
+        womensOnly: Bool,   // ✅ NEW
         for appDayOfWeekID: NSManagedObjectID
     ) async throws -> NSManagedObjectID {
 
@@ -542,30 +560,31 @@ final class AppDayOfWeekViewModel: ObservableObject {
                 )
             }
 
-
             let matTime: MatTime
 
             if let existingID = existingMatTimeID,
                let existing =
-                try? context.existingObject(with: existingID) as? MatTime {
+                    try? context.existingObject(with: existingID) as? MatTime {
 
                 matTime = existing
 
-            }
-            else {
+            } else {
 
                 matTime = MatTime(context: context)
-                matTime.createdTimestamp = Date()
-
+                matTime.createdTimestamp = Date()   // ✅ Set on create
             }
-
 
             if matTime.id == nil {
-
                 matTime.id = UUID()
-
             }
 
+            // 🔥 Optional but Smart — Protect legacy rows
+            if matTime.createdTimestamp == nil {
+                matTime.createdTimestamp = Date()
+            }
+
+            // ✅ Keep string ID mirror in sync with relationship
+            matTime.appDayOfWeekID = appDayOfWeek.appDayOfWeekID
 
             matTime.configure(
                 time: time,
@@ -576,17 +595,15 @@ final class AppDayOfWeekViewModel: ObservableObject {
                 restrictions: restrictions,
                 restrictionDescription: restrictionDescription,
                 goodForBeginners: goodForBeginners,
-                kids: kids
+                kids: kids,
+                womensOnly: womensOnly
             )
 
-
             matTime.appDayOfWeek = appDayOfWeek
-
 
             try context.save()
 
             return matTime.objectID
-
         }
     }
     // MARK: - Refresh MatTimes
@@ -717,6 +734,8 @@ final class AppDayOfWeekViewModel: ObservableObject {
             goodForBeginners: matTime.goodForBeginners,
 
             kids: matTime.kids,
+            
+            womensOnly: matTime.womensOnly,
 
             for: appDayOfWeek.objectID
         )
@@ -786,6 +805,9 @@ final class AppDayOfWeekViewModel: ObservableObject {
 
             "kids":
                 updatedMatTime.kids,
+
+            "womensOnly":                      // ✅ ADD THIS
+                updatedMatTime.womensOnly,
 
             "createdTimestamp":
                 updatedMatTime.createdTimestamp ?? Date()
@@ -1100,6 +1122,7 @@ final class AppDayOfWeekViewModel: ObservableObject {
                 "restrictionDescription": unwrappedMatTime.restrictionDescription ?? "",
                 "goodForBeginners": unwrappedMatTime.goodForBeginners,
                 "kids": unwrappedMatTime.kids,
+                "womensOnly": unwrappedMatTime.womensOnly,   // ✅ ADD THIS
                 "appDayOfWeek": appDayOfWeek.appDayOfWeekID ?? ""
             ]) { error in
                 if let error = error {
@@ -1116,46 +1139,53 @@ final class AppDayOfWeekViewModel: ObservableObject {
     
     
     // MARK: - Add Mat Time
-    func addMatTime(matTime: MatTime, for day: DayOfWeek, appDayOfWeek: AppDayOfWeek) async {
+    func addMatTime(
+        matTime: MatTime,
+        for day: DayOfWeek,
+        appDayOfWeek: AppDayOfWeek
+    ) async {
+
         print("Adding MatTime: \(matTime) for day: \(day) and appDayOfWeek: \(appDayOfWeek)")
-        
-        // Create a new MatTime object
+
+        // 1️⃣ Create new Core Data object
         let newMatTimeObject = MatTime(context: viewContext)
-        newMatTimeObject.time = matTime.time
-        newMatTimeObject.type = matTime.type
-        // Set other MatTime fields as needed
-        
-        // Assign the AppDayOfWeek to the new MatTime object
+
+        newMatTimeObject.configure(
+            time: matTime.time,
+            type: matTime.type,
+            gi: matTime.gi,
+            noGi: matTime.noGi,
+            openMat: matTime.openMat,
+            restrictions: matTime.restrictions,
+            restrictionDescription: matTime.restrictionDescription,
+            goodForBeginners: matTime.goodForBeginners,
+            kids: matTime.kids,
+            womensOnly: matTime.womensOnly   // ✅ Included
+        )
+
+        newMatTimeObject.createdTimestamp = Date()
         newMatTimeObject.appDayOfWeek = appDayOfWeek
-        
-        // Add the MatTime to the AppDayOfWeek
+
+        // 2️⃣ Attach to relationship
         appDayOfWeek.addToMatTimes(newMatTimeObject)
-        
-        // Save the context
+
+        // 3️⃣ Save Core Data
         await saveData()
-        
-        // Add to Firestore
-        firestore.collection("matTimes").addDocument(data: [
-            "time": matTime.time ?? "",
-            "type": matTime.type ?? "",
-            "gi": matTime.gi,
-            "noGi": matTime.noGi,
-            "openMat": matTime.openMat,
-            "restrictions": matTime.restrictions,
-            "restrictionDescription": matTime.restrictionDescription ?? "",
-            "goodForBeginners": matTime.goodForBeginners,
-            "kids": matTime.kids,
-            "appDayOfWeek": appDayOfWeek.appDayOfWeekID ?? ""
-        ]) { error in
-            if let error = error {
-                print("Failed to add MatTime to Firestore: \(error.localizedDescription)")
+
+        // 4️⃣ Firestore Sync (single source of truth)
+        var data = newMatTimeObject.toFirestoreData()
+        data["appDayOfWeek"] = appDayOfWeek.appDayOfWeekID ?? ""
+
+        firestore.collection("matTimes").addDocument(data: data) { error in
+            if let error {
+                print("❌ Failed to add MatTime to Firestore: \(error.localizedDescription)")
+            } else {
+                print("✅ MatTime added to Firestore")
             }
         }
-        
+
         print("Added MatTime: \(newMatTimeObject)")
     }
-    
-    
     
     // MARK: - Update Bindings
     func updateBindings() {
@@ -1230,7 +1260,7 @@ final class AppDayOfWeekViewModel: ObservableObject {
     @MainActor
     func addMatTimes(day: DayOfWeek,
                      matTimes: [(time: String, type: String, gi: Bool, noGi: Bool, openMat: Bool,
-                                 restrictions: Bool, restrictionDescription: String?, goodForBeginners: Bool, kids: Bool)]) async {
+                                 restrictions: Bool, restrictionDescription: String?, goodForBeginners: Bool, kids: Bool, womensOnly: Bool)]) async {
         
         guard let island = selectedIsland else { return }
 
@@ -1248,7 +1278,8 @@ final class AppDayOfWeekViewModel: ObservableObject {
                 restrictions: mat.restrictions,
                 restrictionDescription: mat.restrictionDescription,
                 goodForBeginners: mat.goodForBeginners,
-                kids: mat.kids
+                kids: mat.kids,
+                womensOnly: mat.womensOnly
             )
             return matTime
         }
@@ -1316,6 +1347,7 @@ final class AppDayOfWeekViewModel: ObservableObject {
                     "restrictionDescription": matTime.restrictionDescription ?? "",
                     "goodForBeginners": matTime.goodForBeginners,
                     "kids": matTime.kids,
+                    "womensOnly": matTime.womensOnly,   // ✅ ADD THIS
                     "appDayOfWeek": appDayOfWeek.appDayOfWeekID ?? ""
                 ]) { error in
                     if let error = error {
@@ -1624,29 +1656,7 @@ final class AppDayOfWeekViewModel: ObservableObject {
     
 }
 
-extension PirateIsland {
-    func configure(_ data: [String: Any]) {
-        // Use the string directly
-        if let islandIDString = data["islandID"] as? String {
-            self.islandID = islandIDString
-        } else {
-            // fallback: generate a new UUID string if missing
-            self.islandID = UUID().uuidString
-        }
 
-        self.islandName = data["islandName"] as? String
-        self.islandLocation = data["islandLocation"] as? String
-        self.country = data["country"] as? String
-
-        // Map days if needed (create AppDayOfWeek relationships)
-        if data["days"] is [String] {
-            // TODO: create or fetch AppDayOfWeek objects and associate
-        }
-    }
-    
-    
-    
-}
 
 
 extension AppDayOfWeek {
@@ -1703,46 +1713,6 @@ extension AppDayOfWeek {
     }
 }
 
-
-extension MatTime {
-    // Configure from a Firestore-style dictionary
-    func configure(data: [String: Any]) {
-        self.time = data["time"] as? String
-        self.type = data["type"] as? String
-        self.gi = data["gi"] as? Bool ?? false
-        self.noGi = data["noGi"] as? Bool ?? false
-        self.openMat = data["openMat"] as? Bool ?? false
-        self.restrictions = data["restrictions"] as? Bool ?? false
-        self.restrictionDescription = data["restrictionDescription"] as? String ?? ""
-        self.goodForBeginners = data["goodForBeginners"] as? Bool ?? false
-        self.kids = data["kids"] as? Bool ?? false
-        self.id = UUID(uuidString: data["id"] as? String ?? "") ?? UUID()
-        self.createdTimestamp = data["createdTimestamp"] as? Date ?? Date()
-    }
-
-    // Direct in-app configuration
-    func configure(
-        time: String? = nil,
-        type: String? = nil,
-        gi: Bool = false,
-        noGi: Bool = false,
-        openMat: Bool = false,
-        restrictions: Bool = false,
-        restrictionDescription: String? = "",
-        goodForBeginners: Bool = false,
-        kids: Bool = false
-    ) {
-        self.time = time
-        self.type = type
-        self.gi = gi
-        self.noGi = noGi
-        self.openMat = openMat
-        self.restrictions = restrictions
-        self.restrictionDescription = restrictionDescription
-        self.goodForBeginners = goodForBeginners
-        self.kids = kids
-    }
-}
 
 
 
