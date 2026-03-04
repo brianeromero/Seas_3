@@ -7,6 +7,8 @@
 
 import Foundation
 import SwiftUI
+
+
 struct IslandModalContainer: View {
     
     @Binding var selectedIsland: PirateIsland?
@@ -17,32 +19,36 @@ struct IslandModalContainer: View {
     @Binding var selectedAppDayOfWeek: AppDayOfWeek?
     @Binding var navigationPath: NavigationPath
     
-    // NEW — smooth fade/scale for the modal
-    @State private var animateModal: Bool = false
+    // Animation
+    @State private var animateModal = false
     
     var body: some View {
-        if let selectedIsland = selectedIsland {
-            IslandModalView(
-                customMapMarker: nil,
-                selectedAppDayOfWeek: $selectedAppDayOfWeek,
-                selectedIsland: $selectedIsland,
-                viewModel: viewModel,
-                selectedDay: $selectedDay,
-                showModal: $showModal,
-                navigationPath: $navigationPath
-            )
-            .opacity(animateModal ? 1 : 0)
-            .scaleEffect(animateModal ? 1 : 0.92)
-            .onAppear {
-                withAnimation(.easeInOut(duration: 0.25)) {
-                    animateModal = true
+        Group {
+            if selectedIsland != nil {
+                
+                IslandModalView(
+                    customMapMarker: nil,
+                    selectedAppDayOfWeek: $selectedAppDayOfWeek,
+                    selectedIsland: $selectedIsland,
+                    viewModel: viewModel,
+                    selectedDay: $selectedDay,
+                    showModal: $showModal,
+                    navigationPath: $navigationPath
+                )
+                .opacity(animateModal ? 1 : 0)
+                .scaleEffect(animateModal ? 1 : 0.92)
+                .onAppear {
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        animateModal = true
+                    }
                 }
+                .onDisappear {
+                    animateModal = false
+                }
+                
+            } else {
+                EmptyView()
             }
-            .onDisappear {
-                animateModal = false
-            }
-        } else {
-            EmptyView()
         }
     }
 }

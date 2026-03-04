@@ -54,32 +54,18 @@ struct IslandModalView: View {
             if isLoadingData {
                 ProgressView("Loading...")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+
             } else if let island = selectedIsland {
                 modalContent(island: island)
+
             } else {
                 Text("Island unavailable.")
-            }
-        }
-        .navigationTitle(selectedIsland?.safeIslandName ?? "Details")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button("Close", role: .cancel) {
-                    showModal = false
-                }
-            }
-            
-            if let island = selectedIsland {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    favoriteButton(for: island)
-                }
             }
         }
         .onAppear {
             loadIslandData()
         }
     }
-    
     // MARK: - Async loading
     private func loadIslandData() {
         isLoadingData = true
@@ -123,56 +109,108 @@ struct IslandModalView: View {
     }
      
     
-    private func favoriteButton(for island: PirateIsland) -> some View {
-        Button {
-            toggleFavorite(for: island)
-            
-            let generator = UIImpactFeedbackGenerator(style: .light)
-            generator.impactOccurred()
-            
-        } label: {
-            if let islandID = island.islandID {
-                Image(
-                    systemName:
-                        favoriteManager.isFavorite(islandID: islandID)
-                    ? "heart.fill"
-                    : "heart"
-                )
-                .foregroundColor(
-                    favoriteManager.isFavorite(islandID: islandID)
-                    ? .red
-                    : .primary
-                )
-            }
-        }
-    }
-    
-    
     
     private func modalContent(island: PirateIsland) -> some View {
         List {
-            
-            // MARK: Location Section
+
+            // MARK: Header + Drag Handle
             Section {
-                
+
+                VStack(spacing: 8) {
+
+                    Capsule()
+                        .fill(.secondary.opacity(0.35))
+                        .frame(width: 36, height: 5)
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 4)
+
+                    HStack {
+
+                        Button {
+                            showModal = false
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(.primary)
+                                .frame(width: 32, height: 32)
+                                .background(.ultraThinMaterial)
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(.plain)
+
+                        Spacer()
+
+                        if let islandID = island.islandID {
+                            
+                            Button {
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.6)) {
+                                    toggleFavorite(for: island)
+                                }
+                            } label: {
+                                Image(
+                                    systemName: favoriteManager.isFavorite(islandID: islandID)
+                                    ? "heart.fill"
+                                    : "heart"
+                                )
+                                .symbolEffect(.bounce, value: favoriteManager.isFavorite(islandID: islandID))
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(
+                                    favoriteManager.isFavorite(islandID: islandID)
+                                    ? .red
+                                    : .primary
+                                )
+                                .scaleEffect(
+                                    favoriteManager.isFavorite(islandID: islandID) ? 1.2 : 1.0
+                                )
+                                .frame(width: 32, height: 32)
+                                .background(.ultraThinMaterial)
+                                .clipShape(Circle())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+                .listRowInsets(.init())
+
                 Button {
                     openInMaps(address: island.safeIslandLocation)
                 } label: {
-                    Label(island.safeIslandLocation, systemImage: "mappin.and.ellipse")
+
+                    VStack(spacing: 6) {
+
+                        Text(island.safeIslandName)
+                            .font(.title)
+                            .fontWeight(.bold)
+
+                        Text(island.safeIslandLocation)
+                            .font(.callout)
+                            .foregroundColor(.accentColor)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .multilineTextAlignment(.center)
                 }
-                
+                .buttonStyle(.plain)
+
+
                 if let gymWebsite = island.gymWebsite {
                     Link(destination: gymWebsite) {
                         Label("Visit Website", systemImage: "globe")
                     }
                 }
+
             }
-            
-            // MARK: Fees Section
-            Section("Fees") {
+
+            // MARK: Fees
+            Section {
+
                 HStack {
-                    Text("Drop-In")
+
+                    Text("Drop-In Fees")
+                        .font(.headline)
+                        .foregroundColor(.secondary)
+
                     Spacer()
+
                     Text(island.dropInDisplayText)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
@@ -180,37 +218,47 @@ struct IslandModalView: View {
                         .foregroundColor(dropInColor(for: island))
                         .clipShape(Capsule())
                 }
+
             }
-            
-            // MARK: Schedule Section
+
+            // MARK: Schedule
             Section {
                 scheduleSection(for: island)
             }
-            
-            // MARK: Reviews Section
-            Section("Reviews") {
-                
+
+            // MARK: Reviews
+            Section {
+
                 if !currentReviews.isEmpty {
-                    
-                    HStack(spacing: 6) {
-                        
-                        let stars = StarRating.getStars(for: currentAverageStarRating)
-                        
-                        ForEach(stars, id: \.self) { icon in
-                            Image(systemName: icon)
-                                .font(.footnote)
-                                .foregroundColor(.yellow)
-                        }
-                        
-                        Text(String(format: "%.1f", currentAverageStarRating))
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                        
-                        Text("(\(currentReviews.count))")
-                            .font(.subheadline)
+
+                    HStack {
+
+                        Text("Reviews")
+                            .font(.headline)
                             .foregroundColor(.secondary)
+
+                        Spacer()
+
+                        let stars = StarRating.getStars(for: currentAverageStarRating)
+
+                        HStack(spacing: 4) {
+
+                            ForEach(stars, id: \.self) { icon in
+                                Image(systemName: icon)
+                                    .font(.footnote)
+                                    .foregroundColor(.yellow)
+                            }
+
+                            Text(String(format: "%.1f", currentAverageStarRating))
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+
+                            Text("(\(currentReviews.count))")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
                     }
-                    
+
                     Button {
                         navigationPath.append(
                             AppScreen.viewAllReviews(
@@ -219,14 +267,24 @@ struct IslandModalView: View {
                         )
                         showModal = false
                     } label: {
-                        Label("View All Reviews", systemImage: "text.bubble")
+                        Label("Read Gym Reviews", systemImage: "text.bubble")
                     }
-                    
+
                 } else {
-                    
-                    Text("No reviews yet.")
-                        .foregroundColor(.secondary)
-                    
+
+                    HStack {
+
+                        Text("Reviews")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+
+                        Spacer()
+
+                        Text("No Reviews Yet")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+
                     Button {
                         navigationPath.append(
                             AppScreen.review(
@@ -235,14 +293,15 @@ struct IslandModalView: View {
                         )
                         showModal = false
                     } label: {
-                        Label("Write a Review", systemImage: "square.and.pencil")
+                        Label("Be the First to Write a Review", systemImage: "square.and.pencil")
                     }
                 }
             }
         }
-        .listStyle(.insetGrouped)
+        .listStyle(.plain)
+        .listSectionSpacing(8)
+        .scrollContentBackground(.hidden)
     }
-     
      
 
     private func scheduleSection(for island: PirateIsland) -> some View {
@@ -264,8 +323,9 @@ struct IslandModalView: View {
         } label: {
             Label("View Schedule", systemImage: "calendar")
         }
-        .alert("Schedule Not Available",
+        .alert("No Schedule Added Yet",
                isPresented: $showNoScheduleAlert) {
+
             Button("Add Schedule") {
                 navigationPath.append(
                     AppScreen.addSchedule(
@@ -274,8 +334,11 @@ struct IslandModalView: View {
                 )
                 showModal = false
             }
-            
+
             Button("Cancel", role: .cancel) { }
+
+        } message: {
+            Text("Be the first to add this gym's schedule.")
         }
     }
 
@@ -293,6 +356,9 @@ struct IslandModalView: View {
     private func toggleFavorite(for island: PirateIsland) {
 
         guard let islandID = island.islandID else { return }
+
+        let generator = UIImpactFeedbackGenerator(style: .light)
+        generator.impactOccurred()
 
         Task {
             if favoriteManager.isFavorite(islandID: islandID) {
