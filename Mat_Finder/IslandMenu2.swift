@@ -347,107 +347,92 @@ struct IslandMenu2: View {
         }
     }
     
-    
+
     private var footerToolbar: some View {
 
-        HStack {
+        GeometryReader { geo in
 
-            Button {
-
-                if !isLoggedIn {
-
-                    alertTitle = "Login Required"
-                    alertMessage = "You must be logged in to access Favorites."
-                    showLoginAction = true
-                    showAlert = true
-                    return
-                }
-
-                if favoriteManager.favoriteIslandIDs.isEmpty {
-
-                    alertTitle = "No Favorites Yet"
-                    alertMessage = "You haven't added any favorites yet."
-                    showLoginAction = false
-                    showAlert = true
-                    return
-                }
-
-                navigationPath.append(AppScreen.favoritesMap)
-
-            } label: {
-                VStack(spacing: 4) {
-
-                    Image(systemName: "heart.fill")
-                        .font(.system(size: 20))
-                        .overlay(
-                            Group {
-                                if favoriteManager.favoriteIslandIDs.count > 0 {
-
-                                    Text("\(favoriteManager.favoriteIslandIDs.count)")
-                                        .font(.caption2)
-                                        .padding(4)
-                                        .background(.red)
-                                        .foregroundColor(.white)
-                                        .clipShape(Circle())
-                                        .offset(x: 10, y: -10)
-
-                                }
-                            }
-                        )
-
-                    Text("Favorites")
-                        .font(.caption)
-                }
-            }
-
-            Spacer()
-
-            if isLoggedIn {
-
+            HStack(spacing: min(geo.size.width * 0.15, 120)) {
                 Button {
-                    navigationPath.append(AppScreen.profile)
+
+                    if !isLoggedIn {
+
+                        alertTitle = "Login Required"
+                        alertMessage = "You must be logged in to access Favorites."
+                        showLoginAction = true
+                        showAlert = true
+                        return
+                    }
+
+                    if favoriteManager.favoriteIslandIDs.isEmpty {
+
+                        alertTitle = "No Favorites Yet"
+                        alertMessage = "You haven't added any favorites yet."
+                        showLoginAction = false
+                        showAlert = true
+                        return
+                    }
+
+                    navigationPath.append(AppScreen.favoritesMap)
+
                 } label: {
 
                     VStack(spacing: 4) {
 
-                        Image(systemName: "person.crop.circle")
+                        Image(systemName: "heart.fill")
                             .font(.system(size: 20))
 
-                        Text("Profile")
+                        Text("Favorites")
                             .font(.caption)
-
                     }
                 }
 
-            } else {
 
-                Button {
-                    navigationPath.append(AppScreen.login)
-                } label: {
+                if isLoggedIn {
 
-                    VStack(spacing: 4) {
+                    Button {
+                        navigationPath.append(AppScreen.profile)
+                    } label: {
 
-                        Image(systemName: "person.crop.circle.badge.plus")
-                            .font(.system(size: 20))
+                        VStack(spacing: 4) {
 
-                        Text("Login")
-                            .font(.caption)
+                            Image(systemName: "person.crop.circle")
+                                .font(.system(size: 20))
 
+                            Text("Profile")
+                                .font(.caption)
+                        }
+                    }
+
+                } else {
+
+                    Button {
+                        navigationPath.append(AppScreen.login)
+                    } label: {
+
+                        VStack(spacing: 4) {
+
+                            Image(systemName: "person.crop.circle.badge.plus")
+                                .font(.system(size: 20))
+
+                            Text("Login")
+                                .font(.caption)
+                        }
                     }
                 }
+
             }
+            .frame(width: min(geo.size.width * 0.9, 600))
+            .padding(.vertical, 12)
+            .padding(.horizontal, 28)
+            .background(
+                Capsule()
+                    .fill(.ultraThinMaterial)
+            )
+            .shadow(color: .black.opacity(0.12), radius: 8, y: 4)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
 
         }
-        .frame(maxWidth: 500)
-        .padding(.horizontal, 40)
-        .padding(.vertical, 12)
-        .padding(.bottom, 6)
-        .background(
-            Capsule()
-                .fill(.ultraThinMaterial)
-        )
-        .shadow(color: .black.opacity(0.12), radius: 8, y: 4)
-        .padding(.horizontal)
-        .padding(.bottom, 6)
+        .frame(height: 70)
     }
 }
