@@ -32,6 +32,7 @@ struct IslandMenu2: View {
     @State private var alertMessage = ""
     @State private var selectedIsland: PirateIsland? = nil
     @ObservedObject private var locationManager = UserLocationMapViewModel.shared
+    @ObservedObject private var favoriteManager = FavoriteManager.shared
     @State private var region: MKCoordinateRegion = MKCoordinateRegion()
     @State private var searchResults: [PirateIsland] = []
     @StateObject var appDayOfWeekViewModel: AppDayOfWeekViewModel
@@ -39,13 +40,16 @@ struct IslandMenu2: View {
 
     @State private var showToastMessage: String = ""
     @State private var isToastShown: Bool = false
+    
+    @State private var alertTitle = "Login Required"
+    @State private var showLoginAction = false
 
     // MARK: - Centralized ViewModel/Repository Instantiations
     private let appDayOfWeekRepository: AppDayOfWeekRepository
     private let enterZipCodeViewModelForAppDayOfWeek: EnterZipCodeViewModel
     private let enterZipCodeViewModelForReviews: EnterZipCodeViewModel
     private let pirateIslandViewModel: PirateIslandViewModel
-
+    
     let menuLeadingPadding: CGFloat = 20
 
     // MARK: - Initialization
@@ -84,8 +88,6 @@ struct IslandMenu2: View {
     enum IslandMenuOption: String, CaseIterable, Identifiable {
         var id: String { rawValue }
 
-        case profile = "Profile"
-        case profileLogin = "Login / Create Account" // <-- add this new case
         case empty = "" // Used as a placeholder for the first header
         case allLocations = "All Locations"
         case currentLocation = "Current Location"
@@ -100,8 +102,6 @@ struct IslandMenu2: View {
 
         var iconName: String {
             switch self {
-            case .profile: return "person.crop.circle"
-            case .profileLogin: return "person.crop.circle.fill.badge.plus" // <-- add here
             case .empty: return ""
             case .allLocations: return "map"
             case .currentLocation: return "location.fill"
@@ -139,7 +139,7 @@ struct IslandMenu2: View {
 
     // With this computed property:
     private var menuItemsFlat: [IslandMenuOption] {
-        var items: [IslandMenuOption] = [
+        [
             .empty,
             .allLocations,
             .currentLocation,
@@ -152,11 +152,6 @@ struct IslandMenu2: View {
             .submitReview,
             .faqDisclaimer
         ]
-        
-        // Dynamically add profile option depending on auth
-        items.append(.profile)  // Only one enum case
-        
-        return items
     }
 
 
@@ -176,10 +171,11 @@ struct IslandMenu2: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
+
                     ForEach(menuItemsFlat) { option in
-                        if option == .profile && !isLoggedIn {
-                            EmptyView()
-                        } else if option == .empty {
+
+                        if option == .empty {
+
                             if let header = option.dividerHeaderText {
                                 Text(header)
                                     .font(.caption)
@@ -189,15 +185,20 @@ struct IslandMenu2: View {
                                     .padding(.leading, menuLeadingPadding)
                                     .padding(.top, 8)
                             }
+
                         } else {
+
                             renderMenuItem(option)
+
                         }
 
-                        if option.needsDivider && option != .empty && !(option == .profile && !isLoggedIn) {
+                        if option.needsDivider && option != .empty {
+
                             Divider()
                                 .padding(.leading, menuLeadingPadding)
 
                             if let header = option.dividerHeaderText {
+
                                 Text(header)
                                     .font(.caption)
                                     .fontWeight(.bold)
@@ -205,6 +206,7 @@ struct IslandMenu2: View {
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .padding(.leading, menuLeadingPadding)
                                     .padding(.top, 8)
+
                             }
                         }
                     }
@@ -215,6 +217,9 @@ struct IslandMenu2: View {
             BannerView()
                 .frame(height: 50) // adjust the height as needed
                 .frame(maxWidth: .infinity, alignment: .center)
+
+            footerToolbar
+                .shadow(color: .black.opacity(0.1), radius: 4, y: -2)
         }
         .background(
             GeometryReader { geo in
@@ -234,54 +239,64 @@ struct IslandMenu2: View {
             isLoggedIn: isLoggedIn
         )
         .alert(isPresented: $showAlert) {
-            Alert(
-                title: Text("Login Required"),
-                message: Text(alertMessage),
-                primaryButton: .default(Text("Login /Create An Account")) {
-                    print("➡️ Alert Create An Account/Login tapped, appending to navigationPath")
-                    navigationPath.append(AppScreen.login)
-                },
-                secondaryButton: .cancel()
-            )
+
+            if showLoginAction {
+
+                return Alert(
+                    title: Text(alertTitle),
+                    message: Text(alertMessage),
+                    primaryButton: .default(Text("Login/Create An Account")) {
+                        navigationPath.append(AppScreen.login)
+                    },
+                    secondaryButton: .cancel()
+                )
+
+            } else {
+
+                return Alert(
+                    title: Text(alertTitle),
+                    message: Text(alertMessage),
+                    dismissButton: .default(Text("OK"))
+                )
+
+            }
         }
-
-
     }
 
     @ViewBuilder
     private func renderMenuItem(_ option: IslandMenuOption) -> some View {
-        if option == .profile {
-            if isLoggedIn {
-                // ✅ FIXED: push enum, NOT a view
-                NavigationLink(value: AppScreen.profile) {
-                    menuItemLabel(for: option)
-                }
-            } else {
-                Button {
-                    alertMessage = "You must be logged in to access your profile. Tap below to log in or create an account."
-                    showAlert = true
-                } label: {
-                    menuItemLabel(for: .profileLogin)
-                }
-            }
-        } else if restrictedItems.contains(option) && !isLoggedIn {
+
+        if restrictedItems.contains(option) && !isLoggedIn {
+
             Button {
+
                 switch option {
+
                 case .submitReview:
+                    alertTitle = "Login Required"
                     alertMessage = "You must be logged in to submit a review."
+
                 case .dayOfWeek, .addNewGym, .updateExistingGyms, .addOrEditScheduleOpenMat:
+                    alertTitle = "Login Required"
                     alertMessage = "You must be logged in to access this feature."
+
                 default:
+                    alertTitle = "Login Required"
                     alertMessage = "You must be logged in to access this feature."
                 }
+
                 showAlert = true
+
             } label: {
                 menuItemLabel(for: option, locked: true)
             }
+
         } else {
+
             NavigationLink(value: navigationDestination(for: option)) {
                 menuItemLabel(for: option)
             }
+
         }
     }
 
@@ -318,7 +333,6 @@ struct IslandMenu2: View {
     // MARK: - Navigation Destination
     private func navigationDestination(for option: IslandMenuOption) -> AppScreen {
         switch option {
-        case .profile: return .profile
         case .allLocations: return .allLocations
         case .currentLocation: return .currentLocation
         case .postalCode: return .postalCode
@@ -329,9 +343,111 @@ struct IslandMenu2: View {
         case .searchReviews: return .searchReviews
         case .submitReview: return .selectGymForReview
         case .faqDisclaimer: return .faqDisclaimer
-        case .empty: return .profile
-        case .profileLogin: return .login
+        case .empty: return .allLocations
+        }
+    }
+    
+    
+    private var footerToolbar: some View {
+
+        HStack {
+
+            Button {
+
+                if !isLoggedIn {
+
+                    alertTitle = "Login Required"
+                    alertMessage = "You must be logged in to access Favorites."
+                    showLoginAction = true
+                    showAlert = true
+                    return
+                }
+
+                if favoriteManager.favoriteIslandIDs.isEmpty {
+
+                    alertTitle = "No Favorites Yet"
+                    alertMessage = "You haven't added any favorites yet."
+                    showLoginAction = false
+                    showAlert = true
+                    return
+                }
+
+                navigationPath.append(AppScreen.favoritesMap)
+
+            } label: {
+                VStack(spacing: 4) {
+
+                    Image(systemName: "heart.fill")
+                        .font(.system(size: 20))
+                        .overlay(
+                            Group {
+                                if favoriteManager.favoriteIslandIDs.count > 0 {
+
+                                    Text("\(favoriteManager.favoriteIslandIDs.count)")
+                                        .font(.caption2)
+                                        .padding(4)
+                                        .background(.red)
+                                        .foregroundColor(.white)
+                                        .clipShape(Circle())
+                                        .offset(x: 10, y: -10)
+
+                                }
+                            }
+                        )
+
+                    Text("Favorites")
+                        .font(.caption)
+                }
+            }
+
+            Spacer()
+
+            if isLoggedIn {
+
+                Button {
+                    navigationPath.append(AppScreen.profile)
+                } label: {
+
+                    VStack(spacing: 4) {
+
+                        Image(systemName: "person.crop.circle")
+                            .font(.system(size: 20))
+
+                        Text("Profile")
+                            .font(.caption)
+
+                    }
+                }
+
+            } else {
+
+                Button {
+                    navigationPath.append(AppScreen.login)
+                } label: {
+
+                    VStack(spacing: 4) {
+
+                        Image(systemName: "person.crop.circle.badge.plus")
+                            .font(.system(size: 20))
+
+                        Text("Login")
+                            .font(.caption)
+
+                    }
+                }
+            }
 
         }
+        .frame(maxWidth: 500)
+        .padding(.horizontal, 40)
+        .padding(.vertical, 12)
+        .padding(.bottom, 6)
+        .background(
+            Capsule()
+                .fill(.ultraThinMaterial)
+        )
+        .shadow(color: .black.opacity(0.12), radius: 8, y: 4)
+        .padding(.horizontal)
+        .padding(.bottom, 6)
     }
 }

@@ -63,6 +63,7 @@
 		0C524E932C308DB9008D6623 /* AllEnteredLocationsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C524E922C308DB9008D6623 /* AllEnteredLocationsViewModel.swift */; };
 		0C524E952C308E4A008D6623 /* EnterZipCodeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C524E942C308E4A008D6623 /* EnterZipCodeViewModel.swift */; };
 		0C524E972C30E859008D6623 /* AppDayOfWeek+Extensions..swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C524E962C30E859008D6623 /* AppDayOfWeek+Extensions..swift */; };
+		0C6924882F58D95A00AE0966 /* FavoritesMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C6924872F58D95900AE0966 /* FavoritesMap.swift */; };
 		0C6F7BD92C79193B00072237 /* Review+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCA11C52C79105F003CAB7C /* Review+CoreDataClass.swift */; };
 		0C6F7BDA2C79194500072237 /* Review+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCA11C62C79105F003CAB7C /* Review+CoreDataProperties.swift */; };
 		0C6F7BDC2C7931E600072237 /* GymMatReviewSelect.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C6F7BDB2C7931E600072237 /* GymMatReviewSelect.swift */; };
@@ -218,6 +219,7 @@
 		0C524E922C308DB9008D6623 /* AllEnteredLocationsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AllEnteredLocationsViewModel.swift; sourceTree = "<group>"; };
 		0C524E942C308E4A008D6623 /* EnterZipCodeViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnterZipCodeViewModel.swift; sourceTree = "<group>"; };
 		0C524E962C30E859008D6623 /* AppDayOfWeek+Extensions..swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppDayOfWeek+Extensions..swift"; sourceTree = "<group>"; };
+		0C6924872F58D95900AE0966 /* FavoritesMap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesMap.swift; sourceTree = "<group>"; };
 		0C6CA7AD2CEFCFCE004FF120 /* AdServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AdServices.framework; path = System/Library/Frameworks/AdServices.framework; sourceTree = SDKROOT; };
 		0C6F7BDB2C7931E600072237 /* GymMatReviewSelect.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GymMatReviewSelect.swift; sourceTree = "<group>"; };
 		0C6F7BDD2C7B146200072237 /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
@@ -513,6 +515,7 @@
 				0C07B0B12C2D00DC00D0BFB2 /* CustomMapMarker.swift */,
 				0C07B0B32C2D00F300D0BFB2 /* CustomPin.swift */,
 				0CADDAB52F50C52C001C2C13 /* SwiftUIGIFView.swift */,
+				0C6924872F58D95900AE0966 /* FavoritesMap.swift */,
 			);
 			path = ALLISLANDS;
 			sourceTree = "<group>";
@@ -1092,6 +1095,7 @@
 				0C98D2C72DA5949B000583ED /* ToggleView.swift in Sources */,
 				0C276CCC2CC9A8FD00A6B6D6 /* Mat_FinderAppCheckProviderFactory.swift in Sources */,
 				0C07B0772C2CFD6700D0BFB2 /* EditExistingIsland.swift in Sources */,
+				0C6924882F58D95A00AE0966 /* FavoritesMap.swift in Sources */,
 				0C00086E2CA895D600CA5181 /* SearchComponents.swift in Sources */,
 				0C8E21762CCDB3690093CEB3 /* MenuItem.swift in Sources */,
 				0CF13E7A2C2A36B500D714C0 /* AppDayOfWeek+CoreDataProperties.swift in Sources */,

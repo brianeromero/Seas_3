@@ -36,9 +36,8 @@ enum AppScreen: Hashable, Identifiable, Codable {
 
     case viewSchedule(String)
 
-    // ✅ ADD THIS LINE
     case addSchedule(String)
-
+    case favoritesMap
 
 
     var id: String {
@@ -109,7 +108,13 @@ enum AppScreen: Hashable, Identifiable, Codable {
 
         case .islandMenu2:
             return "islandMenu2"
+            
+            
+        case .favoritesMap:
+            return "favoritesMap"
         }
+        
+        
     }
 
 
@@ -143,8 +148,8 @@ enum AppScreen: Hashable, Identifiable, Codable {
         case login
         case islandMenu2
 
-        // ✅ ADD THIS LINE
         case addSchedule
+        case favoritesMap
     }
 
 
@@ -232,11 +237,16 @@ enum AppScreen: Hashable, Identifiable, Codable {
 
         }
 
-        // ✅ ADD THIS BLOCK
         else if let id =
             try container.decodeIfPresent(String.self, forKey: .addSchedule) {
 
             self = .addSchedule(id)
+
+        }
+        
+        else if container.contains(.favoritesMap) {
+
+            self = .favoritesMap
 
         }
 
@@ -258,74 +268,82 @@ enum AppScreen: Hashable, Identifiable, Codable {
             encoder.container(keyedBy: CodingKeys.self)
 
         switch self {
-
+            
         case .review(let id):
             try container.encode(id, forKey: .review)
-
+            
         case .viewAllReviews(let id):
             try container.encode(id, forKey: .viewAllReviews)
-
+            
         case .selectGymForReview:
             try container.encodeNil(forKey: .selectGymForReview)
-
+            
         case .searchReviews:
             try container.encodeNil(forKey: .searchReviews)
-
+            
         case .profile:
             try container.encodeNil(forKey: .profile)
-
+            
         case .allLocations:
             try container.encodeNil(forKey: .allLocations)
-
+            
         case .currentLocation:
             try container.encodeNil(forKey: .currentLocation)
-
+            
         case .postalCode:
             try container.encodeNil(forKey: .postalCode)
-
+            
         case .dayOfWeek:
             try container.encodeNil(forKey: .dayOfWeek)
-
+            
         case .addNewGym:
             try container.encodeNil(forKey: .addNewGym)
-
+            
         case .updateExistingGyms:
             try container.encodeNil(forKey: .updateExistingGyms)
-
+            
         case .editExistingIsland(let id):
             try container.encode(id, forKey: .editExistingIsland)
-
+            
         case .addOrEditScheduleOpenMat:
             try container.encodeNil(forKey: .addOrEditScheduleOpenMat)
-
+            
         case .faqDisclaimer:
             try container.encodeNil(forKey: .faqDisclaimer)
-
+            
         case .aboutus:
             try container.encodeNil(forKey: .aboutus)
-
+            
         case .disclaimer:
             try container.encodeNil(forKey: .disclaimer)
-
+            
         case .faq:
             try container.encodeNil(forKey: .faq)
-
+            
         case .viewSchedule(let id):
             try container.encode(id, forKey: .viewSchedule)
-
-        // ✅ ADD THIS BLOCK
+            
+            // ✅ ADD THIS BLOCK
         case .addSchedule(let id):
             try container.encode(id, forKey: .addSchedule)
-
-
+            
+            
         case .login:
             try container.encodeNil(forKey: .login)
-
+            
         case .islandMenu2:
             try container.encodeNil(forKey: .islandMenu2)
+            
+        case .favoritesMap:
+            try container.encodeNil(forKey: .favoritesMap)
+            
+            
         }
+        
     }
 }
+
+
 enum SortType: String, CaseIterable, Identifiable {
     case latest = "Latest"
     case oldest = "Oldest"

@@ -376,6 +376,17 @@ struct AppRootDestinationView: View {
                 print("🧭 Navigating to screen: .currentLocation (ConsolidatedIslandMapView)")
             }
             
+        case .favoritesMap:
+
+            FavoritesMap(
+                viewModel: appDayOfWeekViewModel,
+                enterZipCodeViewModel: enterZipCodeViewModel,
+                navigationPath: $navigationPath
+            )
+            .onAppear {
+                print("🧭 Navigating to screen: .favoritesMap")
+            }
+            
         case .postalCode:
             // ✅ Replace the placeholder Text with EnterZipCodeView
             EnterZipCodeView(
@@ -521,6 +532,9 @@ struct AppRootDestinationView: View {
                 Text("Error: Island not found for adding schedule.")
 
             }
+            
+
+            
 
         case .islandMenu2:
             IslandMenu2(

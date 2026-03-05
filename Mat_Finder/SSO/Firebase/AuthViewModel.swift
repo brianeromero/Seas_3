@@ -162,6 +162,10 @@ class AuthViewModel: ObservableObject {
             Task {
                 await self?.updateCurrentUser(user: user)
                 self?.userSession = user
+
+                if user != nil {
+                    await FavoriteManager.shared.loadFavorites()
+                }
             }
         }
     }
