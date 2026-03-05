@@ -81,6 +81,9 @@ struct ScheduleFormView: View {
     
     @State private var editingMatTime: MatTime?
     
+    @State private var matTimePendingDelete: MatTime?
+    @State private var showDeleteConfirm = false
+    
     // MARK: BODY
     
     var body: some View {
@@ -165,6 +168,27 @@ struct ScheduleFormView: View {
             
         }
         
+        .alert(
+            "Delete Schedule",
+            isPresented: $showDeleteConfirm,
+            presenting: matTimePendingDelete
+        ) { matTime in
+
+            Button("Delete", role: .destructive) {
+                deleteMatTime(matTime)
+                matTimePendingDelete = nil
+            }
+
+            Button("Cancel", role: .cancel) { }
+
+        } message: { matTime in
+
+            let header = matTime.formattedHeader()
+            let time = matTime.time?.toTimeDate()?.toTimeString() ?? ""
+
+            Text("Are you sure you want to delete the \(header) \(time) schedule? This action cannot be undone.")
+
+        }
     }
     
     private func preloadAllDays() async {
@@ -288,10 +312,15 @@ private extension ScheduleFormView {
                                     }
 
                                     Button(role: .destructive) {
-                                        deleteMatTime(matTime)
+
+                                        matTimePendingDelete = matTime
+                                        showDeleteConfirm = true
+
                                     } label: {
+
                                         Image(systemName: "trash.circle.fill")
                                             .font(.title3)
+
                                     }
                                 }
                                 .padding(12)

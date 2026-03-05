@@ -18,14 +18,14 @@ extension MatTime {
             parts.append(day.capitalized)
         }
 
+        // Class category
         if kids {
             parts.append("Kids")
-        }
-
-        if womensOnly {
+        } else if womensOnly {
             parts.append("Women's")
         }
 
+        // Style
         if openMat {
             parts.append("Open Mat")
         } else {
@@ -36,5 +36,12 @@ extension MatTime {
         return parts.isEmpty
             ? (type ?? "Class")
             : parts.joined(separator: " ")
+    }
+    
+    func scheduleType() -> String {
+        if noGi { return "NoGi" }
+        if gi { return "Gi" }
+        if openMat { return "Open Mat" }
+        return "Class"
     }
 }
