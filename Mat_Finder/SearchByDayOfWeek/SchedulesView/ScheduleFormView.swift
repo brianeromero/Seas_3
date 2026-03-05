@@ -80,8 +80,6 @@ struct ScheduleFormView: View {
     @State private var showReview = false
     
     @State private var editingMatTime: MatTime?
-    @State private var showEditSheet = false
-    
     
     // MARK: BODY
     
@@ -94,7 +92,8 @@ struct ScheduleFormView: View {
                 scheduleListSection
             }
         }
-        .padding()
+        .padding(.horizontal)
+        .padding(.top)
         .background(Color(.systemGroupedBackground))
         .navigationTitle("Schedule")
 
@@ -140,13 +139,20 @@ struct ScheduleFormView: View {
             }
         }
 
-        .sheet(isPresented: $showEditSheet) {
-            if let editingMatTime {
-                EditMatTimeView(
-                    matTime: editingMatTime,
-                    viewModel: viewModel
-                )
+        .sheet(item: $editingMatTime, onDismiss: {
+
+            editingMatTime = nil
+
+            Task {
+                await preloadAllDays()
             }
+
+        }) { matTime in
+
+            EditMatTimeView(
+                matTime: matTime,
+                viewModel: viewModel
+            )
         }
         
         .alert(isPresented: $showingAlert) {
@@ -266,24 +272,30 @@ private extension ScheduleFormView {
                 } else {
 
                     ForEach(matTimes, id: \.objectID) { matTime in
+
                         ScheduleCard(matTime: matTime, island: island)
 
-                        HStack {
-                            Spacer()
+                            .overlay(alignment: .topTrailing) {
 
-                            Button {
-                                editingMatTime = matTime
-                                showEditSheet = true
-                            } label: {
-                                Image(systemName: "pencil")
-                            }
+                                HStack(spacing: 12) {
 
-                            Button(role: .destructive) {
-                                deleteMatTime(matTime)
-                            } label: {
-                                Image(systemName: "trash")
+                                    Button {
+                                        editingMatTime = matTime
+                                    } label: {
+                                        Image(systemName: "pencil.circle.fill")
+                                            .font(.title3)
+                                            .foregroundColor(.blue)
+                                    }
+
+                                    Button(role: .destructive) {
+                                        deleteMatTime(matTime)
+                                    } label: {
+                                        Image(systemName: "trash.circle.fill")
+                                            .font(.title3)
+                                    }
+                                }
+                                .padding(12)
                             }
-                        }
                     }
 
                     Text("Click the button below to edit or add schedule.")
@@ -426,5 +438,23 @@ struct CornerRadiusStyle: ViewModifier {
 extension View {
     func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
         self.modifier(CornerRadiusStyle(radius: radius, corners: corners))
+    }
+}
+
+
+struct Badge: View {
+
+    let text: String
+    let color: Color
+
+    var body: some View {
+
+        Text(text)
+            .font(.caption)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(color.opacity(0.15))
+            .foregroundColor(color)
+            .clipShape(Capsule())
     }
 }

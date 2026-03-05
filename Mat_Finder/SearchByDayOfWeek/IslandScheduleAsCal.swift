@@ -129,7 +129,7 @@ struct MatTimeRow: View {
 
     var body: some View {
         VStack(alignment: .leading) {
-            Text(matTime.time ?? "")
+            Text(displayTime)
                 .font(.headline)
 
             Text("Gi: \(matTime.gi ? "Yes" : "No"), No Gi: \(matTime.noGi ? "Yes" : "No"), Open Mat: \(matTime.openMat ? "Yes" : "No")")
@@ -148,13 +148,34 @@ struct MatTimeRow: View {
                     .font(.body)
             }
 
-            if matTime.womensOnly {   // ✅ NEW
+            if matTime.womensOnly {
                 Text("Women’s Only")
                     .font(.body)
                     .foregroundColor(.pink)
             }
         }
     }
+
+    // ✅ MOVED HERE
+    private var displayTime: String {
+
+        guard let time = matTime.time,
+              let date = AppDateFormatter.stringToDate(time) else {
+            return matTime.time ?? ""
+        }
+
+        return AppDateFormatter.twelveHour.string(from: date)
+    }
+}
+
+private func displayTime(for matTime: MatTime) -> String {
+
+    guard let time = matTime.time,
+          let date = AppDateFormatter.stringToDate(time) else {
+        return matTime.time ?? ""
+    }
+
+    return AppDateFormatter.twelveHour.string(from: date)
 }
 
 private func scheduleView(for schedule: AppDayOfWeek) -> some View {
@@ -166,13 +187,13 @@ private func scheduleView(for schedule: AppDayOfWeek) -> some View {
             Spacer()
             // Add any other properties from AppDayOfWeek if needed
         }
-
+        
         // Iterate over MatTime objects associated with the schedule
         if let matTimes = schedule.matTimes as? Set<MatTime> {
             ForEach(Array(matTimes), id: \.id) { matTime in
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        Text("Time: \(matTime.time ?? "Unknown time")")
+                        Text("Time: \(displayTime(for: matTime))")
                             .font(.subheadline)
                             .foregroundColor(.primary)
                         Spacer()
@@ -183,14 +204,14 @@ private func scheduleView(for schedule: AppDayOfWeek) -> some View {
                     HStack {
                         Label("Gi", systemImage: matTime.gi ? "checkmark.circle.fill" : "xmark.circle")
                             .foregroundColor(matTime.gi ? .green : .red)
-
+                        
                         Label("NoGi", systemImage: matTime.noGi ? "checkmark.circle.fill" : "xmark.circle")
                             .foregroundColor(matTime.noGi ? .green : .red)
-
+                        
                         Label("Open Mat", systemImage: matTime.openMat ? "checkmark.circle.fill" : "xmark.circle")
                             .foregroundColor(matTime.openMat ? .green : .red)
                     }
-
+                    
                     if matTime.womensOnly {   // ✅ NEW
                         Label("Women’s Only", systemImage: "person.2.fill")
                             .foregroundColor(.pink)
@@ -214,7 +235,11 @@ private func scheduleView(for schedule: AppDayOfWeek) -> some View {
     .padding()
     .background(Color(UIColor.secondarySystemBackground))
     .cornerRadius(8)
+
+
 }
+
+
 
 
 struct EventView: View {

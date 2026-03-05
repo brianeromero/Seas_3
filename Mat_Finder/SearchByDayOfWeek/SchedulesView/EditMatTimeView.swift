@@ -58,7 +58,7 @@ struct EditMatTimeView: View {
     }
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 Section(header: Text("Time")) {
                     DatePicker("Select Time", selection: $selectedTime, displayedComponents: .hourAndMinute)
@@ -91,7 +91,9 @@ struct EditMatTimeView: View {
                 trailing: Button("Save") { saveChanges() }
             )
             .alert("Mat Time Updated", isPresented: $showSuccessAlert) {
-                Button("OK") { dismiss() }
+                Button("OK") {
+                    dismiss()
+                }
             } message: {
                 Text("Your changes were saved successfully.")
             }

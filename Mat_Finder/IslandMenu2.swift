@@ -353,6 +353,7 @@ struct IslandMenu2: View {
         GeometryReader { geo in
 
             HStack(spacing: min(geo.size.width * 0.15, 120)) {
+
                 Button {
 
                     if !isLoggedIn {
@@ -379,8 +380,15 @@ struct IslandMenu2: View {
 
                     VStack(spacing: 4) {
 
-                        Image(systemName: "heart.fill")
-                            .font(.system(size: 20))
+                        ZStack(alignment: .topTrailing) {
+
+                            Image(systemName: "heart.fill")
+                                .font(.system(size: 20))
+
+                            BadgeView(count: favoriteManager.favoriteIslandIDs.count)
+                                .offset(x: 10, y: -8)
+                                .animation(.spring(response: 0.3, dampingFraction: 0.6), value: favoriteManager.favoriteIslandIDs.count)
+                        }
 
                         Text("Favorites")
                             .font(.caption)
@@ -434,5 +442,29 @@ struct IslandMenu2: View {
 
         }
         .frame(height: 70)
+    }
+}
+
+
+struct BadgeView: View {
+
+    let count: Int
+
+    private var displayText: String {
+        count > 99 ? "99+" : "\(count)"
+    }
+
+    var body: some View {
+
+        if count > 0 {
+
+            Text(displayText)
+                .font(.system(size: 10, weight: .bold))
+                .foregroundColor(.white)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 4)
+                .background(Color.red)
+                .clipShape(Capsule())
+        }
     }
 }
