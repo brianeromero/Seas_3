@@ -30,6 +30,7 @@ public class IslandDetails: ObservableObject, Equatable {
     @Published var hasDropInFee: HasDropInFee = .notConfirmed { didSet { validateForm() } }
     @Published var dropInFeeAmount: Double = 0 { didSet { validateForm() } }
     @Published var dropInFeeNote: String = "" { didSet { validateForm() } }
+    @Published var dropInFeeType: String? = "Per Class" { didSet { validateForm() } }
 
     @Published var neighborhood: String = "" { didSet { validateForm() } }
     @Published var complement: String = "" { didSet { validateForm() } }
@@ -121,7 +122,8 @@ public class IslandDetails: ObservableObject, Equatable {
         islandID: String? = nil,
         hasDropInFee: HasDropInFee = .notConfirmed,
         dropInFeeAmount: Double = 0,
-        dropInFeeNote: String = ""
+        dropInFeeNote: String = "",
+        dropInFeeType: String? = "Per Class"
     ) {
         self.islandName = islandName
         self.street = street
@@ -142,6 +144,7 @@ public class IslandDetails: ObservableObject, Equatable {
         self.hasDropInFee = hasDropInFee
         self.dropInFeeAmount = dropInFeeAmount
         self.dropInFeeNote = dropInFeeNote
+        self.dropInFeeType = dropInFeeType
 
         validateForm()
     }
@@ -234,7 +237,8 @@ public class IslandDetails: ObservableObject, Equatable {
         lhs.islandID == rhs.islandID && // ADD THIS FOR EQUATABLE
         lhs.hasDropInFee == rhs.hasDropInFee &&
         lhs.dropInFeeAmount == rhs.dropInFeeAmount &&
-        lhs.dropInFeeNote == rhs.dropInFeeNote
+        lhs.dropInFeeNote == rhs.dropInFeeNote &&
+        lhs.dropInFeeType == rhs.dropInFeeType
     }
 
 }

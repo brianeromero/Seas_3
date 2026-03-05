@@ -8,6 +8,11 @@ import CoreData
 import CoreLocation
 import MapKit
 
+enum ViewMode {
+    case map
+    case list
+}
+
 struct AllEnteredLocations: View {
 
     @StateObject var viewModel: AllEnteredLocationsViewModel
@@ -21,6 +26,10 @@ struct AllEnteredLocations: View {
     @State private var selectedAppDayOfWeek: AppDayOfWeek?
 
     @Binding var navigationPath: NavigationPath
+    
+    @State private var viewMode: ViewMode = .map
+    
+    @State private var searchText: String = ""
 
 
     // ✅ KEEP YOUR INIT
@@ -97,14 +106,40 @@ struct AllEnteredLocations: View {
             }
             else {
 
-                // ✅ THIS IS THE ONLY THING YOU REPLACED
-                IslandMKMapView(
-                    islands: viewModel.allIslands,
-                    selectedIsland: $selectedIsland,
-                    showModal: $showModal,
-                    region: currentRegion
-                )
-                .id(viewModel.allIslands.map(\.objectID))
+                if viewMode == .map {
+
+                    IslandMKMapView(
+                        islands: viewModel.allIslands,
+                        selectedIsland: $selectedIsland,
+                        showModal: $showModal,
+                        region: currentRegion
+                    )
+                    .id(viewModel.allIslands.map(\.objectID))
+
+                } else {
+
+                    VStack(spacing: 12) {
+
+                        SearchHeader()
+
+                        SearchBar(text: $searchText)
+
+                        IslandList(
+                            islands: viewModel.allIslands,
+                            selectedIsland: $selectedIsland,
+                            searchText: $searchText,
+                            navigationDestination: .viewReviewForIsland,
+                            title: "",
+                            onIslandChange: { island in
+                                selectedIsland = island
+                            },
+                            navigationPath: $navigationPath,
+                            showSuccessToast: .constant(false),
+                            successToastMessage: .constant(""),
+                            successToastType: .constant(.success)
+                        )
+                    }
+                }
             }
         }
 
@@ -119,8 +154,20 @@ struct AllEnteredLocations: View {
             ) {
 
                 Text("All Gyms")
-                    .font(.headline)
+                    .font(.title)
                     .fontWeight(.bold)
+            }
+            
+            ToolbarItem(placement: .topBarTrailing) {
+
+                Button {
+
+                    viewMode = viewMode == .map ? .list : .map
+
+                } label: {
+
+                    Image(systemName: viewMode == .map ? "list.bullet" : "map")
+                }
             }
         }
 

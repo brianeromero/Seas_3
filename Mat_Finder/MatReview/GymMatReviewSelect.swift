@@ -51,40 +51,7 @@ struct GymMatReviewSelect: View {
                 .foregroundColor(.secondary)
         }
     }
-
-    // MARK: - REMOVE Helper for Navigation Destinations
-    // You no longer need `destinationView` here, as AppRootDestinationView handles all AppScreen types.
-    /*
-    @ViewBuilder
-    private func destinationView(for screen: AppScreen) -> some View {
-        switch screen {
-        case .review(let island):
-            GymMatReviewView(localSelectedIsland: .constant(island))
-                .environmentObject(authViewModel)
-                .environmentObject(enterZipCodeViewModel)
-                .environment(\.managedObjectContext, viewContext)
-
-        case .viewAllReviews(let island):
-            ViewReviewforIsland(
-                showReview: .constant(true),
-                selectedIsland: island,
-                navigationPath: $navigationPath
-            )
-            .environmentObject(authViewModel)
-            .environmentObject(enterZipCodeViewModel)
-            .environment(\.managedObjectContext, viewContext)
-
-        case .selectGymForReview:
-            // This case is problematic if it tries to push itself.
-            // If you need to return to the root of this view, you'd manipulate navigationPath directly.
-            GymMatReviewSelect(selectedIsland: $selectedIsland, navigationPath: $navigationPath)
-                .environmentObject(authViewModel)
-                .environmentObject(enterZipCodeViewModel)
-                .environment(\.managedObjectContext, viewContext)
-        }
-    }
-    */
-
+ 
     var body: some View {
         VStack(alignment: .leading) {
             Text("Search by: Gym name, Postal Code, or Address/Location")

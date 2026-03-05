@@ -176,24 +176,27 @@ struct IslandList: View {
     }
 
     var filteredIslands: [PirateIsland] {
+
+        let filtered: [PirateIsland]
+
         if searchText.isEmpty {
-            return islands
+            filtered = islands
         } else {
-            return islands.filter { island in
-                island.islandName?.lowercased().contains(searchText.lowercased()) ?? false ||
-                island.islandLocation?.lowercased().contains(searchText.lowercased()) ?? false
+            filtered = islands.filter { island in
+                island.safeIslandName
+                    .localizedCaseInsensitiveContains(searchText) ||
+                island.safeIslandLocation
+                    .localizedCaseInsensitiveContains(searchText)
             }
+        }
+
+        return filtered.sorted {
+            $0.safeIslandName.localizedCaseInsensitiveCompare($1.safeIslandName) == .orderedAscending
         }
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) { // ✅ spacing: 0 for no space between elements
-            // The title is now part of this view's layout, not the parent's navigationTitle.
-            Text(title)
-                .font(.title2)
-                .bold()
-                .padding(.horizontal, 16) // Padding for title
-                .padding(.bottom, 8) // Spacing below title
+        VStack(spacing: 0) {
 
             List {
                 ForEach(filteredIslands, id: \.objectID) { island in // ✅ Use .objectID for stable identity

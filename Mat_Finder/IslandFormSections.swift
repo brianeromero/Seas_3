@@ -12,7 +12,15 @@ enum FocusedField: Hashable {
     case website
 }
 
+enum DropInFeeType: String, CaseIterable, Identifiable {
+    case perClass = "Per Class"
+    case dayPass = "Day Pass"
+    case weekPass = "Week Pass"
+    case donation = "Donation"
+    case other = "Other"
 
+    var id: String { rawValue }
+}
 
 // MARK: - Country Address Format
 struct CountryAddressFormat {
@@ -251,44 +259,84 @@ struct IslandFormSections: View {
     
     // MARK: - Drop-In Section
     var dropInSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
 
-            Text("Drop-In Policy")
+        VStack(alignment: .leading, spacing: 16) {
+
+            Text("Drop-In Fee")
                 .font(.headline)
 
             Picker("Drop-In Status", selection: $islandDetails.hasDropInFee) {
-                Text("Needs Confirmation").tag(HasDropInFee.notConfirmed)
-                Text("No Drop-Ins").tag(HasDropInFee.noDropInFee)
-                Text("Has Drop-In Fee").tag(HasDropInFee.hasFee)
+
+                Text("Needs Confirmation")
+                    .tag(HasDropInFee.notConfirmed)
+
+                Text("No Drop-In Fee")
+                    .tag(HasDropInFee.noDropInFee)
+
+                Text("Fee Required")
+                    .tag(HasDropInFee.hasFee)
+
             }
             .pickerStyle(.segmented)
 
             if islandDetails.hasDropInFee == .hasFee {
 
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 12) {
 
-                    Text("Drop-In Fee Amount")
-                        .font(.subheadline)
+                    // Amount
+                    VStack(alignment: .leading, spacing: 4) {
+
+                        Text("Amount")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+
+                        TextField(
+                            "Enter Amount",
+                            value: $islandDetails.dropInFeeAmount,
+                            format: .number
+                        )
+                        .keyboardType(.decimalPad)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                    }
+
+                    // Fee Type
+                    VStack(alignment: .leading, spacing: 4) {
+
+                        Text("Fee Type")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+
+                        Picker("Fee Type", selection: $islandDetails.dropInFeeType.defaultValue("Per Class")) {
+                            
+                            ForEach(DropInFeeType.allCases) { type in
+                                Text(type.rawValue)
+                                    .tag(type.rawValue)
+                            }
+
+                        }
+                        .pickerStyle(.menu)
+                    }
+
+                    // Notes
+                    VStack(alignment: .leading, spacing: 4) {
+
+                        Text("Additional Notes (Optional)")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+
+                        TextField(
+                            "Example: Covers all classes for the day",
+                            text: $islandDetails.dropInFeeNote
+                        )
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                    }
+                    
+                    Text("Examples: Covers whole day, First class free, Cash only")
+                        .font(.caption)
                         .foregroundColor(.secondary)
 
-                    TextField(
-                        "Enter Amount",
-                        value: $islandDetails.dropInFeeAmount,
-                        format: .currency(code: Locale.current.currency?.identifier ?? "USD")
-                    )
-                    .keyboardType(.decimalPad)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-
-                    Text("Additional Notes (Optional)")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-
-                    TextField(
-                        "Enter Notes",
-                        text: $islandDetails.dropInFeeNote
-                    )
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
                 }
+                .padding(.top, 4)
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
