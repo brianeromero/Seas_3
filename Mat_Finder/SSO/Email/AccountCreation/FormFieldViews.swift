@@ -282,7 +282,7 @@ struct GymInformationSection: View {
                 city: $islandDetails.city,
                 state: $islandDetails.state,
                 postalCode: $islandDetails.postalCode,
-                islandDetails: $islandDetails,
+                islandDetails: islandDetails,
                 selectedCountry: $islandDetails.selectedCountry,
                 gymWebsite: $gymWebsite,
                 gymWebsiteURL: $gymWebsiteURL,

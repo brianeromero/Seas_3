@@ -148,6 +148,7 @@ extension AddNewMatTimeSection2 {
 
         }
         .pickerStyle(.segmented)
+        .tint(.accentColor)
         .animation(.easeInOut, value: classType)
     }
 

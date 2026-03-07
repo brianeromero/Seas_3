@@ -11,7 +11,7 @@ import SwiftUI
 struct CountryPicker: View {
     @Binding var selectedCountry: Country?
     @State private var isPickerPresented = false
-    @StateObject var countryService = CountryService()
+    @ObservedObject var countryService = CountryService.shared
     @State private var requiredFields: [AddressFieldType] = []
 
     var body: some View {

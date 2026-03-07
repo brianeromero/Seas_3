@@ -41,6 +41,7 @@ public struct AddNewIsland: View {
     @State private var showValidationMessage = false
     @State private var missingFields: [String] = []
 
+    @State private var isSaving = false
 
     // Body
     public var body: some View {
@@ -150,7 +151,7 @@ public struct AddNewIsland: View {
             city: $islandDetails.city,
             state: $islandDetails.state,
             postalCode: $islandDetails.postalCode,
-            islandDetails: $islandDetails,
+            islandDetails: islandDetails,
             selectedCountry: $islandDetails.selectedCountry,
             gymWebsite: $gymWebsite,
             gymWebsiteURL: $gymWebsiteURL,
@@ -211,23 +212,25 @@ public struct AddNewIsland: View {
         .padding(.top, 20)
     }
 
-
     private var saveButton: some View {
         Button(action: {
+            guard !isSaving else { return }
+            isSaving = true
+
             os_log("Save button clicked", log: OSLog.default, type: .info)
 
             Task {
+                defer { isSaving = false }
+
                 let requiredFields = islandDetails.requiredAddressFields
 
                 let missing = requiredFields
                     .filter { !isValidField($0) }
                     .map { $0.rawValue }
 
-                // 🔴 trigger inline validation
                 self.missingFields = missing
                 self.showValidationMessage = true
 
-                // ✅ ADD THIS RIGHT HERE
                 let isIslandNameEmpty =
                     islandDetails.islandName
                         .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -250,7 +253,7 @@ public struct AddNewIsland: View {
                 }
             }
         }) {
-            Text("Save")
+            Text(isSaving ? "Saving..." : "Save")
                 .font(.headline)
                 .frame(maxWidth: .infinity)
                 .padding()
@@ -259,9 +262,9 @@ public struct AddNewIsland: View {
                 .cornerRadius(12)
                 .shadow(color: Color.black.opacity(0.15), radius: 4, x: 0, y: 2)
         }
+        .disabled(isSaving)
+        .opacity(isSaving ? 0.6 : 1)
     }
-
-
 
     private var cancelButton: some View {
         Button(action: {
@@ -403,7 +406,7 @@ public struct AddNewIsland: View {
             if case .geocodingError(let underlyingError) = error {
                 print("Underlying geocoding error: \(underlyingError)")
             }
-            toastMessage = "Error saving island: \(error.localizedDescription)"
+            toastMessage = error.localizedDescription
             showToast = true
 
         } catch {

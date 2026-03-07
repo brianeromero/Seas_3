@@ -27,7 +27,7 @@ public enum PirateIslandError: Error {
         case .invalidInput:
             return "Invalid input"
         case .islandExists:
-            return "Island already exists"
+            return "A gym with this name already exists at this location."
         case .geocodingError(let message):
             return "Geocoding error: \(message)"
         case .savingError(let message):
@@ -35,7 +35,7 @@ public enum PirateIslandError: Error {
         case .fieldMissing(let field):
             return "\(field) is required"
         case .islandNameMissing:
-            return "Island name is missing"
+            return "Gym name is missing"
         case .streetMissing:
             return "Street address is missing"
         case .cityMissing:
@@ -47,14 +47,13 @@ public enum PirateIslandError: Error {
         case .invalidGymWebsite:
             return "Confirm website validity"
         case .missingID:
-            return "PirateIsland is missing a valid islandID"
+            return "Gym is missing a valid ID"
         }
     }
 }
 
 @MainActor
 public class PirateIslandViewModel: ObservableObject {
-    @Published var coordinates: CLLocationCoordinate2D?
     @Published var selectedDestination: IslandDestination?
     let logger = OSLog(subsystem: "Mat_Finder.Subsystem", category: "CoreData")
     
@@ -86,26 +85,47 @@ public class PirateIslandViewModel: ObservableObject {
         )
 
         // Step 1: Validate
-        let isValid = try validateIslandDetails(islandDetails, createdByUserId, country, selectedCountry)
-        guard isValid else { throw PirateIslandError.invalidInput }
+        let isValid = try validateIslandDetails(
+            islandDetails,
+            createdByUserId,
+            country,
+            selectedCountry
+        )
+
+        guard isValid else {
+            throw PirateIslandError.invalidInput
+        }
 
         // Step 2: Update country
         islandDetails.country = country
 
-        // Step 3: Check for duplicates
-        guard await !pirateIslandExists(name: islandDetails.islandName) else {
-            os_log("Island already exists: %@", log: self.logger, type: .error, islandDetails.islandName)
+        // Step 3: Geocode address
+        let coordinates = try await geocodeAddress(
+            islandDetails.fullAddress.cleanedForGeocoding
+        )
+
+        // Step 4: Duplicate check (name + coordinates)
+        guard await !pirateIslandExists(
+            name: islandDetails.islandName,
+            latitude: coordinates.latitude,
+            longitude: coordinates.longitude
+        ) else {
+
+            os_log(
+                "Island already exists: %@",
+                log: self.logger,
+                type: .error,
+                islandDetails.islandName
+            )
+
             throw PirateIslandError.islandExists
         }
 
-        // Step 4: Geocode
-        let coordinates = try await geocodeAddress(islandDetails.fullAddress.cleanedForGeocoding)
+        // Step 5: Create NSManagedObject in background context
+        let backgroundContext = persistenceController.newBackgroundContext()
 
-        // Step 5: Create NSManagedObject in a background context
-        let backgroundContext =
-        persistenceController.newBackgroundContext()
-
-        // ✅ Thread-safe copies
+        // Thread-safe copies
+        // Thread-safe copies
         let islandName = islandDetails.islandName
         let fullAddress = islandDetails.fullAddress
         let countryName = selectedCountry.name.common
@@ -114,10 +134,16 @@ public class PirateIslandViewModel: ObservableObject {
         let websiteURL = islandDetails.gymWebsiteURL
         let createdBy = createdByUserId
 
-        var newIslandObjectID: NSManagedObjectID!
+        let hasDropInFee = islandDetails.hasDropInFee
+        let dropInFeeAmount = islandDetails.dropInFeeAmount
+        let dropInFeeNote = islandDetails.dropInFeeNote
 
+        var newIslandObjectID: NSManagedObjectID?
+        
         try await backgroundContext.perform {
+
             let newIsland = PirateIsland(context: backgroundContext)
+
             newIsland.islandID = UUID().uuidString
             newIsland.islandName = islandName
             newIsland.islandLocation = fullAddress
@@ -129,48 +155,72 @@ public class PirateIslandViewModel: ObservableObject {
             newIsland.lastModifiedByUserId = createdBy
             newIsland.lastModifiedTimestamp = Date()
 
-            // Gym website
-            if let websiteURL = websiteURL, !websiteURL.absoluteString.isEmpty {
+            // MARK: - Drop-In Fee
+            newIsland.hasDropInFee = Int16(hasDropInFee.rawValue)
+
+            if hasDropInFee == .hasFee {
+
+                newIsland.dropInFeeAmount = dropInFeeAmount
+                newIsland.dropInFeeNote = dropInFeeNote
+
+            } else {
+
+                newIsland.dropInFeeAmount = 0
+                newIsland.dropInFeeNote = nil
+            }
+
+            // MARK: - Website
+
+            if let websiteURL = websiteURL,
+               !websiteURL.absoluteString.isEmpty {
+
                 guard websiteURL.absoluteString.isValidURL() else {
-                    os_log("Invalid gym website URL: %@", log: self.logger, type: .error, websiteURL.absoluteString)
+
+                    os_log(
+                        "Invalid gym website URL: %@",
+                        log: self.logger,
+                        type: .error,
+                        websiteURL.absoluteString
+                    )
+
                     throw PirateIslandError.invalidGymWebsite
                 }
+
                 newIsland.gymWebsite = websiteURL
             }
 
             try backgroundContext.save()
+
             newIslandObjectID = newIsland.objectID
         }
 
-        // Step 6: Fetch on main context safely and upload to Firestore
+        // Step 6: Fetch safely on main context
 
         let viewContext = persistenceController.viewContext
 
+        guard let newIslandObjectID else {
+            throw PirateIslandError.savingError("Failed to obtain objectID after save")
+        }
 
-        let mainContextIsland =
-        try await viewContext.perform {
+        let mainContextIsland = try await viewContext.perform {
 
             try viewContext.existingObject(
                 with: newIslandObjectID
             ) as! PirateIsland
         }
 
+        // Step 7: Upload to Firestore
 
-        let islandData =
-        try FirestoreIslandData(from: mainContextIsland)
-
+        let islandData = try FirestoreIslandData(from: mainContextIsland)
 
         try await FirestoreManager.shared.saveIslandToFirestore(
-
             islandData: islandData,
             selectedCountry: selectedCountry,
             createdByUser: createdByUser
         )
 
-
         return mainContextIsland
     }
-
 
     // MARK: - Save to Firestore
     @MainActor
@@ -267,25 +317,60 @@ public class PirateIslandViewModel: ObservableObject {
     }
 
     // MARK: - Check Existing Islands
-    func pirateIslandExists(name: String) async -> Bool {
+    func pirateIslandExists(
+        name: String,
+        latitude: Double,
+        longitude: Double,
+        excludingID: String? = nil
+    ) async -> Bool {
+
         let context = persistenceController.viewContext
-        let logger = self.logger
 
         return await context.perform {
-            let fetchRequest = PirateIsland.fetchRequest()
-            fetchRequest.predicate = NSPredicate(format: "islandName ==[c] %@", name)
-            fetchRequest.fetchLimit = 1
+
+            let fetchRequest: NSFetchRequest<PirateIsland> = PirateIsland.fetchRequest()
+            fetchRequest.fetchLimit = 10
+
+            let latMin = latitude - 0.002
+            let latMax = latitude + 0.002
+            let lonMin = longitude - 0.002
+            let lonMax = longitude + 0.002
+
+            var predicates: [NSPredicate] = [
+
+                NSPredicate(
+                    format: "latitude >= %lf AND latitude <= %lf AND longitude >= %lf AND longitude <= %lf",
+                    latMin, latMax, lonMin, lonMax
+                )
+            ]
+
+            if let excludingID {
+                predicates.append(NSPredicate(format: "islandID != %@", excludingID))
+            }
+
+            fetchRequest.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
 
             do {
-                let count = try context.count(for: fetchRequest)
-                return count > 0
+
+                let nearbyGyms = try context.fetch(fetchRequest)
+
+                for gym in nearbyGyms {
+
+                    guard let existingName = gym.islandName else { continue }
+
+                    if namesMatch(name, existingName) {
+                        return true
+                    }
+                }
+
+                return false
+
             } catch {
-                os_log("Error checking existing islands: %@", log: logger, error.localizedDescription)
+                os_log("Error checking existing islands: %@", error.localizedDescription)
                 return false
             }
         }
     }
-
     // MARK: - Update Pirate Island
     func updatePirateIsland(id: String, data: [String: Any]) async throws {
         if FirestoreManager.shared.disabled { return }
@@ -333,6 +418,7 @@ public class PirateIslandViewModel: ObservableObject {
 
 // MARK: - String Helpers
 extension String {
+
     func capitalizingFirstLetter() -> String {
         prefix(1).uppercased() + dropFirst()
     }
@@ -344,9 +430,77 @@ extension String {
     }
 
     func isValidURL() -> Bool {
-        guard let url = URL(string: self), UIApplication.shared.canOpenURL(url) else {
+        guard let url = URL(string: self),
+              ["http","https"].contains(url.scheme?.lowercased() ?? "") else {
             return false
         }
         return true
     }
+}
+// MARK: - Gym Name Matching
+
+let gymAbbreviations: [String: String] = [
+    "aoj": "art of bjj",
+    "10p": "10th planet",
+    "btt": "brazilian top team",
+    "cta": "combat team",
+    "atos": "atos bjj",
+    "gb": "gracie barra",
+    "tt": "team tompkins",
+    "checkmat": "checkmat bjj"
+]
+
+func namesMatch(_ name1: String, _ name2: String) -> Bool {
+
+    let normalized1 = normalizeGymName(name1)
+    let normalized2 = normalizeGymName(name2)
+
+    if normalized1 == normalized2 {
+        return true
+    }
+
+    if normalized1.contains(normalized2) || normalized2.contains(normalized1) {
+        return true
+    }
+
+    // Initialism detection
+    if gymInitials(normalized1) == normalized2 ||
+       gymInitials(normalized2) == normalized1 ||
+       gymInitials(normalized1) == gymInitials(normalized2) {
+        return true
+    }
+
+    return false
+}
+
+func gymInitials(_ name: String) -> String {
+    name
+        .split(separator: " ")
+        .compactMap { $0.first }
+        .map { String($0) }
+        .joined()
+        .lowercased()
+}
+
+func normalizeGymName(_ name: String) -> String {
+
+    var normalized = name
+        .lowercased()
+        .replacingOccurrences(of: "-", with: " ")
+        .replacingOccurrences(of: ".", with: "")
+        .replacingOccurrences(of: "brazilian jiu jitsu", with: "bjj")
+        .replacingOccurrences(of: "jiu jitsu", with: "bjj")
+        .replacingOccurrences(of: "jiu-jitsu", with: "bjj")
+        .replacingOccurrences(of: "jits", with: "bjj")
+        .replacingOccurrences(of: "jj", with: "bjj")
+        .replacingOccurrences(of: "academy", with: "")
+        .replacingOccurrences(of: "team", with: "")
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+
+    // Apply abbreviation expansion
+    if let expanded = gymAbbreviations[normalized] {
+        normalized = expanded
+    }
+
+    return normalized
 }

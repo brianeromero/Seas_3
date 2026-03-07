@@ -10,51 +10,51 @@ import CoreData
 
 
 struct ContentView: View {
+
     @EnvironmentObject var persistenceController: PersistenceController
+
     @StateObject private var viewModel: PirateIslandViewModel
     @StateObject private var profileViewModel = ProfileViewModel()
 
-    
     private let authViewModel = AuthViewModel.shared
 
     // MARK: - UI State
     @State private var showAddIslandForm = false
-    @State private var sortByName = false   // ✅ New state for sorting
-
-    // MARK: - Gym Fields
-    @State private var islandName = ""
-    @State private var createdByUserId = ""
-    @State private var gymWebsite = ""
-    @State private var gymWebsiteURL: URL?
-    @State private var islandLocation = ""
-    @State private var street = ""
-    @State private var city = ""
-    @State private var state = ""
-    @State private var zip = ""
-    @State private var selectedCountry: Country?
+    @State private var sortByName = false
+    @State private var newIslandDetails = IslandDetails()
 
     // MARK: - Fetched Results
     @FetchRequest(
         entity: PirateIsland.entity(),
         sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.islandName, ascending: true)]
-    ) private var pirateIslands: FetchedResults<PirateIsland>
+    )
+    private var pirateIslands: FetchedResults<PirateIsland>
 
     // MARK: - Init
     init(persistenceController: PersistenceController) {
-        _viewModel = StateObject(wrappedValue: PirateIslandViewModel(persistenceController: persistenceController))
+        _viewModel = StateObject(
+            wrappedValue: PirateIslandViewModel(
+                persistenceController: persistenceController
+            )
+        )
     }
 
     // MARK: - Body
     var body: some View {
+
         NavigationStack {
+
             VStack {
-                // ✅ Sort toggle
+
+                // Sort toggle
                 Toggle("Sort by Name", isOn: $sortByName)
                     .padding(.horizontal)
                     .toggleStyle(SwitchToggleStyle(tint: .blue))
 
                 List {
+
                     ForEach(sortedIslands(), id: \.self) { island in
+
                         NavigationLink(
                             destination: IslandDetailView(
                                 island: island,
@@ -68,55 +68,70 @@ struct ContentView: View {
                 }
                 .navigationTitle("Gyms")
                 .toolbar {
+
                     ToolbarItem(placement: .navigationBarTrailing) {
+
                         Button {
+
+                            // Reset form every time user opens sheet
+                            newIslandDetails = IslandDetails()
+
                             showAddIslandForm.toggle()
+
                         } label: {
+
                             Label("Add Gym", systemImage: "plus")
+
                         }
                         .accessibilityLabel("Add Gym")
                     }
                 }
                 .sheet(isPresented: $showAddIslandForm) {
-                    AddIslandFormView(
-                        islandViewModel: viewModel,
-                        profileViewModel: profileViewModel,
-                        authViewModel: authViewModel,
-                        islandDetails: IslandDetails(
-                            islandName: islandName,
-                            street: street,
-                            city: city,
-                            state: state,
-                            postalCode: zip,
-                            selectedCountry: selectedCountry,
-                            country: selectedCountry?.name.common ?? "US"
-                        )
+
+                    AddNewIsland(
+                        navigationPath: .constant(NavigationPath()),
+                        islandDetails: $newIslandDetails
                     )
-                    .environment(\.managedObjectContext, persistenceController.viewContext)
+                    .environment(\.managedObjectContext,
+                                  persistenceController.viewContext)
+                    .environmentObject(viewModel)
+                    .environmentObject(profileViewModel)
+                    .environmentObject(authViewModel)
                 }
             }
         }
-        .navigationViewStyle(StackNavigationViewStyle()) // iPhone-style on iPad
+        .navigationViewStyle(StackNavigationViewStyle())
     }
 
-    // MARK: - Helper for Sorting
+    // MARK: - Sorting
     private func sortedIslands() -> [PirateIsland] {
+
         let islandsArray = Array(pirateIslands)
+
         if sortByName {
-            return islandsArray.sorted { ($0.islandName ?? "") < ($1.islandName ?? "") }
+            return islandsArray.sorted {
+                ($0.islandName ?? "") < ($1.islandName ?? "")
+            }
         } else {
-            return islandsArray.sorted { ($0.createdTimestamp ?? Date()) < ($1.createdTimestamp ?? Date()) }
+            return islandsArray.sorted {
+                ($0.createdTimestamp ?? Date()) <
+                ($1.createdTimestamp ?? Date())
+            }
         }
     }
 
-    // MARK: - Subviews
+    // MARK: - Row View
     private func islandRowView(island: PirateIsland) -> some View {
+
         VStack(alignment: .leading, spacing: 4) {
+
             Text(island.islandName ?? "Unknown Gym")
                 .font(.headline)
-            Text(island.islandLocation ?? "Unknown Location") // ✅ show location
+
+            Text(island.islandLocation ?? "Unknown Location")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
+
             Text("Added: \(island.formattedTimestamp)")
                 .font(.caption)
                 .foregroundColor(.secondary)
@@ -124,15 +139,23 @@ struct ContentView: View {
         .padding(.vertical, 4)
     }
 
-    // MARK: - Actions
+    // MARK: - Delete
     private func deleteItems(at offsets: IndexSet) {
+
         for index in offsets {
+
             let island = pirateIslands[index]
+
             Task {
+
                 do {
+
                     try await viewModel.deletePirateIsland(island)
+
                     print("🗑️ Deleted island \(island.islandName ?? "") successfully")
+
                 } catch {
+
                     print("❌ Error deleting island: \(error.localizedDescription)")
                 }
             }

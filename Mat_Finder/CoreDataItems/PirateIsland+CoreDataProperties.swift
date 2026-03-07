@@ -50,6 +50,16 @@ extension PirateIsland {
     @NSManaged public var hasDropInFee: Int16
     @NSManaged public var dropInFeeAmount: Double
     @NSManaged public var dropInFeeNote: String?
+    
+    
+    var dropInFeeStatus: HasDropInFee {
+        get {
+            HasDropInFee(rawValue: hasDropInFee) ?? .notConfirmed
+        }
+        set {
+            hasDropInFee = newValue.rawValue
+        }
+    }
 
     // MARK: - Relationships
     
@@ -210,22 +220,18 @@ extension PirateIsland {
         self.country = data["country"] as? String
 
         // 🔥 NEW FIELDS
-        let raw = Int16(data["hasDropInFee"] as? Int ?? 0)
+        let raw = Int16(data["hasDropInFee"] as? Int ?? -1)
         self.dropInFeeStatus = HasDropInFee(rawValue: raw) ?? .notConfirmed
         self.dropInFeeAmount = data["dropInFeeAmount"] as? Double ?? 0
         self.dropInFeeNote = data["dropInFeeNote"] as? String
 
+        // ⭐ AUTO-FIX LEGACY RECORDS (2800 gyms)
+        if dropInFeeStatus == .noDropInFee && dropInFeeAmount == 0 && dropInFeeNote == nil {
+            dropInFeeStatus = .notConfirmed
+        }
+
         if data["days"] is [String] {
             // TODO: create or fetch AppDayOfWeek objects and associate
-        }
-    }
-    
-    var dropInFeeStatus: HasDropInFee {
-        get {
-            HasDropInFee(rawValue: hasDropInFee) ?? .notConfirmed
-        }
-        set {
-            hasDropInFee = newValue.rawValue
         }
     }
     

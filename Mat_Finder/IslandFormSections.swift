@@ -12,15 +12,7 @@ enum FocusedField: Hashable {
     case website
 }
 
-enum DropInFeeType: String, CaseIterable, Identifiable {
-    case perClass = "Per Class"
-    case dayPass = "Day Pass"
-    case weekPass = "Week Pass"
-    case donation = "Donation"
-    case other = "Other"
 
-    var id: String { rawValue }
-}
 
 // MARK: - Country Address Format
 struct CountryAddressFormat {
@@ -56,7 +48,7 @@ struct IslandFormSections: View {
     @Binding var state: String
     @Binding var postalCode: String
 
-    @Binding var islandDetails: IslandDetails
+    @ObservedObject var islandDetails: IslandDetails
     @Binding var selectedCountry: Country?
     @Binding var gymWebsite: String
     @Binding var gymWebsiteURL: URL?
@@ -151,7 +143,7 @@ struct IslandFormSections: View {
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                 
-                TextField("Enter Gym Name", text: validatedBinding(for: \.islandName))
+                TextField("Enter Gym Name", text: $islandDetails.islandName)
                     .focused($focusedField, equals: .gymName)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
             }
@@ -258,90 +250,16 @@ struct IslandFormSections: View {
     }
     
     // MARK: - Drop-In Section
+    
     var dropInSection: some View {
 
-        VStack(alignment: .leading, spacing: 16) {
-
-            Text("Drop-In Fee")
-                .font(.headline)
-
-            Picker("Drop-In Status", selection: $islandDetails.hasDropInFee) {
-
-                Text("Needs Confirmation")
-                    .tag(HasDropInFee.notConfirmed)
-
-                Text("No Drop-In Fee")
-                    .tag(HasDropInFee.noDropInFee)
-
-                Text("Fee Required")
-                    .tag(HasDropInFee.hasFee)
-
-            }
-            .pickerStyle(.segmented)
-
-            if islandDetails.hasDropInFee == .hasFee {
-
-                VStack(alignment: .leading, spacing: 12) {
-
-                    // Amount
-                    VStack(alignment: .leading, spacing: 4) {
-
-                        Text("Amount")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-
-                        TextField(
-                            "Enter Amount",
-                            value: $islandDetails.dropInFeeAmount,
-                            format: .number
-                        )
-                        .keyboardType(.decimalPad)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                    }
-
-                    // Fee Type
-                    VStack(alignment: .leading, spacing: 4) {
-
-                        Text("Fee Type")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-
-                        Picker("Fee Type", selection: $islandDetails.dropInFeeType.defaultValue("Per Class")) {
-                            
-                            ForEach(DropInFeeType.allCases) { type in
-                                Text(type.rawValue)
-                                    .tag(type.rawValue)
-                            }
-
-                        }
-                        .pickerStyle(.menu)
-                    }
-
-                    // Notes
-                    VStack(alignment: .leading, spacing: 4) {
-
-                        Text("Additional Notes (Optional)")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-
-                        TextField(
-                            "Example: Covers all classes for the day",
-                            text: $islandDetails.dropInFeeNote
-                        )
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                    }
-                    
-                    Text("Examples: Covers whole day, First class free, Cash only")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-
-                }
-                .padding(.top, 4)
-                .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-        }
+        DropInFeeSection(
+            hasDropInFee: $islandDetails.hasDropInFee,
+            feeAmount: $islandDetails.dropInFeeAmount,
+            feeNote: $islandDetails.dropInFeeNote,
+        )
     }
-
+    
     private func getValue(for field: AddressFieldType) -> String {
         switch field {
         case .street: return islandDetails.street
@@ -394,15 +312,18 @@ struct IslandFormSections: View {
             !islandDetails.islandName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
-    private func validatedBinding(for keyPath: WritableKeyPath<IslandDetails, String>) -> Binding<String> {
+    private func validatedBinding(for keyPath: ReferenceWritableKeyPath<IslandDetails, String>) -> Binding<String> {
         Binding(
-            get: { islandDetails[keyPath: keyPath] },
+            get: {
+                islandDetails[keyPath: keyPath]
+            },
             set: { newValue in
                 islandDetails[keyPath: keyPath] = newValue
                 validateForm()
             }
         )
     }
+    
 
     // MARK: - Address Fields
     func requiredFields(for country: Country?) -> [AddressFieldType] {

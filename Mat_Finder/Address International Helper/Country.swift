@@ -10,18 +10,17 @@ import Foundation
 import SwiftUI
 
 public struct Country: Codable, Hashable, Identifiable {
-    // Only for SwiftUI List usage
-    public var id = UUID() // generated locally, not from JSON
+
+    public var id: String { cca2 }
 
     let name: Name
     let cca2: String
-    let flag: String? // optional to avoid decoding errors
+    let flag: String?
 
     public struct Name: Codable, Hashable {
         let common: String
     }
 
-    // CodingKeys to ignore `id` during decoding/encoding
     private enum CodingKeys: String, CodingKey {
         case name, cca2, flag
     }

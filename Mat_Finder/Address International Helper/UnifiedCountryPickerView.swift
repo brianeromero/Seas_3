@@ -124,21 +124,3 @@ struct CountryPickerSheetView: View {
     }
 }
 
-
-
-struct UnifiedCountryPickerView_Previews: PreviewProvider {
-    static var previews: some View {
-        let countries = [
-            Country(name: Country.Name(common: "United States"), cca2: "US", flag: ""),
-            Country(name: Country.Name(common: "Canada"), cca2: "CA", flag: "")
-        ]
-        let countryService = CountryService()
-        countryService.countries = countries
-        
-        return UnifiedCountryPickerView(
-            countryService: countryService,
-            selectedCountry: .constant(countries.first),
-            isPickerPresented: .constant(false)
-        )
-    }
-}

@@ -11,11 +11,7 @@ import CoreData
 import FirebaseFirestore
 
 
-enum HasDropInFee: Int16 {
-    case notConfirmed = 0
-    case noDropInFee = 1
-    case hasFee = 2
-}
+
 
 struct AppDayOfWeekFormView: View {
     @Environment(\.managedObjectContext) private var viewContext

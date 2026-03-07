@@ -31,7 +31,7 @@ public class IslandDetails: ObservableObject, Equatable {
     @Published var dropInFeeAmount: Double = 0 { didSet { validateForm() } }
     @Published var dropInFeeNote: String = "" { didSet { validateForm() } }
     @Published var dropInFeeType: String? = "Per Class" { didSet { validateForm() } }
-
+    
     @Published var neighborhood: String = "" { didSet { validateForm() } }
     @Published var complement: String = "" { didSet { validateForm() } }
     @Published var block: String = "" { didSet { validateForm() } }
