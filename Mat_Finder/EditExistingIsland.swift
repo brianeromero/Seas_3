@@ -205,17 +205,19 @@ public struct EditExistingIsland: View {
             )
         }
         .onAppear {
+            loadIslandData()
+
             Task {
                 await countryService.fetchCountries()
+
                 os_log("Countries loaded: %{public}d",
                        log: OSLog.default,
                        type: .info,
                        countryService.countries.count)
+
+                selectStoredCountry()
             }
-
-            loadIslandData()
         }
-
         .onChange(of: countryService.countries) { _, _ in
             selectStoredCountry()
         }
@@ -223,24 +225,62 @@ public struct EditExistingIsland: View {
 
     private func selectStoredCountry() {
         guard islandDetails.selectedCountry == nil else { return }
-        guard let code = island.country else { return }
 
-        if let country = countryService.countries.first(where: { $0.cca2 == code }) {
+        guard let storedValueRaw = island.country else {
+            os_log("No stored country value", log: OSLog.default, type: .info)
+            return
+        }
+
+        let storedValue = storedValueRaw
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        os_log("Looking for stored country value: %{public}@",
+               log: OSLog.default,
+               type: .info,
+               storedValue)
+
+        if let country = countryService.countries.first(where: {
+            $0.cca2.caseInsensitiveCompare(storedValue) == .orderedSame ||
+            $0.name.common.caseInsensitiveCompare(storedValue) == .orderedSame
+        }) {
+
+            os_log("Matched country: %{public}@",
+                   log: OSLog.default,
+                   type: .info,
+                   country.name.common)
+
             islandDetails.selectedCountry = country
-            originalSelectedCountryCCA2 = code
+            originalSelectedCountryCCA2 = country.cca2
+
+        } else {
+
+            os_log("No country match found for: %{public}@",
+                   log: OSLog.default,
+                   type: .error,
+                   storedValue)
         }
     }
-    
 
     // MARK: - Helper Methods
     private func loadIslandData() {
         os_log("EditExistingIsland Appeared", log: OSLog.default, type: .info)
 
+        os_log("Stored country in CoreData: %{public}@",
+               log: OSLog.default,
+               type: .info,
+               island.country ?? "nil")
+
+        originalSelectedCountryCCA2 = island.country?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .uppercased()
+
         // Initialize islandDetails from Core Data
         islandDetails.islandName = island.islandName?
             .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
 
-        islandDetails.multilineAddress = island.islandLocation ?? ""
+        islandDetails.multilineAddress = island.islandLocation?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
         islandDetails.latitude = island.latitude
         islandDetails.longitude = island.longitude
         islandDetails.gymWebsite = island.gymWebsite?.absoluteString ?? ""
