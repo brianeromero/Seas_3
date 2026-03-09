@@ -423,6 +423,7 @@ public struct AddNewIsland: View {
         islandDetails.state = ""
         islandDetails.postalCode = ""
         islandDetails.selectedCountry = nil
+
         islandDetails.neighborhood = ""
         islandDetails.complement = ""
         islandDetails.block = ""
@@ -432,9 +433,16 @@ public struct AddNewIsland: View {
         islandDetails.governorate = ""
         islandDetails.province = ""
         islandDetails.additionalInfo = ""
+
         gymWebsite = ""
         islandDetails.gymWebsite = ""
         gymWebsiteURL = nil
+
+        // ✅ Reset Drop-In Fee state
+        islandDetails.hasDropInFee = .notConfirmed
+        islandDetails.dropInFeeAmount = 0
+        islandDetails.dropInFeeNote = ""
+        islandDetails.dropInFeeType = "Per Class"
     }
 }
 
