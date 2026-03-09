@@ -116,6 +116,7 @@ struct EnterZipCodeView: View {
                 islands: enterZipCodeViewModel.pirateIslands,
                 selectedIsland: $selectedIsland,
                 showModal: $showModal,
+                selectedRadius: 5.0,   // ✅ ADD THIS
                 region: enterZipCodeViewModel.region,
                 onRegionChanged: { newRegion in
 

@@ -89,6 +89,7 @@ struct FavoritesMap: View {
                     islands: favoriteIslands,
                     selectedIsland: $selectedIsland,
                     showModal: $showModal,
+                    selectedRadius: 5.0,
                     region: cameraPosition.region ?? defaultRegion
                 )
                 .overlay(alignment: .topTrailing) {

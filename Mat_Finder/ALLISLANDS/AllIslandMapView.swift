@@ -105,10 +105,23 @@ struct ConsolidatedIslandMapView: View {
 
             if locationManager.userLocation != nil {
 
-                makeMapView()
+                ZStack {
+
+                    makeMapView()
+
+                    VStack {
+                        Spacer()
+
+                        HStack {
+                            Spacer()
+
+                            recenterButton()
+                        }
+                        .padding()
+                    }
+                }
 
                 makeRadiusPicker()
-
             } else {
 
                 ProgressView("Fetching user location…")
@@ -162,8 +175,10 @@ struct ConsolidatedIslandMapView: View {
             islands: Array(islands),
             selectedIsland: $selectedIsland,
             showModal: $showModal,
+            selectedRadius: selectedRadius,
             region: cameraPosition.region ?? defaultRegion
         )
+        
     }
 
 
@@ -328,6 +343,26 @@ struct ConsolidatedIslandMapView: View {
         cameraPosition =
             .region(region)
     }
+    
+    private func recenterButton() -> some View {
+
+        Button {
+
+            guard let location = locationManager.userLocation else { return }
+
+            updateRegion(location, radius: selectedRadius)
+
+        } label: {
+
+            Image(systemName: "location.fill")
+                .font(.system(size: 22))
+                .foregroundStyle(.blue)
+                .padding(10)
+                .background(.ultraThinMaterial)
+                .clipShape(Circle())
+                .shadow(color: .black.opacity(0.25), radius: 6, y: 3)
+        }
+    }
 
 }
 
@@ -339,6 +374,9 @@ struct IslandMKMapView: UIViewRepresentable {
 
     @Binding var selectedIsland: PirateIsland?
     @Binding var showModal: Bool
+    
+    var selectedRadius: Double     // ✅ ADD THIS
+
 
     var region: MKCoordinateRegion
 
@@ -368,6 +406,7 @@ struct IslandMKMapView: UIViewRepresentable {
         mapView.isRotateEnabled = false
         mapView.isPitchEnabled = false
         mapView.showsCompass = false
+        mapView.showsScale = false
 
         return mapView
     }
@@ -375,12 +414,10 @@ struct IslandMKMapView: UIViewRepresentable {
 
     func updateUIView(_ mapView: MKMapView, context: Context) {
 
-        // Deselect pin when modal closes
         if !showModal {
             context.coordinator.deselectAllAnnotations(mapView)
         }
 
-        // Only update annotations if dataset changed
         let islandIDs = Set(
             islands.map {
                 $0.islandID ?? $0.objectID.uriRepresentation().absoluteString
@@ -397,12 +434,9 @@ struct IslandMKMapView: UIViewRepresentable {
             context.coordinator.lastIslandIDs = islandIDs
         }
 
-        if !context.coordinator.isSameRegion(region) {
-
-            mapView.setRegion(region, animated: true)
-
-            context.coordinator.lastRegion = region
-        }
+        // ✅ Always update region
+        mapView.setRegion(region, animated: true)
+        context.coordinator.lastRegion = region
     }
     
     func makeCoordinator() -> Coordinator {
@@ -524,32 +558,43 @@ struct IslandMKMapView: UIViewRepresentable {
             didSelect view: MKAnnotationView
         ) {
 
+            // Prevent user location from showing the avatar callout
+            if view.annotation is MKUserLocation {
+
+                if let userLocation = mapView.userLocation.location {
+
+                    let meters = parent.selectedRadius * 1609.34
+
+                    let region = MKCoordinateRegion(
+                        center: userLocation.coordinate,
+                        latitudinalMeters: meters,
+                        longitudinalMeters: meters
+                    )
+
+                    mapView.setRegion(region, animated: true)
+                }
+
+                mapView.deselectAnnotation(view.annotation, animated: false)
+                return
+            }
+
             if let cluster = view.annotation as? MKClusterAnnotation {
 
                 let region = MKCoordinateRegion(
                     center: cluster.coordinate,
                     span: MKCoordinateSpan(
-                        latitudeDelta:
-                            mapView.region.span.latitudeDelta / 2,
-
-                        longitudeDelta:
-                            mapView.region.span.longitudeDelta / 2
+                        latitudeDelta: mapView.region.span.latitudeDelta / 2,
+                        longitudeDelta: mapView.region.span.longitudeDelta / 2
                     )
                 )
 
                 mapView.setRegion(region, animated: true)
-
                 return
             }
 
-
-            guard let annotation =
-                view.annotation as? IslandAnnotation
-            else { return }
-
+            guard let annotation = view.annotation as? IslandAnnotation else { return }
 
             parent.selectedIsland = annotation.island
-
             parent.showModal = true
         }
         

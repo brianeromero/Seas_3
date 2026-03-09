@@ -112,10 +112,11 @@ struct AllEnteredLocations: View {
                         islands: viewModel.allIslands,
                         selectedIsland: $selectedIsland,
                         showModal: $showModal,
+                        selectedRadius: 5.0,
                         region: currentRegion
                     )
-                    .id(viewModel.allIslands.map(\.objectID))
-
+                    .id(viewModel.allIslands.count)
+                    
                 } else {
 
                     VStack(spacing: 12) {

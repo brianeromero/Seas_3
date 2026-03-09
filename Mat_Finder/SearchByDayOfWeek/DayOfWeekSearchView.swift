@@ -46,6 +46,7 @@ struct DayOfWeekSearchView: View {
                     islands: viewModel.islandsWithMatTimes.map(\.0),
                     selectedIsland: $selectedIsland,
                     showModal: $showModal,
+                    selectedRadius: 5.0,   // ✅ fixed radius
                     region: region
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
