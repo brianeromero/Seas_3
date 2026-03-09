@@ -203,22 +203,34 @@ struct IslandModalView: View {
             // MARK: Fees
             Section {
 
-                HStack {
+                VStack(alignment: .leading, spacing: 6) {
 
-                    Text("Drop-In Fees")
-                        .font(.headline)
-                        .foregroundColor(.secondary)
+                    HStack {
 
-                    Spacer()
+                        Text("Drop-In Fees")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
 
-                    Text(island.dropInDisplayText)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(dropInColor(for: island).opacity(0.15))
-                        .foregroundColor(dropInColor(for: island))
-                        .clipShape(Capsule())
+                        Spacer()
+
+                        Text(island.dropInDisplayText)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 4)
+                            .background(dropInColor(for: island).opacity(0.15))
+                            .foregroundColor(dropInColor(for: island))
+                            .clipShape(Capsule())
+                    }
+
+                    if island.dropInFeeAmount > 0,
+                       let note = island.dropInFeeNote,
+                       !note.trimmingCharacters(in: .whitespaces).isEmpty {
+
+                        Text(note)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
-
             }
 
             // MARK: Schedule

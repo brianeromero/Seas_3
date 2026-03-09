@@ -106,7 +106,6 @@ extension PirateIsland {
     }
 
     // MARK: - Drop-In Display Logic
-    
     public var dropInDisplayText: String {
 
         switch dropInFeeStatus {
@@ -119,18 +118,20 @@ extension PirateIsland {
 
         case .hasFee:
 
-            if let note = dropInFeeNote, !note.isEmpty {
+            if dropInFeeAmount > 0 {
+
+                return NumberFormatter.localizedString(
+                    from: NSNumber(value: dropInFeeAmount),
+                    number: .currency
+                )
+            }
+
+            if let note = dropInFeeNote,
+               !note.trimmingCharacters(in: .whitespaces).isEmpty {
                 return note
             }
 
-            if dropInFeeAmount == 0 {
-                return "Free"
-            }
-
-            return NumberFormatter.localizedString(
-                from: NSNumber(value: dropInFeeAmount),
-                number: .currency
-            )
+            return "Drop-In Fee"
         }
     }
     // MARK: - Logging
