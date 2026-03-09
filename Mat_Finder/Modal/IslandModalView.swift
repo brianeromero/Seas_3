@@ -128,6 +128,7 @@ struct IslandModalView: View {
 
                         Button {
                             showModal = false
+                            selectedIsland = nil   // ✅ ADD THIS
                         } label: {
                             Image(systemName: "xmark")
                                 .font(.system(size: 14, weight: .bold))

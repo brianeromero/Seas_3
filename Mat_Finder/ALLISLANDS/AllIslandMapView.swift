@@ -192,8 +192,8 @@ struct ConsolidatedIslandMapView: View {
                     .ignoresSafeArea()
 
                     .onTapGesture {
-
                         showModal = false
+                        selectedIsland = nil
                     }
 
 
@@ -375,10 +375,27 @@ struct IslandMKMapView: UIViewRepresentable {
 
     func updateUIView(_ mapView: MKMapView, context: Context) {
 
-        context.coordinator.updateAnnotations(
-            on: mapView,
-            with: islands
+        // Deselect pin when modal closes
+        if !showModal {
+            context.coordinator.deselectAllAnnotations(mapView)
+        }
+
+        // Only update annotations if dataset changed
+        let islandIDs = Set(
+            islands.map {
+                $0.islandID ?? $0.objectID.uriRepresentation().absoluteString
+            }
         )
+
+        if islandIDs != context.coordinator.lastIslandIDs {
+
+            context.coordinator.updateAnnotations(
+                on: mapView,
+                with: islands
+            )
+
+            context.coordinator.lastIslandIDs = islandIDs
+        }
 
         if !context.coordinator.isSameRegion(region) {
 
@@ -387,7 +404,7 @@ struct IslandMKMapView: UIViewRepresentable {
             context.coordinator.lastRegion = region
         }
     }
-
+    
     func makeCoordinator() -> Coordinator {
 
         Coordinator(self)
@@ -398,10 +415,17 @@ struct IslandMKMapView: UIViewRepresentable {
         var parent: IslandMKMapView
         var currentAnnotations: [String: IslandAnnotation] = [:]
         var lastRegion: MKCoordinateRegion?
+        var lastIslandIDs: Set<String> = []   // ✅ ADD THIS
 
         init(_ parent: IslandMKMapView) {
-
             self.parent = parent
+        }
+
+        // ✅ ADD HERE
+        func deselectAllAnnotations(_ mapView: MKMapView) {
+            for annotation in mapView.selectedAnnotations {
+                mapView.deselectAnnotation(annotation, animated: true)
+            }
         }
 
 
@@ -411,7 +435,6 @@ struct IslandMKMapView: UIViewRepresentable {
             guard let lastRegion else { return false }
 
             let epsilon = 0.00001
-            
             return
 
                 abs(lastRegion.center.latitude - newRegion.center.latitude) < epsilon &&
@@ -453,14 +476,12 @@ struct IslandMKMapView: UIViewRepresentable {
             }
 
 
-            // REMOVE annotations no longer valid
-            for (id, annotation) in currentAnnotations {
+            // REMOVE annotations no longer valid (batch removal)
+            let annotationsToRemove = currentAnnotations
+                .filter { newAnnotations[$0.key] == nil }
+                .map { $0.value }
 
-                if newAnnotations[id] == nil {
-
-                    mapView.removeAnnotation(annotation)
-                }
-            }
+            mapView.removeAnnotations(annotationsToRemove)
 
 
             // save new state
@@ -492,6 +513,7 @@ struct IslandMKMapView: UIViewRepresentable {
             view.clusteringIdentifier = "gym"
             view.displayPriority = .defaultHigh
             view.animatesWhenAdded = true
+            view.collisionMode = .circle
 
             return view
         }
@@ -535,6 +557,7 @@ struct IslandMKMapView: UIViewRepresentable {
 
             parent.onRegionChanged?(mapView.region)
         }
+        
         
     }
     

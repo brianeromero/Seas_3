@@ -155,6 +155,7 @@ struct FavoritesMap: View {
                     .ignoresSafeArea()
                     .onTapGesture {
                         showModal = false
+                        selectedIsland = nil   // ✅ ADD THIS
                     }
 
                 if selectedIsland != nil {
