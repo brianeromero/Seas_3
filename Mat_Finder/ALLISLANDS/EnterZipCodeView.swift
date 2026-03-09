@@ -119,8 +119,8 @@ struct EnterZipCodeView: View {
                 region: enterZipCodeViewModel.region,
                 onRegionChanged: { newRegion in
 
-                    let epsilon = 0.0001
-
+                    let epsilon = 0.00001
+                    
                     let latDiff =
                     abs(newRegion.center.latitude -
                         enterZipCodeViewModel.region.center.latitude)

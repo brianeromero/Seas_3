@@ -219,12 +219,11 @@ struct DayPickerView: View {
             }
         }
         .padding()
-        // MARK: Navigation bar styling to match "Gyms Near Me"
-        .navigationBarTitleDisplayMode(.inline)
+         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {
                 Text("Day of the Week")
-                    .font(.title) // same size as "Gyms Near Me"
+                    .font(.title)  
                     .fontWeight(.bold)
                     .foregroundColor(.primary)
             }

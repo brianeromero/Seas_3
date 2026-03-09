@@ -410,8 +410,8 @@ struct IslandMKMapView: UIViewRepresentable {
 
             guard let lastRegion else { return false }
 
-            let epsilon = 0.0001
-
+            let epsilon = 0.00001
+            
             return
 
                 abs(lastRegion.center.latitude - newRegion.center.latitude) < epsilon &&
