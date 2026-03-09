@@ -275,7 +275,7 @@ public class FirestoreManager {
     internal func updateDocument(in collection: Collection, id: String, data: [String: Any]) async throws {
         if disabled { return }
         print("Updating document in collection: \(collection.rawValue) with id: \(id)")
-        try await db.collection(collection.rawValue).document(id).setData(data, merge: false)
+        try await db.collection(collection.rawValue).document(id).setData(data, merge: true)
         print("Document updated successfully")
     }
     

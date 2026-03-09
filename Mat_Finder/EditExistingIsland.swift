@@ -312,41 +312,14 @@ public struct EditExistingIsland: View {
         originalGymWebsite = islandDetails.gymWebsite
 
         // Resolve "Entered By"
-        Task {
-            if let createdByValue = island.createdByUserId {
+        // Entered By
+        createdByName = island.createdByUserId ?? "Unknown Creator"
 
-                var resolvedName: String?
-
-                resolvedName = await authViewModel.fetchUserName(forUserID: createdByValue)
-
-                if resolvedName == nil {
-                    resolvedName = await authViewModel.fetchUserName(forUserName: createdByValue)
-                }
-
-                await MainActor.run {
-                    self.createdByName = resolvedName ?? "Unknown Creator"
-                }
-
-            } else {
-
-                await MainActor.run {
-                    self.createdByName = "N/A (No creator ID/UserName)"
-                }
-            }
-
-            // Last Modified By
-            if let currentUser = authViewModel.currentUser {
-
-                await MainActor.run {
-                    self.lastModifiedByName = currentUser.userName
-                }
-
-            } else {
-
-                await MainActor.run {
-                    self.lastModifiedByName = "Not Logged In"
-                }
-            }
+        // Last Modified By
+        if let currentUser = authViewModel.currentUser {
+            lastModifiedByName = currentUser.userName
+        } else {
+            lastModifiedByName = "Not Logged In"
         }
     }
 
@@ -450,13 +423,18 @@ public struct EditExistingIsland: View {
             .trimmingCharacters(in: .whitespacesAndNewlines)
         let newIslandLocation = islandDetails.multilineAddress
         let newGymWebsite = islandDetails.gymWebsite
-        let newCountryCode = islandDetails.selectedCountry?.cca2
-
+        let newCountryName = islandDetails.selectedCountry?.name.common
+        
         var newLatitude = islandDetails.latitude ?? 0
         var newLongitude = islandDetails.longitude ?? 0
 
         let feeFlag: Int16 = hasDropInFee.rawValue
-        let amount: Double = hasDropInFee == .hasFee ? feeAmount : 0
+        let amount: Double
+        if hasDropInFee == .hasFee {
+            amount = feeAmount
+        } else {
+            amount = 0
+        }
         let note = feeNote.isEmpty ? nil : feeNote
 
         let addressChanged =
@@ -510,8 +488,8 @@ public struct EditExistingIsland: View {
                 island.latitude = newLatitude
                 island.longitude = newLongitude
 
-                if let newCountryCode {
-                    island.country = newCountryCode
+                if let newCountryName {
+                    island.country = newCountryName
                 }
 
                 island.lastModifiedByUserId = currentUserId
@@ -519,8 +497,12 @@ public struct EditExistingIsland: View {
 
                 island.hasDropInFee = feeFlag
                 island.dropInFeeAmount = amount
-                island.dropInFeeNote = note
-
+                if hasDropInFee == .hasFee {
+                    island.dropInFeeNote = note
+                } else {
+                    island.dropInFeeNote = nil
+                }
+                
                 if !newGymWebsite.isEmpty {
                     let urlString = newGymWebsite.hasPrefix("http")
                         ? newGymWebsite
@@ -537,6 +519,7 @@ public struct EditExistingIsland: View {
             if let islandID = island.islandID {
 
                 var dataToUpdate: [String: Any] = [
+                    "id": islandID,
                     "name": newIslandName,
                     "location": newIslandLocation,
                     "latitude": newLatitude,
@@ -547,12 +530,16 @@ public struct EditExistingIsland: View {
                     "dropInFeeAmount": amount
                 ]
 
-                if let newCountryCode {
-                    dataToUpdate["country"] = newCountryCode
+                if let newCountryName {
+                    dataToUpdate["country"] = newCountryName
                 }
 
-                if let note {
-                    dataToUpdate["dropInFeeNote"] = note
+                if hasDropInFee == .hasFee {
+                    if let note {
+                        dataToUpdate["dropInFeeNote"] = note
+                    }
+                } else {
+                    dataToUpdate["dropInFeeNote"] = FieldValue.delete()
                 }
 
                 if !newGymWebsite.isEmpty {

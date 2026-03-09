@@ -56,6 +56,8 @@ struct DropInFeeSection: View {
             .onChange(of: hasDropInFee) { _, newValue in
                 if newValue != .hasFee {
                     feeAmount = 0
+                    feeNote = ""
+                    feeType = nil
                 }
             }
 
