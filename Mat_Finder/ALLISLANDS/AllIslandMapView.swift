@@ -68,7 +68,7 @@ struct ConsolidatedIslandMapView: View {
     @Binding
     var navigationPath: NavigationPath
 
-
+    @State private var showIslandList = false
 
 
     // MARK: Init
@@ -109,17 +109,56 @@ struct ConsolidatedIslandMapView: View {
 
                     makeMapView()
 
-                    VStack {
-                        Spacer()
+                    MapControlsView(
 
-                        HStack {
-                            Spacer()
+                        fitAction: {
 
-                            RecenterMapButton(userLocationVM: locationManager)
-                        }
-                        .padding(.trailing, 16)
-                        .padding(.bottom, 90)   
-                    }
+                            guard
+                                let mapView = IslandMKMapView.sharedMapView,
+                                let userLocation = locationManager.userLocation
+                            else { return }
+
+                            let radiusMeters = selectedRadius * 1609.34
+
+                            let nearbyAnnotations = mapView.annotations.compactMap { annotation -> IslandAnnotation? in
+                                guard let islandAnnotation = annotation as? IslandAnnotation else { return nil }
+
+                                let islandLocation = CLLocation(
+                                    latitude: islandAnnotation.coordinate.latitude,
+                                    longitude: islandAnnotation.coordinate.longitude
+                                )
+
+                                return islandLocation.distance(from: userLocation) <= radiusMeters
+                                    ? islandAnnotation
+                                    : nil
+                            }
+
+                            guard !nearbyAnnotations.isEmpty else { return }
+
+                            if nearbyAnnotations.count == 1,
+                               let coord = nearbyAnnotations.first?.coordinate {
+
+                                let region = MKCoordinateRegion(
+                                    center: coord,
+                                    latitudinalMeters: radiusMeters,
+                                    longitudinalMeters: radiusMeters
+                                )
+
+                                mapView.setRegion(region, animated: true)
+
+                            } else {
+
+                                mapView.showAnnotations(nearbyAnnotations, animated: true)
+
+                            }
+                        },
+
+                        listAction: {
+                            showIslandList = true
+                        },
+
+                        userLocationVM: locationManager
+                    )
                 }
 
                 makeRadiusPicker()
@@ -165,8 +204,44 @@ struct ConsolidatedIslandMapView: View {
 
             onChangeSelectedRadius(newValue)
         }
+        
+        .sheet(isPresented: $showIslandList) {
+
+            DayOfWeekIslandListView(
+
+                islands: Array(islands),
+
+                userLocation: locationManager.userLocation
+
+            ) { island in
+
+                selectedIsland = island
+                showModal = true
+                showIslandList = false
+
+                zoomToIsland(island)
+            }
+        }
     }
 
+    
+    private func zoomToIsland(_ island: PirateIsland) {
+
+        guard let mapView = IslandMKMapView.sharedMapView else { return }
+
+        let coordinate = CLLocationCoordinate2D(
+            latitude: island.latitude,
+            longitude: island.longitude
+        )
+
+        let region = MKCoordinateRegion(
+            center: coordinate,
+            latitudinalMeters: 8000,
+            longitudinalMeters: 8000
+        )
+
+        mapView.setRegion(region, animated: true)
+    }
 
 
     // MARK: Map View
@@ -278,8 +353,12 @@ struct ConsolidatedIslandMapView: View {
                 radius: selectedRadius
             )
         }
-    }
 
+        // ⭐ Auto-open list if too many gyms
+        if islands.count > 40 && selectedRadius >= 25 {
+            showIslandList = true
+        }
+    }
 
 
     private func onChangeUserLocation(

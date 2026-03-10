@@ -8,79 +8,74 @@ import CoreData
 import CoreLocation
 import MapKit
 
-enum ViewMode {
-    case map
-    case list
-}
 
 struct AllEnteredLocations: View {
-
+    
     @StateObject var viewModel: AllEnteredLocationsViewModel
     @StateObject private var enterZipCodeViewModel: EnterZipCodeViewModel
     @StateObject private var appDayOfWeekViewModel: AppDayOfWeekViewModel
     @StateObject private var userLocationVM = UserLocationMapViewModel.shared
-
+    
     @State private var selectedDay: DayOfWeek? = .monday
     @State private var showModal = false
     @State private var selectedIsland: PirateIsland?
     @State private var selectedAppDayOfWeek: AppDayOfWeek?
-
+    
     @Binding var navigationPath: NavigationPath
     
-    @State private var viewMode: ViewMode = .map
-    
     @State private var searchText: String = ""
-
-
-    // ✅ KEEP YOUR INIT
+    @State private var showIslandList = false
+    
+    
+    // MARK: INIT
     init(navigationPath: Binding<NavigationPath>) {
-
+        
         self._navigationPath = navigationPath
-
+        
         let dataManager =
-            PirateIslandDataManager(
-                viewContext: PersistenceController.shared.viewContext
-            )
-
+        PirateIslandDataManager(
+            viewContext: PersistenceController.shared.viewContext
+        )
+        
         self._viewModel =
-            StateObject(
-                wrappedValue:
-                    AllEnteredLocationsViewModel(
-                        dataManager: dataManager
-                    )
-            )
-
+        StateObject(
+            wrappedValue:
+                AllEnteredLocationsViewModel(
+                    dataManager: dataManager
+                )
+        )
+        
         let sharedPersistenceController =
-            PersistenceController.shared
-
+        PersistenceController.shared
+        
         let repo =
-            AppDayOfWeekRepository(
-                persistenceController:
-                    sharedPersistenceController
-            )
-
+        AppDayOfWeekRepository(
+            persistenceController:
+                sharedPersistenceController
+        )
+        
         let zipVM =
-            EnterZipCodeViewModel(
-                repository: repo,
-                persistenceController:
-                    sharedPersistenceController
-            )
-
+        EnterZipCodeViewModel(
+            repository: repo,
+            persistenceController:
+                sharedPersistenceController
+        )
+        
         self._enterZipCodeViewModel =
-            StateObject(wrappedValue: zipVM)
-
+        StateObject(wrappedValue: zipVM)
+        
         self._appDayOfWeekViewModel =
-            StateObject(
-                wrappedValue:
-                    AppDayOfWeekViewModel(
-                        repository: repo,
-                        enterZipCodeViewModel: zipVM
-                    )
-            )
+        StateObject(
+            wrappedValue:
+                AppDayOfWeekViewModel(
+                    repository: repo,
+                    enterZipCodeViewModel: zipVM
+                )
+        )
     }
-
-
-    // ✅ BODY
+    
+    
+    // MARK: BODY
     var body: some View {
 
         VStack {
@@ -88,169 +83,183 @@ struct AllEnteredLocations: View {
             if !viewModel.isDataLoaded {
 
                 ProgressView("Loading Open Mats...")
-                    .frame(maxWidth: .infinity,
-                           maxHeight: .infinity)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            }
-            else if let error =
-                        viewModel.errorMessage {
+            } else if let error = viewModel.errorMessage {
 
                 Text(error)
                     .foregroundColor(.red)
 
-            }
-            else if viewModel.allIslands.isEmpty {
+            } else if viewModel.allIslands.isEmpty {
 
                 Text("No Open Mats Found")
 
-            }
-            else {
+            } else {
 
-                if viewMode == .map {
+                ZStack {
 
-                    ZStack {
+                    IslandMKMapView(
+                        islands: viewModel.allIslands,
+                        selectedIsland: $selectedIsland,
+                        showModal: $showModal,
+                        selectedRadius: 5.0,
+                        region: currentRegion
+                    )
 
-                        IslandMKMapView(
-                            islands: viewModel.allIslands,
-                            selectedIsland: $selectedIsland,
-                            showModal: $showModal,
-                            selectedRadius: 5.0,
-                            region: currentRegion
-                        )
-                        VStack {
-                            Spacer()
+                    MapControlsView(
 
-                            HStack {
-                                Spacer()
+                        fitAction: {
 
-                                RecenterMapButton(userLocationVM: userLocationVM)
-                            }
-                            .padding(.trailing, 16)
-                            .padding(.bottom, 90)                        }
-                    }
-                    
-                } else {
+                            guard
+                                let mapView = IslandMKMapView.sharedMapView,
+                                let userLocation = userLocationVM.userLocation
+                            else { return }
 
-                    VStack(spacing: 12) {
+                            let region = MKCoordinateRegion(
+                                center: userLocation.coordinate,
+                                latitudinalMeters: 3_000_000,
+                                longitudinalMeters: 3_000_000
+                            )
 
-                        SearchHeader()
+                            mapView.setRegion(region, animated: true)
+                        },
 
-                        SearchBar(text: $searchText)
+                        listAction: {
+                            showIslandList = true
+                        },
 
-                        IslandList(
-                            islands: viewModel.allIslands,
-                            selectedIsland: $selectedIsland,
-                            searchText: $searchText,
-                            navigationDestination: .viewReviewForIsland,
-                            title: "",
-                            onIslandChange: { island in
-                                selectedIsland = island
-                            },
-                            navigationPath: $navigationPath,
-                            showSuccessToast: .constant(false),
-                            successToastMessage: .constant(""),
-                            successToastType: .constant(.success)
-                        )
-                    }
+                        userLocationVM: userLocationVM
+                    )
                 }
             }
         }
+        
+        // Switch back to map when a gym is selected
+        .onChange(of: selectedIsland) { _, newIsland in
+            guard let island = newIsland else { return }
 
+            showIslandList = false
 
-        // ✅ KEEP TOOLBAR
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                zoomToIsland(island)
+            }
+        }
+        
+        // MARK: NAV BAR
         .navigationBarTitleDisplayMode(.inline)
-
+        
         .toolbar {
 
-            ToolbarItem(
-                placement: .principal
-            ) {
+            ToolbarItem(placement: .principal) {
 
                 Text("All Gyms")
                     .font(.title)
                     .fontWeight(.bold)
             }
-            
-            ToolbarItem(placement: .topBarTrailing) {
-
-                Button {
-
-                    viewMode = viewMode == .map ? .list : .map
-
-                } label: {
-
-                    Image(systemName: viewMode == .map ? "list.bullet" : "map")
-                }
-            }
         }
-
-
-        // ✅ KEEP MODAL
+        
+        
+        // MARK: MODAL
         .floatingModal(isPresented: $showModal) {
-
+            
             IslandModalContainer(
                 selectedIsland: $selectedIsland,
                 viewModel: appDayOfWeekViewModel,
                 selectedDay: $selectedDay,
                 showModal: $showModal,
-                enterZipCodeViewModel:
-                    enterZipCodeViewModel,
-                selectedAppDayOfWeek:
-                    $selectedAppDayOfWeek,
-                navigationPath:
-                    $navigationPath
+                enterZipCodeViewModel: enterZipCodeViewModel,
+                selectedAppDayOfWeek: $selectedAppDayOfWeek,
+                navigationPath: $navigationPath
             )
         }
+        
+        .sheet(isPresented: $showIslandList) {
 
+            NavigationStack {
 
-        // ✅ KEEP APPEAR
+                VStack(spacing: 12) {
+
+                    SearchHeader()
+
+                    SearchBar(text: $searchText)
+
+                    AllGymsListView(
+                        islands: viewModel.allIslands,
+                        selectedIsland: $selectedIsland,
+                        showModal: $showModal,
+                        searchText: $searchText
+                    )
+                }
+            }
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+        }
+        
+        
+        // MARK: APPEAR
         .onAppear {
-
+            
             if !viewModel.isDataLoaded {
-
                 viewModel.fetchPirateIslands()
             }
-
+            
             userLocationVM.startLocationServices()
         }
-
-
-        // ✅ KEEP LOCATION UPDATE
-        .onReceive(
-            userLocationVM.$userLocation
-        ) { location in
-
+        
+        
+        // MARK: LOCATION
+        .onReceive(userLocationVM.$userLocation) { location in
+            
             guard let location else { return }
-
+            
             viewModel.setRegionToUserLocation(
                 location.coordinate
             )
         }
-
-
-        // ✅ KEEP SYNC
+        
+        
+        // MARK: SYNC
         .onReceive(
             NotificationCenter.default.publisher(
                 for: .didSyncPirateIslands
             )
         ) { _ in
-
+            
             viewModel.fetchPirateIslands()
         }
     }
     
+    
+    // MARK: REGION
     private var currentRegion: MKCoordinateRegion {
         viewModel.cameraPosition.region ?? defaultRegion
+    }
+    
+    private func zoomToIsland(_ island: PirateIsland) {
 
+        guard let mapView = IslandMKMapView.sharedMapView else { return }
+
+        let coordinate = CLLocationCoordinate2D(
+            latitude: island.latitude,
+            longitude: island.longitude
+        )
+
+        let region = MKCoordinateRegion(
+            center: coordinate,
+            latitudinalMeters: 5000,
+            longitudinalMeters: 5000
+        )
+
+        mapView.setRegion(region, animated: true)
     }
     
     private let defaultRegion = MKCoordinateRegion(
-
+        
         center: CLLocationCoordinate2D(
             latitude: 37.7749,
             longitude: -122.4194
         ),
-
+        
         span: MKCoordinateSpan(
             latitudeDelta: 0.5,
             longitudeDelta: 0.5

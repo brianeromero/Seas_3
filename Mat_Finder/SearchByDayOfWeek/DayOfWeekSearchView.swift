@@ -11,161 +11,131 @@ import CoreData
 import Combine
 
 
-
 struct DayOfWeekSearchView: View {
-    @Binding var navigationPath: NavigationPath   // <- pass this in
-
+    @Binding var navigationPath: NavigationPath   
+    
     @State private var selectedIsland: PirateIsland?
     @State private var selectedAppDayOfWeek: AppDayOfWeek?
-
+    
     @State private var region = MKCoordinateRegion(
         center: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
         span: MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1)
     )
-
+    
     @ObservedObject private var userLocationMapViewModel = UserLocationMapViewModel.shared
     @EnvironmentObject var viewModel: AppDayOfWeekViewModel
     @EnvironmentObject var enterZipCodeViewModel: EnterZipCodeViewModel
-
+    
     @State private var radius: Double = 10.0
     @State private var errorMessage: String?
     @State private var selectedDay: DayOfWeek? = .monday
     @State private var showModal: Bool = false
     
     @State private var showIslandList = false
-
+    
+    private var islands: [PirateIsland] {
+        viewModel.islandsWithMatTimes.map(\.0)
+    }
+    
     var body: some View {
-        GeometryReader { geo in
-            VStack {
-                DayPickerView(selectedDay: $selectedDay)
-                    .onChange(of: selectedDay) { _, _ in
-                        Task { await updateIslandsAndRegion() }
-                    }
+        VStack {
 
-                ErrorView(errorMessage: $errorMessage)
-
-                ZStack {
-
-                    IslandMKMapView(
-                        islands: viewModel.islandsWithMatTimes.map(\.0),
-                        selectedIsland: $selectedIsland,
-                        showModal: $showModal,
-                        selectedRadius: 5.0,
-                        region: region
-                    )
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-                    VStack {
-                        Spacer()
-
-                        HStack {
-                            Spacer()
-
-                            VStack(spacing: 12) {
-
-                                // 🌍 Fit All Results
-                                Button {
-
-                                    guard let mapView = IslandMKMapView.sharedMapView else { return }
-
-                                    let region = regionToFitResults()
-
-                                    mapView.setRegion(region, animated: true)
-
-                                    mapView.setVisibleMapRect(
-                                        mapView.visibleMapRect,
-                                        edgePadding: UIEdgeInsets(top: 120, left: 80, bottom: 120, right: 80),
-                                        animated: true
-                                    )
-
-                                } label: {
-
-                                    Image(systemName: "globe.americas.fill")
-                                        .font(.system(size: 20))
-                                        .foregroundStyle(.blue)
-                                        .padding(12)
-                                        .background(.ultraThinMaterial)
-                                        .clipShape(Circle())
-                                        .shadow(color: .black.opacity(0.25), radius: 6, y: 3)
-                                }
-
-                                // 📍 Recenter
-                                RecenterMapButton(userLocationVM: userLocationMapViewModel)
-
-                                // ☰ List
-                                Button {
-                                    showIslandList = true
-                                } label: {
-
-                                    Image(systemName: "list.bullet")
-                                        .font(.system(size: 20))
-                                        .foregroundStyle(.blue)
-                                        .padding(12)
-                                        .background(.ultraThinMaterial)
-                                        .clipShape(Circle())
-                                        .shadow(color: .black.opacity(0.25), radius: 6, y: 3)
-                                }
-                            }
-                        }
-                        .padding(.trailing, 16)
-                        .padding(.bottom, 90)
-                    }
-                }
-            }
-            .frame(width: geo.size.width, height: geo.size.height)
-            .floatingModal(isPresented: $showModal) {
-                IslandModalContainer(
-                    selectedIsland: $selectedIsland,
-                    viewModel: viewModel,
-                    selectedDay: $selectedDay,
-                    showModal: $showModal,
-                    enterZipCodeViewModel: enterZipCodeViewModel,
-                    selectedAppDayOfWeek: $selectedAppDayOfWeek,
-                    navigationPath: $navigationPath // <- pass binding from parent
-                )
-            }
-            .onAppear(perform: handleOnAppear)
-            .onChange(of: userLocationMapViewModel.userLocation) { _, newValue in
-                guard let location = newValue else { return }
-
-                if selectedIsland == nil {
-                    updateRegion(center: location.coordinate)
-                }
-
-                if viewModel.islandsWithMatTimes.isEmpty {
+            DayPickerView(selectedDay: $selectedDay)
+                .onChange(of: selectedDay) { _, _ in
                     Task { await updateIslandsAndRegion() }
                 }
-            }
-            .onChange(of: selectedIsland) { _, newValue in
-                updateSelectedIsland(from: newValue)
-            }
-            
-            .onChange(of: showModal) { _, isShown in
-                if !isShown {
-                    selectedIsland = nil
-                }
-            }
-            
-            
-            .sheet(isPresented: $showIslandList) {
 
-                DayOfWeekIslandListView(
-                    islands: viewModel.islandsWithMatTimes.map(\.0),
-                    userLocation: userLocationMapViewModel.userLocation
-                ) { island in
+            ErrorView(errorMessage: $errorMessage)
 
-                    selectedIsland = island
-                    zoomToIsland(island)
-                    showModal = true
-                    showIslandList = false
-                }
+            ZStack {
+
+                IslandMKMapView(
+                    islands: islands,
+                    selectedIsland: $selectedIsland,
+                    showModal: $showModal,
+                    selectedRadius: radius,
+                    region: region
+                )
+
+                MapControlsView(
+                    fitAction: {
+                        guard let mapView = IslandMKMapView.sharedMapView else { return }
+
+                        let region = regionToFitResults()
+
+                        mapView.setRegion(region, animated: true)
+
+                        mapView.setVisibleMapRect(
+                            mapView.visibleMapRect,
+                            edgePadding: UIEdgeInsets(
+                                top: 120,
+                                left: 80,
+                                bottom: 120,
+                                right: 80
+                            ),
+                            animated: true
+                        )
+                    },
+
+                    listAction: {
+                        showIslandList = true
+                    },
+
+                    userLocationVM: userLocationMapViewModel
+                )
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+         .floatingModal(isPresented: $showModal) {
+            IslandModalContainer(
+                selectedIsland: $selectedIsland,
+                viewModel: viewModel,
+                selectedDay: $selectedDay,
+                showModal: $showModal,
+                enterZipCodeViewModel: enterZipCodeViewModel,
+                selectedAppDayOfWeek: $selectedAppDayOfWeek,
+                navigationPath: $navigationPath // <- pass binding from parent
+            )
+        }
+        .onAppear(perform: handleOnAppear)
+        .onChange(of: userLocationMapViewModel.userLocation) { _, newValue in
+            guard let location = newValue else { return }
+            
+            if selectedIsland == nil {
+                updateRegion(center: location.coordinate)
+            }
+            
+            if viewModel.islandsWithMatTimes.isEmpty {
+                Task { await updateIslandsAndRegion() }
+            }
+        }
+        .onChange(of: selectedIsland) { _, newValue in
+            updateSelectedIsland(from: newValue)
+        }
+        
+        .onChange(of: showModal) { _, isShown in
+            if !isShown {
+                selectedIsland = nil
+            }
+        }
+        
+        
+        .sheet(isPresented: $showIslandList) {
+            
+            DayOfWeekIslandListView(
+                islands: islands,
+                userLocation: userLocationMapViewModel.userLocation
+            ) { island in
+                
+                selectedIsland = island
+                zoomToIsland(island)
+                showModal = true
+                showIslandList = false
             }
         }
     }
     
     private func regionToFitResults() -> MKCoordinateRegion {
-
-        let islands = viewModel.islandsWithMatTimes.map(\.0)
 
         let coordinates = islands.map {
             CLLocationCoordinate2D(
@@ -197,26 +167,26 @@ struct DayOfWeekSearchView: View {
     }
     
     private func zoomToIsland(_ island: PirateIsland) {
-
+        
         guard let mapView = IslandMKMapView.sharedMapView else { return }
-
+        
         let coordinate = CLLocationCoordinate2D(
             latitude: island.latitude,
             longitude: island.longitude
         )
-
+        
         let region = MKCoordinateRegion(
             center: coordinate,
             latitudinalMeters: 8000,
             longitudinalMeters: 8000
         )
-
+        
         mapView.setRegion(region, animated: true)
     }
-
-
+    
+    
     // MARK: - Event Handlers
-
+    
     private func handleOnAppear() {
         if let location = userLocationMapViewModel.userLocation {
             updateRegion(center: location.coordinate)
@@ -225,10 +195,9 @@ struct DayOfWeekSearchView: View {
             userLocationMapViewModel.requestLocation()
         }
     }
-
-
+    
+    
     // MARK: - Data Updates
-
     private func updateIslandsAndRegion() async {
 
         guard let selectedDay else {
@@ -237,8 +206,6 @@ struct DayOfWeekSearchView: View {
         }
 
         await viewModel.fetchIslands(forDay: selectedDay)
-
-        let islands = viewModel.islandsWithMatTimes.map(\.0)
 
         if islands.count > 50 {
             showIslandList = true
@@ -249,24 +216,25 @@ struct DayOfWeekSearchView: View {
             updateRegion(center: location.coordinate)
         }
     }
-
+    
     private func updateSelectedIsland(from newIsland: PirateIsland?) {
         guard let newIsland else { return }
 
-        if let matchingIsland = viewModel.islandsWithMatTimes
-            .map(\.0)
-            .first(where: { $0.islandID == newIsland.islandID }) {
+        if let matchingIsland = islands.first(where: { $0.islandID == newIsland.islandID }) {
             selectedIsland = matchingIsland
         } else {
             errorMessage = "Island not found in the current selection."
         }
     }
-
+    
     private func updateRegion(center: CLLocationCoordinate2D) {
 
-        let islands = viewModel.islandsWithMatTimes.map(\.0)
-
-        guard !islands.isEmpty else { return }
+        guard !islands.isEmpty else {
+            withAnimation {
+                region.center = center
+            }
+            return
+        }
 
         let latitudes = islands.map { $0.latitude }
         let longitudes = islands.map { $0.longitude }
@@ -287,6 +255,8 @@ struct DayOfWeekSearchView: View {
         }
     }
 }
+
+
 
 enum DistanceFilter: Double, CaseIterable, Identifiable {
 
@@ -315,7 +285,7 @@ struct DayOfWeekIslandListView: View {
 
     let onSelect: (PirateIsland) -> Void
 
-    @State private var filter: DistanceFilter = .twentyFive
+    @State private var filter: DistanceFilter = .ten
 
     private func distance(for island: PirateIsland) -> Double? {
 
@@ -381,26 +351,20 @@ struct DayOfWeekIslandListView: View {
 
                         } label: {
 
-                            HStack {
+                            VStack(alignment: .leading, spacing: 4) {
 
-                                VStack(alignment: .leading, spacing: 4) {
+                                IslandListItem(
+                                    island: island,
+                                    selectedIsland: .constant(nil)
+                                )
 
-                                    Text(island.islandName ?? "Unknown Gym")
-                                        .font(.headline)
+                                if let miles = distance(for: island) {
 
-                                    Text(island.islandLocation ?? "")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-
-                                    if let miles = distance(for: island) {
-
-                                        Text(String(format: "%.1f miles away", miles))
-                                            .font(.caption2)
-                                            .foregroundStyle(.secondary)
-                                    }
+                                    Text(String(format: "%.1f miles away", miles))
+                                        .font(.caption2)
+                                        .foregroundColor(.accentColor.opacity(0.6))
+                                        .padding(.leading, 2)
                                 }
-
-                                Spacer()
                             }
                         }
                     }

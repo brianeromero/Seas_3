@@ -25,14 +25,9 @@
 		0C07B09C2C2CFFA500D0BFB2 /* AllEnteredLocations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B09B2C2CFFA500D0BFB2 /* AllEnteredLocations.swift */; };
 		0C07B09E2C2CFFC400D0BFB2 /* AllIslandMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B09D2C2CFFC400D0BFB2 /* AllIslandMapView.swift */; };
 		0C07B0A42C2D002000D0BFB2 /* EnterZipCodeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0A32C2D002000D0BFB2 /* EnterZipCodeView.swift */; };
-		0C07B0A62C2D002D00D0BFB2 /* SceneLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0A52C2D002D00D0BFB2 /* SceneLoader.swift */; };
 		0C07B0A82C2D004900D0BFB2 /* RenderingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0A72C2D004900D0BFB2 /* RenderingManager.swift */; };
 		0C07B0AA2C2D007000D0BFB2 /* GIFBackgroundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0A92C2D007000D0BFB2 /* GIFBackgroundView.swift */; };
 		0C07B0AC2C2D009300D0BFB2 /* SwiftGIF.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0AB2C2D009300D0BFB2 /* SwiftGIF.swift */; };
-		0C07B0AE2C2D00A900D0BFB2 /* SharedTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0AD2C2D00A900D0BFB2 /* SharedTypes.swift */; };
-		0C07B0B02C2D00BE00D0BFB2 /* CustomMarkerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0AF2C2D00BE00D0BFB2 /* CustomMarkerView.swift */; };
-		0C07B0B22C2D00DC00D0BFB2 /* CustomMapMarker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0B12C2D00DC00D0BFB2 /* CustomMapMarker.swift */; };
-		0C07B0B42C2D00F300D0BFB2 /* CustomPin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0B32C2D00F300D0BFB2 /* CustomPin.swift */; };
 		0C07B0B72C2D015C00D0BFB2 /* FAQnDisclaimerMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0B62C2D015C00D0BFB2 /* FAQnDisclaimerMenu.swift */; };
 		0C07B0B92C2D017500D0BFB2 /* AboutUs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0B82C2D017500D0BFB2 /* AboutUs.swift */; };
 		0C07B0BB2C2D018D00D0BFB2 /* Disclaimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07B0BA2C2D018D00D0BFB2 /* Disclaimer.swift */; };
@@ -53,7 +48,6 @@
 		0C3572AB2F51FFFE004293D2 /* flashing16.gif in Resources */ = {isa = PBXBuildFile; fileRef = 0C3572AA2F51FFFE004293D2 /* flashing16.gif */; };
 		0C380A642F32B32500274EFA /* MFINDER_BOLDw.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C380A632F32B32500274EFA /* MFINDER_BOLDw.png */; };
 		0C380A652F32B32500274EFA /* MFINDER_BOLDb.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C380A622F32B32500274EFA /* MFINDER_BOLDb.png */; };
-		0C44EFF32F5F8B0900BAEA25 /* RecenterMapButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C44EFF22F5F8B0900BAEA25 /* RecenterMapButton.swift */; };
 		0C4B34362C61A32700FD6893 /* PirateIslandDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4B34352C61A32700FD6893 /* PirateIslandDataManager.swift */; };
 		0C4F3C412C3C4645008D04B9 /* IslandScheduleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4F3C402C3C4645008D04B9 /* IslandScheduleView.swift */; };
 		0C524E8E2C2F4241008D6623 /* DayOfWeekUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C524E8D2C2F4241008D6623 /* DayOfWeekUtils.swift */; };
@@ -171,14 +165,9 @@
 		0C07B09F2C2CFFE000D0BFB2 /* AllMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AllMapView.swift; sourceTree = "<group>"; };
 		0C07B0A12C2CFFFD00D0BFB2 /* LocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
 		0C07B0A32C2D002000D0BFB2 /* EnterZipCodeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnterZipCodeView.swift; sourceTree = "<group>"; };
-		0C07B0A52C2D002D00D0BFB2 /* SceneLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneLoader.swift; sourceTree = "<group>"; };
 		0C07B0A72C2D004900D0BFB2 /* RenderingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderingManager.swift; sourceTree = "<group>"; };
 		0C07B0A92C2D007000D0BFB2 /* GIFBackgroundView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GIFBackgroundView.swift; sourceTree = "<group>"; };
 		0C07B0AB2C2D009300D0BFB2 /* SwiftGIF.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftGIF.swift; sourceTree = "<group>"; };
-		0C07B0AD2C2D00A900D0BFB2 /* SharedTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedTypes.swift; sourceTree = "<group>"; };
-		0C07B0AF2C2D00BE00D0BFB2 /* CustomMarkerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomMarkerView.swift; sourceTree = "<group>"; };
-		0C07B0B12C2D00DC00D0BFB2 /* CustomMapMarker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomMapMarker.swift; sourceTree = "<group>"; };
-		0C07B0B32C2D00F300D0BFB2 /* CustomPin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomPin.swift; sourceTree = "<group>"; };
 		0C07B0B62C2D015C00D0BFB2 /* FAQnDisclaimerMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FAQnDisclaimerMenu.swift; sourceTree = "<group>"; };
 		0C07B0B82C2D017500D0BFB2 /* AboutUs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutUs.swift; sourceTree = "<group>"; };
 		0C07B0BA2C2D018D00D0BFB2 /* Disclaimer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Disclaimer.swift; sourceTree = "<group>"; };
@@ -208,7 +197,6 @@
 		0C35D9B02F48E6C40048D205 /* Mat_Finder_v2.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = Mat_Finder_v2.xcdatamodel; sourceTree = "<group>"; };
 		0C380A622F32B32500274EFA /* MFINDER_BOLDb.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = MFINDER_BOLDb.png; sourceTree = "<group>"; };
 		0C380A632F32B32500274EFA /* MFINDER_BOLDw.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = MFINDER_BOLDw.png; sourceTree = "<group>"; };
-		0C44EFF22F5F8B0900BAEA25 /* RecenterMapButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecenterMapButton.swift; sourceTree = "<group>"; };
 		0C4A7B4A2CC0D43A008CE1EA /* iAd.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = iAd.framework; path = System/Library/Frameworks/iAd.framework; sourceTree = SDKROOT; };
 		0C4A7B4C2CC0D443008CE1EA /* AdSupport.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AdSupport.framework; path = System/Library/Frameworks/AdSupport.framework; sourceTree = SDKROOT; };
 		0C4A7B4E2CC0D507008CE1EA /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = System/Library/Frameworks/CoreLocation.framework; sourceTree = SDKROOT; };
@@ -366,9 +354,17 @@
 		0CDA09382EA94E9B0095AA59 /* Exceptions for "MapUtilities" folder in "Mat_Finder" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				AllGymsListView.swift,
 				CalloutView.swift,
+				CustomMapMarker.swift,
+				CustomMarkerView.swift,
+				CustomPin.swift,
+				MapControlsView.swift,
 				MapUtils.swift,
 				RadiusPicker.swift,
+				RecenterMapButton.swift,
+				SceneLoader.swift,
+				SharedTypes.swift,
 			);
 			target = 0CF13E402C2A326700D714C0 /* Mat_Finder */;
 		};
@@ -508,17 +504,11 @@
 				0C07B0A12C2CFFFD00D0BFB2 /* LocationManager.swift */,
 				0C07B0A32C2D002000D0BFB2 /* EnterZipCodeView.swift */,
 				0C524E942C308E4A008D6623 /* EnterZipCodeViewModel.swift */,
-				0C07B0A52C2D002D00D0BFB2 /* SceneLoader.swift */,
+				0C6924872F58D95900AE0966 /* FavoritesMap.swift */,
 				0C07B0A72C2D004900D0BFB2 /* RenderingManager.swift */,
 				0C07B0A92C2D007000D0BFB2 /* GIFBackgroundView.swift */,
 				0C07B0AB2C2D009300D0BFB2 /* SwiftGIF.swift */,
-				0C07B0AD2C2D00A900D0BFB2 /* SharedTypes.swift */,
-				0C07B0AF2C2D00BE00D0BFB2 /* CustomMarkerView.swift */,
-				0C07B0B12C2D00DC00D0BFB2 /* CustomMapMarker.swift */,
-				0C07B0B32C2D00F300D0BFB2 /* CustomPin.swift */,
 				0CADDAB52F50C52C001C2C13 /* SwiftUIGIFView.swift */,
-				0C6924872F58D95900AE0966 /* FavoritesMap.swift */,
-				0C44EFF22F5F8B0900BAEA25 /* RecenterMapButton.swift */,
 			);
 			path = ALLISLANDS;
 			sourceTree = "<group>";
@@ -1056,10 +1046,8 @@
 				0CEB039A2C2BA58F007CA3CC /* AppDayOfWeekRepository.swift in Sources */,
 				0C955BEB2C75AE6700D03CAB /* Utilities.swift in Sources */,
 				0C07B0D32C2D033700D0BFB2 /* AppState.swift in Sources */,
-				0C07B0A62C2D002D00D0BFB2 /* SceneLoader.swift in Sources */,
 				0C8817752C3371B7008FE469 /* MapDetails.swift in Sources */,
 				0C2EE2AF2C9DEF110029432F /* ViewReviewSearch.swift in Sources */,
-				0C07B0B22C2D00DC00D0BFB2 /* CustomMapMarker.swift in Sources */,
 				0C6F7BDE2C7B146200072237 /* Extensions.swift in Sources */,
 				0CEC32822C41CA3C00F0747F /* AllpIslandScheduleView.swift in Sources */,
 				0CEC32792C41907200F0747F /* StoryboardViewControllerRepresentable.swift in Sources */,
@@ -1067,7 +1055,6 @@
 				0C1D82102F57462B002F3E8A /* ScheduleCard.swift in Sources */,
 				0C6F7BD92C79193B00072237 /* Review+CoreDataClass.swift in Sources */,
 				0C07B08C2C2CFED400D0BFB2 /* AppDayOfWeekViewModel.swift in Sources */,
-				0C44EFF32F5F8B0900BAEA25 /* RecenterMapButton.swift in Sources */,
 				0C07B0812C2CFE3600D0BFB2 /* IslandMap.swift in Sources */,
 				0C1893D32C7F95FB007BFADB /* ViewReviewforIsland.swift in Sources */,
 				0C07B0A82C2D004900D0BFB2 /* RenderingManager.swift in Sources */,
@@ -1117,7 +1104,6 @@
 				0CD901502CB655B50097D71F /* DoNotStorePasswords.swift in Sources */,
 				0CF13E7D2C2A36B500D714C0 /* UserInfo+CoreDataClass.swift in Sources */,
 				0CEB03962C2B9B73007CA3CC /* PirateIslandViewModel.swift in Sources */,
-				0C07B0AE2C2D00A900D0BFB2 /* SharedTypes.swift in Sources */,
 				0C4B34362C61A32700FD6893 /* PirateIslandDataManager.swift in Sources */,
 				0CF13E7E2C2A36B500D714C0 /* UserInfo+CoreDataProperties.swift in Sources */,
 				0C07B0852C2CFE6200D0BFB2 /* AdditionalGymInfo.swift in Sources */,
@@ -1125,8 +1111,6 @@
 				0C73776F2F4B3B5000931FBE /* AddNewMatTimeSection2.swift in Sources */,
 				0C07B0732C2CFD2800D0BFB2 /* AddNewIsland.swift in Sources */,
 				0C07B0752C2CFD4900D0BFB2 /* EditExistingIslandList.swift in Sources */,
-				0C07B0B42C2D00F300D0BFB2 /* CustomPin.swift in Sources */,
-				0C07B0B02C2D00BE00D0BFB2 /* CustomMarkerView.swift in Sources */,
 				0C07B09E2C2CFFC400D0BFB2 /* AllIslandMapView.swift in Sources */,
 				0C07B0832C2CFE5000D0BFB2 /* GeocodingUtility.swift in Sources */,
 				0CEC327E2C41A45300F0747F /* pIslandScheduleView.swift in Sources */,

@@ -52,13 +52,15 @@ struct RecenterMapButton: View {
         }
 
         // EXISTING
+        // Detect map movement
         .onReceive(
             NotificationCenter.default.publisher(for: .mapRegionDidChange)
+                .debounce(for: .milliseconds(120), scheduler: RunLoop.main)
         ) { _ in
             checkIfMapMoved()
         }
 
-        // 👇 ADD THIS HERE
+        // Run once when view appears
         .onAppear {
             checkIfMapMoved()
         }
@@ -80,9 +82,12 @@ struct RecenterMapButton: View {
 
         let distance = centerLocation.distance(from: location)
 
-        // Show button if map moved more than ~150m
-        withAnimation(.easeInOut(duration: 0.2)) {
-            isOffCenter = distance > 200
+        let shouldBeOffCenter = distance > 200
+
+        if shouldBeOffCenter != isOffCenter {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                isOffCenter = shouldBeOffCenter
+            }
         }
     }
 }

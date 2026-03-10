@@ -110,22 +110,27 @@ class IslandListViewModel: ObservableObject {
 
 
 struct IslandListItem: View {
-    @ObservedObject var island: PirateIsland // <-- CHANGE THIS!
+
+    @ObservedObject var island: PirateIsland
     @Binding var selectedIsland: PirateIsland?
 
     var body: some View {
-        os_log("Rendering IslandListItem for %@", log: logger, island.islandName ?? "Unknown")
-        return VStack(alignment: .leading) {
+
+        VStack(alignment: .leading, spacing: 4) {
+
             Text(island.safeIslandName)
-                .font(.headline)
+                .font(.system(size: 18, weight: .semibold))   // Apple Maps style
+                .foregroundColor(.accentColor)
+
             Text(island.safeIslandLocation)
                 .font(.subheadline)
-                .lineLimit(nil)
+                .foregroundColor(.accentColor.opacity(0.75))
+                .lineLimit(2)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 10)
     }
 }
-
-
 
 struct IslandList: View {
     let islands: [PirateIsland]
@@ -202,7 +207,10 @@ struct IslandList: View {
                 ForEach(filteredIslands, id: \.objectID) { island in // ✅ Use .objectID for stable identity
                     // ✅ Replaced Button with NavigationLink(value: ...)
                     NavigationLink(value: AppScreen.editExistingIsland(island.objectID.uriRepresentation().absoluteString)) {
-                        IslandListItem(island: island, selectedIsland: $selectedIsland)
+                        IslandListItem(
+                            island: island,
+                            selectedIsland: $selectedIsland
+                        )
                             // Apply styling to the row content itself
                             .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0)) // ✅ CRITICAL: Removes row padding
                             .listRowBackground(Color(.systemBackground)) // ✅ CRITICAL: Dynamic background for row

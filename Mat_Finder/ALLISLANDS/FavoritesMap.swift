@@ -75,89 +75,62 @@ struct FavoritesMap: View {
 
     // MARK: Body
     var body: some View {
-
+        
+        let favorites = favoriteIslands
+        
         VStack {
-
-            if favoriteIslands.isEmpty {
-
+            
+            if favorites.isEmpty {
+                
                 Text("No Favorites Yet")
                     .font(.headline)
                     .foregroundColor(.secondary)
-
+                
             } else {
-
+                
                 ZStack {
-
+                    
                     IslandMKMapView(
-                        islands: favoriteIslands,
+                        islands: favorites,
                         selectedIsland: $selectedIsland,
                         showModal: $showModal,
                         selectedRadius: 5.0,
                         region: cameraPosition.region ?? defaultRegion
                     )
-
-                    // Fit All Favorites button
-                    VStack {
-                        Spacer()
-
-                        HStack {
-                            Spacer()
-
-                            VStack(spacing: 12) {
-
-                                // 🌍 Fit All Favorites
-                                Button {
-
-                                    guard let mapView = IslandMKMapView.sharedMapView else { return }
-
-                                    let region = regionToFitFavorites()
-
-                                    mapView.setRegion(region, animated: true)
-
-                                    mapView.setVisibleMapRect(
-                                        mapView.visibleMapRect,
-                                        edgePadding: UIEdgeInsets(top: 120, left: 80, bottom: 120, right: 80),
-                                        animated: true
-                                    )
-
-                                } label: {
-
-                                    Image(systemName: "globe.americas.fill")
-                                        .font(.system(size: 20))
-                                        .foregroundStyle(.blue)
-                                        .padding(12)
-                                        .background(.ultraThinMaterial)
-                                        .clipShape(Circle())
-                                        .shadow(color: .black.opacity(0.25), radius: 6, y: 3)
-                                }
-
-                                // 📍 Recenter
-                                RecenterMapButton(userLocationVM: userLocationVM)
-
-                                // ☰ Favorites List
-                                Button {
-
-                                    showFavoritesList = true
-
-                                } label: {
-
-                                    Image(systemName: "list.bullet")
-                                        .font(.system(size: 20))
-                                        .foregroundStyle(.blue)
-                                        .padding(12)
-                                        .background(.ultraThinMaterial)
-                                        .clipShape(Circle())
-                                        .shadow(color: .black.opacity(0.25), radius: 6, y: 3)
-                                }
-                            }
-                        }
-                        .padding(.trailing, 16)
-                        .padding(.bottom, 110)
-                    }
+                    
+                    MapControlsView(
+                        
+                        fitAction: {
+                            
+                            guard let mapView = IslandMKMapView.sharedMapView else { return }
+                            
+                            let region = regionToFitFavorites(favorites)
+                            
+                            mapView.setRegion(region, animated: true)
+                            
+                            mapView.setVisibleMapRect(
+                                mapView.visibleMapRect,
+                                edgePadding: UIEdgeInsets(
+                                    top: 120,
+                                    left: 80,
+                                    bottom: 120,
+                                    right: 80
+                                ),
+                                animated: true
+                            )
+                        },
+                        
+                        listAction: {
+                            showFavoritesList = true
+                        },
+                        
+                        userLocationVM: userLocationVM
+                    )
                 }
             }
         }
-
+        
+        
         .navigationBarTitleDisplayMode(.inline)
 
         .toolbar {
@@ -187,9 +160,16 @@ struct FavoritesMap: View {
                 cameraPosition = .region(region)
             }
 
-            // Show list if favorites are global
-            let region = regionToFitFavorites()
+            // ⭐ If only one favorite, zoom directly to it
+            if favorites.count == 1,
+               let island = favorites.first {
 
+                zoomToIsland(island, showDetails: false)
+            }
+
+            // Show list if favorites are global
+            let region = regionToFitFavorites(favorites)
+            
             if region.span.longitudeDelta > 60 {
                 showFavoritesList = true
             }
@@ -198,7 +178,7 @@ struct FavoritesMap: View {
         .sheet(isPresented: $showFavoritesList) {
 
             FavoritesListView(
-                islands: favoriteIslands
+                islands: favorites
             ) { island in
 
                 zoomToIsland(island)
@@ -261,9 +241,9 @@ struct FavoritesMap: View {
 
 
     // MARK: Calculate Map Region
-    private func regionToFitFavorites() -> MKCoordinateRegion {
+    private func regionToFitFavorites(_ islands: [PirateIsland]) -> MKCoordinateRegion {
 
-        let coordinates = favoriteIslands.map {
+        let coordinates = islands.map {
             CLLocationCoordinate2D(
                 latitude: $0.latitude,
                 longitude: $0.longitude
@@ -292,7 +272,7 @@ struct FavoritesMap: View {
         return MKCoordinateRegion(center: center, span: span)
     }
     
-    private func zoomToIsland(_ island: PirateIsland) {
+    private func zoomToIsland(_ island: PirateIsland, showDetails: Bool = true) {
 
         guard let mapView = IslandMKMapView.sharedMapView else { return }
 
@@ -309,8 +289,10 @@ struct FavoritesMap: View {
 
         mapView.setRegion(region, animated: true)
 
-        selectedIsland = island
-        showModal = true
+        if showDetails {
+            selectedIsland = island
+            showModal = true
+        }
     }
 }
 
@@ -353,16 +335,14 @@ struct FavoritesListView: View {
 
                             } label: {
 
-                                VStack(alignment: .leading, spacing: 4) {
-
-                                    Text(island.islandName ?? "Unknown Gym")
-                                        .font(.headline)
-
-                                    Text(island.islandLocation!)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
+                                IslandListItem(
+                                    island: island,
+                                    selectedIsland: .constant(nil)
+                                )
                             }
+                            .listRowInsets(EdgeInsets())
+                            .listRowBackground(Color(.systemBackground))
+                            .buttonStyle(.plain)
                         }
                     }
                 }
