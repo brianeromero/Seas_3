@@ -114,12 +114,3 @@ struct MapUtils {
     }
 
 }
-extension MapUtils {
-    /// Estimate the visible radius (in meters) from the current map span
-    static func estimateVisibleRadius(from span: MKCoordinateSpan) -> Double {
-        // 1 degree of latitude ≈ 111 km
-        let latMeters = span.latitudeDelta * 111_000
-        let lonMeters = span.longitudeDelta * 111_000
-        return max(latMeters, lonMeters) / 2
-    }
-}

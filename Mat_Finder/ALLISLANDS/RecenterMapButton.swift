@@ -13,7 +13,6 @@ import CoreLocation
 struct RecenterMapButton: View {
 
     @ObservedObject var userLocationVM: UserLocationMapViewModel
-
     @State private var isOffCenter = false
 
     var body: some View {
@@ -28,16 +27,15 @@ struct RecenterMapButton: View {
                           let mapView = IslandMKMapView.sharedMapView
                     else { return }
 
-                    let meters = MapUtils.estimateVisibleRadius(from: mapView.region.span)
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
 
                     let region = MKCoordinateRegion(
                         center: location.coordinate,
-                        latitudinalMeters: meters,
-                        longitudinalMeters: meters
+                        span: mapView.region.span
                     )
 
                     mapView.setRegion(region, animated: true)
-                    mapView.setUserTrackingMode(.followWithHeading, animated: true)
+                    isOffCenter = false
 
                 } label: {
 
@@ -52,9 +50,16 @@ struct RecenterMapButton: View {
                 .transition(.scale.combined(with: .opacity))
             }
         }
+
+        // EXISTING
         .onReceive(
             NotificationCenter.default.publisher(for: .mapRegionDidChange)
         ) { _ in
+            checkIfMapMoved()
+        }
+
+        // 👇 ADD THIS HERE
+        .onAppear {
             checkIfMapMoved()
         }
     }
@@ -76,6 +81,8 @@ struct RecenterMapButton: View {
         let distance = centerLocation.distance(from: location)
 
         // Show button if map moved more than ~150m
-        isOffCenter = distance > 150
+        withAnimation(.easeInOut(duration: 0.2)) {
+            isOffCenter = distance > 150
+        }
     }
 }

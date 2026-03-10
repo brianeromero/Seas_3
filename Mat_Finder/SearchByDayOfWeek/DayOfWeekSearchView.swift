@@ -42,14 +42,29 @@ struct DayOfWeekSearchView: View {
 
                 ErrorView(errorMessage: $errorMessage)
 
-                IslandMKMapView(
-                    islands: viewModel.islandsWithMatTimes.map(\.0),
-                    selectedIsland: $selectedIsland,
-                    showModal: $showModal,
-                    selectedRadius: 5.0,   // ✅ fixed radius
-                    region: region
-                )
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                ZStack {
+
+                    IslandMKMapView(
+                        islands: viewModel.islandsWithMatTimes.map(\.0),
+                        selectedIsland: $selectedIsland,
+                        showModal: $showModal,
+                        selectedRadius: 5.0,
+                        region: region
+                    )
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                    VStack {
+                        Spacer()
+
+                        HStack {
+                            Spacer()
+
+                            RecenterMapButton(userLocationVM: userLocationMapViewModel)
+                        }
+                        .padding(.trailing, 16)
+                        .padding(.bottom, 90)
+                    }
+                }
             }
             .frame(width: geo.size.width, height: geo.size.height)
             .floatingModal(isPresented: $showModal) {
