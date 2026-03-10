@@ -211,6 +211,7 @@ public class FirestoreManager {
         selectedCountry: Country,
         createdByUser: User
     ) async throws {
+
         if disabled { return }
 
         let islandRef = db.collection("pirateIslands").document(islandData.id)
@@ -227,6 +228,12 @@ public class FirestoreManager {
             "latitude": islandData.latitude,
             "longitude": islandData.longitude,
             "gymWebsite": islandData.gymWebsite,
+
+            // ✅ ADD THESE
+            "hasDropInFee": islandData.hasDropInFee,
+            "dropInFeeAmount": islandData.dropInFeeAmount,
+            "dropInFeeNote": islandData.dropInFeeNote,
+
             "createdBy": [
                 "id": createdByUser.id,
                 "name": createdByUser.userName,
@@ -235,9 +242,9 @@ public class FirestoreManager {
         ]
 
         try await islandRef.setData(data, merge: true)
+
         os_log("✅ Saved PirateIsland %@ to Firestore", log: .default, type: .info, islandData.name)
     }
-
 
     // MARK: - Collection Management
     enum Collection: String {

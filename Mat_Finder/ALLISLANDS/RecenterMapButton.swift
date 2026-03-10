@@ -82,7 +82,7 @@ struct RecenterMapButton: View {
 
         // Show button if map moved more than ~150m
         withAnimation(.easeInOut(duration: 0.2)) {
-            isOffCenter = distance > 150
+            isOffCenter = distance > 200
         }
     }
 }
