@@ -141,20 +141,20 @@ struct EnterZipCodeView: View {
             )
             .id(enterZipCodeViewModel.pirateIslands.map(\.objectID))
 
-            // Recenter Button
-            VStack {
-                Spacer()
+            // Map Controls (Fit + Recenter)
+            MapControlsView(
 
-                HStack {
-                    Spacer()
+                fitAction: {
 
-                    RecenterMapButton(
-                        userLocationVM: userLocationMapViewModel
-                    )
-                }
-                .padding(.trailing, 16)
-                .padding(.bottom, 120)
-            }
+                    guard let mapView = IslandMKMapView.sharedMapView else { return }
+
+                    mapView.showAnnotations(mapView.annotations, animated: true)
+                },
+
+                listAction: nil,
+
+                userLocationVM: userLocationMapViewModel
+            )
 
             // Search This Area Button
             VStack {
