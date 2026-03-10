@@ -53,6 +53,7 @@
 		0C3572AB2F51FFFE004293D2 /* flashing16.gif in Resources */ = {isa = PBXBuildFile; fileRef = 0C3572AA2F51FFFE004293D2 /* flashing16.gif */; };
 		0C380A642F32B32500274EFA /* MFINDER_BOLDw.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C380A632F32B32500274EFA /* MFINDER_BOLDw.png */; };
 		0C380A652F32B32500274EFA /* MFINDER_BOLDb.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C380A622F32B32500274EFA /* MFINDER_BOLDb.png */; };
+		0C44EFF32F5F8B0900BAEA25 /* RecenterMapButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C44EFF22F5F8B0900BAEA25 /* RecenterMapButton.swift */; };
 		0C4B34362C61A32700FD6893 /* PirateIslandDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4B34352C61A32700FD6893 /* PirateIslandDataManager.swift */; };
 		0C4F3C412C3C4645008D04B9 /* IslandScheduleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4F3C402C3C4645008D04B9 /* IslandScheduleView.swift */; };
 		0C524E8E2C2F4241008D6623 /* DayOfWeekUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C524E8D2C2F4241008D6623 /* DayOfWeekUtils.swift */; };
@@ -207,6 +208,7 @@
 		0C35D9B02F48E6C40048D205 /* Mat_Finder_v2.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = Mat_Finder_v2.xcdatamodel; sourceTree = "<group>"; };
 		0C380A622F32B32500274EFA /* MFINDER_BOLDb.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = MFINDER_BOLDb.png; sourceTree = "<group>"; };
 		0C380A632F32B32500274EFA /* MFINDER_BOLDw.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = MFINDER_BOLDw.png; sourceTree = "<group>"; };
+		0C44EFF22F5F8B0900BAEA25 /* RecenterMapButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecenterMapButton.swift; sourceTree = "<group>"; };
 		0C4A7B4A2CC0D43A008CE1EA /* iAd.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = iAd.framework; path = System/Library/Frameworks/iAd.framework; sourceTree = SDKROOT; };
 		0C4A7B4C2CC0D443008CE1EA /* AdSupport.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AdSupport.framework; path = System/Library/Frameworks/AdSupport.framework; sourceTree = SDKROOT; };
 		0C4A7B4E2CC0D507008CE1EA /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = System/Library/Frameworks/CoreLocation.framework; sourceTree = SDKROOT; };
@@ -516,6 +518,7 @@
 				0C07B0B32C2D00F300D0BFB2 /* CustomPin.swift */,
 				0CADDAB52F50C52C001C2C13 /* SwiftUIGIFView.swift */,
 				0C6924872F58D95900AE0966 /* FavoritesMap.swift */,
+				0C44EFF22F5F8B0900BAEA25 /* RecenterMapButton.swift */,
 			);
 			path = ALLISLANDS;
 			sourceTree = "<group>";
@@ -1064,6 +1067,7 @@
 				0C1D82102F57462B002F3E8A /* ScheduleCard.swift in Sources */,
 				0C6F7BD92C79193B00072237 /* Review+CoreDataClass.swift in Sources */,
 				0C07B08C2C2CFED400D0BFB2 /* AppDayOfWeekViewModel.swift in Sources */,
+				0C44EFF32F5F8B0900BAEA25 /* RecenterMapButton.swift in Sources */,
 				0C07B0812C2CFE3600D0BFB2 /* IslandMap.swift in Sources */,
 				0C1893D32C7F95FB007BFADB /* ViewReviewforIsland.swift in Sources */,
 				0C07B0A82C2D004900D0BFB2 /* RenderingManager.swift in Sources */,

@@ -8,6 +8,7 @@
 import Foundation
 
 extension Notification.Name {
+
     // Existing
     static let networkStatusChanged = Notification.Name("NetworkStatusChanged")
     static let showToast = Notification.Name("ShowToast")
@@ -21,14 +22,13 @@ extension Notification.Name {
     // Auth
     static let userLoggedOut = Notification.Name("UserLoggedOut")
 
-    // 🧭 Navigation (OPTIONAL)
+    // 🧭 Navigation
     static let navigateHome = Notification.Name("NavigateHome")
+    static let navigateToLogin = Notification.Name("NavigateToLogin")
 
     // ✅ MatTime
     static let addNewMatTimeTapped = Notification.Name("AddNewMatTimeTapped")
-    
-    
-    // 🧭 Navigation (OPTIONAL)
-    static let navigateToLogin = Notification.Name("NavigateToLogin") // ✅ ADD THIS
-    
+
+    // 🗺 Map
+    static let mapRegionDidChange = Notification.Name("MapRegionDidChange")
 }

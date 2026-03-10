@@ -116,19 +116,21 @@ struct EnterZipCodeView: View {
                 islands: enterZipCodeViewModel.pirateIslands,
                 selectedIsland: $selectedIsland,
                 showModal: $showModal,
-                selectedRadius: 5.0,   // ✅ ADD THIS
+                selectedRadius: 5.0,
                 region: enterZipCodeViewModel.region,
                 onRegionChanged: { newRegion in
 
                     let epsilon = 0.00001
-                    
-                    let latDiff =
-                    abs(newRegion.center.latitude -
-                        enterZipCodeViewModel.region.center.latitude)
 
-                    let lonDiff =
-                    abs(newRegion.center.longitude -
-                        enterZipCodeViewModel.region.center.longitude)
+                    let latDiff = abs(
+                        newRegion.center.latitude -
+                        enterZipCodeViewModel.region.center.latitude
+                    )
+
+                    let lonDiff = abs(
+                        newRegion.center.longitude -
+                        enterZipCodeViewModel.region.center.longitude
+                    )
 
                     if latDiff > epsilon || lonDiff > epsilon {
 
@@ -139,8 +141,22 @@ struct EnterZipCodeView: View {
             )
             .id(enterZipCodeViewModel.pirateIslands.map(\.objectID))
 
+            // Recenter Button
+            VStack {
+                Spacer()
 
-            // Floating Apple-style button
+                HStack {
+                    Spacer()
+
+                    RecenterMapButton(
+                        userLocationVM: userLocationMapViewModel
+                    )
+                }
+                .padding(.trailing, 16)
+                .padding(.bottom, 120)
+            }
+
+            // Search This Area Button
             VStack {
 
                 if showSearchThisArea {

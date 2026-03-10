@@ -115,9 +115,10 @@ struct ConsolidatedIslandMapView: View {
                         HStack {
                             Spacer()
 
-                            recenterButton()
+                            RecenterMapButton(userLocationVM: locationManager)
                         }
-                        .padding()
+                        .padding(.trailing, 16)
+                        .padding(.bottom, 90)   
                     }
                 }
 
@@ -343,26 +344,6 @@ struct ConsolidatedIslandMapView: View {
         cameraPosition =
             .region(region)
     }
-    
-    private func recenterButton() -> some View {
-
-        Button {
-
-            guard let location = locationManager.userLocation else { return }
-
-            updateRegion(location, radius: selectedRadius)
-
-        } label: {
-
-            Image(systemName: "location.fill")
-                .font(.system(size: 22))
-                .foregroundStyle(.blue)
-                .padding(10)
-                .background(.ultraThinMaterial)
-                .clipShape(Circle())
-                .shadow(color: .black.opacity(0.25), radius: 6, y: 3)
-        }
-    }
 
 }
 
@@ -381,11 +362,13 @@ struct IslandMKMapView: UIViewRepresentable {
     var region: MKCoordinateRegion
 
     var onRegionChanged: ((MKCoordinateRegion) -> Void)?   // ✅ ADD THIS
-    
+    static var sharedMapView: MKMapView?
 
     func makeUIView(context: Context) -> MKMapView {
 
         let mapView = MKMapView()
+        
+        IslandMKMapView.sharedMapView = mapView
 
         mapView.delegate = context.coordinator
 
@@ -434,9 +417,16 @@ struct IslandMKMapView: UIViewRepresentable {
             context.coordinator.lastIslandIDs = islandIDs
         }
 
-        // ✅ Always update region
-        mapView.setRegion(region, animated: true)
-        context.coordinator.lastRegion = region
+        if !context.coordinator.isSameRegion(region) {
+
+            MapUtils.setMapRegion(
+                mapView: mapView,
+                centerCoordinate: region.center,
+                span: region.span
+            )
+
+            context.coordinator.lastRegion = region
+        }
     }
     
     func makeCoordinator() -> Coordinator {
@@ -601,8 +591,12 @@ struct IslandMKMapView: UIViewRepresentable {
         func mapViewDidChangeVisibleRegion(_ mapView: MKMapView) {
 
             parent.onRegionChanged?(mapView.region)
+
+            NotificationCenter.default.post(
+                name: .mapRegionDidChange,
+                object: nil
+            )
         }
-        
         
     }
     

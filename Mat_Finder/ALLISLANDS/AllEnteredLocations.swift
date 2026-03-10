@@ -108,14 +108,26 @@ struct AllEnteredLocations: View {
 
                 if viewMode == .map {
 
-                    IslandMKMapView(
-                        islands: viewModel.allIslands,
-                        selectedIsland: $selectedIsland,
-                        showModal: $showModal,
-                        selectedRadius: 5.0,
-                        region: currentRegion
-                    )
-                    .id(viewModel.allIslands.count)
+                    ZStack {
+
+                        IslandMKMapView(
+                            islands: viewModel.allIslands,
+                            selectedIsland: $selectedIsland,
+                            showModal: $showModal,
+                            selectedRadius: 5.0,
+                            region: currentRegion
+                        )
+                        VStack {
+                            Spacer()
+
+                            HStack {
+                                Spacer()
+
+                                RecenterMapButton(userLocationVM: userLocationVM)
+                            }
+                            .padding(.trailing, 16)
+                            .padding(.bottom, 90)                        }
+                    }
                     
                 } else {
 
