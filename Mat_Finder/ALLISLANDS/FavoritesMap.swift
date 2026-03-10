@@ -358,7 +358,7 @@ struct FavoritesListView: View {
                                     Text(island.islandName ?? "Unknown Gym")
                                         .font(.headline)
 
-                                    Text(island.islandLocation)
+                                    Text(island.islandLocation!)
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }
