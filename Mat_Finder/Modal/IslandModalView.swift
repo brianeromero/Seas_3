@@ -254,24 +254,21 @@ struct IslandModalView: View {
 
                         let stars = StarRating.getStars(for: currentAverageStarRating)
 
-                        HStack(spacing: 4) {
+                        HStack(spacing: 6) {
 
                             ForEach(stars, id: \.self) { icon in
                                 Image(systemName: icon)
-                                    .font(.footnote)
+                                    .font(.caption)
                                     .foregroundColor(.yellow)
                             }
 
-                            Text(String(format: "%.1f", currentAverageStarRating))
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-
-                            Text("(\(currentReviews.count))")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
+                            Text(
+                                "\(String(format: "%.1f", currentAverageStarRating)) • \(currentReviews.count) review\(currentReviews.count == 1 ? "" : "s")"
+                            )
+                            .font(.subheadline.weight(.medium))
+                            .foregroundColor(.primary)
                         }
                     }
-
                     Button {
                         navigationPath.append(
                             AppScreen.viewAllReviews(
