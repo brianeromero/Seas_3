@@ -231,8 +231,6 @@
 		0C9861BB2F33B66C00B4B96C /* MFINDER_circle.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = MFINDER_circle.png; sourceTree = "<group>"; };
 		0C98D2C62DA5949B000583ED /* ToggleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToggleView.swift; sourceTree = "<group>"; };
 		0C9B5F282E260B9100C643B7 /* DaysOfWeekFormViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DaysOfWeekFormViewModel.swift; sourceTree = "<group>"; };
-		0CA142232C3EF19900C366CF /* MainLoginViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainLoginViewController.swift; sourceTree = "<group>"; };
-		0CA142252C3EF7F200C366CF /* IslandScheduleAsCalViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandScheduleAsCalViewController.swift; sourceTree = "<group>"; };
 		0CADDAB52F50C52C001C2C13 /* SwiftUIGIFView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftUIGIFView.swift; sourceTree = "<group>"; };
 		0CB6E1E62EAC09F600BE4016 /* Mat_Finder.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = Mat_Finder.xcdatamodel; sourceTree = "<group>"; };
 		0CBA13292CC19D0C00A74C2A /* MapKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MapKit.framework; path = System/Library/Frameworks/MapKit.framework; sourceTree = SDKROOT; };
@@ -255,10 +253,8 @@
 		0CDF61D02C3CA0F400A8A0BF /* ScheduleDetailModal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleDetailModal.swift; sourceTree = "<group>"; };
 		0CEB03952C2B9B73007CA3CC /* PirateIslandViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PirateIslandViewModel.swift; sourceTree = "<group>"; };
 		0CEB03992C2BA58F007CA3CC /* AppDayOfWeekRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDayOfWeekRepository.swift; sourceTree = "<group>"; };
-		0CEC32692C3EFBAE00F0747F /* MainLoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainLoginView.swift; sourceTree = "<group>"; };
 		0CEC326C2C3EFF3100F0747F /* StoryboardViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoryboardViewController.swift; sourceTree = "<group>"; };
 		0CEC326E2C3F07D400F0747F /* MainStoryboard.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = MainStoryboard.storyboard; sourceTree = "<group>"; };
-		0CEC32762C40946400F0747F /* AppDayOfWeekCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDayOfWeekCell.swift; sourceTree = "<group>"; };
 		0CEC32782C41907200F0747F /* StoryboardViewControllerRepresentable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoryboardViewControllerRepresentable.swift; sourceTree = "<group>"; };
 		0CEC327D2C41A45300F0747F /* pIslandScheduleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = pIslandScheduleView.swift; sourceTree = "<group>"; };
 		0CEC327F2C41A46700F0747F /* pIslandScheduleListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = pIslandScheduleListView.swift; sourceTree = "<group>"; };
@@ -561,11 +557,7 @@
 			isa = PBXGroup;
 			children = (
 				0CEC326E2C3F07D400F0747F /* MainStoryboard.storyboard */,
-				0CEC32692C3EFBAE00F0747F /* MainLoginView.swift */,
-				0CA142232C3EF19900C366CF /* MainLoginViewController.swift */,
-				0CA142252C3EF7F200C366CF /* IslandScheduleAsCalViewController.swift */,
 				0CEC326C2C3EFF3100F0747F /* StoryboardViewController.swift */,
-				0CEC32762C40946400F0747F /* AppDayOfWeekCell.swift */,
 				0CEC32782C41907200F0747F /* StoryboardViewControllerRepresentable.swift */,
 			);
 			path = Storyboarding;

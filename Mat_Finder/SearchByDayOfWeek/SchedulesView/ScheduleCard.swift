@@ -21,7 +21,7 @@ struct ScheduleCard: View {
 
     var body: some View {
 
-        HStack(alignment: .top, spacing: 16) {
+        HStack(alignment: .firstTextBaseline, spacing: 16) {
 
             // TIME COLUMN
             Text(displayTime)
@@ -29,13 +29,15 @@ struct ScheduleCard: View {
                 .fontWeight(.medium)
                 .monospacedDigit()
                 .frame(minWidth: 90, alignment: .leading)
-            
+
             // CLASS INFO
             VStack(alignment: .leading, spacing: 8) {
 
                 // Header
                 Text(matTime.formattedHeader(includeDay: false))
                     .font(.headline)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
 
                 // Badges
                 badgeRow
@@ -68,12 +70,31 @@ struct ScheduleCard: View {
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
+
         .background(.thinMaterial)
+
         .clipShape(RoundedRectangle(cornerRadius: 14))
+
         .overlay(
             RoundedRectangle(cornerRadius: 14)
-                .stroke(Color(.separator).opacity(0.35), lineWidth: 0.5)
+                .stroke(Color(.separator).opacity(0.25), lineWidth: 0.5)
         )
+
+        // Discipline Color Stripe
+        .overlay(alignment: .leading) {
+
+            if let disciplineString = matTime.discipline,
+               let disciplineEnum = Discipline(rawValue: disciplineString) {
+
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(color(for: disciplineEnum.badgeColor))
+                    .frame(width: 5)
+                    .padding(.vertical, 8)
+                    .padding(.leading, 2)
+            }
+        }
+
+        .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
     }
 
     // MARK: - Badge Row
@@ -82,42 +103,41 @@ struct ScheduleCard: View {
 
         FlowStack(spacing: 8) {
 
-            if matTime.womensOnly {
-                badge("Women's", color: .pink)
-            }
-
-            if matTime.kids {
-                badge("Kids", color: .green)
-            }
-
-            if matTime.openMat {
-                badge("Open Mat", color: .purple)
-            }
-
-            if matTime.gi {
-                badge("Gi", color: .gray)
-            }
-
-            if matTime.noGi {
-                badge("NoGi", color: .red)
+            ForEach(matTime.badges) { badge in
+                badgeView(badge)
             }
         }
     }
 
-    private func badge(_ text: String, color: Color) -> some View {
+    private func badgeView(_ badge: ClassBadge) -> some View {
 
-        Text(text)
+        Text(badge.text)
             .font(.caption2)
             .fontWeight(.medium)
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
             .background(
                 Capsule()
-                    .fill(color.opacity(0.15))
+                    .fill(color(for: badge.color).opacity(0.15))
             )
-            .foregroundColor(color)
+            .foregroundColor(color(for: badge.color))
     }
-    
+
+    private func color(for name: String) -> Color {
+        switch name {
+        case "blue": return .blue
+        case "teal": return .teal
+        case "purple": return .purple
+        case "orange": return .orange
+        case "indigo": return .indigo
+        case "red": return .red
+        case "green": return .green
+        case "pink": return .pink
+        case "gray": return .gray
+        default: return .gray
+        }
+    }
+
     private var displayTime: String {
 
         guard let time = matTime.time,

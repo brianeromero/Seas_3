@@ -10,9 +10,9 @@ import SwiftUI
 import CoreData
 
 struct EditMatTimeView: View {
-    @State private var gi: Bool
-    @State private var noGi: Bool
-    @State private var openMat: Bool
+
+    @State private var discipline: Discipline
+
     @State private var restrictions: Bool
     @State private var restrictionDescription: String
     @State private var goodForBeginners: Bool
@@ -20,108 +20,205 @@ struct EditMatTimeView: View {
     @State private var womensOnly: Bool
     @State private var selectedTime: Date
 
-
-    // NEW: Success alert flag
     @State private var showSuccessAlert = false
-
+    
+    @State private var style: Style?
+    @State private var customStyle: String
+    
     let matTime: MatTime
-    let viewModel: AppDayOfWeekViewModel   // <<< Inject the view model
+    let viewModel: AppDayOfWeekViewModel
+
     @Environment(\.dismiss) var dismiss
 
     init(matTime: MatTime, viewModel: AppDayOfWeekViewModel) {
+
         self.matTime = matTime
         self.viewModel = viewModel
 
-        _gi = State(initialValue: matTime.gi)
-        _noGi = State(initialValue: matTime.noGi)
-        _openMat = State(initialValue: matTime.openMat)
+        let loadedDiscipline =
+            Discipline(rawValue: matTime.discipline ?? "") ?? .bjjGi
+
+        _discipline = State(initialValue: loadedDiscipline)
+        
+        let loadedStyle: Style?
+
+        if let styleString = matTime.style,
+           let parsed = Style(rawValue: styleString) {
+            loadedStyle = parsed
+        }
+        else if let custom = matTime.customStyle, !custom.isEmpty {
+            loadedStyle = .custom
+        }
+        else {
+            loadedStyle = nil
+        }
+
+        _style = State(initialValue: loadedStyle)
+
+        _customStyle = State(initialValue: matTime.customStyle ?? "")
+
+ 
+
         _restrictions = State(initialValue: matTime.restrictions)
         _restrictionDescription = State(initialValue: matTime.restrictionDescription ?? "")
         _goodForBeginners = State(initialValue: matTime.goodForBeginners)
         _kids = State(initialValue: matTime.kids)
-        _womensOnly = State(initialValue: matTime.womensOnly)   // ✅ FIXED
+        _womensOnly = State(initialValue: matTime.womensOnly)
 
         let parsedDate: Date
+
         if let timeString = matTime.time,
            let date = AppDateFormatter.stringToDate(timeString) {
+
             let calendar = Calendar.current
-            let nowComponents = calendar.dateComponents([.year, .month, .day], from: Date())
-            let timeComponents = calendar.dateComponents([.hour, .minute], from: date)
-            parsedDate = calendar.date(bySettingHour: timeComponents.hour ?? 0,
-                                       minute: timeComponents.minute ?? 0,
-                                       second: 0,
-                                       of: calendar.date(from: nowComponents)!) ?? Date()
+            let nowComponents = calendar.dateComponents([.year,.month,.day], from: Date())
+            let timeComponents = calendar.dateComponents([.hour,.minute], from: date)
+
+            parsedDate = calendar.date(
+                bySettingHour: timeComponents.hour ?? 0,
+                minute: timeComponents.minute ?? 0,
+                second: 0,
+                of: calendar.date(from: nowComponents)!
+            ) ?? Date()
+
         } else {
             parsedDate = Date()
         }
+
         _selectedTime = State(initialValue: parsedDate)
     }
 
     var body: some View {
+
         NavigationStack {
+
             Form {
-                Section(header: Text("Time")) {
-                    DatePicker("Select Time", selection: $selectedTime, displayedComponents: .hourAndMinute)
-                        .datePickerStyle(WheelDatePickerStyle())
+
+                Section("Time") {
+
+                    DatePicker(
+                        "Select Time",
+                        selection: $selectedTime,
+                        displayedComponents: .hourAndMinute
+                    )
+                    .datePickerStyle(.wheel)
                 }
 
-                Section(header: Text("Class Types")) {
-                    Toggle("Gi", isOn: $gi)
-                    Toggle("NoGi", isOn: $noGi)
-                    Toggle("Open Mat", isOn: $openMat)
-                }
+                Section("Discipline") {
 
-                Section(header: Text("Restrictions")) {
+                    DisciplinePicker(discipline: $discipline)
+
+                    StylePicker(
+                        style: $style,
+                        discipline: $discipline,
+                        customStyle: $customStyle
+                    )
+                }
+ 
+
+                Section("Restrictions") {
+
                     Toggle("Restrictions", isOn: $restrictions)
+
                     if restrictions {
-                        TextField("Restriction Description", text: $restrictionDescription)
+
+                        TextField(
+                            "Restriction Description",
+                            text: $restrictionDescription
+                        )
                     }
                 }
 
-                Section(header: Text("Additional Info")) {
+                Section("Additional Info") {
+
                     Toggle("Good for Beginners", isOn: $goodForBeginners)
                     Toggle("Kids Class", isOn: $kids)
-                    Toggle("Women’s Class", isOn: $womensOnly)   // ✅ NEW
-
+                    Toggle("Women’s Class", isOn: $womensOnly)
                 }
+
             }
             .navigationTitle("Edit Mat Time")
-            .navigationBarItems(
-                leading: Button("Cancel") { dismiss() },
-                trailing: Button("Save") { saveChanges() }
-            )
-            .alert("Mat Time Updated", isPresented: $showSuccessAlert) {
-                Button("OK") {
-                    dismiss()
+
+            .toolbar {
+
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") { dismiss() }
                 }
+
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Save") { saveChanges() }
+                }
+            }
+
+            .alert("Mat Time Updated", isPresented: $showSuccessAlert) {
+
+                Button("OK") { dismiss() }
+
             } message: {
+
                 Text("Your changes were saved successfully.")
+            }
+
+            .onChange(of: style) { _, newStyle in
+                if newStyle != .custom {
+                    customStyle = ""
+                }
             }
         }
     }
 
-
     private func saveChanges() {
-        matTime.time = AppDateFormatter.twelveHour.string(from: selectedTime)
-        matTime.gi = gi
-        matTime.noGi = noGi
-        matTime.openMat = openMat
+
+        matTime.time =
+            AppDateFormatter.twelveHour.string(from: selectedTime)
+
+        matTime.discipline = discipline.rawValue
+
+        if style == .custom {
+
+            let trimmed = customStyle.trimmingCharacters(in: .whitespacesAndNewlines)
+
+            if trimmed.isEmpty {
+                matTime.style = ""
+                matTime.customStyle = ""
+            } else {
+                matTime.style = trimmed
+                matTime.customStyle = trimmed
+            }
+
+        } else if let style {
+
+            matTime.style = style.rawValue
+            matTime.customStyle = ""
+
+        } else {
+
+            matTime.style = ""
+            matTime.customStyle = ""
+        }
+
+        matTime.gi = discipline == .bjjGi
+        matTime.noGi = discipline == .bjjNoGi
+        matTime.openMat = style == .openMat
+
         matTime.restrictions = restrictions
-        matTime.restrictionDescription = restrictionDescription.isEmpty ? nil : restrictionDescription
+        matTime.restrictionDescription =
+            restrictionDescription.isEmpty ? nil : restrictionDescription
+
         matTime.goodForBeginners = goodForBeginners
         matTime.kids = kids
-        matTime.womensOnly = womensOnly   // ✅ REQUIRED
+        matTime.womensOnly = womensOnly
 
         Task {
             do {
                 try await viewModel.updateMatTime(matTime)
+
                 await MainActor.run {
-                    self.showSuccessAlert = true
+                    showSuccessAlert = true
                 }
+
             } catch {
-                await MainActor.run {
-                    print("Failed to update MatTime: \(error.localizedDescription)")
-                }
+                print("Failed to update MatTime:", error.localizedDescription)
             }
         }
     }

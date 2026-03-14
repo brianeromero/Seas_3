@@ -419,10 +419,27 @@ final class AppDayOfWeekViewModel: ObservableObject {
 
             selectedDayBinding.wrappedValue = day
 
-            return (
-                existing,
-                existing.matTimes?.allObjects as? [MatTime]
-            )
+            let matTimes = (existing.matTimes?.allObjects as? [MatTime] ?? [])
+                .sorted {
+
+                    let timeA = $0.time ?? ""
+                    let timeB = $1.time ?? ""
+
+                    if timeA != timeB {
+                        return timeA < timeB
+                    }
+
+                    let disciplineA = $0.discipline ?? ""
+                    let disciplineB = $1.discipline ?? ""
+
+                    if disciplineA != disciplineB {
+                        return disciplineA < disciplineB
+                    }
+
+                    return ($0.style ?? "") < ($1.style ?? "")
+                }
+
+            return (existing, matTimes)
         }
 
         print("❌ Not found in Core Data. Checking Firestore...")
@@ -468,10 +485,27 @@ final class AppDayOfWeekViewModel: ObservableObject {
 
                     selectedDayBinding.wrappedValue = day
 
-                    return (
-                        new,
-                        new.matTimes?.allObjects as? [MatTime]
-                    )
+                    let matTimes = (new.matTimes?.allObjects as? [MatTime] ?? [])
+                        .sorted {
+
+                            let timeA = $0.time ?? ""
+                            let timeB = $1.time ?? ""
+
+                            if timeA != timeB {
+                                return timeA < timeB
+                            }
+
+                            let disciplineA = $0.discipline ?? ""
+                            let disciplineB = $1.discipline ?? ""
+
+                            if disciplineA != disciplineB {
+                                return disciplineA < disciplineB
+                            }
+
+                            return ($0.style ?? "") < ($1.style ?? "")
+                        }
+
+                    return (new, matTimes)
                 }
 
             }
@@ -532,6 +566,9 @@ final class AppDayOfWeekViewModel: ObservableObject {
         _ existingMatTimeID: NSManagedObjectID?,
         time: String,
         type: String,
+        style: String,
+        customStyle: String,
+        discipline: String,
         gi: Bool,
         noGi: Bool,
         openMat: Bool,
@@ -539,7 +576,7 @@ final class AppDayOfWeekViewModel: ObservableObject {
         restrictionDescription: String,
         goodForBeginners: Bool,
         kids: Bool,
-        womensOnly: Bool,   // ✅ NEW
+        womensOnly: Bool,
         for appDayOfWeekID: NSManagedObjectID
     ) async throws -> NSManagedObjectID {
 
@@ -589,6 +626,9 @@ final class AppDayOfWeekViewModel: ObservableObject {
             matTime.configure(
                 time: time,
                 type: type,
+                style: style,
+                customStyle: customStyle,
+                discipline: discipline,
                 gi: gi,
                 noGi: noGi,
                 openMat: openMat,
@@ -627,21 +667,22 @@ final class AppDayOfWeekViewModel: ObservableObject {
     
     // MARK: - Fetch MatTimes for Day
     func fetchMatTimes(for day: DayOfWeek) throws -> [MatTime] {
-        print("Fetching MatTimes for day: \(day)")
-        
+
         let request: NSFetchRequest<MatTime> = MatTime.fetchRequest()
-        request.entity = NSEntityDescription.entity(forEntityName: "MatTime", in: viewContext)!
-        request.predicate = NSPredicate(format: "appDayOfWeek.day ==[c] %@", day.rawValue)
-        
-        // Apply sort descriptor
-        let sortDescriptor = NSSortDescriptor(keyPath: \MatTime.time, ascending: true)
-        request.sortDescriptors = [sortDescriptor]
-        
-        do {
-            return try viewContext.fetch(request)
-        } catch {
-            throw FetchError.failedToFetchMatTimes(error)
-        }
+
+        request.predicate = NSPredicate(
+            format: "appDayOfWeek.day ==[c] %@", day.rawValue
+        )
+
+        request.fetchBatchSize = 20
+
+        request.sortDescriptors = [
+            NSSortDescriptor(keyPath: \MatTime.time, ascending: true),
+            NSSortDescriptor(keyPath: \MatTime.discipline, ascending: true),
+            NSSortDescriptor(keyPath: \MatTime.style, ascending: true)
+        ]
+
+        return try viewContext.fetch(request)
     }
 
     @MainActor
@@ -720,6 +761,12 @@ final class AppDayOfWeekViewModel: ObservableObject {
 
             type: matTime.type ?? "",
 
+            style: matTime.style ?? "",
+
+            customStyle: matTime.customStyle ?? "",
+
+            discipline: matTime.discipline ?? "bjj",
+
             gi: matTime.gi,
 
             noGi: matTime.noGi,
@@ -734,12 +781,11 @@ final class AppDayOfWeekViewModel: ObservableObject {
             goodForBeginners: matTime.goodForBeginners,
 
             kids: matTime.kids,
-            
+
             womensOnly: matTime.womensOnly,
 
             for: appDayOfWeek.objectID
         )
-
 
         // ✅ CRITICAL FIX
         // Refetch on MAIN CONTEXT to avoid background thread publish crash
@@ -788,6 +834,7 @@ final class AppDayOfWeekViewModel: ObservableObject {
             "time": time24Hour,
 
             "type": updatedMatTime.type ?? "Gi",
+            "discipline": updatedMatTime.discipline ?? "bjj",
 
             "gi": updatedMatTime.gi,
 
@@ -943,8 +990,12 @@ final class AppDayOfWeekViewModel: ObservableObject {
         let matTimes: [MatTime] = dayAppDayOfWeeks
             .compactMap { $0.matTimes?.allObjects as? [MatTime] }
             .flatMap { $0 }
-            .sorted { ($0.createdTimestamp ?? Date()) < ($1.createdTimestamp ?? Date()) }
-
+            .sorted {
+                if ($0.time ?? "") == ($1.time ?? "") {
+                    return ($0.style ?? "") < ($1.style ?? "")
+                }
+                return ($0.time ?? "") < ($1.time ?? "")
+            }
         matTimesForDay[day] = matTimes
         schedules[day] = Array(dayAppDayOfWeeks)
             .sorted { ($0.createdTimestamp ?? Date()) < ($1.createdTimestamp ?? Date()) }
@@ -1017,8 +1068,12 @@ final class AppDayOfWeekViewModel: ObservableObject {
                                 appDayOfWeek.matTimes?.allObjects as? [MatTime]
                             }
                             .flatMap { $0 } // flatten from [[MatTime]] → [MatTime]
-                            .sorted { ($0.createdTimestamp ?? Date()) < ($1.createdTimestamp ?? Date()) }
-
+                            .sorted {
+                                if ($0.time ?? "") == ($1.time ?? "") {
+                                    return ($0.style ?? "") < ($1.style ?? "")
+                                }
+                                return ($0.time ?? "") < ($1.time ?? "")
+                            }
 
                         if matTimesForCurrentDay.isEmpty {
                             print("    ⚠️ MainActor: Island \(island.islandName ?? "Unnamed") has no MatTimes for day \(day.rawValue). Excluding from schedule.")
@@ -1153,6 +1208,9 @@ final class AppDayOfWeekViewModel: ObservableObject {
         newMatTimeObject.configure(
             time: matTime.time,
             type: matTime.type,
+            style: matTime.style,
+            customStyle: matTime.customStyle,
+            discipline: matTime.discipline,
             gi: matTime.gi,
             noGi: matTime.noGi,
             openMat: matTime.openMat,
@@ -1160,7 +1218,7 @@ final class AppDayOfWeekViewModel: ObservableObject {
             restrictionDescription: matTime.restrictionDescription,
             goodForBeginners: matTime.goodForBeginners,
             kids: matTime.kids,
-            womensOnly: matTime.womensOnly   // ✅ Included
+            womensOnly: matTime.womensOnly
         )
 
         newMatTimeObject.createdTimestamp = Date()
@@ -1269,9 +1327,13 @@ final class AppDayOfWeekViewModel: ObservableObject {
         // Prepare all MatTime objects first
         let newMatTimes: [MatTime] = matTimes.map { mat in
             let matTime = MatTime(context: viewContext)
+
             matTime.configure(
                 time: mat.time,
                 type: mat.type,
+                style: mat.type,
+                customStyle: "",
+                discipline: "bjj",
                 gi: mat.gi,
                 noGi: mat.noGi,
                 openMat: mat.openMat,
@@ -1281,6 +1343,7 @@ final class AppDayOfWeekViewModel: ObservableObject {
                 kids: mat.kids,
                 womensOnly: mat.womensOnly
             )
+
             return matTime
         }
 
@@ -1458,7 +1521,11 @@ final class AppDayOfWeekViewModel: ObservableObject {
     func handleDuplicateMatTime(for day: DayOfWeek, with matTime: MatTime) -> Bool {
         let existingMatTimes = matTimesForDay[day] ?? []
         let isDuplicate = existingMatTimes.contains { existingMatTime in
-            existingMatTime.time == matTime.time && existingMatTime.type == matTime.type
+            existingMatTime.time == matTime.time &&
+            existingMatTime.discipline == matTime.discipline &&
+            existingMatTime.style == matTime.style &&
+            existingMatTime.kids == matTime.kids &&
+            existingMatTime.womensOnly == matTime.womensOnly
         }
         print("Checking for duplicate MatTime for day: \(day). Is duplicate: \(isDuplicate)")
         return isDuplicate
@@ -1692,28 +1759,25 @@ extension AppDayOfWeek {
 
 
 
-
 extension AppDayOfWeek {
+
     func toFirestoreData() -> [String: Any] {
+
         var data: [String: Any] = [
-            "id": self.appDayOfWeekID ?? "", // Directly use the string
+            "appDayOfWeekID": self.appDayOfWeekID ?? "",
             "day": self.day,
             "name": self.name ?? "",
             "createdTimestamp": self.createdTimestamp ?? Date(),
-            "pIsland": self.pIsland?.toFirestoreData() ?? [:], // Ensure to include PirateIsland data
+            "pIsland": self.pIsland?.toFirestoreData() ?? [:]
         ]
-        
-        // Add matTimes if needed
+
         if let matTimes = self.matTimes as? Set<MatTime> {
-            let matTimesData = matTimes.map { $0.toFirestoreData() }
-            data["matTimes"] = matTimesData
+            data["matTimes"] = matTimes.map { $0.toFirestoreData() }
         }
-        
+
         return data
     }
 }
-
-
 
 
 

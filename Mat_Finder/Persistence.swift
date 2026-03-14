@@ -26,7 +26,8 @@ final class PersistenceController: ObservableObject {
 
     var viewContext: NSManagedObjectContext { container.viewContext }
 
-
+    private let matTimeMigrationKey = "MatTimeMigrationComplete"
+    
     // MARK: - Initializer
 
     private init(inMemory: Bool = false) {
@@ -69,7 +70,6 @@ final class PersistenceController: ObservableObject {
             print("✅ Persistent Store Loaded:",
                   description.url?.absoluteString ?? "")
 
-            // ✅ ADD THIS DEBUG CODE RIGHT HERE
             print("📦 STORE URL:",
                   description.url?.path ?? "nil")
 
@@ -78,29 +78,32 @@ final class PersistenceController: ObservableObject {
                 print("📦 STORE EXISTS:",
                       FileManager.default.fileExists(atPath: path))
             }
-            
-            
+
             let viewContext = self.container.viewContext
-            
-            
-            // 🚀 PERFORMANCE OPTIMIZATIONS
-            
-            viewContext.undoManager = nil
-            
-            viewContext.shouldDeleteInaccessibleFaults = true
-            
-            viewContext.automaticallyMergesChangesFromParent = true
-            
+
+            // 🚀 PERFORMANCE OPTIMIZATIONS (SET FIRST)
+
             viewContext.mergePolicy =
-            NSMergeByPropertyObjectTrumpMergePolicy
-            
+                NSMergeByPropertyObjectTrumpMergePolicy
+
+            viewContext.undoManager = nil
+
+            viewContext.shouldDeleteInaccessibleFaults = true
+
+            viewContext.automaticallyMergesChangesFromParent = true
+
             viewContext.transactionAuthor = "viewContext"
-            
+
+            // DEBUG ONLY — force migration to run again
+            UserDefaults.standard.removeObject(forKey: "MatTimeMigrationComplete")
+
+            // ⭐ RUN MIGRATION AFTER CONTEXT IS CONFIGURED
+            self.migrateMatTimeIfNeeded(context: viewContext)
             
             viewContext.perform {
-                
+
                 viewContext.processPendingChanges()
-                
+
                 print("✅ Core Data fully optimized")
             }
             
@@ -165,7 +168,117 @@ final class PersistenceController: ObservableObject {
             }
         }
     }
+    
+    func migrateMatTimeIfNeeded(context: NSManagedObjectContext) {
 
+        let defaults = UserDefaults.standard
+
+        guard !defaults.bool(forKey: matTimeMigrationKey) else {
+            print("⏭️ MatTime migration already completed")
+            return
+        }
+
+        print("🔄 Running MatTime migration...")
+
+        let request: NSFetchRequest<MatTime> = MatTime.fetchRequest()
+
+        do {
+
+            let mats = try context.fetch(request)
+
+            var firestoreUpdates: [(id: String, discipline: String, style: String)] = []
+
+            let validDisciplines: Set<String> = [
+                "bjjGi","bjjNoGi","mma","wrestling","judo","striking","mobility"
+            ]
+
+            let validStyles: Set<String> = Set(Style.allCases.map { $0.rawValue })
+
+            for mat in mats {
+
+                var didChange = false
+
+                // ------------------------------------------------
+                // MIGRATE DISCIPLINE (REQUIRED)
+                // ------------------------------------------------
+
+                if mat.discipline?.isEmpty ?? true ||
+                   !validDisciplines.contains(mat.discipline!) {
+
+                    if mat.gi {
+                        mat.discipline = "bjjGi"
+                    }
+                    else if mat.noGi {
+                        mat.discipline = "bjjNoGi"
+                    }
+                    else {
+                        mat.discipline = "bjjGi"   // safe fallback
+                    }
+
+                    didChange = true
+                }
+
+                // ------------------------------------------------
+                // MIGRATE STYLE
+                // ------------------------------------------------
+
+                if mat.style?.isEmpty ?? true ||
+                   !(mat.style.map { validStyles.contains($0) } ?? false) {
+
+                    if mat.openMat {
+                        mat.style = "openMat"
+                    } else {
+                        mat.style = "fundamentals"
+                    }
+
+                    didChange = true
+                }
+
+                // ------------------------------------------------
+                // QUEUE FIRESTORE UPDATE (ONLY IF CHANGED)
+                // ------------------------------------------------
+
+                if didChange, let id = mat.id?.uuidString {
+
+                    firestoreUpdates.append((
+                        id: id,
+                        discipline: mat.discipline ?? "bjjGi",
+                        style: mat.style ?? "fundamentals"
+                    ))
+                }
+            }
+
+            if context.hasChanges {
+                try context.save()
+            }
+
+            defaults.set(true, forKey: matTimeMigrationKey)
+
+            print("✅ MatTime migration complete")
+
+            Task.detached(priority: .background) {
+                
+                let firestore = Firestore.firestore()
+
+                for update in firestoreUpdates {
+
+                    try? await firestore
+                        .collection("MatTime")
+                        .document(update.id)
+                        .setData([
+                            "discipline": update.discipline,
+                            "style": update.style
+                        ], merge: true)
+                }
+
+                print("🔥 Firestore migration sync complete")
+            }
+
+        } catch {
+
+            print("❌ MatTime migration failed:", error)
+        }
+    }
 
     // MARK: - Background Context
 

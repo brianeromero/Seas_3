@@ -13,16 +13,6 @@ import CoreData
 import FirebaseFirestore
   
 
-enum ClassType: String, CaseIterable, Identifiable {
-
-    case gi = "Gi"
-    case noGi = "No Gi"
-    case openMat = "Open Mat"
-
-    var id: String { rawValue }
-}
-
-
 struct AddNewMatTimeSection2: View {
     
     @Environment(\.dismiss) private var dismiss
@@ -66,9 +56,10 @@ struct AddNewMatTimeSection2: View {
 
     @State private var restrictions = false
     @State private var restrictionText = ""
-
-    @State private var classType: ClassType = .gi
-
+    
+    @State private var discipline: Discipline = .bjjGi
+    @State private var style: Style? = nil
+    @State private var customStyle: String = ""
 
     // MARK: - Loading
 
@@ -78,10 +69,18 @@ struct AddNewMatTimeSection2: View {
     var body: some View {
 
         Form {
-
-            Section("CLASS Type") {
-                classTypeSection
+            
+            Section("DISCIPLINE") {
+                DisciplinePicker(discipline: $discipline)
+                
+                StylePicker(
+                    style: $style,
+                    discipline: $discipline,
+                    customStyle: $customStyle
+                )
             }
+ 
+  
 
             Section("DAYS") {
                 daysSection
@@ -135,24 +134,7 @@ struct AddNewMatTimeSection2: View {
 
 extension AddNewMatTimeSection2 {
 
-    var classTypeSection: some View {
-
-        Picker("", selection: $classType) {
-
-            ForEach(ClassType.allCases) { type in
-
-                Text(type.rawValue)
-                    .tag(type)
-
-            }
-
-        }
-        .pickerStyle(.segmented)
-        .tint(.accentColor)
-        .animation(.easeInOut, value: classType)
-    }
-
-
+ 
 
 
     var daysSection: some View {
@@ -541,9 +523,7 @@ extension AddNewMatTimeSection2 {
         // STEP 2: Save to Firestore OUTSIDE context
         // =====================================================
 
-        try await saveAppDayToFirestore(
-            objectID: objectID
-        )
+        try await saveAppDayToFirestore(objectID: objectID)
 
         return objectID
     }
@@ -557,8 +537,27 @@ extension AddNewMatTimeSection2 {
             AppDateFormatter.twentyFourHour.string(from: time)
 
         let context =
-        PersistenceController.shared.newBackgroundContext()
+            PersistenceController.shared.newBackgroundContext()
 
+        // ✅ COMPUTE VALUES ONCE
+
+        let disciplineValue = discipline.rawValue
+
+        let styleValue: String
+
+        if style == .custom {
+
+            let trimmed = customStyle.trimmingCharacters(in: .whitespacesAndNewlines)
+            styleValue = trimmed.isEmpty ? "" : trimmed
+
+        } else if let selectedStyle = style {
+
+            styleValue = selectedStyle.rawValue
+
+        } else {
+
+            styleValue = ""
+        }
 
         // ✅ CHECK DUPLICATE
 
@@ -570,17 +569,64 @@ extension AddNewMatTimeSection2 {
 
                 fetch.fetchLimit = 1
 
-                fetch.predicate =
-                    NSPredicate(
-                        format:
-                        "appDayOfWeek == %@ AND time == %@",
+                if style == .custom {
+
+                    fetch.predicate = NSPredicate(
+                        format: """
+                        appDayOfWeek == %@ AND
+                        time == %@ AND
+                        discipline == %@ AND
+                        customStyle == %@ AND
+                        kids == %d AND
+                        womensOnly == %d
+                        """,
                         context.object(with: appDayID),
-                        timeString
+                        timeString,
+                        disciplineValue,
+                        customStyle,
+                        kidsClass,
+                        womensOnly
                     )
+
+                } else if let style {
+
+                    fetch.predicate = NSPredicate(
+                        format: """
+                        appDayOfWeek == %@ AND
+                        time == %@ AND
+                        discipline == %@ AND
+                        style == %@ AND
+                        kids == %d AND
+                        womensOnly == %d
+                        """,
+                        context.object(with: appDayID),
+                        timeString,
+                        disciplineValue,
+                        style.rawValue,
+                        kidsClass,
+                        womensOnly
+                    )
+
+                } else {
+
+                    fetch.predicate = NSPredicate(
+                        format: """
+                        appDayOfWeek == %@ AND
+                        time == %@ AND
+                        discipline == %@ AND
+                        kids == %d AND
+                        womensOnly == %d
+                        """,
+                        context.object(with: appDayID),
+                        timeString,
+                        disciplineValue,
+                        kidsClass,
+                        womensOnly
+                    )
+                }
 
                 return try context.fetch(fetch).first != nil
             }
-
 
         // ❌ SKIP
 
@@ -588,50 +634,46 @@ extension AddNewMatTimeSection2 {
             return false
         }
 
-
         // ✅ CREATE
 
-        let type = classType.rawValue
-
         let matTimeID =
-        try await viewModel.updateOrCreateMatTime(
+            try await viewModel.updateOrCreateMatTime(
 
-            nil,
+                nil,
 
-            time: timeString,
+                time: timeString,
 
-            type: type,
+                type: styleValue, // legacy compatibility
+                style: styleValue,
+                customStyle: style == .custom
+                    ? customStyle.trimmingCharacters(in: .whitespacesAndNewlines)
+                    : "",
+                discipline: disciplineValue,
 
-            gi: classType == .gi,
+                gi: discipline == .bjjGi,
+                noGi: discipline == .bjjNoGi,
+                openMat: style == .openMat,
 
-            noGi: classType == .noGi,
+                restrictions: restrictions,
 
-            openMat: classType == .openMat,
+                restrictionDescription:
+                    restrictions ? restrictionText : "",
 
-            restrictions: restrictions,
+                goodForBeginners: goodForBeginners,
 
-            restrictionDescription:
-                restrictions ? restrictionText : "",
+                kids: kidsClass,
+                womensOnly: womensOnly,
 
-            goodForBeginners: goodForBeginners,
-
-            kids: kidsClass,
-            womensOnly: womensOnly,   // ✅ NEW
-
-
-            for: appDayID
-        )
+                for: appDayID
+            )
 
         try await saveMatTimeToFirestore(
             matTimeID: matTimeID,
             appDayID: appDayID
         )
 
-
         return true
     }
-    
-    
     
     func saveAppDayToFirestore(
         objectID: NSManagedObjectID
@@ -817,13 +859,17 @@ extension AddNewMatTimeSection2 {
 
         selectedDays.removeAll()
         selectedTimes.removeAll()
-        classType = .gi
+
+        discipline = .bjjGi
+        style = nil
+        customStyle = ""
+
         kidsClass = false
-        womensOnly = false   // ✅ NEW
+        womensOnly = false
         goodForBeginners = false
+
         restrictions = false
         restrictionText = ""
-        
     }
 
 }

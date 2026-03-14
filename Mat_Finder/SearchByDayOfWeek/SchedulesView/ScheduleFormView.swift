@@ -27,20 +27,20 @@ extension String {
 // MARK: - MatTime description
 extension MatTime {
     override public var description: String {
-        guard let timeString = time,
-              let date = timeString.toTimeDate() else { return "" }
 
-        let womensOnlyValue = womensOnly
+        guard let timeString = time,
+              let date = timeString.toTimeDate()
+        else { return "" }
+
+        let classType = scheduleType()
 
         return """
         \(date.toTimeString()) \
-        - Gi: \(gi), \
-        No Gi: \(noGi), \
-        Open Mat: \(openMat), \
-        Restrictions: \(restrictions), \
-        Good for Beginners: \(goodForBeginners), \
-        Kids: \(kids), \
-        Women’s Only: \(womensOnlyValue)
+        - Type: \(classType)
+        - Restrictions: \(restrictions) \
+        - Good for Beginners: \(goodForBeginners) \
+        - Kids: \(kids) \
+        - Women’s Only: \(womensOnly)
         """
     }
 }
@@ -335,7 +335,7 @@ private extension ScheduleFormView {
 
             } else {
 
-                Text("Click the Button Below to Add Schedule.")
+                Text("Click the button below to add a schedule.")
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .padding(.top, 8)
@@ -467,23 +467,5 @@ struct CornerRadiusStyle: ViewModifier {
 extension View {
     func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
         self.modifier(CornerRadiusStyle(radius: radius, corners: corners))
-    }
-}
-
-
-struct Badge: View {
-
-    let text: String
-    let color: Color
-
-    var body: some View {
-
-        Text(text)
-            .font(.caption)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-            .background(color.opacity(0.15))
-            .foregroundColor(color)
-            .clipShape(Capsule())
     }
 }

@@ -649,6 +649,9 @@ class FirestoreSyncManager {
                     recordData = [
                         "id": matTime.id?.uuidString ?? "",
                         "type": matTime.type ?? "",
+                        "discipline": matTime.discipline ?? "bjjGi",
+                        "customStyle": matTime.customStyle ?? "",
+                        "style": matTime.style ?? "",
                         "time": matTime.time ?? "",
                         "gi": matTime.gi,
                         "noGi": matTime.noGi,
@@ -657,7 +660,7 @@ class FirestoreSyncManager {
                         "restrictionDescription": matTime.restrictionDescription ?? "",
                         "goodForBeginners": matTime.goodForBeginners,
                         "kids": matTime.kids,
-                        "womensOnly": matTime.womensOnly,   // ✅ ADD THIS
+                        "womensOnly": matTime.womensOnly,
                         "createdTimestamp": matTime.createdTimestamp ?? Date()
                     ]
 
@@ -1726,6 +1729,39 @@ class FirestoreSyncManager {
                 matTime.type =
                     docSnapshot.get("type") as? String
 
+                let disciplineValue =
+                    docSnapshot.get("discipline") as? String ?? "bjjGi"
+
+                matTime.discipline =
+                    Discipline(rawValue: disciplineValue)?.rawValue
+                    ?? Discipline.bjjGi.rawValue
+
+                // ⭐ NEW FIELDS
+                matTime.customStyle =
+                    docSnapshot.get("customStyle") as? String ?? ""
+
+                matTime.style =
+                    docSnapshot.get("style") as? String ?? ""
+
+                // =====================================================
+                // FALLBACK MIGRATION
+                // Handles legacy Firestore records using booleans
+                // =====================================================
+
+                if matTime.style?.isEmpty ?? true {
+
+                    if matTime.gi {
+                        matTime.discipline = Discipline.bjjGi.rawValue
+                    }
+                    else if matTime.noGi {
+                        matTime.discipline = Discipline.bjjNoGi.rawValue
+                    }
+
+                    if matTime.openMat {
+                        matTime.style = Style.openMat.rawValue
+                    }
+                }
+                
                 matTime.time =
                     docSnapshot.get("time") as? String
 

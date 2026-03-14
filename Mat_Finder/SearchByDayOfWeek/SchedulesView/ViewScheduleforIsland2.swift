@@ -165,12 +165,33 @@ private extension ViewScheduleForIsland2 {
             if let selectedDay = viewModel.selectedDay {
 
                 let matTimes =
-                    viewModel.matTimesForDay[selectedDay] ?? []
+                    (viewModel.matTimesForDay[selectedDay] ?? [])
+                    .sorted {
 
+                        let timeA = $0.time ?? ""
+                        let timeB = $1.time ?? ""
+
+                        if timeA != timeB {
+                            return timeA < timeB
+                        }
+
+                        let disciplineA = Discipline(rawValue: $0.discipline ?? "")?.displayName ?? ""
+                        let disciplineB = Discipline(rawValue: $1.discipline ?? "")?.displayName ?? ""
+
+                        if disciplineA != disciplineB {
+                            return disciplineA < disciplineB
+                        }
+
+                        let styleA = Style(rawValue: $0.style ?? "")?.displayName ?? ""
+                        let styleB = Style(rawValue: $1.style ?? "")?.displayName ?? ""
+
+                        return styleA < styleB
+                    }
+                
                 if matTimes.isEmpty {
 
                     Text("""
-                    No mat times entered for \(selectedDay.displayName) at \(island.islandName ?? "").
+                    No classes scheduled for \(selectedDay.displayName) at \(island.islandName ?? "").
 
                     Click the button below to add schedule.
                     """)
@@ -180,7 +201,7 @@ private extension ViewScheduleForIsland2 {
 
                 } else {
 
-                    ForEach(matTimes) { matTime in
+                    ForEach(matTimes, id: \.objectID) { matTime in
                         ScheduleCard(matTime: matTime, island: island)
                     }
 
@@ -189,13 +210,6 @@ private extension ViewScheduleForIsland2 {
                         .foregroundColor(.secondary)
                         .padding(.top, 8)
                 }
-
-            } else {
-
-                Text("Select a day to view schedule.\n\nClick the button below to add schedule.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .padding(.top, 8)
             }
 
             Spacer()
@@ -203,7 +217,7 @@ private extension ViewScheduleForIsland2 {
         .frame(maxWidth: .infinity, alignment: .top)
         .animation(
             .spring(response: 0.35, dampingFraction: 0.8),
-            value: viewModel.matTimesForDay
+            value: viewModel.selectedDay
         )
     }
 }
