@@ -5,68 +5,73 @@
 //
 
 import SwiftUI
+import SwiftUI
 
 struct ScheduleDetailModal: View {
+
     @ObservedObject var viewModel: AppDayOfWeekViewModel
     var day: DayOfWeek
-    
+
     var body: some View {
+
         VStack(alignment: .leading) {
+
             Text(day.ultraShortDisplayName)
                 .font(.largeTitle)
                 .bold()
                 .padding(.bottom)
-            
-            ForEach(viewModel.appDayOfWeekList.filter { $0.day == day.rawValue }, id: \.self) { schedule in
-                if let matTimes = schedule.matTimes {
-                    ForEach(matTimes.compactMap { $0 as? MatTime }, id: \.self) { matTime in
-                        scheduleView(for: matTime)
-                    }
+
+            ForEach(viewModel.appDayOfWeekList.filter { $0.day == day.rawValue }, id: \.objectID) { schedule in
+
+                let matTimes = (schedule.matTimes?.allObjects as? [MatTime] ?? [])
+                    .sorted(by: MatTime.scheduleSort)
+
+                ForEach(matTimes, id: \.objectID) { matTime in
+                    scheduleView(for: matTime)
                 }
             }
         }
         .padding()
         .navigationBarTitle("Schedule Details", displayMode: .inline)
     }
-    
+
+
+    // MARK: - Schedule Row
     func scheduleView(for matTime: MatTime) -> some View {
+
         VStack(alignment: .leading, spacing: 8) {
-            
+
             HStack {
-                Text(matTime.time ?? "Unknown time")
+
+                Text(matTime.formattedHeader(includeDay: false))
                     .font(.subheadline)
                     .foregroundColor(.primary)
-                
+
                 Spacer()
-                
+
                 if matTime.goodForBeginners {
-                    Text("Beginners")
+                    Text("Beginner")
                         .font(.caption)
                         .foregroundColor(.green)
                 }
             }
-            
-            HStack(spacing: 12) {
-                Label("Gi", systemImage: matTime.gi ? "checkmark.circle.fill" : "xmark.circle")
-                    .foregroundColor(matTime.gi ? .green : .red)
-                
-                Label("NoGi", systemImage: matTime.noGi ? "checkmark.circle.fill" : "xmark.circle")
-                    .foregroundColor(matTime.noGi ? .green : .red)
-                
-                Label("Open Mat", systemImage: matTime.openMat ? "checkmark.circle.fill" : "xmark.circle")
-                    .foregroundColor(matTime.openMat ? .green : .red)
-                
-                if matTime.kids {
-                    Label("Kids", systemImage: "person.fill")
-                        .foregroundColor(.purple)
-                }
-                
-                if matTime.womensOnly {   // ✅ NEW
-                    Label("Women’s Only", systemImage: "person.2.fill")
-                        .foregroundColor(.pink)
+
+
+            // NEW: badge system from MatTime+Extensions
+            HStack(spacing: 6) {
+
+                ForEach(matTime.badges) { badge in
+                    Text(badge.text)
+                        .font(.caption2)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Color(badge.color))
+                        .foregroundColor(.white)
+                        .clipShape(Capsule())
                 }
             }
-            
+
+
             if matTime.restrictions {
                 Text("Restrictions: \(matTime.restrictionDescription ?? "Yes")")
                     .font(.caption)
@@ -78,4 +83,3 @@ struct ScheduleDetailModal: View {
         .cornerRadius(8)
     }
 }
-

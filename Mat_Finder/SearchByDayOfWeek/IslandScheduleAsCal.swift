@@ -32,9 +32,9 @@ struct IslandScheduleAsCal: View {
                             ForEach(hours, id: \.self) { hour in
                                 HourRow(hour: hour, viewModel: viewModel, island: pIsland)
                             }
-                            ForEach(viewModel.appDayOfWeekList, id: \.self) { appDayOfWeek in
+                            ForEach(viewModel.appDayOfWeekList, id: \.objectID) { appDayOfWeek in
                                 if let matTimes = appDayOfWeek.matTimes as? Set<MatTime> {
-                                    ForEach(Array(matTimes), id: \.id) { matTime in
+                                    ForEach(Array(matTimes), id: \.objectID) { matTime in
                                         MatTimeRow(matTime: matTime)
                                     }
                                 }
@@ -106,9 +106,9 @@ struct HourRow: View {
                 .font(.headline)
                 .bold()
                 .padding(.bottom)
-            ForEach(viewModel.appDayOfWeekList, id: \.self) { appDayOfWeek in
+            ForEach(viewModel.appDayOfWeekList, id: \.objectID) { appDayOfWeek in
                 if let matTimes = appDayOfWeek.matTimes as? Set<MatTime> {
-                    ForEach(Array(matTimes), id: \.id) { matTime in
+                    ForEach(Array(matTimes), id: \.objectID) { matTime in
                         MatTimeRow(matTime: matTime)
                     }
                 }
@@ -125,38 +125,43 @@ struct HourRow: View {
 }
 
 struct MatTimeRow: View {
+
     var matTime: MatTime
 
     var body: some View {
-        VStack(alignment: .leading) {
+
+        VStack(alignment: .leading, spacing: 6) {
+
             Text(displayTime)
                 .font(.headline)
 
-            Text("Gi: \(matTime.gi ? "Yes" : "No"), No Gi: \(matTime.noGi ? "Yes" : "No"), Open Mat: \(matTime.openMat ? "Yes" : "No")")
-                .font(.subheadline)
+            HStack(spacing: 6) {
 
-            Text("Restrictions: \(matTime.restrictions ? "Yes" : "No")")
-                .font(.body)
+                ForEach(matTime.badges) { badge in
+                    Text(badge.text)
+                        .font(.caption2)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Color(badge.color))
+                        .foregroundColor(.white)
+                        .clipShape(Capsule())
+                }
+            }
 
             if matTime.goodForBeginners {
                 Text("Good for Beginners")
-                    .font(.body)
+                    .font(.caption)
+                    .foregroundColor(.green)
             }
 
-            if matTime.kids {
-                Text("Kids Class")
-                    .font(.body)
-            }
-
-            if matTime.womensOnly {
-                Text("Women’s Only")
-                    .font(.body)
-                    .foregroundColor(.pink)
+            if matTime.restrictions {
+                Text("Restrictions: \(matTime.restrictionDescription ?? "Yes")")
+                    .font(.caption)
+                    .foregroundColor(.red)
             }
         }
     }
 
-    // ✅ MOVED HERE
     private var displayTime: String {
 
         guard let time = matTime.time,
@@ -179,64 +184,58 @@ private func displayTime(for matTime: MatTime) -> String {
 }
 
 private func scheduleView(for schedule: AppDayOfWeek) -> some View {
-    VStack(alignment: .leading, spacing: 8) {
-        HStack {
-            Text(schedule.day)
-                .font(.subheadline)
-                .foregroundColor(.primary)
-            Spacer()
-            // Add any other properties from AppDayOfWeek if needed
-        }
-        
-        // Iterate over MatTime objects associated with the schedule
-        if let matTimes = schedule.matTimes as? Set<MatTime> {
-            ForEach(Array(matTimes), id: \.id) { matTime in
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text("Time: \(displayTime(for: matTime))")
-                            .font(.subheadline)
-                            .foregroundColor(.primary)
-                        Spacer()
-                        Text(matTime.type ?? "Unknown type")
+
+    let matTimes = (schedule.matTimes?.allObjects as? [MatTime] ?? [])
+        .sorted(by: MatTime.scheduleSort)
+
+    return VStack(alignment: .leading, spacing: 8) {
+
+        Text(schedule.day)
+            .font(.subheadline)
+            .foregroundColor(.primary)
+
+        ForEach(matTimes, id: \.objectID) { matTime in
+
+            VStack(alignment: .leading, spacing: 6) {
+
+                HStack {
+
+                    Text("Time: \(displayTime(for: matTime))")
+                        .font(.subheadline)
+
+                    Spacer()
+
+                    if matTime.goodForBeginners {
+                        Text("Beginner")
                             .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    HStack {
-                        Label("Gi", systemImage: matTime.gi ? "checkmark.circle.fill" : "xmark.circle")
-                            .foregroundColor(matTime.gi ? .green : .red)
-                        
-                        Label("NoGi", systemImage: matTime.noGi ? "checkmark.circle.fill" : "xmark.circle")
-                            .foregroundColor(matTime.noGi ? .green : .red)
-                        
-                        Label("Open Mat", systemImage: matTime.openMat ? "checkmark.circle.fill" : "xmark.circle")
-                            .foregroundColor(matTime.openMat ? .green : .red)
-                    }
-                    
-                    if matTime.womensOnly {   // ✅ NEW
-                        Label("Women’s Only", systemImage: "person.2.fill")
-                            .foregroundColor(.pink)
-                    }
-                    if matTime.restrictions {
-                        Text("Restrictions: \(matTime.restrictionDescription ?? "Yes")")
-                            .font(.caption)
-                            .foregroundColor(.red)
+                            .foregroundColor(.green)
                     }
                 }
-                .padding()
-                .background(Color(UIColor.secondarySystemBackground))
-                .cornerRadius(8)
+
+                HStack(spacing: 6) {
+
+                    ForEach(matTime.badges) { badge in
+                        Text(badge.text)
+                            .font(.caption2)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(Color(badge.color))
+                            .foregroundColor(.white)
+                            .clipShape(Capsule())
+                    }
+                }
+
+                if matTime.restrictions {
+                    Text("Restrictions: \(matTime.restrictionDescription ?? "Yes")")
+                        .font(.caption)
+                        .foregroundColor(.red)
+                }
             }
-        } else {
-            Text("No MatTimes available")
-                .font(.body)
-                .foregroundColor(.gray)
+            .padding()
+            .background(Color(UIColor.secondarySystemBackground))
+            .cornerRadius(8)
         }
     }
-    .padding()
-    .background(Color(UIColor.secondarySystemBackground))
-    .cornerRadius(8)
-
-
 }
 
 

@@ -19,7 +19,7 @@ public struct EditExistingIsland: View {
     @Environment(\.dismiss) var dismiss
     
     // MARK: - Observed Objects
-    @ObservedObject var island: PirateIsland
+    @ObservedObject private var island: PirateIsland
     @EnvironmentObject var pirateIslandViewModel: PirateIslandViewModel
     @EnvironmentObject var profileViewModel: ProfileViewModel
     @EnvironmentObject var authViewModel: AuthViewModel
@@ -477,7 +477,8 @@ public struct EditExistingIsland: View {
             }
 
             // MARK: Update Core Data
-            try await viewContext.perform {
+
+            await viewContext.perform {
 
                 if island.createdByUserId == nil || island.createdByUserId?.isEmpty == true {
                     island.createdByUserId = currentUserId
@@ -497,12 +498,13 @@ public struct EditExistingIsland: View {
 
                 island.hasDropInFee = feeFlag
                 island.dropInFeeAmount = amount
+
                 if hasDropInFee == .hasFee {
                     island.dropInFeeNote = note
                 } else {
                     island.dropInFeeNote = nil
                 }
-                
+
                 if !newGymWebsite.isEmpty {
                     let urlString = newGymWebsite.hasPrefix("http")
                         ? newGymWebsite
@@ -511,9 +513,16 @@ public struct EditExistingIsland: View {
                 } else {
                     island.gymWebsite = nil
                 }
-
-                try viewContext.save()
             }
+
+            viewContext.processPendingChanges()
+
+            guard viewContext.hasChanges else {
+                os_log("No CoreData changes detected before save", log: OSLog.default)
+                return
+            }
+
+            try viewContext.save()
 
             // MARK: Update Firestore
             if let islandID = island.islandID {

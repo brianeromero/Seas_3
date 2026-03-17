@@ -125,6 +125,19 @@ struct AddNewMatTimeSection2: View {
             message: alertMessage
         )
 
+        .onChange(of: discipline) { _, newValue in
+            if newValue == .openMat {
+                style = nil
+                customStyle = ""
+            }
+        }
+
+        .onChange(of: style) { _, newStyle in
+            if newStyle != .custom {
+                customStyle = ""
+            }
+        }
+
     }
 
 }
@@ -543,20 +556,36 @@ extension AddNewMatTimeSection2 {
 
         let disciplineValue = discipline.rawValue
 
-        let styleValue: String
+        let styleValue: String?
+        let customStyleValue: String?
 
-        if style == .custom {
+        // ⭐ Enforce Open Mat rule
+        if discipline == .openMat {
+
+            styleValue = nil
+            customStyleValue = nil
+
+        } else if style == .custom {
 
             let trimmed = customStyle.trimmingCharacters(in: .whitespacesAndNewlines)
-            styleValue = trimmed.isEmpty ? "" : trimmed
+
+            if trimmed.isEmpty {
+                styleValue = nil
+                customStyleValue = nil
+            } else {
+                styleValue = trimmed
+                customStyleValue = trimmed
+            }
 
         } else if let selectedStyle = style {
 
             styleValue = selectedStyle.rawValue
+            customStyleValue = nil
 
         } else {
 
-            styleValue = ""
+            styleValue = nil
+            customStyleValue = nil
         }
 
         // ✅ CHECK DUPLICATE
@@ -583,7 +612,7 @@ extension AddNewMatTimeSection2 {
                         context.object(with: appDayID),
                         timeString,
                         disciplineValue,
-                        customStyle,
+                        customStyleValue ?? "",
                         kidsClass,
                         womensOnly
                     )
@@ -637,35 +666,30 @@ extension AddNewMatTimeSection2 {
         // ✅ CREATE
 
         let matTimeID =
-            try await viewModel.updateOrCreateMatTime(
+        try await viewModel.updateOrCreateMatTime(
 
-                nil,
+            nil,
 
-                time: timeString,
+            time: timeString,
 
-                type: styleValue, // legacy compatibility
-                style: styleValue,
-                customStyle: style == .custom
-                    ? customStyle.trimmingCharacters(in: .whitespacesAndNewlines)
-                    : "",
-                discipline: disciplineValue,
+            type: discipline.displayName,
+            style: styleValue,
+            customStyle: customStyleValue,
 
-                gi: discipline == .bjjGi,
-                noGi: discipline == .bjjNoGi,
-                openMat: style == .openMat,
+            discipline: disciplineValue,
 
-                restrictions: restrictions,
+            restrictions: restrictions,
 
-                restrictionDescription:
-                    restrictions ? restrictionText : "",
+            restrictionDescription:
+                restrictions ? restrictionText : "",
 
-                goodForBeginners: goodForBeginners,
+            goodForBeginners: goodForBeginners,
 
-                kids: kidsClass,
-                womensOnly: womensOnly,
+            kids: kidsClass,
+            womensOnly: womensOnly,
 
-                for: appDayID
-            )
+            for: appDayID
+        )
 
         try await saveMatTimeToFirestore(
             matTimeID: matTimeID,
@@ -796,14 +820,25 @@ extension AddNewMatTimeSection2 {
                     let app =
                     try context.existingObject(with: appDayID) as! AppDayOfWeek
 
-                    let id = mat.id!.uuidString
-
+                    guard let id = mat.id?.uuidString else {
+                        continuation.resume(
+                            throwing: NSError(
+                                domain: "MatTime",
+                                code: 0,
+                                userInfo: [NSLocalizedDescriptionKey: "Missing MatTime ID"]
+                            )
+                        )
+                        return
+                    }
+                    
                     var data = mat.toFirestoreData()
 
                     data["appDayOfWeek"] =
                     Firestore.firestore()
                         .collection("AppDayOfWeek")
                         .document(app.appDayOfWeekID!)
+
+                    data["appDayOfWeekID"] = app.appDayOfWeekID
 
                     Firestore.firestore()
                         .collection("MatTime")

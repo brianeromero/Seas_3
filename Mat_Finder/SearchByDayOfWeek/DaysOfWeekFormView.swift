@@ -116,7 +116,7 @@ struct DaysOfWeekFormView: View {
                 .frame(maxWidth: .infinity, alignment: .center)
             Spacer()
         } else {
-            List(viewModel.filteredIslands, id: \.self) { island in
+            List(viewModel.filteredIslands, id: \.objectID) { island in
                 islandRow(for: island)
             }
             .listStyle(PlainListStyle())

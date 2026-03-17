@@ -39,9 +39,6 @@ final class AppDayOfWeekViewModel: ObservableObject {
     
     // MARK: - Day Settings
     @Published var dayOfWeekStates: [DayOfWeek: Bool] = [:]
-    @Published var giForDay: [DayOfWeek: Bool] = [:]
-    @Published var noGiForDay: [DayOfWeek: Bool] = [:]
-    @Published var openMatForDay: [DayOfWeek: Bool] = [:]
     @Published var restrictionsForDay: [DayOfWeek: Bool] = [:]
     @Published var restrictionDescriptionForDay: [DayOfWeek: String] = [:]
     @Published var goodForBeginnersForDay: [DayOfWeek: Bool] = [:]
@@ -115,9 +112,6 @@ final class AppDayOfWeekViewModel: ObservableObject {
         let errorMessage: String?
         let newMatTime: MatTime?
         let dayOfWeekStates: [DayOfWeek: Bool]
-        let giForDay: [DayOfWeek: Bool]
-        let noGiForDay: [DayOfWeek: Bool]
-        let openMatForDay: [DayOfWeek: Bool]
         let restrictionsForDay: [DayOfWeek: Bool]
         let restrictionDescriptionForDay: [DayOfWeek: String]
         let goodForBeginnersForDay: [DayOfWeek: Bool]
@@ -166,9 +160,6 @@ final class AppDayOfWeekViewModel: ObservableObject {
             lhs.errorMessage == rhs.errorMessage &&
             lhs.newMatTime?.id == rhs.newMatTime?.id &&
             lhs.dayOfWeekStates == rhs.dayOfWeekStates &&
-            lhs.giForDay == rhs.giForDay &&
-            lhs.noGiForDay == rhs.noGiForDay &&
-            lhs.openMatForDay == rhs.openMatForDay &&
             lhs.restrictionsForDay == rhs.restrictionsForDay &&
             lhs.restrictionDescriptionForDay == rhs.restrictionDescriptionForDay &&
             lhs.goodForBeginnersForDay == rhs.goodForBeginnersForDay &&
@@ -198,9 +189,6 @@ final class AppDayOfWeekViewModel: ObservableObject {
             errorMessage: errorMessage,
             newMatTime: newMatTime,
             dayOfWeekStates: dayOfWeekStates,
-            giForDay: giForDay,
-            noGiForDay: noGiForDay,
-            openMatForDay: openMatForDay,
             restrictionsForDay: restrictionsForDay,
             restrictionDescriptionForDay: restrictionDescriptionForDay,
             goodForBeginnersForDay: goodForBeginnersForDay,
@@ -419,43 +407,22 @@ final class AppDayOfWeekViewModel: ObservableObject {
 
             selectedDayBinding.wrappedValue = day
 
-            let matTimes = (existing.matTimes?.allObjects as? [MatTime] ?? [])
-                .sorted {
-
-                    let timeA = $0.time ?? ""
-                    let timeB = $1.time ?? ""
-
-                    if timeA != timeB {
-                        return timeA < timeB
-                    }
-
-                    let disciplineA = $0.discipline ?? ""
-                    let disciplineB = $1.discipline ?? ""
-
-                    if disciplineA != disciplineB {
-                        return disciplineA < disciplineB
-                    }
-
-                    return ($0.style ?? "") < ($1.style ?? "")
-                }
+            let matTimes =
+                (existing.matTimes?.allObjects as? [MatTime] ?? [])
+                .sorted(by: MatTime.scheduleSort)
 
             return (existing, matTimes)
         }
 
         print("❌ Not found in Core Data. Checking Firestore...")
 
-
-        // ✅ FIX: use correct document ID
-
         guard let islandName = island.islandName else {
 
             print("❌ Missing island name")
-
             return (nil, nil)
         }
 
         let docID = "\(islandName)-\(day.rawValue)"
-
 
         do {
 
@@ -465,11 +432,9 @@ final class AppDayOfWeekViewModel: ObservableObject {
                 .document(docID)
                 .getDocument()
 
-
             if let data = document.data() {
 
                 print("✅ Found AppDayOfWeek in Firestore")
-
 
                 if let new =
                     repository.fetchOrCreateAppDayOfWeek(
@@ -485,29 +450,12 @@ final class AppDayOfWeekViewModel: ObservableObject {
 
                     selectedDayBinding.wrappedValue = day
 
-                    let matTimes = (new.matTimes?.allObjects as? [MatTime] ?? [])
-                        .sorted {
-
-                            let timeA = $0.time ?? ""
-                            let timeB = $1.time ?? ""
-
-                            if timeA != timeB {
-                                return timeA < timeB
-                            }
-
-                            let disciplineA = $0.discipline ?? ""
-                            let disciplineB = $1.discipline ?? ""
-
-                            if disciplineA != disciplineB {
-                                return disciplineA < disciplineB
-                            }
-
-                            return ($0.style ?? "") < ($1.style ?? "")
-                        }
+                    let matTimes =
+                        (new.matTimes?.allObjects as? [MatTime] ?? [])
+                        .sorted(by: MatTime.scheduleSort)
 
                     return (new, matTimes)
                 }
-
             }
 
         }
@@ -515,7 +463,6 @@ final class AppDayOfWeekViewModel: ObservableObject {
 
             print("❌ Firestore error:", error)
         }
-
 
         return (nil, nil)
     }
@@ -566,12 +513,9 @@ final class AppDayOfWeekViewModel: ObservableObject {
         _ existingMatTimeID: NSManagedObjectID?,
         time: String,
         type: String,
-        style: String,
-        customStyle: String,
+        style: String?,
+        customStyle: String?,
         discipline: String,
-        gi: Bool,
-        noGi: Bool,
-        openMat: Bool,
         restrictions: Bool,
         restrictionDescription: String,
         goodForBeginners: Bool,
@@ -608,19 +552,19 @@ final class AppDayOfWeekViewModel: ObservableObject {
             } else {
 
                 matTime = MatTime(context: context)
-                matTime.createdTimestamp = Date()   // ✅ Set on create
+                matTime.createdTimestamp = Date()
             }
 
             if matTime.id == nil {
                 matTime.id = UUID()
             }
 
-            // 🔥 Optional but Smart — Protect legacy rows
+            // Protect legacy rows
             if matTime.createdTimestamp == nil {
                 matTime.createdTimestamp = Date()
             }
 
-            // ✅ Keep string ID mirror in sync with relationship
+            // Keep string ID mirror in sync
             matTime.appDayOfWeekID = appDayOfWeek.appDayOfWeekID
 
             matTime.configure(
@@ -629,9 +573,6 @@ final class AppDayOfWeekViewModel: ObservableObject {
                 style: style,
                 customStyle: customStyle,
                 discipline: discipline,
-                gi: gi,
-                noGi: noGi,
-                openMat: openMat,
                 restrictions: restrictions,
                 restrictionDescription: restrictionDescription,
                 goodForBeginners: goodForBeginners,
@@ -646,6 +587,9 @@ final class AppDayOfWeekViewModel: ObservableObject {
             return matTime.objectID
         }
     }
+    
+    
+    
     // MARK: - Refresh MatTimes
     @MainActor
     func refreshMatTimes() async {
@@ -720,7 +664,6 @@ final class AppDayOfWeekViewModel: ObservableObject {
             )
         }
 
-
         // -----------------------------
         // Convert time to 24-hour format
         // -----------------------------
@@ -729,8 +672,7 @@ final class AppDayOfWeekViewModel: ObservableObject {
         if let rawTime = matTime.time,
            let date = AppDateFormatter.stringToDate(rawTime) {
 
-            time24Hour =
-            AppDateFormatter.dateToString(date)
+            time24Hour = AppDateFormatter.dateToString(date)
 
         } else {
 
@@ -744,37 +686,21 @@ final class AppDayOfWeekViewModel: ObservableObject {
             )
             #endif
 
-            time24Hour =
-            AppDateFormatter.dateToString(Date())
+            time24Hour = AppDateFormatter.dateToString(Date())
         }
-
 
         // -----------------------------
         // 1️⃣ Update Core Data (Background)
         // -----------------------------
         let updatedMatTimeObjectID =
         try await updateOrCreateMatTime(
-
             matTime.objectID,
-
             time: time24Hour,
-
             type: matTime.type ?? "",
-
-            style: matTime.style ?? "",
-
-            customStyle: matTime.customStyle ?? "",
-
-            discipline: matTime.discipline ?? "bjj",
-
-            gi: matTime.gi,
-
-            noGi: matTime.noGi,
-
-            openMat: matTime.openMat,
-
+            style: matTime.style,
+            customStyle: matTime.customStyle,
+            discipline: Discipline(rawValue: matTime.discipline ?? "")?.rawValue ?? Discipline.bjjGi.rawValue,
             restrictions: matTime.restrictions,
-
             restrictionDescription:
                 matTime.restrictionDescription ?? "",
 
@@ -787,22 +713,25 @@ final class AppDayOfWeekViewModel: ObservableObject {
             for: appDayOfWeek.objectID
         )
 
-        // ✅ CRITICAL FIX
-        // Refetch on MAIN CONTEXT to avoid background thread publish crash
+        // Refetch on MAIN CONTEXT
         let updatedMatTime =
         try viewContext.existingObject(
             with: updatedMatTimeObjectID
         ) as! MatTime
 
+        // Ensure CoreData save
+        if let context = updatedMatTime.managedObjectContext,
+           context.hasChanges {
 
-        // Update published property safely
+            try context.save()
+        }
+
+        // Update published property
         self.matTime = updatedMatTime
 
         print(
             "✅ Mat time updated locally (ObjectID): \(updatedMatTimeObjectID)"
         )
-
-
 
         // -----------------------------
         // 2️⃣ Update Firestore
@@ -821,54 +750,42 @@ final class AppDayOfWeekViewModel: ObservableObject {
             )
         }
 
-
         let matTimeRef =
         Firestore.firestore()
             .collection("MatTime")
             .document(matTimeID)
 
-
-
         var data: [String: Any] = [
 
             "time": time24Hour,
-
-            "type": updatedMatTime.type ?? "Gi",
-            "discipline": updatedMatTime.discipline ?? "bjj",
-
-            "gi": updatedMatTime.gi,
-
-            "noGi": updatedMatTime.noGi,
-
-            "openMat": updatedMatTime.openMat,
-
+            "type": updatedMatTime.type ?? "",
+            "discipline": updatedMatTime.discipline ?? Discipline.bjjGi.rawValue,
+            "style": updatedMatTime.style ?? "",
+            "customStyle": updatedMatTime.customStyle ?? "",
             "restrictions": updatedMatTime.restrictions,
+            "restrictionDescription": updatedMatTime.restrictionDescription ?? "",
 
-            "restrictionDescription":
-                updatedMatTime.restrictionDescription ?? "",
+            "goodForBeginners": updatedMatTime.goodForBeginners,
+            "kids": updatedMatTime.kids,
+            "womensOnly": updatedMatTime.womensOnly,
 
-            "goodForBeginners":
-                updatedMatTime.goodForBeginners,
+            "appDayOfWeekID": appDayOfWeek.appDayOfWeekID ?? "",
 
-            "kids":
-                updatedMatTime.kids,
-
-            "womensOnly":                      // ✅ ADD THIS
-                updatedMatTime.womensOnly,
-
-            "createdTimestamp":
-                updatedMatTime.createdTimestamp ?? Date()
+            "lastModifiedTimestamp": Timestamp(date: Date())
         ]
 
-
-        if let appDayID =
-            appDayOfWeek.appDayOfWeekID {
-
-            data["appDayOfWeek"] =
-            Firestore.firestore()
-                .document("AppDayOfWeek/\(appDayID)")
+        // Add createdTimestamp only if missing
+        if updatedMatTime.createdTimestamp == nil {
+            data["createdTimestamp"] = Timestamp(date: Date())
         }
 
+        // Add relationship reference
+        if let appDayID = appDayOfWeek.appDayOfWeekID {
+
+            data["appDayOfWeek"] =
+                Firestore.firestore()
+                    .document("AppDayOfWeek/\(appDayID)")
+        }
 
         try await matTimeRef.setData(
             data,
@@ -879,16 +796,12 @@ final class AppDayOfWeekViewModel: ObservableObject {
             "✅ MatTime fields updated in Firestore: \(matTimeID)"
         )
 
-
-
         // -----------------------------
         // 3️⃣ Update AppDayOfWeek Firestore
         // -----------------------------
         guard let selectedDayForAppDayOfWeek =
             DayOfWeek(rawValue: appDayOfWeek.day)
         else { return }
-
-
 
         try await saveAppDayOfWeekToFirestore(
 
@@ -901,7 +814,6 @@ final class AppDayOfWeekViewModel: ObservableObject {
             appDayOfWeekObjectID:
                 appDayOfWeek.objectID
         )
-
 
         print(
             "✅ Firestore update successful via saveAppDayOfWeekToFirestore."
@@ -921,12 +833,17 @@ final class AppDayOfWeekViewModel: ObservableObject {
             
             // Update Firestore
             do {
-                try await firestore.collection("appDayOfWeek").document(dayOfWeek.rawValue).setData([
-                    "day": dayOfWeek.rawValue,
-                    "name": appDayOfWeek.name ?? "",
-                    "appDayOfWeekID": appDayOfWeek.appDayOfWeekID ?? "",
-                    "pIsland": island.islandID ?? ""
-                ])
+                let docID = "\(island.islandName ?? "")-\(dayOfWeek.rawValue)"
+                
+                try await firestore
+                    .collection("AppDayOfWeek")
+                    .document(docID)
+                    .setData([
+                        "day": dayOfWeek.rawValue,
+                        "name": appDayOfWeek.name ?? "",
+                        "appDayOfWeekID": appDayOfWeek.appDayOfWeekID ?? "",
+                        "pIsland": island.islandID ?? ""
+                    ])
             } catch {
                 print("Failed to update AppDayOfWeek in Firestore: \(error.localizedDescription)")
             }
@@ -949,9 +866,6 @@ final class AppDayOfWeekViewModel: ObservableObject {
         let allDays: [DayOfWeek] = [.monday, .tuesday, .wednesday, .thursday, .friday, .saturday, .sunday]
         for day in allDays {
             dayOfWeekStates[day] = false
-            giForDay[day] = false
-            noGiForDay[day] = false
-            openMatForDay[day] = false
             restrictionsForDay[day] = false
             restrictionDescriptionForDay[day] = ""
             goodForBeginnersForDay[day] = false
@@ -966,17 +880,17 @@ final class AppDayOfWeekViewModel: ObservableObject {
     func initializeNewMatTime() async {
         print("Initializing new MatTime")
         // Dispatch to the main thread
-        DispatchQueue.main.async {
-            self.newMatTime = MatTime(context: self.viewContext)
-        }
+        self.newMatTime = MatTime(context: self.viewContext)
     }
 
-    
+
     // MARK: - Load Schedules
 
     @MainActor
     func loadSchedules(for island: PirateIsland) async -> Bool {
+
         guard let day = selectedDay else { return false }
+
         print("LOAD_SCHEDULES: START for island: \(island.islandName ?? "Unknown") and day: \(day.displayName)")
 
         guard let appDayOfWeeks = island.appDayOfWeeks as? Set<AppDayOfWeek> else {
@@ -985,26 +899,29 @@ final class AppDayOfWeekViewModel: ObservableObject {
             return false
         }
 
-        let dayAppDayOfWeeks = appDayOfWeeks.filter { $0.day.lowercased() == day.rawValue.lowercased() }
+        let dayAppDayOfWeeks =
+            appDayOfWeeks.filter {
+                $0.day.lowercased() == day.rawValue.lowercased()
+            }
 
-        let matTimes: [MatTime] = dayAppDayOfWeeks
+        let matTimes: [MatTime] =
+            dayAppDayOfWeeks
             .compactMap { $0.matTimes?.allObjects as? [MatTime] }
             .flatMap { $0 }
-            .sorted {
-                if ($0.time ?? "") == ($1.time ?? "") {
-                    return ($0.style ?? "") < ($1.style ?? "")
-                }
-                return ($0.time ?? "") < ($1.time ?? "")
-            }
+            .sorted(by: MatTime.scheduleSort)
+
         matTimesForDay[day] = matTimes
-        schedules[day] = Array(dayAppDayOfWeeks)
-            .sorted { ($0.createdTimestamp ?? Date()) < ($1.createdTimestamp ?? Date()) }
+
+        schedules[day] =
+            Array(dayAppDayOfWeeks)
+            .sorted {
+                ($0.createdTimestamp ?? Date()) < ($1.createdTimestamp ?? Date())
+            }
 
         print("Loaded \(matTimes.count) mat times for \(day.displayName) at \(island.islandName ?? "Unknown")")
 
         return !matTimes.isEmpty
     }
-
 
     
     // MARK: - Load All Schedules
@@ -1068,12 +985,7 @@ final class AppDayOfWeekViewModel: ObservableObject {
                                 appDayOfWeek.matTimes?.allObjects as? [MatTime]
                             }
                             .flatMap { $0 } // flatten from [[MatTime]] → [MatTime]
-                            .sorted {
-                                if ($0.time ?? "") == ($1.time ?? "") {
-                                    return ($0.style ?? "") < ($1.style ?? "")
-                                }
-                                return ($0.time ?? "") < ($1.time ?? "")
-                            }
+                            .sorted(by: MatTime.scheduleSort)
 
                         if matTimesForCurrentDay.isEmpty {
                             print("    ⚠️ MainActor: Island \(island.islandName ?? "Unnamed") has no MatTimes for day \(day.rawValue). Excluding from schedule.")
@@ -1108,7 +1020,7 @@ final class AppDayOfWeekViewModel: ObservableObject {
         if let appDayOfWeek = repository.fetchAppDayOfWeek(for: day.rawValue, pirateIsland: island, context: context) {
             let objectID = appDayOfWeek.objectID  // capture objectID instead of the object itself
 
-            firestore.collection("appDayOfWeek").document(day.rawValue).getDocument { document, error in
+            firestore.collection("AppDayOfWeek").document(day.rawValue).getDocument { document, error in
                 if let error = error {
                     print("Failed to fetch AppDayOfWeek from Firestore: \(error.localizedDescription)")
                     return
@@ -1142,58 +1054,44 @@ final class AppDayOfWeekViewModel: ObservableObject {
 
     // MARK: - Add New Mat Time
     func addNewMatTime() async {
-        guard let day = selectedDay, let island = selectedIsland else {
+
+        guard let day = selectedDay,
+              let island = selectedIsland else {
+
             errorMessage = "Day of the week or gym is not selected."
             print("Error: Day of the week or gym is not selected.")
             return
         }
-        
+
         let context = repository.getViewContext()
+
         guard let appDayOfWeek = repository.fetchOrCreateAppDayOfWeek(
             for: day.rawValue,
             pirateIsland: island,
             context: context
         ) else {
-            print("Error fetching or creating appDayOfWeek")
+            print("Error fetching or creating AppDayOfWeek")
             return
         }
-        
+
         appDayOfWeek.day = day.rawValue
         appDayOfWeek.pIsland = island
         appDayOfWeek.name = "\(island.islandName ?? "Unknown Gym") \(day.displayName)"
         appDayOfWeek.createdTimestamp = Date()
-        
-        if let unwrappedMatTime = newMatTime {
-            await addMatTime(matTime: unwrappedMatTime, for: day, appDayOfWeek: appDayOfWeek)
-            
-            // Add to Firestore
-            firestore.collection("matTimes").addDocument(data: [
-                "time": unwrappedMatTime.time ?? "",
-                "type": unwrappedMatTime.type ?? "",
-                "gi": unwrappedMatTime.gi,
-                "noGi": unwrappedMatTime.noGi,
-                "openMat": unwrappedMatTime.openMat,
-                "restrictions": unwrappedMatTime.restrictions,
-                "restrictionDescription": unwrappedMatTime.restrictionDescription ?? "",
-                "goodForBeginners": unwrappedMatTime.goodForBeginners,
-                "kids": unwrappedMatTime.kids,
-                "womensOnly": unwrappedMatTime.womensOnly,   // ✅ ADD THIS
-                "appDayOfWeek": appDayOfWeek.appDayOfWeekID ?? ""
-            ]) { error in
-                if let error = error {
-                    print("Failed to add MatTime to Firestore: \(error.localizedDescription)")
-                }
-            }
-        } else {
+
+        guard let unwrappedMatTime = newMatTime else {
             print("Error: newMatTime is unexpectedly nil")
+            return
         }
-        
+
+        await addMatTime(matTime: unwrappedMatTime, for: day, appDayOfWeek: appDayOfWeek)
+
         await saveData()
-        newMatTime = nil // Reset newMatTime to nil
+
+        newMatTime = nil
     }
     
-    
-    // MARK: - Add Mat Time
+    // MARK: - Add Mat Time (Core Data Only)
     func addMatTime(
         matTime: MatTime,
         for day: DayOfWeek,
@@ -1205,15 +1103,13 @@ final class AppDayOfWeekViewModel: ObservableObject {
         // 1️⃣ Create new Core Data object
         let newMatTimeObject = MatTime(context: viewContext)
 
+        // 2️⃣ Configure values
         newMatTimeObject.configure(
             time: matTime.time,
             type: matTime.type,
             style: matTime.style,
             customStyle: matTime.customStyle,
             discipline: matTime.discipline,
-            gi: matTime.gi,
-            noGi: matTime.noGi,
-            openMat: matTime.openMat,
             restrictions: matTime.restrictions,
             restrictionDescription: matTime.restrictionDescription,
             goodForBeginners: matTime.goodForBeginners,
@@ -1221,28 +1117,23 @@ final class AppDayOfWeekViewModel: ObservableObject {
             womensOnly: matTime.womensOnly
         )
 
-        newMatTimeObject.createdTimestamp = Date()
-        newMatTimeObject.appDayOfWeek = appDayOfWeek
-
-        // 2️⃣ Attach to relationship
-        appDayOfWeek.addToMatTimes(newMatTimeObject)
-
-        // 3️⃣ Save Core Data
-        await saveData()
-
-        // 4️⃣ Firestore Sync (single source of truth)
-        var data = newMatTimeObject.toFirestoreData()
-        data["appDayOfWeek"] = appDayOfWeek.appDayOfWeekID ?? ""
-
-        firestore.collection("matTimes").addDocument(data: data) { error in
-            if let error {
-                print("❌ Failed to add MatTime to Firestore: \(error.localizedDescription)")
-            } else {
-                print("✅ MatTime added to Firestore")
-            }
+        // 3️⃣ Ensure identifiers
+        if newMatTimeObject.id == nil {
+            newMatTimeObject.id = UUID()
         }
 
-        print("Added MatTime: \(newMatTimeObject)")
+        newMatTimeObject.createdTimestamp = Date()
+
+        // 4️⃣ Attach relationships
+        newMatTimeObject.appDayOfWeek = appDayOfWeek
+        newMatTimeObject.appDayOfWeekID = appDayOfWeek.appDayOfWeekID
+
+        appDayOfWeek.addToMatTimes(newMatTimeObject)
+
+        // 5️⃣ Save Core Data
+        await saveData()
+
+        print("✅ MatTime added locally: \(newMatTimeObject)")
     }
     
     // MARK: - Update Bindings
@@ -1316,27 +1207,33 @@ final class AppDayOfWeekViewModel: ObservableObject {
     
     // MARK: - Add Mat Times For Day
     @MainActor
-    func addMatTimes(day: DayOfWeek,
-                     matTimes: [(time: String, type: String, gi: Bool, noGi: Bool, openMat: Bool,
-                                 restrictions: Bool, restrictionDescription: String?, goodForBeginners: Bool, kids: Bool, womensOnly: Bool)]) async {
-        
+    func addMatTimes(
+        day: DayOfWeek,
+        matTimes: [(time: String, type: String, gi: Bool, noGi: Bool, openMat: Bool,
+                    restrictions: Bool, restrictionDescription: String?, goodForBeginners: Bool, kids: Bool, womensOnly: Bool)]
+    ) async {
+
         guard let island = selectedIsland else { return }
 
         print("Adding \(matTimes.count) mat times for day: \(day)")
 
         // Prepare all MatTime objects first
         let newMatTimes: [MatTime] = matTimes.map { mat in
+
             let matTime = MatTime(context: viewContext)
+
+            // Determine discipline from flags
+            let discipline =
+                mat.openMat ? Discipline.openMat.rawValue :
+                mat.noGi ? Discipline.bjjNoGi.rawValue :
+                Discipline.bjjGi.rawValue
 
             matTime.configure(
                 time: mat.time,
                 type: mat.type,
-                style: mat.type,
-                customStyle: "",
-                discipline: "bjj",
-                gi: mat.gi,
-                noGi: mat.noGi,
-                openMat: mat.openMat,
+                style: nil,
+                customStyle: nil,
+                discipline: discipline,
                 restrictions: mat.restrictions,
                 restrictionDescription: mat.restrictionDescription,
                 goodForBeginners: mat.goodForBeginners,
@@ -1348,7 +1245,11 @@ final class AppDayOfWeekViewModel: ObservableObject {
         }
 
         // Fetch or create AppDayOfWeek once
-        guard let appDay = repository.fetchOrCreateAppDayOfWeek(for: day.rawValue, pirateIsland: island, context: viewContext) else {
+        guard let appDay = repository.fetchOrCreateAppDayOfWeek(
+            for: day.rawValue,
+            pirateIsland: island,
+            context: viewContext
+        ) else {
             print("Failed to fetch or create AppDayOfWeek")
             return
         }
@@ -1366,68 +1267,84 @@ final class AppDayOfWeekViewModel: ObservableObject {
 
         print("Finished adding mat times for day: \(day)")
     }
-
     
     // MARK: - GENERAL ADD MAT TIME
     func addMatTime(matTime: MatTime? = nil, for day: DayOfWeek) async {
+
         guard let island = selectedIsland else {
             errorMessage = "Selected gym is not set."
             print("Error2: Selected gym is not set.")
             return
         }
-        
+
         print("Adding mat time for day: \(day)")
-        
+
         // Fetch or create AppDayOfWeek
-        let appDayOfWeek = repository.fetchOrCreateAppDayOfWeek(for: day.rawValue, pirateIsland: island, context: viewContext)
-        
-        if let appDayOfWeek = appDayOfWeek {
-            currentAppDayOfWeek = appDayOfWeek
-            
-            if let matTime = matTime {
-                guard matTime.time ?? "" != "" else {
-                    print("Skipping empty MatTime object.")
-                    return
-                }
-                
-                if handleDuplicateMatTime(for: day, with: matTime) {
-                    errorMessage = "MatTime already exists for this day."
-                    print("Error: MatTime already exists for the selected day.")
-                    return
-                }
-                
-                matTime.appDayOfWeek = appDayOfWeek
-                matTime.createdTimestamp = Date()
-                
-                // Add to Firestore
-                firestore.collection("matTimes").addDocument(data: [
-                    "time": matTime.time ?? "",
-                    "type": matTime.type ?? "",
-                    "gi": matTime.gi,
-                    "noGi": matTime.noGi,
-                    "openMat": matTime.openMat,
-                    "restrictions": matTime.restrictions,
-                    "restrictionDescription": matTime.restrictionDescription ?? "",
-                    "goodForBeginners": matTime.goodForBeginners,
-                    "kids": matTime.kids,
-                    "womensOnly": matTime.womensOnly,   // ✅ ADD THIS
-                    "appDayOfWeek": appDayOfWeek.appDayOfWeekID ?? ""
-                ]) { error in
-                    if let error = error {
-                        print("Failed to add MatTime to Firestore: \(error.localizedDescription)")
-                    }
-                }
-                
-                await addMatTime(matTime: matTime, for: day, appDayOfWeek: appDayOfWeek)
-                await saveData()
-                await Task { @MainActor in
-                    await refreshMatTimes()
-                }.value
-
-
-                print("Mat times for day: \(day) - \(matTimesForDay[day] ?? []) FROM func addMatTime")
-            }
+        guard let appDayOfWeek = repository.fetchOrCreateAppDayOfWeek(
+            for: day.rawValue,
+            pirateIsland: island,
+            context: viewContext
+        ) else {
+            print("Failed to fetch or create AppDayOfWeek")
+            return
         }
+
+        currentAppDayOfWeek = appDayOfWeek
+
+        guard let matTime = matTime else { return }
+
+        guard matTime.time?.isEmpty == false else {
+            print("Skipping empty MatTime object.")
+            return
+        }
+
+        if handleDuplicateMatTime(for: day, with: matTime) {
+            errorMessage = "MatTime already exists for this day."
+            print("Error: MatTime already exists for the selected day.")
+            return
+        }
+
+        // Attach relationship
+        matTime.appDayOfWeek = appDayOfWeek
+        matTime.appDayOfWeekID = appDayOfWeek.appDayOfWeekID
+        matTime.createdTimestamp = Date()
+
+        // Build Firestore data using the helper
+        var data = matTime.toFirestoreData()
+
+        // Add relationship reference
+        data["appDayOfWeek"] = appDayOfWeek.appDayOfWeekID ?? ""
+
+        // Firestore write
+        
+        if matTime.id == nil {
+            matTime.id = UUID()
+        }
+        
+        guard let id = matTime.id?.uuidString else { return }
+
+        do {
+            try await firestore
+                .collection("MatTime")
+                .document(id)
+                .setData(data)
+
+            print("✅ MatTime added to Firestore")
+
+        } catch {
+            print("❌ Failed to add MatTime to Firestore: \(error.localizedDescription)")
+        }
+
+        // Add to Core Data relationship
+        await addMatTime(matTime: matTime, for: day, appDayOfWeek: appDayOfWeek)
+
+        await saveData()
+
+        await Task { @MainActor in
+            await refreshMatTimes()
+        }.value
+
+        print("Mat times for day: \(day) - \(matTimesForDay[day] ?? []) FROM func addMatTime")
     }
     
     // MARK: - Remove MatTime
@@ -1500,7 +1417,7 @@ final class AppDayOfWeekViewModel: ObservableObject {
         print("Updating schedules for island: \(selectedIsland) and day: \(selectedDay)")
 
         do {
-            let document = try await firestore.collection("appDayOfWeek")
+            let document = try await firestore.collection("AppDayOfWeek")
                 .document(selectedDay.rawValue)
                 .getDocument()
 
@@ -1664,7 +1581,7 @@ final class AppDayOfWeekViewModel: ObservableObject {
     @MainActor
     func updateCurrentDayAndMatTimes(for island: PirateIsland, day: DayOfWeek) async {
         do {
-            let document = try await firestore.collection("appDayOfWeek")
+            let document = try await firestore.collection("AppDayOfWeek")
                 .document(day.rawValue)
                 .getDocument()
 

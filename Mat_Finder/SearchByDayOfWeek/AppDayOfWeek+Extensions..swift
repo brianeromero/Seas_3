@@ -56,24 +56,11 @@ extension AppDayOfWeek {
 }
 
 extension AppDayOfWeek {
-    /// Returns the mat times sorted by time string
+
+    /// Returns the mat times sorted using the app's centralized schedule sorting
     var matTimesArray: [MatTime] {
         (matTimes as? Set<MatTime>)?
-            .sorted { lhs, rhs in
-                let t0Date = lhs.time.flatMap { AppDateFormatter.twelveHour.date(from: $0) }
-                let t1Date = rhs.time.flatMap { AppDateFormatter.twelveHour.date(from: $0) }
-
-                switch (t0Date, t1Date) {
-                case let (d0?, d1?):
-                    return d0 < d1
-                case (_?, nil):
-                    return true
-                case (nil, _?):
-                    return false
-                default:
-                    return (lhs.time ?? "") < (rhs.time ?? "")
-                }
-            } ?? []
+            .sorted(by: MatTime.scheduleSort) ?? []
     }
 
     /// True when this AppDayOfWeek actually has mat times

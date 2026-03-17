@@ -9,6 +9,7 @@
 
 import Foundation
 import CoreData
+import FirebaseFirestore
 
 extension MatTime {
 
@@ -21,9 +22,7 @@ extension MatTime {
     @NSManaged public var discipline: String?   // ✅ ADD THIS
 
     @NSManaged public var time: String?
-    @NSManaged public var gi: Bool
-    @NSManaged public var noGi: Bool
-    @NSManaged public var openMat: Bool
+
     @NSManaged public var restrictions: Bool
     @NSManaged public var restrictionDescription: String?
     @NSManaged public var goodForBeginners: Bool
@@ -45,27 +44,35 @@ extension MatTime: Identifiable {}
 extension MatTime {
     func toFirestoreData() -> [String: Any] {
 
+        let id = self.id ?? UUID()
+        self.id = id
+
         var data: [String: Any] = [
+            "id": id.uuidString,
             "time": self.time ?? "",
-            "type": self.style ?? self.type ?? "",
-            "discipline": self.discipline ?? "bjj",
-            "gi": self.gi,
-            "noGi": self.noGi,
-            "openMat": self.openMat,
+            "discipline": self.discipline ?? Discipline.bjjGi.rawValue,
+            "kids": self.kids,
+            "goodForBeginners": self.goodForBeginners,
+            "womensOnly": self.womensOnly,
             "restrictions": self.restrictions,
             "restrictionDescription": self.restrictionDescription ?? "",
-            "goodForBeginners": self.goodForBeginners,
-            "kids": self.kids,
-            "womensOnly": self.womensOnly,
             "createdTimestamp": self.createdTimestamp ?? Date()
         ]
+
+        if let type = self.type, !type.isEmpty {
+            data["type"] = type
+        }
+
+        if let style = self.style, !style.isEmpty {
+            data["style"] = style
+        }
 
         if let custom = self.customStyle, !custom.isEmpty {
             data["customStyle"] = custom
         }
 
-        if let style = self.style, !style.isEmpty {
-            data["style"] = style
+        if let dayID = self.appDayOfWeekID {
+            data["appDayOfWeekID"] = dayID
         }
 
         return data
@@ -78,26 +85,52 @@ extension MatTime {
     func configure(data: [String: Any]) {
 
         self.time = data["time"] as? String
-        self.type = data["type"] as? String
-        self.discipline = (data["discipline"] as? String ?? "bjj").lowercased()
-        
-        self.customStyle = data["customStyle"] as? String
-        self.style = data["style"] as? String
 
-        self.gi = data["gi"] as? Bool ?? false
-        self.noGi = data["noGi"] as? Bool ?? false
-        self.openMat = data["openMat"] as? Bool ?? false
+        // Normalize discipline
+        if let raw = data["discipline"] as? String,
+           Discipline(rawValue: raw) != nil {
+            self.discipline = raw
+        } else {
+            self.discipline = Discipline.bjjGi.rawValue
+        }
+
+        self.type = data["type"] as? String
+
+        // Normalize style
+        if let raw = data["style"] as? String,
+           Style(rawValue: raw) != nil {
+            self.style = raw
+        } else {
+            self.style = nil
+        }
+
+        // Only allow customStyle if style == .custom
+        if self.style == Style.custom.rawValue {
+            self.customStyle = data["customStyle"] as? String
+        } else {
+            self.customStyle = nil
+        }
+
         self.restrictions = data["restrictions"] as? Bool ?? false
         self.restrictionDescription = data["restrictionDescription"] as? String ?? ""
+
         self.goodForBeginners = data["goodForBeginners"] as? Bool ?? false
         self.kids = data["kids"] as? Bool ?? false
         self.womensOnly = data["womensOnly"] as? Bool ?? false
+
         if let idString = data["id"] as? String {
             self.id = UUID(uuidString: idString)
         }
-        self.createdTimestamp = data["createdTimestamp"] as? Date ?? Date()
-    }
 
+        if let timestamp = data["createdTimestamp"] as? Timestamp {
+            self.createdTimestamp = timestamp.dateValue()
+        } else if let date = data["createdTimestamp"] as? Date {
+            self.createdTimestamp = date
+        } else {
+            self.createdTimestamp = Date()
+        }
+    }
+    
     // Direct in-app configuration
     func configure(
         time: String?,
@@ -105,25 +138,20 @@ extension MatTime {
         style: String?,
         customStyle: String?,
         discipline: String?,
-        gi: Bool,
-        noGi: Bool,
-        openMat: Bool,
         restrictions: Bool,
         restrictionDescription: String?,
         goodForBeginners: Bool,
         kids: Bool,
         womensOnly: Bool
     ) {
+
         self.time = time
         self.type = type
-        self.discipline = discipline?.lowercased()
-        
+        self.discipline = discipline
+
         self.customStyle = customStyle
         self.style = style
 
-        self.gi = gi
-        self.noGi = noGi
-        self.openMat = openMat
         self.restrictions = restrictions
         self.restrictionDescription = restrictionDescription
         self.goodForBeginners = goodForBeginners
@@ -131,3 +159,4 @@ extension MatTime {
         self.womensOnly = womensOnly
     }
 }
+

@@ -646,32 +646,25 @@ class FirestoreSyncManager {
 
                     guard let matTime = localRecord as? MatTime else { continue }
 
-                    recordData = [
-                        "id": matTime.id?.uuidString ?? "",
-                        "type": matTime.type ?? "",
-                        "discipline": matTime.discipline ?? "bjjGi",
-                        "customStyle": matTime.customStyle ?? "",
-                        "style": matTime.style ?? "",
-                        "time": matTime.time ?? "",
-                        "gi": matTime.gi,
-                        "noGi": matTime.noGi,
-                        "openMat": matTime.openMat,
-                        "restrictions": matTime.restrictions,
-                        "restrictionDescription": matTime.restrictionDescription ?? "",
-                        "goodForBeginners": matTime.goodForBeginners,
-                        "kids": matTime.kids,
-                        "womensOnly": matTime.womensOnly,
-                        "createdTimestamp": matTime.createdTimestamp ?? Date()
-                    ]
+                    recordData = matTime.toFirestoreData()
 
                     if let adoID = matTime.appDayOfWeek?.appDayOfWeekID {
 
                         recordData["appDayOfWeek"] =
-                        Firestore.firestore()
-                            .collection("AppDayOfWeek")
-                            .document(adoID)
+                            Firestore.firestore()
+                                .collection("AppDayOfWeek")
+                                .document(adoID)
+
+                        recordData["appDayOfWeekID"] = adoID
                     }
 
+                    if let style = matTime.style, !style.isEmpty {
+                        recordData["style"] = style
+                    }
+
+                    if let custom = matTime.customStyle, !custom.isEmpty {
+                        recordData["customStyle"] = custom
+                    }
 
                 case "AppDayOfWeek":
 
@@ -1619,7 +1612,6 @@ class FirestoreSyncManager {
 
         let docID = docSnapshot.documentID
 
-
         // =====================================================
         // STEP 0: Resolve AppDayOfWeek reference FIRST
         // =====================================================
@@ -1642,7 +1634,6 @@ class FirestoreSyncManager {
 
         let appDayID = appDayRef.documentID
 
-
         // =====================================================
         // STEP 1: Read cache safely
         // =====================================================
@@ -1653,7 +1644,6 @@ class FirestoreSyncManager {
                 FirestoreSyncManager.shared
                     .appDayCache[appDayID]
             }
-
 
         // =====================================================
         // STEP 2: Core Data work
@@ -1671,108 +1661,89 @@ class FirestoreSyncManager {
                     UUID(uuidString: docID)
                     ?? UUID.fromStringID(docID)
 
+                // =====================================================
+                // Pre-read fields used for uniqueness
+                // =====================================================
+
+                let time =
+                    docSnapshot.get("time") as? String ?? ""
+
+                let disciplineValue =
+                    docSnapshot.get("discipline") as? String
+                    ?? Discipline.bjjGi.rawValue
 
                 // =====================================================
-                // Fetch or create
+                // Fetch or create (duplicate-safe)
                 // =====================================================
 
                 let fetchRequest: NSFetchRequest<MatTime> =
                     MatTime.fetchRequest()
 
-                fetchRequest.predicate =
-                    NSPredicate(
-                        format: "id == %@",
-                        uuid as CVarArg
-                    )
+                let styleValue = docSnapshot.get("style") as? String
+                let customStyleValue = docSnapshot.get("customStyle") as? String
 
+                if let styleValue {
+
+                    fetchRequest.predicate =
+                        NSPredicate(
+                            format: """
+                            id == %@ OR
+                            (appDayOfWeekID == %@ AND time == %@ AND discipline == %@ AND (style == %@ OR customStyle == %@))
+                            """,
+                            uuid as CVarArg,
+                            appDayID,
+                            time,
+                            disciplineValue,
+                            styleValue
+                        )
+
+                } else {
+
+                    fetchRequest.predicate =
+                        NSPredicate(
+                            format: """
+                            id == %@ OR
+                            (appDayOfWeekID == %@ AND time == %@ AND discipline == %@ AND style == nil)
+                            """,
+                            uuid as CVarArg,
+                            appDayID,
+                            time,
+                            disciplineValue
+                        )
+                }
                 fetchRequest.fetchLimit = 1
-
 
                 let matTime =
                     try context.fetch(fetchRequest).first
                     ?? MatTime(context: context)
 
-
                 // =====================================================
-                // CRITICAL FIX #1
-                // Persist ID
+                // Persist identifiers
                 // =====================================================
 
                 matTime.id = uuid
-
-
-                // =====================================================
-                // ⭐ CRITICAL FIX #2
-                // Persist foreign key
-                // THIS enables relationship self-repair
-                // =====================================================
-
                 matTime.appDayOfWeekID = appDayID
 
-
-                // =====================================================
-                // Permanent Object ID
-                // =====================================================
-
                 if matTime.objectID.isTemporaryID {
-
-                    try? context.obtainPermanentIDs(
-                        for: [matTime]
-                    )
+                    try? context.obtainPermanentIDs(for: [matTime])
                 }
-
 
                 // =====================================================
                 // Map fields
                 // =====================================================
 
+                
                 matTime.type =
                     docSnapshot.get("type") as? String
-
-                let disciplineValue =
-                    docSnapshot.get("discipline") as? String ?? "bjjGi"
 
                 matTime.discipline =
                     Discipline(rawValue: disciplineValue)?.rawValue
                     ?? Discipline.bjjGi.rawValue
 
-                // ⭐ NEW FIELDS
-                matTime.customStyle =
-                    docSnapshot.get("customStyle") as? String ?? ""
+                matTime.customStyle = customStyleValue
+                matTime.style = styleValue
 
-                matTime.style =
-                    docSnapshot.get("style") as? String ?? ""
-
-                // =====================================================
-                // FALLBACK MIGRATION
-                // Handles legacy Firestore records using booleans
-                // =====================================================
-
-                if matTime.style?.isEmpty ?? true {
-
-                    if matTime.gi {
-                        matTime.discipline = Discipline.bjjGi.rawValue
-                    }
-                    else if matTime.noGi {
-                        matTime.discipline = Discipline.bjjNoGi.rawValue
-                    }
-
-                    if matTime.openMat {
-                        matTime.style = Style.openMat.rawValue
-                    }
-                }
-                
-                matTime.time =
-                    docSnapshot.get("time") as? String
-
-                matTime.gi =
-                    docSnapshot.get("gi") as? Bool ?? false
-
-                matTime.noGi =
-                    docSnapshot.get("noGi") as? Bool ?? false
-
-                matTime.openMat =
-                    docSnapshot.get("openMat") as? Bool ?? false
+                matTime.time = time
 
                 matTime.restrictions =
                     docSnapshot.get("restrictions") as? Bool ?? false
@@ -1785,7 +1756,7 @@ class FirestoreSyncManager {
 
                 matTime.kids =
                     docSnapshot.get("kids") as? Bool ?? false
-                
+
                 matTime.womensOnly =
                     docSnapshot.get("womensOnly") as? Bool ?? false
 
@@ -1795,71 +1766,25 @@ class FirestoreSyncManager {
 
 
                 // =====================================================
-                // RELATIONSHIP RESOLUTION
+                // RELATIONSHIP RESOLUTION (CACHE ONLY — NO FETCH)
                 // =====================================================
 
                 if let cachedObjectID,
                    let cachedAppDay =
-                    try? context.existingObject(
-                        with: cachedObjectID
-                    ) as? AppDayOfWeek {
+                        try? context.existingObject(
+                            with: cachedObjectID
+                        ) as? AppDayOfWeek {
 
                     matTime.appDayOfWeek = cachedAppDay
                 }
-
                 else {
 
-                    let adoFetch: NSFetchRequest<AppDayOfWeek> =
-                        AppDayOfWeek.fetchRequest()
-
-                    adoFetch.predicate =
-                        NSPredicate(
-                            format: "appDayOfWeekID == %@",
-                            appDayID
-                        )
-
-                    adoFetch.fetchLimit = 1
-
-
-                    if let fetched =
-                        try context.fetch(adoFetch).first {
-
-                        matTime.appDayOfWeek = fetched
-
-
-                        // =====================================================
-                        // Repair cache
-                        // =====================================================
-
-                        if fetched.objectID.isTemporaryID {
-
-                            try? context.obtainPermanentIDs(
-                                for: [fetched]
-                            )
-                        }
-
-                        let permanentID =
-                            fetched.objectID
-
-
-                        Task { @MainActor in
-
-                            FirestoreSyncManager.shared
-                                .appDayCache[appDayID] =
-                                permanentID
-                        }
-                    }
-
-                    else {
-
-                        FirestoreSyncManager.log(
-                            "⚠️ AppDayOfWeek missing — relationship will auto-repair later",
-                            level: .warning,
-                            collection: "MatTime"
-                        )
-                    }
+                    FirestoreSyncManager.log(
+                        "⚠️ AppDayOfWeek not yet cached — relationship will repair later",
+                        level: .warning,
+                        collection: "MatTime"
+                    )
                 }
-
 
                 // =====================================================
                 // Final log
@@ -1878,7 +1803,6 @@ class FirestoreSyncManager {
                 }
 
             }
-
             catch {
 
                 context.rollback()

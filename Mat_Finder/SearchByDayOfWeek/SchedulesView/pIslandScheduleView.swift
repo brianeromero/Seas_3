@@ -14,19 +14,24 @@ struct pIslandScheduleView: View {
 
     var body: some View {
         VStack {
+
             if let selectedIsland = selectedIsland {
+
                 Text("Schedules for \(selectedIsland.islandName ?? "Unknown Gym")")
                     .font(.title)
                     .padding()
 
-                // Display a list of days to choose from
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack {
                         ForEach(DayOfWeek.allCases) { day in
-                            Button(action: {
-                                self.selectedDay = day // Update selectedDay
-                                viewModel.fetchAppDayOfWeekAndUpdateList(for: selectedIsland, day: day, context: viewModel.viewContext)
-                            }) {
+                            Button {
+                                selectedDay = day
+                                viewModel.fetchAppDayOfWeekAndUpdateList(
+                                    for: selectedIsland,
+                                    day: day,
+                                    context: viewModel.viewContext
+                                )
+                            } label: {
                                 Text(day.ultraShortDisplayName)
                                     .font(.headline)
                                     .foregroundColor(selectedDay == day ? .blue : .black)
@@ -36,73 +41,41 @@ struct pIslandScheduleView: View {
                     }
                 }
 
-                // Display schedules for the selected day
                 if let day = selectedDay {
+
                     if let matTimes = viewModel.matTimesForDay[day], !matTimes.isEmpty {
+
                         List {
-                            ForEach(matTimes.sorted { $0.time ?? "" < $1.time ?? "" }, id: \.self) { matTime in
-                                VStack(alignment: .leading) {
 
-                                    Text("Time: \(formatTime(matTime.time ?? "Unknown"))")
-                                        .font(.headline)
+                            let sortedMatTimes = matTimes.sorted(by: MatTime.scheduleSort)
 
-                                    HStack {
-                                        Label("Gi", systemImage: matTime.gi ? "checkmark.circle.fill" : "xmark.circle")
-                                            .foregroundColor(matTime.gi ? .green : .red)
-
-                                        Label("NoGi", systemImage: matTime.noGi ? "checkmark.circle.fill" : "xmark.circle")
-                                            .foregroundColor(matTime.noGi ? .green : .red)
-
-                                        Label("Open Mat", systemImage: matTime.openMat ? "checkmark.circle.fill" : "xmark.circle")
-                                            .foregroundColor(matTime.openMat ? .green : .red)
-                                    }
-
-                                    if matTime.restrictions {
-                                        Text("Restrictions: \(matTime.restrictionDescription ?? "Yes")")
-                                            .font(.caption)
-                                            .foregroundColor(.red)
-                                    }
-
-                                    if matTime.goodForBeginners {
-                                        Text("Good for Beginners")
-                                            .font(.caption)
-                                            .foregroundColor(.blue)
-                                    }
-
-                                    if matTime.kids {
-                                        Text("Kids Class")
-                                            .font(.caption)
-                                            .foregroundColor(.blue)
-                                    }
-
-                                    if matTime.womensOnly {
-                                        Label("Women’s Only", systemImage: "person.2.fill")
-                                            .foregroundColor(.pink)
-                                    }
-                                }
-                                .padding()
+                            ForEach(sortedMatTimes, id: \.objectID) { matTime in
+                                scheduleRow(matTime)
                             }
+
                         }
+
                     } else {
-                        Text("No mat times available for1 \(day.displayName)")
+
+                        Text("No mat times available for \(day.displayName)")
                             .foregroundColor(.gray)
                             .padding()
+
                     }
                 }
+
             } else {
+
                 Text("Select a Gym")
                     .font(.title)
                     .foregroundColor(.gray)
                     .padding()
 
-                // Example list of islands to choose from
-                List(viewModel.allIslands, id: \.self) { island in
-                    Button(action: {
-                        self.selectedIsland = island
-                        Task {
-                            await viewModel.loadSchedules(for: island)
-                        }
-                    }) {
+                List(viewModel.allIslands, id: \.objectID) { island in
+                    Button {
+                        selectedIsland = island
+                        Task { await viewModel.loadSchedules(for: island) }
+                    } label: {
                         Text(island.islandName ?? "Unknown Gym")
                     }
                 }
@@ -110,19 +83,51 @@ struct pIslandScheduleView: View {
             }
         }
         .onAppear {
-            Task {
-                await viewModel.fetchPirateIslands()
+            Task { await viewModel.fetchPirateIslands() }
+        }
+    }
+
+    // MARK: - Row UI
+    @ViewBuilder
+    private func scheduleRow(_ matTime: MatTime) -> some View {
+
+        VStack(alignment: .leading, spacing: 6) {
+
+            Text("Time: \(formatTime(matTime.time ?? "Unknown"))")
+                .font(.headline)
+
+            if matTime.goodForBeginners {
+                Text("Good for Beginners")
+                    .font(.caption)
+                    .foregroundColor(.blue)
+            }
+
+            if matTime.kids {
+                Text("Kids Class")
+                    .font(.caption)
+                    .foregroundColor(.blue)
+            }
+
+            if matTime.womensOnly {
+                Label("Women’s Only", systemImage: "person.2.fill")
+                    .foregroundColor(.pink)
+            }
+
+            if matTime.restrictions {
+                Text("Restrictions: \(matTime.restrictionDescription ?? "Yes")")
+                    .font(.caption)
+                    .foregroundColor(.red)
             }
         }
     }
 
-    // Function to format time
+    // MARK: - Time Formatting
     func formatTime(_ time: String) -> String {
+
         if let date = AppDateFormatter.twelveHour.date(from: time) {
             return AppDateFormatter.twelveHour.string(from: date)
-        } else {
-            return time
         }
-    }
 
+        return time
+    }
 }

@@ -108,14 +108,8 @@ struct AllpIslandScheduleView: View {
 
     func filteredAndSortedMatTimes(_ matTimes: [MatTime]) -> [MatTime] {
         matTimes
-            .filter { $0.appDayOfWeek != nil && $0.time != nil && !$0.time!.isEmpty }
-            .sorted {
-                guard let time1 = AppDateFormatter.mediumDateTime.date(from: $0.time!),
-                      let time2 = AppDateFormatter.mediumDateTime.date(from: $1.time!)
-                else { return false }
-                return time1 < time2
-
-            }
+            .filter { $0.appDayOfWeek != nil && !($0.time ?? "").isEmpty }
+            .sorted(by: MatTime.scheduleSort)
     }
 
     private func deleteMatTimes(offsets: IndexSet) {

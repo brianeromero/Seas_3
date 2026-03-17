@@ -81,8 +81,10 @@ final class PersistenceController: ObservableObject {
 
             let viewContext = self.container.viewContext
 
-            // 🚀 PERFORMANCE OPTIMIZATIONS (SET FIRST)
+            // ⭐ DEBUGGING IMPROVEMENT
+            viewContext.name = "viewContext"
 
+            // 🚀 PERFORMANCE OPTIMIZATIONS (SET FIRST)
             viewContext.mergePolicy =
                 NSMergeByPropertyObjectTrumpMergePolicy
 
@@ -93,9 +95,6 @@ final class PersistenceController: ObservableObject {
             viewContext.automaticallyMergesChangesFromParent = true
 
             viewContext.transactionAuthor = "viewContext"
-
-            // DEBUG ONLY — force migration to run again
-            UserDefaults.standard.removeObject(forKey: "MatTimeMigrationComplete")
 
             // ⭐ RUN MIGRATION AFTER CONTEXT IS CONFIGURED
             self.migrateMatTimeIfNeeded(context: viewContext)
@@ -182,60 +181,65 @@ final class PersistenceController: ObservableObject {
 
         let request: NSFetchRequest<MatTime> = MatTime.fetchRequest()
 
+        request.fetchBatchSize = 200
+        request.returnsObjectsAsFaults = false
+        request.includesPropertyValues = true
+        request.includesPendingChanges = false
+
         do {
 
             let mats = try context.fetch(request)
 
-            var firestoreUpdates: [(id: String, discipline: String, style: String)] = []
+            // style must be optional
+            var firestoreUpdates: [(id: String, discipline: String, style: String?)] = []
 
             let validDisciplines: Set<String> = [
-                "bjjGi","bjjNoGi","mma","wrestling","judo","striking","mobility"
+                "bjjGi","bjjNoGi","openMat","mma","wrestling","judo","striking","mobility"
             ]
 
-            let validStyles: Set<String> = Set(Style.allCases.map { $0.rawValue })
+            let validStyles: Set<String> =
+                Set(Style.allCases.map { $0.rawValue })
 
             for mat in mats {
 
                 var didChange = false
 
                 // ------------------------------------------------
-                // MIGRATE DISCIPLINE (REQUIRED)
+                // MIGRATE DISCIPLINE
                 // ------------------------------------------------
 
-                if mat.discipline?.isEmpty ?? true ||
-                   !validDisciplines.contains(mat.discipline!) {
+                if let discipline = mat.discipline {
 
-                    if mat.gi {
-                        mat.discipline = "bjjGi"
-                    }
-                    else if mat.noGi {
-                        mat.discipline = "bjjNoGi"
-                    }
-                    else {
-                        mat.discipline = "bjjGi"   // safe fallback
+                    if discipline.isEmpty || !validDisciplines.contains(discipline) {
+
+                        mat.discipline = Discipline.bjjGi.rawValue
+                        didChange = true
                     }
 
+                } else {
+
+                    mat.discipline = Discipline.bjjGi.rawValue
                     didChange = true
                 }
 
                 // ------------------------------------------------
-                // MIGRATE STYLE
+                // OPEN MAT STYLE CLEANUP
                 // ------------------------------------------------
 
-                if mat.style?.isEmpty ?? true ||
-                   !(mat.style.map { validStyles.contains($0) } ?? false) {
+                if mat.discipline == Discipline.openMat.rawValue {
 
-                    if mat.openMat {
-                        mat.style = "openMat"
-                    } else {
-                        mat.style = "fundamentals"
+                    if mat.style != nil || mat.customStyle != nil {
+
+                        mat.style = nil
+                        mat.customStyle = nil
+                        didChange = true
                     }
-
-                    didChange = true
                 }
+                
+                // nil style is already valid → represents N/A
 
                 // ------------------------------------------------
-                // QUEUE FIRESTORE UPDATE (ONLY IF CHANGED)
+                // QUEUE FIRESTORE UPDATE
                 // ------------------------------------------------
 
                 if didChange, let id = mat.id?.uuidString {
@@ -243,10 +247,14 @@ final class PersistenceController: ObservableObject {
                     firestoreUpdates.append((
                         id: id,
                         discipline: mat.discipline ?? "bjjGi",
-                        style: mat.style ?? "fundamentals"
+                        style: mat.style
                     ))
                 }
             }
+
+            // ------------------------------------------------
+            // SAVE CORE DATA
+            // ------------------------------------------------
 
             if context.hasChanges {
                 try context.save()
@@ -256,25 +264,36 @@ final class PersistenceController: ObservableObject {
 
             print("✅ MatTime migration complete")
 
+            // ------------------------------------------------
+            // FIRESTORE SYNC
+            // ------------------------------------------------
+
             Task.detached(priority: .background) {
-                
+
                 let firestore = Firestore.firestore()
 
                 for update in firestoreUpdates {
 
+                    var data: [String: Any] = [
+                        "discipline": update.discipline
+                    ]
+
+                    // Only send style if it exists
+                    if let style = update.style {
+                        data["style"] = style
+                    }
+
                     try? await firestore
                         .collection("MatTime")
                         .document(update.id)
-                        .setData([
-                            "discipline": update.discipline,
-                            "style": update.style
-                        ], merge: true)
+                        .setData(data, merge: true)
                 }
 
                 print("🔥 Firestore migration sync complete")
             }
 
-        } catch {
+        }
+        catch {
 
             print("❌ MatTime migration failed:", error)
         }

@@ -147,6 +147,26 @@ struct ScheduleCard: View {
 
         return AppDateFormatter.twelveHour.string(from: date)
     }
+    
+    private var classTitle: String {
+
+        guard let disciplineRaw = matTime.discipline,
+              let discipline = Discipline(rawValue: disciplineRaw) else {
+            return "Class"
+        }
+
+        var title = discipline.displayName
+
+        if let custom = matTime.customStyle, !custom.isEmpty {
+            title += " • \(custom)"
+        }
+        else if let styleRaw = matTime.style,
+                let style = Style(rawValue: styleRaw) {
+            title += " • \(style.displayName)"
+        }
+
+        return title
+    }
 }
 
 struct FlowLayout: Layout {

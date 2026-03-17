@@ -32,7 +32,7 @@ extension MatTime {
               let date = timeString.toTimeDate()
         else { return "" }
 
-        let classType = scheduleType()
+        let classType = formattedHeader(includeDay: false)
 
         return """
         \(date.toTimeString()) \
@@ -278,9 +278,8 @@ private extension ScheduleFormView {
         VStack(alignment: .leading, spacing: 16) {
 
             if let island = selectedIsland,
-               let selectedDay {
-
-                let matTimes = viewModel.matTimesForDay[selectedDay] ?? []
+               let selectedDay = selectedDay,
+               let matTimes = viewModel.matTimesForDay[selectedDay] {
 
                 if matTimes.isEmpty {
 
@@ -320,7 +319,6 @@ private extension ScheduleFormView {
 
                                         Image(systemName: "trash.circle.fill")
                                             .font(.title3)
-
                                     }
                                 }
                                 .padding(12)

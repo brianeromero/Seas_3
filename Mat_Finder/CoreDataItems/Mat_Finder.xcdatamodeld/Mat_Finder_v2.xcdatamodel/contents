@@ -20,18 +20,15 @@
         <attribute name="createdTimestamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="customStyle" optional="YES" attributeType="String"/>
         <attribute name="discipline" optional="YES" attributeType="String"/>
-        <attribute name="gi" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
-        <attribute name="goodForBeginners" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="goodForBeginners" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="kids" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
-        <attribute name="noGi" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
-        <attribute name="openMat" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="kids" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="restrictionDescription" optional="YES" attributeType="String"/>
-        <attribute name="restrictions" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="restrictions" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="style" optional="YES" attributeType="String"/>
         <attribute name="time" optional="YES" attributeType="String"/>
         <attribute name="type" optional="YES" attributeType="String"/>
-        <attribute name="womensOnly" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="womensOnly" attributeType="Boolean" usesScalarValueType="YES"/>
         <relationship name="appDayOfWeek" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="AppDayOfWeek" inverseName="matTimes" inverseEntity="AppDayOfWeek"/>
     </entity>
     <entity name="PirateIsland" representedClassName="PirateIsland" syncable="YES">

@@ -39,7 +39,7 @@ struct IslandScheduleView: View {
                             if !schedules.isEmpty {
                                 DisclosureGroup(
                                     content: {
-                                        ForEach(schedules, id: \.self) { schedule in
+                                        ForEach(schedules, id: \.objectID) { schedule in
                                             scheduleView(for: schedule)
                                                 .onTapGesture {
                                                     selectedDay = day
@@ -95,30 +95,51 @@ struct IslandScheduleView: View {
     }
 
     private func scheduleView(for schedule: AppDayOfWeek) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            ForEach(schedule.matTimes?.allObjects as? [MatTime] ?? [], id: \.self) { matTime in
-                HStack {
-                    Text(matTime.time ?? "Unknown time")
-                        .font(.subheadline)
-                        .foregroundColor(.primary)
-                    Spacer()
-                    Text(matTime.goodForBeginners ? "Beginners" : "")
-                        .font(.caption)
-                        .foregroundColor(.green)
+
+        let matTimes = (schedule.matTimes?.allObjects as? [MatTime] ?? [])
+            .sorted(by: MatTime.scheduleSort)
+
+        return VStack(alignment: .leading, spacing: 8) {
+
+            ForEach(matTimes, id: \.objectID) { matTime in
+
+                VStack(alignment: .leading, spacing: 6) {
+
+                    HStack {
+                        Text(matTime.time ?? "Unknown time")
+                            .font(.subheadline)
+                            .foregroundColor(.primary)
+
+                        Spacer()
+
+                        if matTime.goodForBeginners {
+                            Text("Beginner")
+                                .font(.caption)
+                                .foregroundColor(.green)
+                        }
+                    }
+
+                    // Badge row (new model)
+                    HStack(spacing: 6) {
+
+                        ForEach(matTime.badges) { badge in
+                            Text(badge.text)
+                                .font(.caption2)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(Color(badge.color))
+                                .foregroundColor(.white)
+                                .clipShape(Capsule())
+                        }
+                    }
+
+                    if matTime.restrictions {
+                        Text("Restrictions: \(matTime.restrictionDescription ?? "Yes")")
+                            .font(.caption)
+                            .foregroundColor(.red)
+                    }
                 }
-                HStack {
-                    Label("Gi", systemImage: matTime.gi ? "checkmark.circle.fill" : "xmark.circle")
-                        .foregroundColor(matTime.gi ? .green : .red)
-                    Label("NoGi", systemImage: matTime.noGi ? "checkmark.circle.fill" : "xmark.circle")
-                        .foregroundColor(matTime.noGi ? .green : .red)
-                    Label("Open Mat", systemImage: matTime.openMat ? "checkmark.circle.fill" : "xmark.circle")
-                        .foregroundColor(matTime.openMat ? .green : .red)
-                }
-                if matTime.restrictions {
-                    Text("Restrictions: \(matTime.restrictionDescription ?? "Yes")")
-                        .font(.caption)
-                        .foregroundColor(.red)
-                }
+                .padding(6)
             }
         }
         .padding()

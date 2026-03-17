@@ -164,30 +164,9 @@ private extension ViewScheduleForIsland2 {
 
             if let selectedDay = viewModel.selectedDay {
 
-                let matTimes =
-                    (viewModel.matTimesForDay[selectedDay] ?? [])
-                    .sorted {
+                let matTimes = (viewModel.matTimesForDay[selectedDay] ?? [])
+                    .sorted(by: MatTime.scheduleSort)
 
-                        let timeA = $0.time ?? ""
-                        let timeB = $1.time ?? ""
-
-                        if timeA != timeB {
-                            return timeA < timeB
-                        }
-
-                        let disciplineA = Discipline(rawValue: $0.discipline ?? "")?.displayName ?? ""
-                        let disciplineB = Discipline(rawValue: $1.discipline ?? "")?.displayName ?? ""
-
-                        if disciplineA != disciplineB {
-                            return disciplineA < disciplineB
-                        }
-
-                        let styleA = Style(rawValue: $0.style ?? "")?.displayName ?? ""
-                        let styleB = Style(rawValue: $1.style ?? "")?.displayName ?? ""
-
-                        return styleA < styleB
-                    }
-                
                 if matTimes.isEmpty {
 
                     Text("""
@@ -210,6 +189,13 @@ private extension ViewScheduleForIsland2 {
                         .foregroundColor(.secondary)
                         .padding(.top, 8)
                 }
+
+            } else {
+
+                Text("Select a day to view scheduled classes.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.top, 8)
             }
 
             Spacer()

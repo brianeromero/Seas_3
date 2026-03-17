@@ -20,9 +20,9 @@ extension MatTime {
 
         var result: [ClassBadge] = []
 
-        // Discipline badge first
-        if let disciplineString = discipline,
-           let disciplineEnum = Discipline(rawValue: disciplineString) {
+        // Discipline badge
+        if let disciplineRaw = discipline,
+           let disciplineEnum = Discipline(rawValue: disciplineRaw) {
 
             result.append(
                 ClassBadge(
@@ -30,25 +30,14 @@ extension MatTime {
                     color: disciplineEnum.badgeColor
                 )
             )
+
+            if disciplineEnum == .openMat {
+                return result
+            }
         }
 
-        // Style badge second
-        if let styleString = style,
-           let styleEnum = Style(rawValue: styleString),
-           styleEnum != .openMat {
-
-            result.append(
-                ClassBadge(
-                    text: styleEnum.displayName,
-                    color: styleEnum.badgeColor
-                )
-            )
-
-        }
-        // ⭐ Custom style badge (only if it is not already a defined Style)
-        else if let custom = customStyle,
-                !custom.isEmpty,
-                Style(rawValue: custom.lowercased()) == nil {
+        // Custom style takes priority
+        if let custom = customStyle, !custom.isEmpty {
 
             result.append(
                 ClassBadge(
@@ -56,9 +45,19 @@ extension MatTime {
                     color: "gray"
                 )
             )
+
+        } else if let styleRaw = style,
+                  let styleEnum = Style(rawValue: styleRaw) {
+
+            result.append(
+                ClassBadge(
+                    text: styleEnum.displayName,
+                    color: styleEnum.badgeColor
+                )
+            )
         }
 
-        // Category badges last
+        // Category badges
         if kids {
             result.append(ClassBadge(text: "Kids", color: "green"))
         }
@@ -69,53 +68,74 @@ extension MatTime {
 
         return result
     }
-    
  
     func formattedHeader(includeDay: Bool = true) -> String {
-        
+
         var parts: [String] = []
-        
+
+        // Optional day
         if includeDay,
            let day = appDayOfWeek?.day {
             parts.append(day.capitalized)
         }
-        
-        // Class category
+
+        // Category first
         if kids {
             parts.append("Kids")
         } else if womensOnly {
             parts.append("Women's")
         }
-        
-        parts.append(scheduleType())
-        
-        return parts.isEmpty
-        ? "Class"
-        : parts.joined(separator: " ")
-    }
-    
-    func scheduleType() -> String {
 
+        // Discipline
+        if let disciplineRaw = discipline,
+           let disciplineEnum = Discipline(rawValue: disciplineRaw) {
+
+            parts.append(disciplineEnum.displayName)
+        }
+
+        // Style
         if let custom = customStyle, !custom.isEmpty {
-            return custom
+
+            parts.append(custom)
+
+        } else if let styleRaw = style,
+                  let styleEnum = Style(rawValue: styleRaw) {
+
+            parts.append(styleEnum.displayName)
         }
 
-        if openMat {
-            return "Open Mat"
+        return parts.isEmpty ? "Class" : parts.joined(separator: " ")
+    }
+     
+}
+
+
+// MARK: - Schedule Sorting
+extension MatTime {
+
+    static func scheduleSort(_ a: MatTime, _ b: MatTime) -> Bool {
+
+        // 1️⃣ Sort by stored HH:mm time
+        let dateA = a.time.flatMap { AppDateFormatter.twentyFourHour.date(from: $0) } ?? Date.distantFuture
+        let dateB = b.time.flatMap { AppDateFormatter.twentyFourHour.date(from: $0) } ?? Date.distantFuture
+
+        if dateA != dateB {
+            return dateA < dateB
         }
 
-        guard let disciplineString = discipline,
-              let disciplineEnum = Discipline(rawValue: disciplineString)
-        else {
-            return style ?? "Class"
+        // 2️⃣ Sort by discipline
+        let disciplineA = a.discipline ?? ""
+        let disciplineB = b.discipline ?? ""
+
+        if disciplineA != disciplineB {
+            return disciplineA < disciplineB
         }
 
-        if let styleValue = style,
-           let styleEnum = Style(rawValue: styleValue) {
+        // 3️⃣ Sort by style
+        let styleA = a.style ?? ""
+        let styleB = b.style ?? ""
 
-            return "\(disciplineEnum.displayName) \(styleEnum.displayName)"
-        }
-
-        return disciplineEnum.displayName
+        return styleA < styleB
     }
 }
+

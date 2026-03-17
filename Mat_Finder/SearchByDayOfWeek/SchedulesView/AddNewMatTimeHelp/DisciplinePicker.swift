@@ -10,6 +10,7 @@ import SwiftUI
 
 enum Discipline: String, CaseIterable, Identifiable {
 
+    case openMat     // ⭐ NEW
     case bjjGi
     case bjjNoGi
     case mma
@@ -22,6 +23,7 @@ enum Discipline: String, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
+        case .openMat: return "Open Mat"
         case .bjjGi: return "Gi"
         case .bjjNoGi: return "No-Gi"
         case .mma: return "MMA"
@@ -31,9 +33,10 @@ enum Discipline: String, CaseIterable, Identifiable {
         case .mobility: return "Mobility"
         }
     }
-    
+
     var badgeColor: String {
         switch self {
+        case .openMat: return "gray"
         case .bjjGi: return "blue"
         case .bjjNoGi: return "teal"
         case .mma: return "purple"
@@ -45,10 +48,8 @@ enum Discipline: String, CaseIterable, Identifiable {
     }
 }
 
-
 enum Style: String, CaseIterable, Identifiable {
     
-    case openMat
     case competition
     case advanced
 
@@ -75,7 +76,6 @@ enum Style: String, CaseIterable, Identifiable {
     var displayName: String {
         switch self {
 
-        case .openMat: return "Open Mat"
         case .competition: return "Competition"
         case .advanced: return "Advanced"
 
@@ -106,7 +106,6 @@ enum Style: String, CaseIterable, Identifiable {
     var badgeColor: String {
         switch self {
 
-        case .openMat: return "gray"
         case .competition: return "red"
         case .advanced: return "purple"
 
@@ -138,17 +137,22 @@ struct DisciplinePicker: View {
 
     var body: some View {
 
-        Picker("Discipline", selection: $discipline) {
+        VStack(alignment: .leading, spacing: 6) {
 
-            ForEach(Discipline.allCases) { discipline in
-                
-                Text(discipline.displayName)
-                    .tag(discipline)
+            Picker("Class", selection: $discipline) {
+
+                ForEach(Discipline.allCases) { discipline in
+                    Text(discipline.displayName)
+                        .tag(discipline)
+                }
 
             }
+            .pickerStyle(.menu)
 
+            Text("Gi, NoGi, Open Mat, Wrestling, Judo, Striking, MMA, or Mobility.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
-        .pickerStyle(.menu)
     }
 }
 
@@ -161,36 +165,31 @@ struct StylePicker: View {
 
     var body: some View {
 
-        VStack(alignment: .leading, spacing: 8) {
+        // ⭐ Don't show style picker for Open Mat
+        if discipline != .openMat {
 
-            Picker("Style", selection: $style) {
+            VStack(alignment: .leading, spacing: 8) {
 
-                Text("None")
-                    .tag(nil as Style?)
+                Picker("Class Type", selection: $style) {
 
-                ForEach(Style.styles(for: discipline)) { styleOption in
-                    Text(styleOption.displayName)
-                        .tag(styleOption as Style?)
+                    Text("N/A")
+                        .tag(nil as Style?)
+
+                    ForEach(Style.styles(for: discipline)) { styleOption in
+                        Text(styleOption.displayName)
+                            .tag(styleOption as Style?)
+                    }
                 }
-            }
-            .pickerStyle(.menu)
+                .pickerStyle(.menu)
 
-            // ⭐ Helper text
-            Text("Optional Class Format. Choose Open Mat, Fundamentals, Advanced, Competition, or leave blank.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                Text("Optional Class Format. Choose Fundamentals, Advanced, Competition, or leave blank.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
 
-            if style == .custom {
-                TextField("Enter Style", text: $customStyle)
-                    .textFieldStyle(.roundedBorder)
-            }
-        }
-
-        .onChange(of: discipline) { _, newDiscipline in
-            if let currentStyle = style,
-               !Style.styles(for: newDiscipline).contains(currentStyle) {
-                style = nil
-                customStyle = ""
+                if style == .custom {
+                    TextField("Enter Style", text: $customStyle)
+                        .textFieldStyle(.roundedBorder)
+                }
             }
         }
     }
@@ -203,11 +202,14 @@ extension Style {
         switch discipline {
 
         case .bjjGi:
-            return [.openMat, .advanced, .fundamentals, .conditioning, .competition, .drilling, .sparring, .custom]
+            return [.advanced, .fundamentals, .conditioning, .competition, .drilling, .sparring, .custom]
             
         case .bjjNoGi:
-            return [.openMat, .advanced, .fundamentals, .conditioning, .competition, .drilling, .sparring, .custom]
-            
+            return [.advanced, .fundamentals, .conditioning, .competition, .drilling, .sparring, .custom]
+
+        case .openMat:
+            return []
+
         case .mma:
             return [.fundamentals, .sparring, .conditioning, .custom]
 
@@ -223,6 +225,7 @@ extension Style {
         case .mobility:
             return [.yoga, .flow, .stretching, .recovery, .custom]
             
+
         }
     }
 }

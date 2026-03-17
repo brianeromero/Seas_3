@@ -164,6 +164,13 @@ struct EditMatTimeView: View {
                     customStyle = ""
                 }
             }
+
+            .onChange(of: discipline) { _, newValue in
+                if newValue == .openMat {
+                    style = nil
+                    customStyle = ""
+                }
+            }
         }
     }
 
@@ -172,15 +179,22 @@ struct EditMatTimeView: View {
         matTime.time =
             AppDateFormatter.twelveHour.string(from: selectedTime)
 
+        // ⭐ discipline now replaces gi/noGi/openMat
         matTime.discipline = discipline.rawValue
 
-        if style == .custom {
+        // ⭐ Handle style rules
+        if discipline == .openMat {
+
+            matTime.style = nil
+            matTime.customStyle = nil
+
+        } else if style == .custom {
 
             let trimmed = customStyle.trimmingCharacters(in: .whitespacesAndNewlines)
 
             if trimmed.isEmpty {
-                matTime.style = ""
-                matTime.customStyle = ""
+                matTime.style = nil
+                matTime.customStyle = nil
             } else {
                 matTime.style = trimmed
                 matTime.customStyle = trimmed
@@ -189,17 +203,13 @@ struct EditMatTimeView: View {
         } else if let style {
 
             matTime.style = style.rawValue
-            matTime.customStyle = ""
+            matTime.customStyle = nil
 
         } else {
 
-            matTime.style = ""
-            matTime.customStyle = ""
+            matTime.style = nil
+            matTime.customStyle = nil
         }
-
-        matTime.gi = discipline == .bjjGi
-        matTime.noGi = discipline == .bjjNoGi
-        matTime.openMat = style == .openMat
 
         matTime.restrictions = restrictions
         matTime.restrictionDescription =
