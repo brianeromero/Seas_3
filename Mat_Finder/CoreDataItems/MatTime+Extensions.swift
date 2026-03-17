@@ -115,15 +115,13 @@ extension MatTime {
 
     static func scheduleSort(_ a: MatTime, _ b: MatTime) -> Bool {
 
-        // 1️⃣ Sort by stored HH:mm time
-        let dateA = a.time.flatMap { AppDateFormatter.twentyFourHour.date(from: $0) } ?? Date.distantFuture
-        let dateB = b.time.flatMap { AppDateFormatter.twentyFourHour.date(from: $0) } ?? Date.distantFuture
+        let dateA = a.parsedTime ?? Date.distantFuture
+        let dateB = b.parsedTime ?? Date.distantFuture
 
         if dateA != dateB {
             return dateA < dateB
         }
 
-        // 2️⃣ Sort by discipline
         let disciplineA = a.discipline ?? ""
         let disciplineB = b.discipline ?? ""
 
@@ -131,11 +129,90 @@ extension MatTime {
             return disciplineA < disciplineB
         }
 
-        // 3️⃣ Sort by style
         let styleA = a.style ?? ""
         let styleB = b.style ?? ""
 
         return styleA < styleB
     }
+    
+    static func nextClass(from times: [MatTime], day: DayOfWeek?) -> MatTime? {
+
+        guard let day else { return nil }
+
+        _ = Date()
+
+        let upcoming = times.compactMap { matTime -> (MatTime, Date)? in
+            
+            guard let time = matTime.time,
+                  let date = MatTime.nextDate(for: day, time: time) else { return nil }
+
+            return (matTime, date)
+        }
+        .sorted { $0.1 < $1.1 }
+
+        return upcoming.first?.0
+    }
 }
 
+extension MatTime {
+
+    var displayTime: String {
+        guard let time,
+              let date = AppDateFormatter.stringToDate(time) else {
+            return time ?? ""
+        }
+
+        return AppDateFormatter.twelveHour.string(from: date)
+    }
+    
+    var nextClassLabel: String {
+        guard let date = parsedTime else { return "" }
+
+        let calendar = Calendar.current
+        let now = Date()
+
+        let timeString = AppDateFormatter.twelveHour.string(from: date)
+
+        if calendar.isDate(date, inSameDayAs: now) {
+            return "Today at \(timeString)"
+        }
+
+        if let tomorrow = calendar.date(byAdding: .day, value: 1, to: now),
+           calendar.isDate(date, inSameDayAs: tomorrow) {
+            return "Tomorrow at \(timeString)"
+        }
+
+        let weekday = AppDateFormatter.weekdayString(from: date)
+
+        return "\(weekday) at \(timeString)"
+    }
+    
+    var parsedTime: Date? {
+        guard let time else { return nil }
+        return AppDateFormatter.stringToDate(time)
+    }
+}
+
+
+// MARK: - Date Helpers
+extension MatTime {
+
+    static func nextDate(for day: DayOfWeek, time: String) -> Date? {
+        
+        guard let timeDate = AppDateFormatter.stringToDate(time) else { return nil }
+
+        let calendar = Calendar.current
+        let now = Date()
+
+        let targetWeekday = day.number
+
+        var components = calendar.dateComponents([.hour, .minute], from: timeDate)
+        components.weekday = targetWeekday
+
+        return calendar.nextDate(
+            after: now,
+            matching: components,
+            matchingPolicy: .nextTime
+        )
+    }
+}

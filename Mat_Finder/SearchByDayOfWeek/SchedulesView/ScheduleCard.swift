@@ -24,7 +24,7 @@ struct ScheduleCard: View {
         HStack(alignment: .firstTextBaseline, spacing: 16) {
 
             // TIME COLUMN
-            Text(displayTime)
+            Text(matTime.displayTime)
                 .font(.title3)
                 .fontWeight(.medium)
                 .monospacedDigit()
@@ -136,36 +136,6 @@ struct ScheduleCard: View {
         case "gray": return .gray
         default: return .gray
         }
-    }
-
-    private var displayTime: String {
-
-        guard let time = matTime.time,
-              let date = AppDateFormatter.stringToDate(time) else {
-            return matTime.time ?? ""
-        }
-
-        return AppDateFormatter.twelveHour.string(from: date)
-    }
-    
-    private var classTitle: String {
-
-        guard let disciplineRaw = matTime.discipline,
-              let discipline = Discipline(rawValue: disciplineRaw) else {
-            return "Class"
-        }
-
-        var title = discipline.displayName
-
-        if let custom = matTime.customStyle, !custom.isEmpty {
-            title += " • \(custom)"
-        }
-        else if let styleRaw = matTime.style,
-                let style = Style(rawValue: styleRaw) {
-            title += " • \(style.displayName)"
-        }
-
-        return title
     }
 }
 

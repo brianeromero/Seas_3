@@ -206,21 +206,20 @@ struct ConsolidatedIslandMapView: View {
         }
         
         .sheet(isPresented: $showIslandList) {
-
-            DayOfWeekIslandListView(
-
-                islands: Array(islands),
-
-                userLocation: locationManager.userLocation
-
-            ) { island in
-
-                selectedIsland = island
-                showModal = true
-                showIslandList = false
-
-                zoomToIsland(island)
-            }
+            islandListSheet()
+        }
+    }
+    
+    private func islandListSheet() -> some View {
+        DayOfWeekIslandListView(
+            islandsWithMatTimes: viewModel.islandsWithMatTimes,
+            userLocation: locationManager.userLocation,
+            selectedDay: $selectedDay
+        ) { island in
+            selectedIsland = island
+            showModal = true
+            showIslandList = false
+            zoomToIsland(island)
         }
     }
 

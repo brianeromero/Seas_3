@@ -11,8 +11,17 @@ import CoreData
 import Combine
 
 
+struct IslandWithTimes: Identifiable {
+    let island: PirateIsland
+    let times: [MatTime]
+
+    var id: NSManagedObjectID {
+        island.objectID
+    }
+}
+
 struct DayOfWeekSearchView: View {
-    @Binding var navigationPath: NavigationPath   
+    @Binding var navigationPath: NavigationPath
     
     @State private var selectedIsland: PirateIsland?
     @State private var selectedAppDayOfWeek: AppDayOfWeek?
@@ -28,9 +37,11 @@ struct DayOfWeekSearchView: View {
     
     @State private var radius: Double = 10.0
     @State private var errorMessage: String?
-    @State private var selectedDay: DayOfWeek? = .monday
-    @State private var showModal: Bool = false
     
+    // ✅ KEEP ONLY THIS ONE
+    @State private var selectedDay: DayOfWeek? = .monday
+    
+    @State private var showModal: Bool = false
     @State private var showIslandList = false
     
     private var islands: [PirateIsland] {
@@ -40,7 +51,9 @@ struct DayOfWeekSearchView: View {
     var body: some View {
         VStack {
 
+            // ✅ Day picker
             DayPickerView(selectedDay: $selectedDay)
+                .padding()
                 .onChange(of: selectedDay) { _, _ in
                     Task { await updateIslandsAndRegion() }
                 }
@@ -86,7 +99,7 @@ struct DayOfWeekSearchView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-         .floatingModal(isPresented: $showModal) {
+        .floatingModal(isPresented: $showModal) {
             IslandModalContainer(
                 selectedIsland: $selectedIsland,
                 viewModel: viewModel,
@@ -94,7 +107,7 @@ struct DayOfWeekSearchView: View {
                 showModal: $showModal,
                 enterZipCodeViewModel: enterZipCodeViewModel,
                 selectedAppDayOfWeek: $selectedAppDayOfWeek,
-                navigationPath: $navigationPath // <- pass binding from parent
+                navigationPath: $navigationPath
             )
         }
         .onAppear(perform: handleOnAppear)
@@ -112,19 +125,17 @@ struct DayOfWeekSearchView: View {
         .onChange(of: selectedIsland) { _, newValue in
             updateSelectedIsland(from: newValue)
         }
-        
         .onChange(of: showModal) { _, isShown in
             if !isShown {
                 selectedIsland = nil
             }
         }
-        
-        
         .sheet(isPresented: $showIslandList) {
             
             DayOfWeekIslandListView(
-                islands: islands,
-                userLocation: userLocationMapViewModel.userLocation
+                islandsWithMatTimes: viewModel.islandsWithMatTimes,
+                userLocation: userLocationMapViewModel.userLocation,
+                selectedDay: $selectedDay   // ✅ binding
             ) { island in
                 
                 selectedIsland = island
@@ -134,6 +145,8 @@ struct DayOfWeekSearchView: View {
             }
         }
     }
+    
+    // MARK: - Helpers
     
     private func regionToFitResults() -> MKCoordinateRegion {
 
@@ -184,8 +197,7 @@ struct DayOfWeekSearchView: View {
         mapView.setRegion(region, animated: true)
     }
     
-    
-    // MARK: - Event Handlers
+    // MARK: - Lifecycle
     
     private func handleOnAppear() {
         if let location = userLocationMapViewModel.userLocation {
@@ -196,8 +208,8 @@ struct DayOfWeekSearchView: View {
         }
     }
     
+    // MARK: - Data
     
-    // MARK: - Data Updates
     private func updateIslandsAndRegion() async {
 
         guard let selectedDay else {
@@ -256,8 +268,6 @@ struct DayOfWeekSearchView: View {
     }
 }
 
-
-
 enum DistanceFilter: Double, CaseIterable, Identifiable {
 
     case ten = 10
@@ -280,15 +290,17 @@ enum DistanceFilter: Double, CaseIterable, Identifiable {
 
 struct DayOfWeekIslandListView: View {
 
-    let islands: [PirateIsland]
+    let islandsWithMatTimes: [(PirateIsland, [MatTime])]
     let userLocation: CLLocation?
-
+    @Binding var selectedDay: DayOfWeek?
+    
     let onSelect: (PirateIsland) -> Void
 
     @State private var filter: DistanceFilter = .ten
 
+    // MARK: - Distance
+    
     private func distance(for island: PirateIsland) -> Double? {
-
         guard
             let userLocation,
             island.latitude != 0,
@@ -303,75 +315,121 @@ struct DayOfWeekIslandListView: View {
         return userLocation.distance(from: islandLocation) / 1609.34
     }
 
-    private var filteredIslands: [PirateIsland] {
+    // MARK: - Filtering
 
-        islands.filter {
+    private var filteredIslandsWithTimes: [IslandWithTimes] {
 
-            guard let miles = distance(for: $0) else { return true }
+        islandsWithMatTimes.compactMap { (island, times) -> IslandWithTimes? in
 
-            return miles <= filter.rawValue
+            if let miles = distance(for: island),
+               miles > filter.rawValue {
+                return nil
+            }
+
+            guard let selectedDay = selectedDay else { return nil }
+
+            let filteredTimes = times.filter {
+                $0.appDayOfWeek?.day == selectedDay.rawValue
+            }
+
+            guard !filteredTimes.isEmpty else { return nil }
+
+            return IslandWithTimes(island: island, times: filteredTimes)
         }
     }
+    
+    // MARK: - Sorting
+    
+    private var sortedIslandsWithTimes: [IslandWithTimes] {
 
-    private var sortedIslands: [PirateIsland] {
+        filteredIslandsWithTimes.sorted {
 
-        filteredIslands.sorted {
-
-            let d1 = distance(for: $0) ?? .greatestFiniteMagnitude
-            let d2 = distance(for: $1) ?? .greatestFiniteMagnitude
+            let d1 = distance(for: $0.island) ?? .greatestFiniteMagnitude
+            let d2 = distance(for: $1.island) ?? .greatestFiniteMagnitude
 
             return d1 < d2
         }
     }
+    
+    private var totalClasses: Int {
+        sortedIslandsWithTimes.reduce(0) { $0 + $1.times.count }
+    }
 
+    // MARK: - UI
+    
     var body: some View {
 
         NavigationStack {
 
             VStack {
 
-                // Distance Filter
-                Picker("Distance", selection: $filter) {
+                DayPickerView(selectedDay: $selectedDay)
+                    .padding(.horizontal)
 
+                Picker("Distance", selection: $filter) {
                     ForEach(DistanceFilter.allCases) { filter in
                         Text(filter.title).tag(filter)
                     }
-
                 }
                 .pickerStyle(.segmented)
-                .padding()
+                .padding(.horizontal)
 
+  
                 List {
 
-                    ForEach(sortedIslands, id: \.objectID) { island in
-
+                    ForEach(Array(sortedIslandsWithTimes.enumerated()), id: \.element.id) { _, item in
+                        
+                        let island = item.island
+                        let times = item.times
+                        let nextClass = MatTime.nextClass(from: times, day: selectedDay)
+                        
                         Button {
-
                             onSelect(island)
-
                         } label: {
 
-                            VStack(alignment: .leading, spacing: 4) {
+                            VStack(alignment: .leading, spacing: 8) {
 
                                 IslandListItem(
                                     island: island,
                                     selectedIsland: .constant(nil)
                                 )
 
-                                if let miles = distance(for: island) {
+                                // ✅ NEXT CLASS DISPLAY
+                                if let next = nextClass {
+                                    Text("Next Class: \(next.nextClassLabel)")
+                                        .font(.caption)
+                                        .foregroundColor(.green)
+                                }
 
-                                    Text(String(format: "%.1f miles away", miles))
+                                if let miles = distance(for: island) {
+                                    Text("\(miles, specifier: "%.1f") miles away")
                                         .font(.caption2)
                                         .foregroundColor(.accentColor.opacity(0.6))
-                                        .padding(.leading, 2)
                                 }
+
+                                VStack(alignment: .leading, spacing: 4) {
+
+                                    ForEach(times.sorted(by: MatTime.scheduleSort), id: \.objectID) { matTime in
+                                        HStack {
+                                            Text(matTime.displayTime)
+                                                .font(.caption)
+                                                .bold()
+
+                                            Text(matTime.formattedHeader(includeDay: false))
+                                                .font(.caption)
+                                                .lineLimit(1)
+                                            Spacer()
+                                        }
+                                    }
+                                }
+                                .padding(.top, 4)
                             }
+                            .padding(.vertical, 4)
                         }
                     }
                 }
             }
-
-            .navigationTitle("Locations (\(sortedIslands.count))")
+            .navigationTitle("Classes (\(totalClasses))")
             .navigationBarTitleDisplayMode(.inline)
         }
     }

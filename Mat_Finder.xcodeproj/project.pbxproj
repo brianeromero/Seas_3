@@ -459,8 +459,8 @@
 		0C07B0862C2CFE8200D0BFB2 /* SearchByDayOfWeek */ = {
 			isa = PBXGroup;
 			children = (
-				0C955BEC2C764D9B00D03CAB /* DayOfWeekSearchView.swift */,
 				0C524E8D2C2F4241008D6623 /* DayOfWeekUtils.swift */,
+				0C955BEC2C764D9B00D03CAB /* DayOfWeekSearchView.swift */,
 				0CEC327C2C41A2FE00F0747F /* SchedulesView */,
 				0CEB03992C2BA58F007CA3CC /* AppDayOfWeekRepository.swift */,
 				0C07B08B2C2CFED400D0BFB2 /* AppDayOfWeekViewModel.swift */,
