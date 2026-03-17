@@ -215,10 +215,11 @@ struct IslandModalView: View {
                         Spacer()
 
                         Text(island.dropInDisplayText)
+                            .font(.caption.weight(.semibold))
                             .padding(.horizontal, 10)
                             .padding(.vertical, 4)
-                            .background(dropInColor(for: island).opacity(0.15))
-                            .foregroundColor(dropInColor(for: island))
+                            .background(dropInColor(for: island).opacity(0.12))
+                            .foregroundStyle(dropInColor(for: island))
                             .clipShape(Capsule())
                     }
 
@@ -355,11 +356,11 @@ struct IslandModalView: View {
     private func dropInColor(for island: PirateIsland) -> Color {
         switch island.dropInFeeStatus {
         case .notConfirmed:
-            return .orange
+            return .orange      // ⚠️ needs confirmation
         case .noDropInFee:
-            return .red
+            return .green       // ✅ good (free)
         case .hasFee:
-            return .green
+            return .primary     // neutral (not an error)
         }
     }
 

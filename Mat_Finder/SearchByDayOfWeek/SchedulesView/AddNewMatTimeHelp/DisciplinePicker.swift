@@ -129,6 +129,19 @@ enum Style: String, CaseIterable, Identifiable {
         case .custom: return "gray"
         }
     }
+    
+    static func helperText(for discipline: Discipline) -> String {
+        
+        let styles = styles(for: discipline)
+            .filter { $0 != .custom } // remove "Other"
+            .map { $0.displayName }
+
+        guard !styles.isEmpty else { return "" }
+
+        let formatted = styles.joined(separator: ", ")
+
+        return "Class Format - Optional: Choose from \(formatted), or leave blank."
+    }
 }
 
 struct DisciplinePicker: View {
@@ -149,7 +162,7 @@ struct DisciplinePicker: View {
             }
             .pickerStyle(.menu)
 
-            Text("Gi, NoGi, Open Mat, Wrestling, Judo, Striking, MMA, or Mobility.")
+            Text("Gi, NoGi, Open Mat, Wrestling, Judo, Striking, MMA, or Mobility")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -182,7 +195,7 @@ struct StylePicker: View {
                 }
                 .pickerStyle(.menu)
 
-                Text("Optional Class Format. Choose Fundamentals, Advanced, Competition, or leave blank.")
+                Text(Style.helperText(for: discipline))
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
@@ -220,7 +233,7 @@ extension Style {
             return [.fundamentals, .sparring, .drilling, .custom]
             
         case .striking:
-            return [.muayThai, .kickboxing, .boxing, .kravMaga, .cardioKickboxing, .selfDefense, .custom]
+            return [.muayThai, .kickboxing, .boxing, .kravMaga, .cardioKickboxing, .selfDefense, .sparring, .custom]
 
         case .mobility:
             return [.yoga, .flow, .stretching, .recovery, .custom]
