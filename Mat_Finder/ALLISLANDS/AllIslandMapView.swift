@@ -211,10 +211,10 @@ struct ConsolidatedIslandMapView: View {
     }
     
     private func islandListSheet() -> some View {
-        DayOfWeekIslandListView(
-            islandsWithMatTimes: viewModel.islandsWithMatTimes,
+        GymsNearMeListView(
+            islands: Array(islands),
             userLocation: locationManager.userLocation,
-            selectedDay: $selectedDay
+            radius: selectedRadius   // 👈 ADD THIS
         ) { island in
             selectedIsland = island
             showModal = true
