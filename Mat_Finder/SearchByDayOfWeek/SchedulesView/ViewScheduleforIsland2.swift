@@ -29,87 +29,68 @@ struct ViewScheduleForIsland2: View {
     
     let island: PirateIsland
 
-
     var body: some View {
         
-        VStack(alignment: .leading, spacing: 24) {
+        VStack(alignment: .leading, spacing: 0) {
             
-            headerSection
-            
-            daySelectorSection
-            
-            scheduleSection
-            
+            VStack(alignment: .leading, spacing: 24) {
+                headerSection
+                daySelectorSection
+            }
+            .padding([.horizontal, .top])
+
+            ScrollView {
+                scheduleSection
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                    .padding(.horizontal)
+                    .padding(.top, 16)
+                    .padding(.bottom, 24)
+            }
         }
-        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(Color(.systemGroupedBackground))
         .navigationTitle("Schedule")
         .navigationBarTitleDisplayMode(.inline)
-        
         .safeAreaInset(edge: .bottom) {
-            
             addScheduleButton
-            
         }
-        
         .alert(alertTitle, isPresented: $showLoginPrompt) {
 
             Button("Login / Create Account") {
-
                 NotificationCenter.default.post(
                     name: .navigateToLogin,
                     object: nil
                 )
-
             }
 
             Button("Cancel", role: .cancel) { }
 
         } message: {
-
             Text(alertMessage)
-
         }
         .sheet(
             isPresented: $showingAddSchedule,
             onDismiss: {
-
                 Task {
-
                     await viewModel.preloadAllSchedules(for: island)
-
                 }
-
             }
         ) {
             NavigationStack {
-
                 AddNewMatTimeSection2(
-
                     selectedIslandID: $selectedIslandID,
-
                     islands: [island],
-
                     viewModel: viewModel,
-
                     showAlert: $showAlert,
-
                     alertTitle: $alertTitle,
-
                     alertMessage: $alertMessage,
-
                     selectIslandAndDay: selectIslandAndDay
-
                 )
-
             }
         }
-        
         .onAppear {
-
             selectedIslandID = island.islandID
 
-            // 🔥 FORCE RESET STATE
             viewModel.selectedDay = .monday
             viewModel.matTimesForDay = [:]
 
@@ -118,7 +99,6 @@ struct ViewScheduleForIsland2: View {
             }
         }
     }
-    
     
 }
 
@@ -180,8 +160,10 @@ private extension ViewScheduleForIsland2 {
 
                 } else {
 
-                    ForEach(matTimes, id: \.objectID) { matTime in
-                        ScheduleCard(matTime: matTime, island: island)
+                    LazyVStack(alignment: .leading, spacing: 16) {
+                        ForEach(matTimes, id: \.objectID) { matTime in
+                            ScheduleCard(matTime: matTime, island: island)
+                        }
                     }
 
                     Text("Click the button below to edit or add schedule.")
@@ -197,10 +179,8 @@ private extension ViewScheduleForIsland2 {
                     .foregroundColor(.secondary)
                     .padding(.top, 8)
             }
-
-            Spacer()
         }
-        .frame(maxWidth: .infinity, alignment: .top)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
         .animation(
             .spring(response: 0.35, dampingFraction: 0.8),
             value: viewModel.selectedDay

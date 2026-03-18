@@ -85,42 +85,47 @@ struct ScheduleFormView: View {
     @State private var showDeleteConfirm = false
     
     // MARK: BODY
-    
+
     var body: some View {
         
-        ScrollView {
+        VStack(alignment: .leading, spacing: 0) {
+            
             VStack(alignment: .leading, spacing: 24) {
                 islandSection
                 viewDaySection
+            }
+            .padding(.horizontal)
+            .padding(.top)
+
+            ScrollView {
                 scheduleListSection
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                    .padding(.horizontal)
+                    .padding(.top, 16)
+                    .padding(.bottom, 24)
             }
         }
-        .padding(.horizontal)
-        .padding(.top)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(Color(.systemGroupedBackground))
         .navigationTitle("Schedule")
-
-        // ✅ ADD IT RIGHT HERE
         .safeAreaInset(edge: .bottom) {
-
             addScheduleButton
                 .padding(.horizontal)
                 .padding(.top, 8)
                 .padding(.bottom, 8)
                 .background(.ultraThinMaterial)
-
         }
-
         .onAppear {
+            if selectedDay == nil {
+                selectedDay = .monday
+            }
 
-            viewModel.selectedDay = selectedDay ?? .monday
+            viewModel.selectedDay = selectedDay
 
             Task {
                 await handleOnAppear()
             }
-
         }
-        
         .sheet(
             isPresented: $showingAddSchedule,
             onDismiss: {
@@ -141,33 +146,25 @@ struct ScheduleFormView: View {
                 )
             }
         }
-
         .sheet(item: $editingMatTime, onDismiss: {
-
             editingMatTime = nil
 
             Task {
                 await preloadAllDays()
             }
-
         }) { matTime in
-
             EditMatTimeView(
                 matTime: matTime,
                 viewModel: viewModel
             )
         }
-        
         .alert(isPresented: $showingAlert) {
-            
             Alert(
                 title: Text(alertTitle),
                 message: Text(alertMessage),
                 dismissButton: .default(Text("OK"))
             )
-            
         }
-        
         .alert(
             "Delete Schedule",
             isPresented: $showDeleteConfirm,
@@ -187,7 +184,6 @@ struct ScheduleFormView: View {
             let time = matTime.time?.toTimeDate()?.toTimeString() ?? ""
 
             Text("Are you sure you want to delete the \(header) \(time) schedule? This action cannot be undone.")
-
         }
     }
     
@@ -294,35 +290,33 @@ private extension ScheduleFormView {
 
                 } else {
 
-                    ForEach(matTimes, id: \.objectID) { matTime in
+                    LazyVStack(alignment: .leading, spacing: 16) {
+                        ForEach(matTimes, id: \.objectID) { matTime in
 
-                        ScheduleCard(matTime: matTime, island: island)
+                            ScheduleCard(matTime: matTime, island: island)
+                                .overlay(alignment: .topTrailing) {
 
-                            .overlay(alignment: .topTrailing) {
+                                    HStack(spacing: 12) {
 
-                                HStack(spacing: 12) {
+                                        Button {
+                                            editingMatTime = matTime
+                                        } label: {
+                                            Image(systemName: "pencil.circle.fill")
+                                                .font(.title3)
+                                                .foregroundColor(.blue)
+                                        }
 
-                                    Button {
-                                        editingMatTime = matTime
-                                    } label: {
-                                        Image(systemName: "pencil.circle.fill")
-                                            .font(.title3)
-                                            .foregroundColor(.blue)
+                                        Button(role: .destructive) {
+                                            matTimePendingDelete = matTime
+                                            showDeleteConfirm = true
+                                        } label: {
+                                            Image(systemName: "trash.circle.fill")
+                                                .font(.title3)
+                                        }
                                     }
-
-                                    Button(role: .destructive) {
-
-                                        matTimePendingDelete = matTime
-                                        showDeleteConfirm = true
-
-                                    } label: {
-
-                                        Image(systemName: "trash.circle.fill")
-                                            .font(.title3)
-                                    }
+                                    .padding(12)
                                 }
-                                .padding(12)
-                            }
+                        }
                     }
 
                     Text("Click the button below to edit or add schedule.")
@@ -338,9 +332,8 @@ private extension ScheduleFormView {
                     .foregroundColor(.secondary)
                     .padding(.top, 8)
             }
-
-            Spacer()
         }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
     }
 }
 
