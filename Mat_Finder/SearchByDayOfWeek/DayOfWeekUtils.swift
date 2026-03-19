@@ -123,7 +123,10 @@ struct DayOfWeekSettings: View {
                 let defaultDay: DayOfWeek = .monday
                 print("Fetching current day of week for island: \(island.islandName ?? "") and day: \(defaultDay.displayName)")
                 Task {
-                    _ = await viewModel.fetchCurrentDayOfWeek(for: island, day: defaultDay, selectedDayBinding: Binding(get: { viewModel.selectedDay }, set: { viewModel.selectedDay = $0 }))
+                    _ = await viewModel.fetchCurrentDayOfWeek(
+                        for: island,
+                        day: defaultDay
+                    )
                 }
             } else {
                 print("No island selected")

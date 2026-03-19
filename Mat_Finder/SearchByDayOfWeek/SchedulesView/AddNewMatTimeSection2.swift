@@ -193,8 +193,6 @@ extension AddNewMatTimeSection2 {
 
                     Text(time.toTimeString())
                         .font(.system(size: 17, weight: .medium))
-                        .font(.body)
-                        .fontWeight(.medium)
                     Spacer()
 
                     Button {
@@ -367,8 +365,7 @@ extension AddNewMatTimeSection2 {
             return false
         }
 
-        if restrictions && restrictionText.isEmpty {
-
+        if restrictions && restrictionText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             alert("Error", "Enter restriction description")
             return false
         }
@@ -589,73 +586,31 @@ extension AddNewMatTimeSection2 {
         }
 
         // ✅ CHECK DUPLICATE
+        let exists: Bool = try await context.perform {
+            let fetch: NSFetchRequest<MatTime> = MatTime.fetchRequest()
+            fetch.fetchLimit = 1
 
-        let exists: Bool =
-            try await context.perform {
-
-                let fetch: NSFetchRequest<MatTime> =
-                    MatTime.fetchRequest()
-
-                fetch.fetchLimit = 1
-
-                if style == .custom {
-
-                    fetch.predicate = NSPredicate(
-                        format: """
-                        appDayOfWeek == %@ AND
-                        time == %@ AND
-                        discipline == %@ AND
-                        customStyle == %@ AND
-                        kids == %d AND
-                        womensOnly == %d
-                        """,
-                        context.object(with: appDayID),
-                        timeString,
-                        disciplineValue,
-                        customStyleValue ?? "",
-                        kidsClass,
-                        womensOnly
-                    )
-
-                } else if let style {
-
-                    fetch.predicate = NSPredicate(
-                        format: """
-                        appDayOfWeek == %@ AND
-                        time == %@ AND
-                        discipline == %@ AND
-                        style == %@ AND
-                        kids == %d AND
-                        womensOnly == %d
-                        """,
-                        context.object(with: appDayID),
-                        timeString,
-                        disciplineValue,
-                        style.rawValue,
-                        kidsClass,
-                        womensOnly
-                    )
-
-                } else {
-
-                    fetch.predicate = NSPredicate(
-                        format: """
-                        appDayOfWeek == %@ AND
-                        time == %@ AND
-                        discipline == %@ AND
-                        kids == %d AND
-                        womensOnly == %d
-                        """,
-                        context.object(with: appDayID),
-                        timeString,
-                        disciplineValue,
-                        kidsClass,
-                        womensOnly
-                    )
-                }
-
-                return try context.fetch(fetch).first != nil
+            let appDay = context.object(with: appDayID) as! AppDayOfWeek
+            guard let appDayStringID = appDay.appDayOfWeekID else {
+                return false
             }
+
+            fetch.predicate = MatTimeDedupe.predicate(
+                appDayID: appDayStringID,
+                time: timeString,
+                discipline: disciplineValue,
+                style: styleValue,
+                customStyle: customStyleValue,
+                type: discipline.displayName,
+                restrictionDescription: restrictions ? restrictionText : "",
+                kids: kidsClass,
+                womensOnly: womensOnly,
+                goodForBeginners: goodForBeginners,
+                restrictions: restrictions
+            )
+
+            return try context.fetch(fetch).first != nil
+        }
 
         // ❌ SKIP
 
@@ -707,15 +662,12 @@ extension AddNewMatTimeSection2 {
             PersistenceController.shared
                 .newFirestoreContext()
 
-        // STEP 1: Read Core Data safely
-
         let result: (
             id: String,
             day: String,
             name: String,
             created: Date,
-            islandID: String,
-            islandName: String
+            islandID: String
         ) = try await context.perform {
 
             let app =
@@ -723,69 +675,51 @@ extension AddNewMatTimeSection2 {
                     with: objectID
                 ) as! AppDayOfWeek
 
-
-            guard let id =
-                app.appDayOfWeekID,
-                  let island =
-                app.pIsland
-            else {
-
+            guard let id = app.appDayOfWeekID else {
                 throw NSError(
                     domain: "AppDayOfWeek",
                     code: 0,
                     userInfo: [
                         NSLocalizedDescriptionKey:
-                        "Missing required data"
+                            "Missing AppDayOfWeek ID"
+                    ]
+                )
+            }
+
+            let islandID =
+                app.pIsland?.islandID ??
+                app.pirateIslandID
+
+            guard let islandID, !islandID.isEmpty else {
+                throw NSError(
+                    domain: "AppDayOfWeek",
+                    code: 0,
+                    userInfo: [
+                        NSLocalizedDescriptionKey:
+                            "Missing PirateIsland ID"
                     ]
                 )
             }
 
             return (
-
                 id: id,
-
                 day: app.day,
-
                 name: app.name ?? "",
-
-                created:
-                    app.createdTimestamp ?? Date(),
-
-                islandID:
-                    island.islandID ?? "",
-
-                islandName:
-                    island.islandName ?? ""
+                created: app.createdTimestamp ?? Date(),
+                islandID: islandID
             )
         }
 
-
-        // STEP 2: Save to Firestore OUTSIDE Core Data
-
         let data: [String: Any] = [
-
-            "appDayOfWeekID":
-                result.id,
-
-            "day":
-                result.day,
-
-            "name":
-                result.name,
-
-            "createdTimestamp":
-                Timestamp(date: result.created),
-
-            "pIsland": [
-
-                "islandID":
-                    result.islandID,
-
-                "islandName":
-                    result.islandName
-            ]
+            "appDayOfWeekID": result.id,
+            "day": result.day,
+            "name": result.name,
+            "createdTimestamp": Timestamp(date: result.created),
+            "pirateIslandID": result.islandID,
+            "pIsland": Firestore.firestore()
+                .collection("pirateIslands")
+                .document(result.islandID)
         ]
-
 
         try await Firestore
             .firestore()
@@ -833,12 +767,23 @@ extension AddNewMatTimeSection2 {
                     
                     var data = mat.toFirestoreData()
 
+                    guard let appDayOfWeekID = app.appDayOfWeekID else {
+                        continuation.resume(
+                            throwing: NSError(
+                                domain: "MatTime",
+                                code: 0,
+                                userInfo: [NSLocalizedDescriptionKey: "Missing AppDayOfWeek ID"]
+                            )
+                        )
+                        return
+                    }
+
                     data["appDayOfWeek"] =
                     Firestore.firestore()
                         .collection("AppDayOfWeek")
-                        .document(app.appDayOfWeekID!)
+                        .document(appDayOfWeekID)
 
-                    data["appDayOfWeekID"] = app.appDayOfWeekID
+                    data["appDayOfWeekID"] = appDayOfWeekID
 
                     Firestore.firestore()
                         .collection("MatTime")

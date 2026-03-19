@@ -94,28 +94,29 @@ class AppDayOfWeekRepository: ObservableObject {
     }
     
     
-    func updateAppDayOfWeekName(_ appDayOfWeek: AppDayOfWeek, with island: PirateIsland, dayOfWeek: DayOfWeek, context: NSManagedObjectContext) {
-        // ✅ Explicitly update all related fields
+    func updateAppDayOfWeekName(
+        _ appDayOfWeek: AppDayOfWeek,
+        with island: PirateIsland,
+        dayOfWeek: DayOfWeek,
+        context: NSManagedObjectContext
+    ) {
         appDayOfWeek.day = dayOfWeek.rawValue
         appDayOfWeek.pIsland = island
+        appDayOfWeek.pirateIslandID = island.islandID
         appDayOfWeek.name = generateName(for: island, day: dayOfWeek)
         appDayOfWeek.appDayOfWeekID = generateAppDayOfWeekID(for: island, day: dayOfWeek)
-        
-        // Optional: safeguard against nil (but generateName should prevent that)
+
         if appDayOfWeek.name == nil {
             print("⚠️ Warning: AppDayOfWeek name is nil! Setting fallback.")
             appDayOfWeek.name = "Default Name"
         }
-        
-        // ✅ Save context
+
         do {
             try context.save()
         } catch {
             print("❌ Failed to save context: \(error)")
         }
     }
-    
-    
     
     func updateAppDayOfWeek(_ appDayOfWeek: AppDayOfWeek?, with island: PirateIsland, dayOfWeek: DayOfWeek, context: NSManagedObjectContext) {
         if let unwrappedAppDayOfWeek = appDayOfWeek {
@@ -163,6 +164,7 @@ class AppDayOfWeekRepository: ObservableObject {
                 let newAppDayOfWeek = AppDayOfWeek(context: context)
                 newAppDayOfWeek.day = day
                 newAppDayOfWeek.pIsland = pirateIsland
+                newAppDayOfWeek.pirateIslandID = pirateIsland.islandID
                 
                 if let dayOfWeek = DayOfWeek(rawValue: day) {
                     newAppDayOfWeek.appDayOfWeekID = generateAppDayOfWeekID(for: pirateIsland, day: dayOfWeek)
@@ -183,31 +185,16 @@ class AppDayOfWeekRepository: ObservableObject {
     
     
     // MARK: - fetchOrCreateAppDayOfWeek AS COMBO OF selectIslandAndDay and fetchCurrentDayOfWeek
-    func fetchOrCreateAppDayOfWeek(for day: DayOfWeek, pirateIsland: PirateIsland, context: NSManagedObjectContext) -> AppDayOfWeek? {
-        let fetchRequest: NSFetchRequest<AppDayOfWeek> = AppDayOfWeek.fetchRequest()
-        fetchRequest.entity = NSEntityDescription.entity(forEntityName: "AppDayOfWeek", in: context)!
-        fetchRequest.predicate = NSPredicate(format: "pIsland == %@ AND day == %@", pirateIsland, day.displayName)
-        
-        do {
-            let results = try context.fetch(fetchRequest)
-            if let existingAppDayOfWeek = results.first {
-                return existingAppDayOfWeek
-            } else {
-                let newAppDayOfWeek = AppDayOfWeek(context: context)
-                newAppDayOfWeek.pIsland = pirateIsland
-                newAppDayOfWeek.day = day.displayName
-                
-                // Generate name and appDayOfWeekID using your existing methods
-                newAppDayOfWeek.name = generateName(for: pirateIsland, day: day) // Assign the generated name
-                newAppDayOfWeek.appDayOfWeekID = generateAppDayOfWeekID(for: pirateIsland, day: day) // Assign the generated ID
-                
-                try context.save()
-                return newAppDayOfWeek
-            }
-        } catch {
-            print("Error fetching or creating AppDayOfWeek: \(error.localizedDescription)")
-            return nil
-        }
+    func fetchOrCreateAppDayOfWeek(
+        for day: DayOfWeek,
+        pirateIsland: PirateIsland,
+        context: NSManagedObjectContext
+    ) -> AppDayOfWeek? {
+        fetchOrCreateAppDayOfWeek(
+            for: day.rawValue,
+            pirateIsland: pirateIsland,
+            context: context
+        )
     }
     
     
@@ -385,7 +372,7 @@ class AppDayOfWeekRepository: ObservableObject {
             
             fetchedIslands = appDayOfWeeks.compactMap { appDayOfWeek in
                 guard let island = appDayOfWeek.pIsland,
-                      appDayOfWeek.day.lowercased() == day.displayName.lowercased(),
+                      appDayOfWeek.day.lowercased() == day.rawValue.lowercased(),
                       appDayOfWeek.matTimes?.count ?? 0 > 0 else { return nil }
                 return island
             }

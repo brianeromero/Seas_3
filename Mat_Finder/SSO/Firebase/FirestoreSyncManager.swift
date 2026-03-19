@@ -9,6 +9,8 @@ import Foundation
 import FirebaseAuth
 import FirebaseFirestore
 import CoreData
+import CryptoKit
+
 
 extension FirestoreSyncManager {
     enum LogLevel: String {
@@ -204,7 +206,7 @@ class FirestoreSyncManager {
             }
 
             // ---------------------------------------------------------
-            // SAFE UI LOGGING
+            // SAFE UI LOGGING + FINAL SUCCESS TOAST
             // ---------------------------------------------------------
 
             await MainActor.run {
@@ -214,18 +216,21 @@ class FirestoreSyncManager {
                     level: .finished
                 )
 
+                initialSyncCompleted = true
+
+                ToastThrottler.shared.postToast(
+                    for: "Sync",
+                    action: "All Records Synced",
+                    type: .success,
+                    isPersistent: false
+                )
             }
-
-
 
             FirestoreSyncManager.log(
                 "✅ Initial Firestore sync complete",
                 level: .finished
             )
-            
-            await MainActor.run {
-                initialSyncCompleted = true
-            }
+ 
         }
         catch {
 
@@ -816,7 +821,7 @@ class FirestoreSyncManager {
         Self.log(
         """
         🔄 Starting sync for \(collectionName):
-           • 🆙 \(localRecordsNotInFirestore.count) local → Firestore
+        • 🗑️ \(localRecordsNotInFirestore.count) local-only records
            • 📥 \(firestoreRecordsNotInLocal.count) Firestore → Core Data
         """,
         level: .sync,
@@ -1000,7 +1005,6 @@ class FirestoreSyncManager {
         }
     }
 
-
     private func deleteLocalRecords(
         collectionName: String,
         records: [String]
@@ -1019,45 +1023,38 @@ class FirestoreSyncManager {
                 switch collectionName {
 
                 case "pirateIslands":
-
-                    Self.deleteEntity(
+                    Self.deleteEntityByStringID(
                         ofType: PirateIsland.self,
                         idString: record,
                         fieldName: "islandID",
                         context: context
                     )
 
-
                 case "reviews":
-
-                    Self.deleteEntity(
+                    Self.deleteEntityByUUID(
                         ofType: Review.self,
                         idString: record,
                         fieldName: "reviewID",
                         context: context
                     )
 
-
                 case "MatTime":
-
-                    Self.deleteEntity(
+                    Self.deleteEntityByUUID(
                         ofType: MatTime.self,
                         idString: record,
                         fieldName: "id",
                         context: context
                     )
 
-
                 case "AppDayOfWeek":
-
-                    Self.deleteEntity(
+                    Self.deleteEntityByStringID(
                         ofType: AppDayOfWeek.self,
                         idString: record,
                         fieldName: "appDayOfWeekID",
                         context: context
                     )
-                default:
 
+                default:
                     FirestoreSyncManager.log(
                         "❌ Unknown collection \(collectionName)",
                         level: .error,
@@ -1066,22 +1063,16 @@ class FirestoreSyncManager {
                 }
             }
 
-
             guard context.hasChanges else { return }
-
 
             context.processPendingChanges()
 
-
             do {
-
                 try context.save()
 
-                // 🚨 CRITICAL APPLE-LEVEL FIX
                 context.refreshAllObjects()
                 context.reset()
 
-                // ✅ SAFER parent refresh (ADD THIS HERE)
                 if let parent = context.parent {
                     parent.performAndWait {
                         parent.refreshAllObjects()
@@ -1095,7 +1086,6 @@ class FirestoreSyncManager {
                 )
             }
             catch {
-
                 context.rollback()
 
                 FirestoreSyncManager.log(
@@ -1105,7 +1095,6 @@ class FirestoreSyncManager {
                 )
             }
         }
-
 
         await PersistenceController.shared.waitForBackgroundSaves()
     }
@@ -1646,7 +1635,57 @@ class FirestoreSyncManager {
             }
 
         // =====================================================
-        // STEP 2: Core Data work
+        // STEP 2: Normalize values using shared dedupe helper
+        // =====================================================
+
+        let uuid =
+            UUID(uuidString: docID)
+            ?? UUID.fromStringID(docID)
+
+        let timeValue =
+            MatTimeDedupe.normalizeTime(
+                docSnapshot.get("time") as? String
+            )
+
+        let disciplineValue =
+            MatTimeDedupe.normalizedDiscipline(
+                docSnapshot.get("discipline") as? String
+            )
+
+        let styleValue =
+            MatTimeDedupe.normalize(
+                docSnapshot.get("style") as? String
+            )
+
+        let customStyleValue =
+            MatTimeDedupe.normalize(
+                docSnapshot.get("customStyle") as? String
+            )
+
+        let typeValue =
+            MatTimeDedupe.normalize(
+                docSnapshot.get("type") as? String
+            )
+
+        let restrictionsValue =
+            docSnapshot.get("restrictions") as? Bool ?? false
+
+        let restrictionDescriptionValue =
+            MatTimeDedupe.normalizeRestriction(
+                docSnapshot.get("restrictionDescription") as? String
+            )
+
+        let goodForBeginnersValue =
+            docSnapshot.get("goodForBeginners") as? Bool ?? false
+
+        let kidsValue =
+            docSnapshot.get("kids") as? Bool ?? false
+
+        let womensOnlyValue =
+            docSnapshot.get("womensOnly") as? Bool ?? false
+
+        // =====================================================
+        // STEP 3: Core Data work
         // =====================================================
 
         await context.perform {
@@ -1654,71 +1693,60 @@ class FirestoreSyncManager {
             do {
 
                 // =====================================================
-                // Resolve UUID safely
+                // A. Try exact ID match first
                 // =====================================================
 
-                let uuid =
-                    UUID(uuidString: docID)
-                    ?? UUID.fromStringID(docID)
-
-                // =====================================================
-                // Pre-read fields used for uniqueness
-                // =====================================================
-
-                let time =
-                    docSnapshot.get("time") as? String ?? ""
-
-                let disciplineValue =
-                    docSnapshot.get("discipline") as? String
-                    ?? Discipline.bjjGi.rawValue
-
-                // =====================================================
-                // Fetch or create (duplicate-safe)
-                // =====================================================
-
-                let fetchRequest: NSFetchRequest<MatTime> =
+                let idFetch: NSFetchRequest<MatTime> =
                     MatTime.fetchRequest()
 
-                let styleValue = docSnapshot.get("style") as? String
-                let customStyleValue = docSnapshot.get("customStyle") as? String
+                idFetch.predicate =
+                    NSPredicate(
+                        format: "id == %@",
+                        uuid as CVarArg
+                    )
 
-                if let styleValue {
+                idFetch.fetchLimit = 1
 
-                    fetchRequest.predicate =
-                        NSPredicate(
-                            format: """
-                            id == %@ OR
-                            (appDayOfWeekID == %@ AND time == %@ AND discipline == %@ AND (style == %@ OR customStyle == %@))
-                            """,
-                            uuid as CVarArg,
-                            appDayID,
-                            time,
-                            disciplineValue,
-                            styleValue
-                        )
-
-                } else {
-
-                    fetchRequest.predicate =
-                        NSPredicate(
-                            format: """
-                            id == %@ OR
-                            (appDayOfWeekID == %@ AND time == %@ AND discipline == %@ AND style == nil)
-                            """,
-                            uuid as CVarArg,
-                            appDayID,
-                            time,
-                            disciplineValue
-                        )
-                }
-                fetchRequest.fetchLimit = 1
-
-                let matTime =
-                    try context.fetch(fetchRequest).first
-                    ?? MatTime(context: context)
+                let existingByID =
+                    try context.fetch(idFetch).first
 
                 // =====================================================
-                // Persist identifiers
+                // B. If no exact ID match, use shared dedupe predicate
+                // =====================================================
+
+                let matTime: MatTime
+
+                if let existingByID {
+                    matTime = existingByID
+                } else {
+
+                    let dedupeFetch: NSFetchRequest<MatTime> =
+                        MatTime.fetchRequest()
+
+                    dedupeFetch.predicate =
+                        MatTimeDedupe.predicate(
+                            appDayID: appDayID,
+                            time: timeValue,
+                            discipline: disciplineValue,
+                            style: styleValue,
+                            customStyle: customStyleValue,
+                            type: typeValue,
+                            restrictionDescription: restrictionDescriptionValue,
+                            kids: kidsValue,
+                            womensOnly: womensOnlyValue,
+                            goodForBeginners: goodForBeginnersValue,
+                            restrictions: restrictionsValue
+                        )
+
+                    dedupeFetch.fetchLimit = 1
+
+                    matTime =
+                        try context.fetch(dedupeFetch).first
+                        ?? MatTime(context: context)
+                }
+
+                // =====================================================
+                // STEP 4: Persist identifiers
                 // =====================================================
 
                 matTime.id = uuid
@@ -1729,44 +1757,42 @@ class FirestoreSyncManager {
                 }
 
                 // =====================================================
-                // Map fields
+                // STEP 5: Map normalized fields
                 // =====================================================
 
-                
+                matTime.time = timeValue
+
+                matTime.discipline = disciplineValue
+
+                matTime.style =
+                    styleValue.isEmpty ? nil : styleValue
+
+                matTime.customStyle =
+                    customStyleValue.isEmpty ? nil : customStyleValue
+
                 matTime.type =
-                    docSnapshot.get("type") as? String
+                    typeValue.isEmpty ? nil : typeValue
 
-                matTime.discipline =
-                    Discipline(rawValue: disciplineValue)?.rawValue
-                    ?? Discipline.bjjGi.rawValue
-
-                matTime.customStyle = customStyleValue
-                matTime.style = styleValue
-
-                matTime.time = time
-
-                matTime.restrictions =
-                    docSnapshot.get("restrictions") as? Bool ?? false
+                matTime.restrictions = restrictionsValue
 
                 matTime.restrictionDescription =
-                    docSnapshot.get("restrictionDescription") as? String
+                    restrictionDescriptionValue.isEmpty
+                    ? nil
+                    : restrictionDescriptionValue
 
                 matTime.goodForBeginners =
-                    docSnapshot.get("goodForBeginners") as? Bool ?? false
+                    goodForBeginnersValue
 
-                matTime.kids =
-                    docSnapshot.get("kids") as? Bool ?? false
+                matTime.kids = kidsValue
 
-                matTime.womensOnly =
-                    docSnapshot.get("womensOnly") as? Bool ?? false
+                matTime.womensOnly = womensOnlyValue
 
                 matTime.createdTimestamp =
                     (docSnapshot.get("createdTimestamp") as? Timestamp)?
-                    .dateValue()
-
+                        .dateValue()
 
                 // =====================================================
-                // RELATIONSHIP RESOLUTION (CACHE ONLY — NO FETCH)
+                // STEP 6: RELATIONSHIP RESOLUTION
                 // =====================================================
 
                 if let cachedObjectID,
@@ -1787,7 +1813,7 @@ class FirestoreSyncManager {
                 }
 
                 // =====================================================
-                // Final log
+                // STEP 7: Final log
                 // =====================================================
 
                 if context.hasChanges {
@@ -2585,35 +2611,31 @@ extension FirestoreSyncManager {
         _ change: DocumentChange,
         _ context: NSManagedObjectContext
     ) async {
-
+        
         switch change.type {
-
-        // =====================================================
-        // ADDED / MODIFIED
-        // =====================================================
-
+            
+            // =====================================================
+            // ADDED / MODIFIED
+            // =====================================================
+            
         case .added, .modified:
-
+            
             // ✅ Only mutate Core Data
             // ❌ DO NOT repair cache here
             await syncPirateIslandStatic(
                 docSnapshot: change.document,
                 context: context
             )
-
-
-
-        // =====================================================
-        // REMOVED
-        // =====================================================
-
+            
+            
+            
+            // =====================================================
+            // REMOVED
+            // =====================================================
+            
         case .removed:
-
-            // ✅ Only delete
-            // ❌ DO NOT repair cache here
             await context.perform {
-
-                deleteEntity(
+                deleteEntityByStringID(
                     ofType: PirateIsland.self,
                     idString: change.document.documentID,
                     fieldName: "islandID",
@@ -2627,35 +2649,31 @@ extension FirestoreSyncManager {
         _ change: DocumentChange,
         _ context: NSManagedObjectContext
     ) async {
-
+        
         switch change.type {
-
-        // =====================================================
-        // ADDED / MODIFIED
-        // =====================================================
-
+            
+            // =====================================================
+            // ADDED / MODIFIED
+            // =====================================================
+            
         case .added, .modified:
-
+            
             // ✅ Only mutate Core Data
             // ❌ DO NOT repair cache here
             await syncReviewStatic(
                 docSnapshot: change.document,
                 context: context
             )
-
-
-
-        // =====================================================
-        // REMOVED
-        // =====================================================
-
+            
+            
+            
+            // =====================================================
+            // REMOVED
+            // =====================================================
+            
         case .removed:
-
-            // ✅ Only delete
-            // ❌ DO NOT repair cache here
             await context.perform {
-
-                deleteEntity(
+                deleteEntityByUUID(
                     ofType: Review.self,
                     idString: change.document.documentID,
                     fieldName: "reviewID",
@@ -2670,35 +2688,31 @@ extension FirestoreSyncManager {
         _ change: DocumentChange,
         _ context: NSManagedObjectContext
     ) async {
-
+        
         switch change.type {
-
-        // =====================================================
-        // ADDED / MODIFIED
-        // =====================================================
-
+            
+            // =====================================================
+            // ADDED / MODIFIED
+            // =====================================================
+            
         case .added, .modified:
-
+            
             // ✅ Only mutate Core Data
             // ❌ DO NOT repair cache here
             await syncAppDayOfWeekStatic(
                 docSnapshot: change.document,
                 context: context
             )
-
-
-
-        // =====================================================
-        // REMOVED
-        // =====================================================
-
+            
+            
+            
+            // =====================================================
+            // REMOVED
+            // =====================================================
+            
         case .removed:
-
-            // ✅ Only delete
-            // ❌ DO NOT repair cache here
             await context.perform {
-
-                deleteEntity(
+                deleteEntityByStringID(
                     ofType: AppDayOfWeek.self,
                     idString: change.document.documentID,
                     fieldName: "appDayOfWeekID",
@@ -2707,41 +2721,37 @@ extension FirestoreSyncManager {
             }
         }
     }
-
-
+    
+    
     static func handleMatTimeChange(
         _ change: DocumentChange,
         _ context: NSManagedObjectContext
     ) async {
-
+        
         switch change.type {
-
-        // =====================================================
-        // ADDED / MODIFIED
-        // =====================================================
-
+            
+            // =====================================================
+            // ADDED / MODIFIED
+            // =====================================================
+            
         case .added, .modified:
-
+            
             // ✅ Only mutate Core Data
             // ❌ DO NOT repair cache here
             await syncMatTimeStatic(
                 docSnapshot: change.document,
                 context: context
             )
-
-
-
-        // =====================================================
-        // REMOVED
-        // =====================================================
-
+            
+            
+            
+            // =====================================================
+            // REMOVED
+            // =====================================================
+            
         case .removed:
-
-            // ✅ Only delete
-            // ❌ DO NOT repair cache here
             await context.perform {
-
-                deleteEntity(
+                deleteEntityByUUID(
                     ofType: MatTime.self,
                     idString: change.document.documentID,
                     fieldName: "id",
@@ -2751,52 +2761,39 @@ extension FirestoreSyncManager {
         }
     }
     
-    // MARK: - Generic delete helper
-    private static func deleteEntity<T: NSManagedObject>(
+    // MARK: - Delete helpers
+    private static func deleteEntityByStringID<T: NSManagedObject>(
         ofType type: T.Type,
         idString: String,
         fieldName: String,
         context: NSManagedObjectContext
     ) {
-
-        let fetchRequest =
-            NSFetchRequest<T>(
-                entityName: String(describing: type)
-            )
-
-        // ✅ ONLY exact match — Apple safe
-        fetchRequest.predicate =
-            NSPredicate(
-                format: "%K == %@",
-                fieldName,
-                idString
-            )
-
+        let fetchRequest = NSFetchRequest<T>(
+            entityName: String(describing: type)
+        )
+        
+        fetchRequest.predicate = NSPredicate(
+            format: "%K == %@",
+            fieldName,
+            idString
+        )
+        
         fetchRequest.fetchLimit = 1
-
+        
         do {
-
-            if let object =
-                try context.fetch(fetchRequest).first {
-
+            if let object = try context.fetch(fetchRequest).first {
                 context.delete(object)
-
                 context.processPendingChanges()
-
+                
                 Task { @MainActor in
-
                     Self.log(
                         "🗑️ SUCCESSFULLY DELETED \(type): \(idString)",
                         level: .success,
                         collection: String(describing: type)
                     )
                 }
-
-            }
-            else {
-
+            } else {
                 Task { @MainActor in
-
                     Self.log(
                         "❌ DELETE FAILED — NOT FOUND: \(idString)",
                         level: .error,
@@ -2804,14 +2801,64 @@ extension FirestoreSyncManager {
                     )
                 }
             }
-
-        }
-        catch {
-
+        } catch {
             context.rollback()
-
+            
             Task { @MainActor in
-
+                Self.log(
+                    "❌ DELETE ERROR: \(error)",
+                    level: .error,
+                    collection: String(describing: type)
+                )
+            }
+        }
+    }
+    
+    private static func deleteEntityByUUID<T: NSManagedObject>(
+        ofType type: T.Type,
+        idString: String,
+        fieldName: String,
+        context: NSManagedObjectContext
+    ) {
+        let uuid = UUID(uuidString: idString) ?? UUID.fromStringID(idString)
+        
+        let fetchRequest = NSFetchRequest<T>(
+            entityName: String(describing: type)
+        )
+        
+        fetchRequest.predicate = NSPredicate(
+            format: "%K == %@",
+            fieldName,
+            uuid as CVarArg
+        )
+        
+        fetchRequest.fetchLimit = 1
+        
+        do {
+            if let object = try context.fetch(fetchRequest).first {
+                context.delete(object)
+                context.processPendingChanges()
+                
+                Task { @MainActor in
+                    Self.log(
+                        "🗑️ SUCCESSFULLY DELETED \(type): \(uuid.uuidString)",
+                        level: .success,
+                        collection: String(describing: type)
+                    )
+                }
+            } else {
+                Task { @MainActor in
+                    Self.log(
+                        "❌ DELETE FAILED — NOT FOUND: \(idString)",
+                        level: .error,
+                        collection: String(describing: type)
+                    )
+                }
+            }
+        } catch {
+            context.rollback()
+            
+            Task { @MainActor in
                 Self.log(
                     "❌ DELETE ERROR: \(error)",
                     level: .error,
@@ -2833,38 +2880,30 @@ extension Array {
     }
 }
 
-
+    
 
 
 extension UUID {
 
-    /// Converts any string-based Firestore ID into a deterministic UUID.
-    /// If the string is already 36-char UUID, it returns it directly.
-    /// If not, generates a stable UUID using a hash.
+    /// Deterministic UUID from any string (Firestore-safe)
     static func fromStringID(_ string: String) -> UUID {
+
+        // If already a UUID → use it directly
         if let uuid = UUID(uuidString: string) {
             return uuid
         }
 
-        // Convert arbitrary string → stable UUID
-        var hasher = Hasher()
-        hasher.combine(string)
-        let hashValue = hasher.finalize()
+        // ✅ Stable hash (unlike Hasher)
+        let digest = SHA256.hash(data: Data(string.utf8))
 
-        // Use hash value to construct a stable UUID from the string
-        var uuidBytes = [UInt8](repeating: 0, count: 16)
-        withUnsafeBytes(of: hashValue.bigEndian) { buffer in
-            let count = min(buffer.count, 16)
-            for i in 0..<count {
-                uuidBytes[i] = buffer[i]
-            }
-        }
+        // Take first 16 bytes for UUID
+        let bytes = Array(digest.prefix(16))
 
         return UUID(uuid: (
-            uuidBytes[0], uuidBytes[1], uuidBytes[2], uuidBytes[3],
-            uuidBytes[4], uuidBytes[5], uuidBytes[6], uuidBytes[7],
-            uuidBytes[8], uuidBytes[9], uuidBytes[10], uuidBytes[11],
-            uuidBytes[12], uuidBytes[13], uuidBytes[14], uuidBytes[15]
+            bytes[0], bytes[1], bytes[2], bytes[3],
+            bytes[4], bytes[5], bytes[6], bytes[7],
+            bytes[8], bytes[9], bytes[10], bytes[11],
+            bytes[12], bytes[13], bytes[14], bytes[15]
         ))
     }
 }

@@ -35,7 +35,9 @@ struct IslandScheduleView: View {
                             .padding(.bottom)
 
                         ForEach(DayOfWeek.allCases, id: \.self) { day in
-                            let schedules = viewModel.appDayOfWeekList.filter { $0.day == day.displayName }
+                            let schedules = viewModel.appDayOfWeekList.filter {
+                                $0.day.lowercased() == day.rawValue.lowercased()
+                            }
                             if !schedules.isEmpty {
                                 DisclosureGroup(
                                     content: {
@@ -83,11 +85,7 @@ struct IslandScheduleView: View {
                 Task {
                     _ = await viewModel.fetchCurrentDayOfWeek(
                         for: pIsland,
-                        day: dayToFetch,
-                        selectedDayBinding: Binding(
-                            get: { viewModel.selectedDay },
-                            set: { viewModel.selectedDay = $0 }
-                        )
+                        day: dayToFetch
                     )
                 }
             }

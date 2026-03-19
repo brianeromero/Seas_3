@@ -198,18 +198,13 @@ struct ScheduleFormView: View {
             let (_, matTimes) =
             await viewModel.fetchCurrentDayOfWeek(
                 for: island,
-                day: day,
-                selectedDayBinding: .constant(day)
+                day: day
             )
 
             if let matTimes {
-
                 await MainActor.run {
-
                     viewModel.matTimesForDay[day] = matTimes
-
                 }
-
             }
         }
     }

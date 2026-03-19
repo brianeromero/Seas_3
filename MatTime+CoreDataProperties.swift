@@ -86,7 +86,6 @@ extension MatTime {
 
         self.time = data["time"] as? String
 
-        // Normalize discipline
         if let raw = data["discipline"] as? String,
            Discipline(rawValue: raw) != nil {
             self.discipline = raw
@@ -96,7 +95,6 @@ extension MatTime {
 
         self.type = data["type"] as? String
 
-        // Normalize style
         if let raw = data["style"] as? String,
            Style(rawValue: raw) != nil {
             self.style = raw
@@ -104,7 +102,6 @@ extension MatTime {
             self.style = nil
         }
 
-        // Only allow customStyle if style == .custom
         if self.style == Style.custom.rawValue {
             self.customStyle = data["customStyle"] as? String
         } else {
@@ -113,7 +110,6 @@ extension MatTime {
 
         self.restrictions = data["restrictions"] as? Bool ?? false
         self.restrictionDescription = data["restrictionDescription"] as? String ?? ""
-
         self.goodForBeginners = data["goodForBeginners"] as? Bool ?? false
         self.kids = data["kids"] as? Bool ?? false
         self.womensOnly = data["womensOnly"] as? Bool ?? false
@@ -121,6 +117,8 @@ extension MatTime {
         if let idString = data["id"] as? String {
             self.id = UUID(uuidString: idString)
         }
+
+        self.appDayOfWeekID = data["appDayOfWeekID"] as? String
 
         if let timestamp = data["createdTimestamp"] as? Timestamp {
             self.createdTimestamp = timestamp.dateValue()

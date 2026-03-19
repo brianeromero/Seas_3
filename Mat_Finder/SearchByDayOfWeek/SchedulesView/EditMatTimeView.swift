@@ -42,21 +42,32 @@ struct EditMatTimeView: View {
         
         let loadedStyle: Style?
 
-        if let styleString = matTime.style,
-           let parsed = Style(rawValue: styleString) {
-            loadedStyle = parsed
-        }
-        else if let custom = matTime.customStyle, !custom.isEmpty {
+        if let styleString = matTime.style, !styleString.isEmpty {
+            if let parsed = Style(rawValue: styleString) {
+                loadedStyle = parsed
+            } else {
+                loadedStyle = .custom
+            }
+        } else if let custom = matTime.customStyle, !custom.isEmpty {
             loadedStyle = .custom
-        }
-        else {
+        } else {
             loadedStyle = nil
         }
 
         _style = State(initialValue: loadedStyle)
 
-        _customStyle = State(initialValue: matTime.customStyle ?? "")
+        let initialCustomStyle: String
+        if let custom = matTime.customStyle, !custom.isEmpty {
+            initialCustomStyle = custom
+        } else if let styleString = matTime.style,
+                  !styleString.isEmpty,
+                  Style(rawValue: styleString) == nil {
+            initialCustomStyle = styleString
+        } else {
+            initialCustomStyle = ""
+        }
 
+        _customStyle = State(initialValue: initialCustomStyle)
  
 
         _restrictions = State(initialValue: matTime.restrictions)
@@ -176,13 +187,17 @@ struct EditMatTimeView: View {
 
     private func saveChanges() {
 
-        matTime.time =
-            AppDateFormatter.twelveHour.string(from: selectedTime)
+        let cleanedCustomStyle =
+            customStyle.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        // ⭐ discipline now replaces gi/noGi/openMat
+        let cleanedRestriction =
+            restrictionDescription.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        matTime.time =
+            AppDateFormatter.twentyFourHour.string(from: selectedTime)
+
         matTime.discipline = discipline.rawValue
 
-        // ⭐ Handle style rules
         if discipline == .openMat {
 
             matTime.style = nil
@@ -190,14 +205,12 @@ struct EditMatTimeView: View {
 
         } else if style == .custom {
 
-            let trimmed = customStyle.trimmingCharacters(in: .whitespacesAndNewlines)
-
-            if trimmed.isEmpty {
+            if cleanedCustomStyle.isEmpty {
                 matTime.style = nil
                 matTime.customStyle = nil
             } else {
-                matTime.style = trimmed
-                matTime.customStyle = trimmed
+                matTime.style = cleanedCustomStyle
+                matTime.customStyle = cleanedCustomStyle
             }
 
         } else if let style {
@@ -213,7 +226,9 @@ struct EditMatTimeView: View {
 
         matTime.restrictions = restrictions
         matTime.restrictionDescription =
-            restrictionDescription.isEmpty ? nil : restrictionDescription
+            restrictions && !cleanedRestriction.isEmpty
+            ? cleanedRestriction
+            : nil
 
         matTime.goodForBeginners = goodForBeginners
         matTime.kids = kids
