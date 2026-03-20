@@ -244,6 +244,7 @@ struct AppRootView: View {
 
 
         // MARK: - Global toast overlay
+        // MARK: - Global toast overlay
         .overlay(
             Group {
                 if globalShowToast {
@@ -251,18 +252,16 @@ struct AppRootView: View {
                         .transition(.move(edge: .top).combined(with: .opacity))
                         .animation(.easeInOut(duration: 0.3), value: globalShowToast)
                         .offset(y: 50)
-                        .zIndex(1)
+                        .zIndex(3)
                 }
             }
-            
-            
             .frame(maxWidth: .infinity,
                    maxHeight: .infinity,
                    alignment: .top)
             .ignoresSafeArea()
         )
-        
-        .safeAreaInset(edge: .top, spacing: 0) {
+
+        .overlay(alignment: .top) {
             if let state = syncManager.syncBannerState {
                 SyncBanner(
                     state: state,
@@ -270,9 +269,9 @@ struct AppRootView: View {
                 )
                 .allowsHitTesting(false)
                 .padding(.horizontal, 16)
-                .padding(.top, 6)
-                .padding(.bottom, 4)
+                .padding(.top, 8)
                 .transition(.move(edge: .top).combined(with: .opacity))
+                .zIndex(2)
             }
         }
         .animation(.easeInOut(duration: 0.25), value: syncManager.syncBannerState)

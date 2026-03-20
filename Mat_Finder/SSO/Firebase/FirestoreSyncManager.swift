@@ -124,9 +124,7 @@ class FirestoreSyncManager: ObservableObject {
 
             await PersistenceController.shared.waitForBackgroundSaves()
 
-            let context = await MainActor.run {
-                PersistenceController.shared.newFirestoreContext()
-            }
+            let context = PersistenceController.shared.newFirestoreContext()
 
             try await repairRelationshipsAndCaches(context: context)
 
@@ -170,9 +168,9 @@ class FirestoreSyncManager: ObservableObject {
 
             ToastThrottler.shared.postToast(
                 for: "Sync",
-                action: "Sync failed",
+                action: "Unable to refresh data",
                 type: .error,
-                isPersistent: false
+                isPersistent: true
             )
 
             return false
@@ -391,15 +389,6 @@ class FirestoreSyncManager: ObservableObject {
                 syncID: syncID
             )
 
-            await MainActor.run {
-                ToastThrottler.shared.postToast(
-                    for: collectionName,
-                    action: "skipped",
-                    type: .info,
-                    isPersistent: true
-                )
-            }
-
             throw NSError(
                 domain: "FirestoreSyncManager",
                 code: 1002,
@@ -478,15 +467,6 @@ class FirestoreSyncManager: ObservableObject {
                 collection: collectionName,
                 syncID: syncID
             )
-
-            await MainActor.run {
-                ToastThrottler.shared.postToast(
-                    for: collectionName,
-                    action: "failed to fetch",
-                    type: .error,
-                    isPersistent: true
-                )
-            }
 
             throw error
         }
