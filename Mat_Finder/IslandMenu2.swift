@@ -269,24 +269,13 @@ struct IslandMenu2: View {
         if restrictedItems.contains(option) && !isLoggedIn {
 
             Button {
-
                 switch option {
-
                 case .submitReview:
-                    alertTitle = "Login Required"
-                    alertMessage = "You must be logged in to submit a review."
-
-                case .dayOfWeek, .addNewGym, .updateExistingGyms, .addOrEditScheduleOpenMat:
-                    alertTitle = "Login Required"
-                    alertMessage = "You must be logged in to access this feature."
+                    showLoginRequiredAlert(message: "You must be logged in to submit a review.")
 
                 default:
-                    alertTitle = "Login Required"
-                    alertMessage = "You must be logged in to access this feature."
+                    showLoginRequiredAlert(message: "You must be logged in to access this feature.")
                 }
-
-                showAlert = true
-
             } label: {
                 menuItemLabel(for: option, locked: true)
             }
@@ -358,19 +347,16 @@ struct IslandMenu2: View {
 
                     if !isLoggedIn {
 
-                        alertTitle = "Login Required"
-                        alertMessage = "You must be logged in to access Favorites."
-                        showLoginAction = true
-                        showAlert = true
+                        showLoginRequiredAlert(message: "You must be logged in to access this feature.")
                         return
                     }
 
                     if favoriteManager.favoriteIslandIDs.isEmpty {
 
-                        alertTitle = "No Favorites Yet"
-                        alertMessage = "You haven't added any favorites yet."
-                        showLoginAction = false
-                        showAlert = true
+                        showInfoAlert(
+                            title: "No Favorites Yet",
+                            message: "You haven't added any favorites yet."
+                        )
                         return
                     }
 
@@ -443,6 +429,22 @@ struct IslandMenu2: View {
         }
         .frame(height: 70)
     }
+    
+    // MARK: - Alert Helpers
+    private func showLoginRequiredAlert(message: String) {
+        alertTitle = "Login Required"
+        alertMessage = message
+        showLoginAction = true
+        showAlert = true
+    }
+
+    private func showInfoAlert(title: String, message: String) {
+        alertTitle = title
+        alertMessage = message
+        showLoginAction = false
+        showAlert = true
+    }
+    
 }
 
 
