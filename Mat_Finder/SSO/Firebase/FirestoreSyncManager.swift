@@ -85,98 +85,44 @@ actor FirestoreSyncCoordinator {
     }
 }
 
-
 @MainActor
 class FirestoreSyncManager: ObservableObject {
     static let shared = FirestoreSyncManager()
 
-    @Published var isSyncing = false
-    @Published var syncStatusMessage = "Updating data… you can keep using the app"
+    @Published var syncBannerState: SyncBanner.State? = nil
+    @Published var syncStatusMessage = ""
     private var initialSyncCompleted = false
 
     private var pirateIslandCache: [String: NSManagedObjectID] = [:]
     private var appDayCache: [String: NSManagedObjectID] = [:]
     private static var listenerRegistrations: [ListenerRegistration] = []
-    
+
     func syncInitialFirestoreData() async -> Bool {
         pirateIslandCache.removeAll()
         appDayCache.removeAll()
-        
+
         FirestoreSyncManager.log(
             "🚀 Starting initial Firestore sync",
             level: .sync
         )
 
-        isSyncing = true
+        syncBannerState = .syncing
         syncStatusMessage = "Updating data… you can keep using the app"
 
         do {
-
-            // ---------------------------------------------------------
-            // STEP 1: Ensure collections exist & reconcile
-            // ---------------------------------------------------------
-
             try await createFirestoreCollection()
-
-
-
-            // ---------------------------------------------------------
-            // STEP 2: Begin ordered downloads
-            // ---------------------------------------------------------
 
             let db = Firestore.firestore()
 
-
-
-            // 1️⃣ PirateIslands
-            try await downloadCollection(
-                db: db,
-                name: "pirateIslands"
-            )
-
-
-
-            // 2️⃣ AppDayOfWeek
-            try await downloadCollection(
-                db: db,
-                name: "AppDayOfWeek"
-            )
-
-
-
-            // ---------------------------------------------------------
-            // HARD BARRIER
-            // Wait for Core Data merges
-            // ---------------------------------------------------------
+            try await downloadCollection(db: db, name: "pirateIslands")
+            try await downloadCollection(db: db, name: "AppDayOfWeek")
 
             await PersistenceController.shared.waitForBackgroundSaves()
 
-
-
-            // 3️⃣ MatTime
-            try await downloadCollection(
-                db: db,
-                name: "MatTime"
-            )
-
-
-
-            // 4️⃣ Reviews
-            try await downloadCollection(
-                db: db,
-                name: "reviews"
-            )
-
-
-
-            // ---------------------------------------------------------
-            // FINAL HARD BARRIER
-            // ---------------------------------------------------------
+            try await downloadCollection(db: db, name: "MatTime")
+            try await downloadCollection(db: db, name: "reviews")
 
             await PersistenceController.shared.waitForBackgroundSaves()
-
-
-            // ✅ NOW THIS IS THE CORRECT PLACE
 
             let context = await MainActor.run {
                 PersistenceController.shared.newFirestoreContext()
@@ -188,24 +134,22 @@ class FirestoreSyncManager: ObservableObject {
                 context.reset()
             }
 
-            // ---------------------------------------------------------
-            // SAFE UI LOGGING + FINAL SUCCESS TOAST
-            // ---------------------------------------------------------
-
             FirestoreSyncManager.log(
                 "🧩 Core Data graph fully merged and stable",
                 level: .finished
             )
 
             initialSyncCompleted = true
-            isSyncing = false
+            syncBannerState = .success
+            syncStatusMessage = "Data is up to date"
 
-            ToastThrottler.shared.postToast(
-                for: "Sync",
-                action: "Data is up to date",
-                type: .success,
-                isPersistent: false
-            )
+            Task {
+                try? await Task.sleep(nanoseconds: 1_500_000_000)
+                await MainActor.run {
+                    self.syncBannerState = nil
+                    self.syncStatusMessage = ""
+                }
+            }
 
             FirestoreSyncManager.log(
                 "✅ Initial Firestore sync complete",
@@ -214,16 +158,15 @@ class FirestoreSyncManager: ObservableObject {
 
             return true
 
-        }
-        catch {
-
+        } catch {
             FirestoreSyncManager.log(
                 "❌ Initial Firestore sync failed: \(error.localizedDescription)",
                 level: .error
             )
 
             initialSyncCompleted = false
-            isSyncing = false
+            syncBannerState = nil
+            syncStatusMessage = ""
 
             ToastThrottler.shared.postToast(
                 for: "Sync",

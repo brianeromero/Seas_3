@@ -262,15 +262,21 @@ struct AppRootView: View {
             .ignoresSafeArea()
         )
         
-        .overlay(alignment: .top) {
-            if syncManager.isSyncing {
-                SyncBanner(message: syncManager.syncStatusMessage)
-                    .allowsHitTesting(false)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-                    .zIndex(999)
-                    .padding(.top, 8)
+        .safeAreaInset(edge: .top, spacing: 0) {
+            if let state = syncManager.syncBannerState {
+                SyncBanner(
+                    state: state,
+                    message: syncManager.syncStatusMessage
+                )
+                .allowsHitTesting(false)
+                .padding(.horizontal, 16)
+                .padding(.top, 6)
+                .padding(.bottom, 4)
+                .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
+        .animation(.easeInOut(duration: 0.25), value: syncManager.syncBannerState)
+        .animation(.easeInOut(duration: 0.2), value: syncManager.syncStatusMessage)
     }
 }
 
