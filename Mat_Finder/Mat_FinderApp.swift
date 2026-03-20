@@ -102,6 +102,7 @@ struct AppRootView: View {
 
     @State private var navigationPath = NavigationPath()
     @State private var showInitialSplash = true
+    @StateObject private var syncManager = FirestoreSyncManager.shared
 
     // Global Toast
     @State private var globalShowToast = false
@@ -253,11 +254,23 @@ struct AppRootView: View {
                         .zIndex(1)
                 }
             }
+            
+            
             .frame(maxWidth: .infinity,
                    maxHeight: .infinity,
                    alignment: .top)
             .ignoresSafeArea()
         )
+        
+        .overlay(alignment: .top) {
+            if syncManager.isSyncing {
+                SyncBanner(message: syncManager.syncStatusMessage)
+                    .allowsHitTesting(false)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .zIndex(999)
+                    .padding(.top, 8)
+            }
+        }
     }
 }
 

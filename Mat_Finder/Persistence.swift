@@ -197,7 +197,7 @@ final class PersistenceController: ObservableObject {
                 "bjjGi","bjjNoGi","openMat","mma","wrestling","judo","striking","mobility"
             ]
 
-            let validStyles: Set<String> =
+            let _: Set<String> =
                 Set(Style.allCases.map { $0.rawValue })
 
             for mat in mats {
@@ -565,35 +565,65 @@ final class PersistenceController: ObservableObject {
     // MARK: - Local Fetch Helpers
     
     // MARK: - Local Fetch Helpers (String ID version for PirateIsland)
-    func fetchLocalRecord(forCollection collectionName: String, recordId: String) throws -> NSManagedObject? {
-        guard collectionName == "pirateIslands" else { return nil }
+    func fetchLocalRecord(
+        forCollection collectionName: String,
+        recordId: String
+    ) throws -> NSManagedObject? {
 
-        let request = NSFetchRequest<PirateIsland>(entityName: "PirateIsland")
-        request.predicate = NSPredicate(format: "islandID == %@", recordId)
-        request.fetchLimit = 1
-        return try viewContext.fetch(request).first
+        switch collectionName {
+
+        case "pirateIslands":
+            let request = NSFetchRequest<PirateIsland>(entityName: "PirateIsland")
+            request.predicate = NSPredicate(format: "islandID == %@", recordId)
+            request.fetchLimit = 1
+            return try viewContext.fetch(request).first
+
+        case "AppDayOfWeek":
+            let request = NSFetchRequest<AppDayOfWeek>(entityName: "AppDayOfWeek")
+            request.predicate = NSPredicate(
+                format: "appDayOfWeekID == %@",
+                recordId
+            )
+            request.fetchLimit = 1
+            return try viewContext.fetch(request).first
+
+        default:
+            return nil
+        }
     }
     
-    func fetchLocalRecord(forCollection collectionName: String, recordId: UUID) throws -> NSManagedObject? {
-        let entityMap = [
-            "reviews": "Review",
-            "matTimes": "MatTime",
-            "appDayOfWeeks": "AppDayOfWeek"
-        ]
-        guard let entityName = entityMap[collectionName] else { return nil }
-        let request = NSFetchRequest<NSManagedObject>(entityName: entityName)
+    func fetchLocalRecord(
+        forCollection collectionName: String,
+        recordId: UUID
+    ) throws -> NSManagedObject? {
 
-        // Normalize both forms of the ID
-        let idString = recordId.uuidString
-        let idNoHyphen = idString.replacingOccurrences(of: "-", with: "")
+        let entityName: String
 
         switch collectionName {
         case "reviews":
-            request.predicate = NSPredicate(format: "reviewID == %@ OR reviewID == %@", idString, idNoHyphen)
-        case "matTimes":
-            request.predicate = NSPredicate(format: "id == %@ OR id == %@", idString, idNoHyphen)
-        case "appDayOfWeeks":
-            request.predicate = NSPredicate(format: "appDayOfWeekID == %@ OR appDayOfWeekID == %@", idString, idNoHyphen)
+            entityName = "Review"
+        case "MatTime":
+            entityName = "MatTime"
+        default:
+            return nil
+        }
+
+        let request = NSFetchRequest<NSManagedObject>(entityName: entityName)
+
+        switch collectionName {
+
+        case "reviews":
+            request.predicate = NSPredicate(
+                format: "reviewID == %@",
+                recordId as CVarArg
+            )
+
+        case "MatTime":
+            request.predicate = NSPredicate(
+                format: "id == %@",
+                recordId as CVarArg
+            )
+
         default:
             return nil
         }
