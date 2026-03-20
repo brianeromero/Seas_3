@@ -117,10 +117,11 @@ public struct AddNewIsland: View {
             )
         }
         .onAppear {
-            // Fetch countries
-            Task { await countryService.fetchCountries() }
+            Task {
+                await countryService.fetchCountries()
+                setDefaultCountryIfNeeded()
+            }
 
-            // Load profile
             Task {
                 if let userID = await authViewModel.getCurrentUser()?.userID {
                     await profileViewModel.loadProfile(for: userID)
@@ -128,12 +129,8 @@ public struct AddNewIsland: View {
                 validateForm()
             }
         }
-
-
-        .onChange(of: countryService.countries) { oldValue, newValue in
-            if let usa = newValue.first(where: { $0.cca2 == "US" }) {
-                islandDetails.selectedCountry = usa
-            }
+        .onChange(of: countryService.countries) { _, _ in
+            setDefaultCountryIfNeeded()
         }
         .onChange(of: islandDetails) { _, _ in validateForm() }
         .onChange(of: islandDetails.islandName) { _, _ in validateForm() }
@@ -285,20 +282,15 @@ public struct AddNewIsland: View {
 
 
     // MARK: - Helper Methods
+    
+    private func setDefaultCountryIfNeeded() {
+        guard islandDetails.selectedCountry == nil else { return }
 
-    private func loadCountries() {
-        Task {
-            // Load countries on appear
-            await countryService.fetchCountries()
-            if let usa = countryService.countries.first(where: { $0.cca2 == "US" }) {
-                islandDetails.selectedCountry = usa
-            }
-            os_log("Countries loaded successfully", log: OSLog.default, type: .info)
+        if let usa = countryService.countries.first(where: { $0.cca2 == "US" }) {
+            islandDetails.selectedCountry = usa
+            print("🇺🇸 Default country set to United States")
         }
     }
-
-
-    // MARK: - Helper Methods
 
 
 
@@ -372,11 +364,6 @@ public struct AddNewIsland: View {
     }
 
     private func saveIsland(currentUser: User, onSave: @escaping () -> Void) async {
-        guard isSaveEnabled else {
-            toastMessage = "Please fill in all required fields"
-            showToast = true
-            return
-        }
 
         guard let selectedCountry = islandDetails.selectedCountry else {
             toastMessage = "Please select a country."
@@ -422,7 +409,12 @@ public struct AddNewIsland: View {
         islandDetails.city = ""
         islandDetails.state = ""
         islandDetails.postalCode = ""
-        islandDetails.selectedCountry = nil
+
+        if let usa = countryService.countries.first(where: { $0.cca2 == "US" }) {
+            islandDetails.selectedCountry = usa
+        } else {
+            islandDetails.selectedCountry = nil
+        }
 
         islandDetails.neighborhood = ""
         islandDetails.complement = ""
@@ -438,7 +430,6 @@ public struct AddNewIsland: View {
         islandDetails.gymWebsite = ""
         gymWebsiteURL = nil
 
-        // ✅ Reset Drop-In Fee state
         islandDetails.hasDropInFee = .notConfirmed
         islandDetails.dropInFeeAmount = 0
         islandDetails.dropInFeeNote = ""
