@@ -24,6 +24,9 @@ struct Mat_FinderApp: App {
     @StateObject var enterZipCodeViewModel: EnterZipCodeViewModel
 
     init() {
+        Task { @MainActor in
+            AppUpgradeManager.shared.handleAppUpgrade()
+        }
         _allEnteredLocationsViewModel = StateObject(
             wrappedValue: AllEnteredLocationsViewModel(
                 dataManager: PirateIslandDataManager(

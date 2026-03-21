@@ -52,7 +52,13 @@ actor FirestoreSyncCoordinator {
 
     private var isSyncInProgress = false
     private var hasPerformedInitialSync = false
-
+    
+    func resetForFullResync() {
+        hasPerformedInitialSync = false
+    }
+    
+ 
+    
     func startAppSync(force: Bool = false) async {
         guard !isSyncInProgress else {
             FirestoreSyncManager.log(
@@ -97,6 +103,9 @@ class FirestoreSyncManager: ObservableObject {
     private var appDayCache: [String: NSManagedObjectID] = [:]
     private static var listenerRegistrations: [ListenerRegistration] = []
 
+    private var isForceResyncing = false
+    private var currentResyncReason: String?
+    
     func syncInitialFirestoreData() async -> Bool {
         pirateIslandCache.removeAll()
         appDayCache.removeAll()
@@ -107,7 +116,7 @@ class FirestoreSyncManager: ObservableObject {
         )
 
         syncBannerState = .syncing
-        syncStatusMessage = "Updating data… you can keep using the app"
+        syncStatusMessage = "Updating Dating App..."
 
         do {
             try await createFirestoreCollection()
@@ -2469,5 +2478,38 @@ extension UUID {
             bytes[8], bytes[9], bytes[10], bytes[11],
             bytes[12], bytes[13], bytes[14], bytes[15]
         ))
+    }
+}
+
+
+extension FirestoreSyncManager {
+ 
+
+    func forceFullResync(reason: String) {
+        guard !isForceResyncing else {
+            Self.log(
+                "⚠️ Skipping duplicate force resync (active: \(currentResyncReason ?? "unknown"))",
+                level: .warning
+            )
+            return
+        }
+
+        isForceResyncing = true
+        currentResyncReason = reason
+
+        Self.log("🔄 Force resync triggered: \(reason)", level: .sync)
+
+        initialSyncCompleted = false
+        stopFirestoreListeners()
+
+        Task { @MainActor in
+            defer {
+                self.isForceResyncing = false
+                self.currentResyncReason = nil
+            }
+
+            await FirestoreSyncCoordinator.shared.resetForFullResync()
+            await FirestoreSyncCoordinator.shared.startAppSync(force: true)
+        }
     }
 }

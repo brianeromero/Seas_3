@@ -41,6 +41,7 @@
 		0C276CCC2CC9A8FD00A6B6D6 /* Mat_FinderAppCheckProviderFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C276CA72CC9A8FD00A6B6D6 /* Mat_FinderAppCheckProviderFactory.swift */; };
 		0C2CEC9D2CBA1F5400926D0D /* IslandFormSections.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C2CEC9C2CBA1F5400926D0D /* IslandFormSections.swift */; };
 		0C2EE2AF2C9DEF110029432F /* ViewReviewSearch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C2EE2AE2C9DEF110029432F /* ViewReviewSearch.swift */; };
+		0C33BBA92F6EFB49003D0A50 /* AppUpgradeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C33BBA82F6EFB49003D0A50 /* AppUpgradeManager.swift */; };
 		0C33DC052CC095CF002C4835 /* FirebaseMLModelDownloader in Frameworks */ = {isa = PBXBuildFile; productRef = 0C33DC042CC095CF002C4835 /* FirebaseMLModelDownloader */; };
 		0C33DC152CC09E7C002C4835 /* PrivacyPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C33DC142CC09E7C002C4835 /* PrivacyPolicy.swift */; };
 		0C33DC172CC09FBC002C4835 /* TermsOfService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C33DC162CC09FBC002C4835 /* TermsOfService.swift */; };
@@ -190,6 +191,7 @@
 		0C276CA72CC9A8FD00A6B6D6 /* Mat_FinderAppCheckProviderFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Mat_FinderAppCheckProviderFactory.swift; sourceTree = "<group>"; };
 		0C2CEC9C2CBA1F5400926D0D /* IslandFormSections.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandFormSections.swift; sourceTree = "<group>"; };
 		0C2EE2AE2C9DEF110029432F /* ViewReviewSearch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewReviewSearch.swift; sourceTree = "<group>"; };
+		0C33BBA82F6EFB49003D0A50 /* AppUpgradeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUpgradeManager.swift; sourceTree = "<group>"; };
 		0C33DC122CC0979A002C4835 /* FirebaseSettings.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = FirebaseSettings.xcconfig; sourceTree = "<group>"; };
 		0C33DC142CC09E7C002C4835 /* PrivacyPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyPolicy.swift; sourceTree = "<group>"; };
 		0C33DC162CC09FBC002C4835 /* TermsOfService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TermsOfService.swift; sourceTree = "<group>"; };
@@ -621,6 +623,7 @@
 				0C8E21722CCDAD0B0093CEB3 /* AdminView */,
 				0CF247E92CB470D2008B02AA /* Mat_Finder.entitlements */,
 				0CF13E442C2A326700D714C0 /* Mat_FinderApp.swift */,
+				0C33BBA82F6EFB49003D0A50 /* AppUpgradeManager.swift */,
 				0CEF69CF2CAF995600C2614C /* SSO */,
 				0C2EE2AA2C9DCA700029432F /* Modal */,
 				0C4B34342C61A31600FD6893 /* DataManager */,
@@ -1100,6 +1103,7 @@
 				0CD901502CB655B50097D71F /* DoNotStorePasswords.swift in Sources */,
 				0CF13E7D2C2A36B500D714C0 /* UserInfo+CoreDataClass.swift in Sources */,
 				0CEB03962C2B9B73007CA3CC /* PirateIslandViewModel.swift in Sources */,
+				0C33BBA92F6EFB49003D0A50 /* AppUpgradeManager.swift in Sources */,
 				0C4B34362C61A32700FD6893 /* PirateIslandDataManager.swift in Sources */,
 				0CF13E7E2C2A36B500D714C0 /* UserInfo+CoreDataProperties.swift in Sources */,
 				0C07B0852C2CFE6200D0BFB2 /* AdditionalGymInfo.swift in Sources */,
