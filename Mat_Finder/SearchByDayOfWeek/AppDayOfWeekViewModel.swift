@@ -359,7 +359,7 @@ final class AppDayOfWeekViewModel: ObservableObject {
             print("Failed to fetch current day of the week.")
         }
     }
-    
+
     // MARK: - Fetch Current Day Of Week
     // Populates the matTimesForDay dictionary with the scheduled mat times for each day
     @MainActor
@@ -367,22 +367,24 @@ final class AppDayOfWeekViewModel: ObservableObject {
         for island: PirateIsland,
         day: DayOfWeek
     ) async -> (AppDayOfWeek?, [MatTime]?) {
+
         print("Fetching current day of week for island: \(island.islandName ?? ""), day: \(day)")
 
         let context = repository.getViewContext()
 
+        // ✅ Core Data path
         if let existing = repository.fetchAppDayOfWeek(
             for: day.rawValue,
             pirateIsland: island,
             context: context
         ) {
-            self.selectedDay = day
             self.currentAppDayOfWeek = existing
 
             let matTimes = (existing.matTimes?.allObjects as? [MatTime] ?? [])
                 .sorted(by: MatTime.scheduleSort)
 
             self.matTimesForDay[day] = matTimes
+
             return (existing, matTimes)
         }
 
@@ -428,7 +430,6 @@ final class AppDayOfWeekViewModel: ObservableObject {
                 try context.save()
             }
 
-            self.selectedDay = day
             self.currentAppDayOfWeek = appDayOfWeek
 
             let matTimes = (appDayOfWeek.matTimes?.allObjects as? [MatTime] ?? [])
@@ -1711,6 +1712,40 @@ final class AppDayOfWeekViewModel: ObservableObject {
                 }
             }
         }
+
+        // ✅ ALWAYS determine best day
+        await MainActor.run {
+            self.selectedDay = self.determineBestDefaultDay()
+        }
+    }
+    
+    func determineBestDefaultDay() -> DayOfWeek? {
+        let now = Date()
+        let today = DayOfWeek.today
+
+        // 1️⃣ Today with future classes
+        if let todayClasses = matTimesForDay[today],
+           todayClasses.contains(where: {
+               guard let time = $0.time,
+                     let nextDate = MatTime.nextDate(for: today, time: time)
+               else { return false }
+
+               return nextDate > now
+           }) {
+            return today
+        }
+
+        // 2️⃣ Next available day
+        let orderedDays = DayOfWeek.allCases.circularShifted(startingFrom: today)
+
+        for day in orderedDays {
+            if let classes = matTimesForDay[day], !classes.isEmpty {
+                return day
+            }
+        }
+
+        // 3️⃣ Fallback
+        return .monday
     }
     
 }

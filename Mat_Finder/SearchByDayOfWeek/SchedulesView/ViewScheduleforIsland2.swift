@@ -91,7 +91,7 @@ struct ViewScheduleForIsland2: View {
         .onAppear {
             selectedIslandID = island.islandID
 
-            viewModel.selectedDay = .monday
+            viewModel.selectedDay = nil
             viewModel.matTimesForDay = [:]
 
             Task {

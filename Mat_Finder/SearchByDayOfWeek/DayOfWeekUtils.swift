@@ -76,6 +76,33 @@ enum DayOfWeek: String, CaseIterable, Hashable, Identifiable, Comparable {
     }
 }
 
+extension DayOfWeek {
+
+    static var today: DayOfWeek {
+        let weekday = Calendar.current.component(.weekday, from: Date())
+
+        switch weekday {
+        case 1: return .sunday
+        case 2: return .monday
+        case 3: return .tuesday
+        case 4: return .wednesday
+        case 5: return .thursday
+        case 6: return .friday
+        case 7: return .saturday
+        default: return .monday
+        }
+    }
+}
+
+extension Array where Element == DayOfWeek {
+
+    func circularShifted(startingFrom start: DayOfWeek) -> [DayOfWeek] {
+        guard let index = firstIndex(of: start) else { return self }
+
+        return Array(self[index...]) + Array(self[..<index])
+    }
+}
+
 enum DayOfWeekError: Error {
     case invalidDayValue
 }

@@ -116,7 +116,7 @@ class FirestoreSyncManager: ObservableObject {
         )
 
         syncBannerState = .syncing
-        syncStatusMessage = "Updating Dating App..."
+        syncStatusMessage = "Updating App..."
 
         do {
             try await createFirestoreCollection()

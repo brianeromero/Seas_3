@@ -116,11 +116,7 @@ struct ScheduleFormView: View {
                 .background(.ultraThinMaterial)
         }
         .onAppear {
-            if selectedDay == nil {
-                selectedDay = .monday
-            }
-
-            viewModel.selectedDay = selectedDay
+            viewModel.selectedDay = nil
 
             Task {
                 await handleOnAppear()
@@ -206,6 +202,11 @@ struct ScheduleFormView: View {
                     viewModel.matTimesForDay[day] = matTimes
                 }
             }
+        }
+
+        // ✅ ADD THIS (critical)
+        await MainActor.run {
+            viewModel.selectedDay = viewModel.determineBestDefaultDay()
         }
     }
     
@@ -377,6 +378,10 @@ private extension ScheduleFormView {
         }
 
         await preloadAllDays()
+
+        await MainActor.run {
+            self.selectedDay = viewModel.selectedDay
+        }
 
     }
 }
