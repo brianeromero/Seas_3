@@ -12,12 +12,14 @@ struct IslandDetailView: View {
     let island: PirateIsland
     @Binding var selectedDestination: IslandDestination?
     @StateObject var viewModel: AllEnteredLocationsViewModel
-    @State private var navigationPath = NavigationPath()
-
-    init(island: PirateIsland, selectedDestination: Binding<IslandDestination?>) {
+ 
+    init(
+        island: PirateIsland,
+        selectedDestination: Binding<IslandDestination?>
+    ) {
         self.island = island
         self._selectedDestination = selectedDestination
-        
+
         let dataManager = PirateIslandDataManager(viewContext: PersistenceController.shared.viewContext)
         _viewModel = StateObject(wrappedValue: AllEnteredLocationsViewModel(dataManager: dataManager))
     }
@@ -28,8 +30,7 @@ struct IslandDetailView: View {
         IslandDetailContent(
             island: island,
             selectedDestination: $selectedDestination,
-            viewModel: viewModel,
-            navigationPath: $navigationPath
+            viewModel: viewModel
         )
         .onAppear(perform: fetchIsland)
     }
@@ -65,8 +66,7 @@ struct IslandDetailContent: View {
             persistenceController: PersistenceController.shared
         )
     )
-    @Binding var navigationPath: NavigationPath
-
+ 
     @Environment(\.managedObjectContext) private var viewContext
 
     var body: some View {
@@ -93,7 +93,7 @@ struct IslandDetailContent: View {
                         repository: AppDayOfWeekRepository.shared,
                         persistenceController: PersistenceController.shared
                     ),
-                    navigationPath: $navigationPath
+                    navigationPath: .constant(NavigationPath()) // ✅ FIX
                 )
             }
 
@@ -136,10 +136,11 @@ struct IslandDetailContent: View {
                             .foregroundColor(.blue)
                     }
                 } else if destination == .schedule {
-                    NavigationLink(destination: IslandScheduleAsCal(
-                        viewModel: mapViewModel,
-                        pIsland: island
-                    )) {
+                    NavigationLink(
+                        value: AppScreen.viewSchedule(
+                            island.objectID.uriRepresentation().absoluteString
+                        )
+                    ) {
                         Text("Go to \(destination.rawValue)")
                             .padding()
                             .frame(maxWidth: .infinity, alignment: .leading)

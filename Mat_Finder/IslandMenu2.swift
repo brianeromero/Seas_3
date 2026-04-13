@@ -214,9 +214,9 @@ struct IslandMenu2: View {
             }
             .padding(.top, 10)
 
-            BannerView()
-                .frame(height: 50) // adjust the height as needed
-                .frame(maxWidth: .infinity, alignment: .center)
+            //BannerView()
+               // .frame(height: 50) // adjust the height as needed
+               // .frame(maxWidth: .infinity, alignment: .center)
 
             footerToolbar
                 .shadow(color: .black.opacity(0.1), radius: 4, y: -2)

@@ -148,8 +148,7 @@ struct IslandList: View {
     let onIslandChange: (PirateIsland?) -> Void
     
     // ✅ NEW: Receive navigationPath as a Binding from the parent view
-    @Binding var navigationPath: NavigationPath // <--- CRUCIAL CHANGE!
-
+ 
     // !!! NEW: Bindings to control the toast from the parent view (EditExistingIslandListContent) !!!
     @Binding var showSuccessToast: Bool
     @Binding var successToastMessage: String
@@ -162,11 +161,9 @@ struct IslandList: View {
         navigationDestination: NavigationDestination,
         title: String,
         onIslandChange: @escaping (PirateIsland?) -> Void,
-        navigationPath: Binding<NavigationPath>, // Receive navigationPath here
-        // !!! NEW: Add the new toast bindings to the initializer !!!
         showSuccessToast: Binding<Bool>,
         successToastMessage: Binding<String>,
-        successToastType: Binding<ToastView.ToastType> // <<< NEW: Add the new toast binding
+        successToastType: Binding<ToastView.ToastType>
     ) {
         self.islands = islands
         self._selectedIsland = selectedIsland
@@ -174,10 +171,9 @@ struct IslandList: View {
         self.navigationDestination = navigationDestination
         self.title = title
         self.onIslandChange = onIslandChange
-        self._navigationPath = navigationPath // Initialize the binding
-        self._showSuccessToast = showSuccessToast // Initialize the new toast binding
-        self._successToastMessage = successToastMessage // Initialize the new toast binding
-        self._successToastType = successToastType // <<< NEW: Initialize the new toast binding
+        self._showSuccessToast = showSuccessToast
+        self._successToastMessage = successToastMessage
+        self._successToastType = successToastType
     }
 
     var filteredIslands: [PirateIsland] {

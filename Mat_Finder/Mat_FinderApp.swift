@@ -409,8 +409,8 @@ struct AppRootDestinationView: View {
             }
             
         case .postalCode:
-            // ✅ Replace the placeholder Text with EnterZipCodeView
             EnterZipCodeView(
+                navigationPath: $navigationPath,
                 appDayOfWeekViewModel: appDayOfWeekViewModel,
                 allEnteredLocationsViewModel: allEnteredLocationsViewModel,
                 enterZipCodeViewModel: enterZipCodeViewModel

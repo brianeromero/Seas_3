@@ -115,7 +115,6 @@ struct EditExistingIslandListContent: View {
                     navigationDestination: .editExistingIsland,
                     title: "",
                     onIslandChange: { _ in }, // You might want to remove this if not needed
-                    navigationPath: $navigationPath,
                     showSuccessToast: $showSuccessToast,        // Pass global binding down
                     successToastMessage: $successToastMessage,  // Pass global binding down
                     successToastType: $successToastType         // Pass global binding down

@@ -10,26 +10,26 @@ import CoreData
 
 
 struct ContentView: View {
-
+    
     @EnvironmentObject var persistenceController: PersistenceController
-
+    
     @StateObject private var viewModel: PirateIslandViewModel
     @StateObject private var profileViewModel = ProfileViewModel()
-
+    
     private let authViewModel = AuthViewModel.shared
-
+    
     // MARK: - UI State
     @State private var showAddIslandForm = false
     @State private var sortByName = false
     @State private var newIslandDetails = IslandDetails()
-
+    
     // MARK: - Fetched Results
     @FetchRequest(
         entity: PirateIsland.entity(),
         sortDescriptors: [NSSortDescriptor(keyPath: \PirateIsland.islandName, ascending: true)]
     )
     private var pirateIslands: FetchedResults<PirateIsland>
-
+    
     // MARK: - Init
     init(persistenceController: PersistenceController) {
         _viewModel = StateObject(
@@ -38,70 +38,60 @@ struct ContentView: View {
             )
         )
     }
-
+    
     // MARK: - Body
     var body: some View {
-
-        NavigationStack {
-
-            VStack {
-
-                // Sort toggle
-                Toggle("Sort by Name", isOn: $sortByName)
-                    .padding(.horizontal)
-                    .toggleStyle(SwitchToggleStyle(tint: .blue))
-
-                List {
-
-                    ForEach(sortedIslands(), id: \.self) { island in
-
-                        NavigationLink(
-                            destination: IslandDetailView(
-                                island: island,
-                                selectedDestination: $viewModel.selectedDestination
-                            )
-                        ) {
-                            islandRowView(island: island)
-                        }
-                    }
-                    .onDelete(perform: deleteItems)
-                }
-                .navigationTitle("Gyms")
-                .toolbar {
-
-                    ToolbarItem(placement: .navigationBarTrailing) {
-
-                        Button {
-
-                            // Reset form every time user opens sheet
-                            newIslandDetails = IslandDetails()
-
-                            showAddIslandForm.toggle()
-
-                        } label: {
-
-                            Label("Add Gym", systemImage: "plus")
-
-                        }
-                        .accessibilityLabel("Add Gym")
+        
+        VStack {
+            
+            Toggle("Sort by Name", isOn: $sortByName)
+                .padding(.horizontal)
+                .toggleStyle(SwitchToggleStyle(tint: .blue))
+            
+            List {
+                
+                ForEach(sortedIslands(), id: \.objectID) { island in
+                    
+                    NavigationLink(
+                        value: AppScreen.viewSchedule(
+                            island.objectID.uriRepresentation().absoluteString
+                        )
+                    ) {
+                        islandRowView(island: island)
                     }
                 }
-                .sheet(isPresented: $showAddIslandForm) {
-
-                    AddNewIsland(
-                        navigationPath: .constant(NavigationPath()),
-                        islandDetails: $newIslandDetails
-                    )
-                    .environment(\.managedObjectContext,
-                                  persistenceController.viewContext)
-                    .environmentObject(viewModel)
-                    .environmentObject(profileViewModel)
-                    .environmentObject(authViewModel)
+                .onDelete(perform: deleteItems)
+            }
+            .navigationTitle("Gyms")
+            .toolbar {
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    
+                    Button {
+                        
+                        newIslandDetails = IslandDetails()
+                        showAddIslandForm.toggle()
+                        
+                    } label: {
+                        Label("Add Gym", systemImage: "plus")
+                    }
                 }
             }
+            .sheet(isPresented: $showAddIslandForm) {
+                
+                AddNewIsland(
+                    navigationPath: .constant(NavigationPath()),
+                    islandDetails: $newIslandDetails
+                )
+                .environment(\.managedObjectContext,
+                              persistenceController.viewContext)
+                .environmentObject(viewModel)
+                .environmentObject(profileViewModel)
+                .environmentObject(authViewModel)
+            }
         }
-        .navigationViewStyle(StackNavigationViewStyle())
     }
+
 
     // MARK: - Sorting
     private func sortedIslands() -> [PirateIsland] {

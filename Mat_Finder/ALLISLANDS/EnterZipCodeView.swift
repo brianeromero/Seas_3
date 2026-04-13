@@ -6,7 +6,7 @@ import Combine
 
 
 struct EnterZipCodeView: View {
-
+    @Binding var navigationPath: NavigationPath
     // MARK: - Dependencies
     @ObservedObject var appDayOfWeekViewModel: AppDayOfWeekViewModel
     @ObservedObject var allEnteredLocationsViewModel: AllEnteredLocationsViewModel
@@ -20,7 +20,7 @@ struct EnterZipCodeView: View {
     @State private var showModal = false
     @State private var selectedAppDayOfWeek: AppDayOfWeek?
     @State private var selectedDay: DayOfWeek? = .monday
-    @State private var navigationPath = NavigationPath()
+     
     @State private var pendingRegion: MKCoordinateRegion?
     @State private var showSearchThisArea = false
 

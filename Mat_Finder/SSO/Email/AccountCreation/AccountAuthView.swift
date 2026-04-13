@@ -66,69 +66,69 @@ struct AccountAuthView: View {
     
     @Binding var navigateToAdminMenu: Bool
     @State private var isLoggedIn: Bool = false
-    @State private var navigationPath = NavigationPath()
-
+    @Binding var navigationPath: NavigationPath
+    
     @State private var currentAlertType: AccountAlertType? = nil
     @State private var showCreateAccount = false
 
 
     // ✅ Corrected initializer
-    init(islandViewModel: PirateIslandViewModel,
-         profileViewModel: ProfileViewModel,     // ✅ add this
-         isUserProfileActive: Binding<Bool>,
-         navigateToAdminMenu: Binding<Bool> = .constant(false),
-         emailManager: UnifiedEmailManager) {
-        
+    init(
+        islandViewModel: PirateIslandViewModel,
+        profileViewModel: ProfileViewModel,
+        isUserProfileActive: Binding<Bool>,
+        navigateToAdminMenu: Binding<Bool> = .constant(false),
+        navigationPath: Binding<NavigationPath>,   // ✅ ADD THIS
+        emailManager: UnifiedEmailManager
+    ) {
         self._islandViewModel = ObservedObject(wrappedValue: islandViewModel)
-        self._profileViewModel = ObservedObject(wrappedValue: profileViewModel)   // ✅ assign here
+        self._profileViewModel = ObservedObject(wrappedValue: profileViewModel)
         self._isUserProfileActive = isUserProfileActive
         self._navigateToAdminMenu = navigateToAdminMenu
+        self._navigationPath = navigationPath       // ✅ ADD THIS
         self.emailManager = emailManager
     }
     
-    var body: some View {
-        NavigationView {
-            VStack(spacing: 20) {
-                if isSelected == .login {
-                    VStack(spacing: 20) {
-                        LoginForm(
-                            usernameOrEmail: $authViewModel.usernameOrEmail,
-                            password: $authViewModel.password,
-                            isSignInEnabled: $authViewModel.isSignInEnabled,
-                            errorMessage: $errorMessage,
-                            islandViewModel: islandViewModel,
-                            profileViewModel: profileViewModel
-                        )
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        
-                        Spacer()
-                    }
-                } else if isSelected == .createAccount {
-                    
-                    CreateAccountView(
-                        islandViewModel: islandViewModel,
-                        isUserProfileActive: .constant(false),
-                        selectedTabIndex: .constant(.login),
-                        navigationPath: $navigationPath,
-                        emailManager: UnifiedEmailManager.shared,
-                        showAlert: .constant(false),
-                        alertTitle: .constant(""),
-                        alertMessage: .constant(""),
-                        currentAlertType: .constant(nil),
-                        showCreateAccount: $showCreateAccount // <-- ADD THIS
-                    )
 
+    var body: some View {
+        VStack(spacing: 20) {
+
+            if isSelected == .login {
+                VStack(spacing: 20) {
+                    LoginForm(
+                        usernameOrEmail: $authViewModel.usernameOrEmail,
+                        password: $authViewModel.password,
+                        isSignInEnabled: $authViewModel.isSignInEnabled,
+                        errorMessage: $errorMessage,
+                        islandViewModel: islandViewModel,
+                        profileViewModel: profileViewModel
+                    )
+                    Spacer()
                 }
-            }
-            .padding()
-            .alert(isPresented: $showAlert) {
-                Alert(
-                    title: Text(alertTitle),
-                    message: Text(alertMessage),
-                    dismissButton: .default(Text("OK"))
+
+            } else if isSelected == .createAccount {
+
+                CreateAccountView(
+                    islandViewModel: islandViewModel,
+                    isUserProfileActive: .constant(false),
+                    selectedTabIndex: .constant(.login),
+                    navigationPath: $navigationPath,
+                    emailManager: UnifiedEmailManager.shared,
+                    showAlert: .constant(false),
+                    alertTitle: .constant(""),
+                    alertMessage: .constant(""),
+                    currentAlertType: .constant(nil),
+                    showCreateAccount: $showCreateAccount
                 )
             }
+        }
+        .padding()
+        .alert(isPresented: $showAlert) {
+            Alert(
+                title: Text(alertTitle),
+                message: Text(alertMessage),
+                dismissButton: .default(Text("OK"))
+            )
         }
     }
 }
