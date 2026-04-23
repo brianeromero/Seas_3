@@ -1375,7 +1375,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.2.7;
+				MARKETING_VERSION = 1.2.8;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"\"-ObjC -lc++ -lsqlite3 -lstdc++ -lz\"",
@@ -1487,7 +1487,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.2.7;
+				MARKETING_VERSION = 1.2.8;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"\"-ObjC -lc++ -lsqlite3 -lstdc++ -lz\"",
