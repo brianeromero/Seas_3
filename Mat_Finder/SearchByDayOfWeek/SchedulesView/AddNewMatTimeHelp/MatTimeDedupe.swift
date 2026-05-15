@@ -64,7 +64,7 @@ enum MatTimeDedupe {
     }
 
     static func normalizeRestriction(_ value: String?) -> String {
-        normalizeLower(value)
+        normalize(value) // ❌ REMOVE .lowercased()
             .replacingOccurrences(
                 of: #"\byrs?\.\b"#,
                 with: "years",
@@ -120,7 +120,7 @@ enum MatTimeDedupe {
         let normalizedCustomStyle = normalizeLower(customStyle)
         let normalizedType = normalizeLower(type)
         let normalizedRestriction = normalizeRestriction(restrictionDescription)
-
+        
         return NSCompoundPredicate(andPredicateWithSubpredicates: [
             NSPredicate(format: "appDayOfWeekID == %@", appDayID),
             NSPredicate(format: "time == %@", normalizedTime),
@@ -128,7 +128,11 @@ enum MatTimeDedupe {
             NSPredicate(format: "((style == nil AND %@ == '') OR style == %@)", normalizedStyle, normalizedStyle),
             NSPredicate(format: "((customStyle == nil AND %@ == '') OR customStyle == %@)", normalizedCustomStyle, normalizedCustomStyle),
             NSPredicate(format: "((type == nil AND %@ == '') OR type == %@)", normalizedType, normalizedType),
-            NSPredicate(format: "((restrictionDescription == nil AND %@ == '') OR restrictionDescription == %@)", normalizedRestriction, normalizedRestriction),
+            NSPredicate(
+                format: "((restrictionDescription == nil AND %@ == '') OR restrictionDescription =[cd] %@)",
+                normalizedRestriction,
+                normalizedRestriction
+            ),
             NSPredicate(format: "kids == %@", NSNumber(value: kids)),
             NSPredicate(format: "womensOnly == %@", NSNumber(value: womensOnly)),
             NSPredicate(format: "goodForBeginners == %@", NSNumber(value: goodForBeginners)),

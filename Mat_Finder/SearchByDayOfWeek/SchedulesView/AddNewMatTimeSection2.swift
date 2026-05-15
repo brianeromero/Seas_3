@@ -618,6 +618,9 @@ extension AddNewMatTimeSection2 {
             return false
         }
 
+        // ✅ DEBUG HERE
+        print("🧪 Saving restrictionText:", restrictionText)
+
         // ✅ CREATE
 
         let matTimeID =

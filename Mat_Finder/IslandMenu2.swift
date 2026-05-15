@@ -11,6 +11,7 @@ import CoreData
 import MapKit
 import os
 import OSLog // For os_log
+import StoreKit
 
 
 // MARK: - View Definition
@@ -43,6 +44,15 @@ struct IslandMenu2: View {
     
     @State private var alertTitle = "Login Required"
     @State private var showLoginAction = false
+    
+    
+    @State private var shouldShowAds: Bool = {
+        #if DEBUG
+        return false
+        #else
+        return true
+        #endif
+    }()
 
     // MARK: - Centralized ViewModel/Repository Instantiations
     private let appDayOfWeekRepository: AppDayOfWeekRepository
@@ -158,6 +168,7 @@ struct IslandMenu2: View {
     // MARK: - Body
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
+            
             HStack {
                 Spacer()
                 Text("Mat_Finder")
@@ -214,21 +225,33 @@ struct IslandMenu2: View {
             }
             .padding(.top, 10)
 
-            BannerView()
-                .frame(height: 50) // adjust the height as needed
-                .frame(maxWidth: .infinity, alignment: .center)
+            // ✅ Banner
+            if shouldShowAds {
+                BannerView()
+                    .frame(height: 50)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
 
             footerToolbar
                 .shadow(color: .black.opacity(0.1), radius: 4, y: -2)
         }
+        
+        // ✅ IMPORTANT: attach task here (outer container)
+        .task {
+            #if !DEBUG
+            if await isTestFlight() {
+                shouldShowAds = false
+            }
+            #endif
+        }
+
         .background(
             GeometryReader { geo in
-
                 SwiftUIGIFView(name: "flashing16")
                     .frame(width: 140, height: 440)
                     .position(
-                        x: geo.size.width * 0.75,   // left 25%
-                        y: geo.size.height * 0.25   // up 10%
+                        x: geo.size.width * 0.75,
+                        y: geo.size.height * 0.25
                     )
             }
         )
@@ -258,11 +281,29 @@ struct IslandMenu2: View {
                     message: Text(alertMessage),
                     dismissButton: .default(Text("OK"))
                 )
-
             }
         }
     }
 
+    private func isTestFlight() async -> Bool {
+        if #available(iOS 15.0, *) {
+            do {
+                let result = try await AppTransaction.shared
+
+                switch result {
+                case .verified(let transaction):
+                    return transaction.environment == .sandbox
+                case .unverified:
+                    return false
+                }
+            } catch {
+                return false
+            }
+        } else {
+            return false
+        }
+    }
+    
     @ViewBuilder
     private func renderMenuItem(_ option: IslandMenuOption) -> some View {
 

@@ -544,6 +544,26 @@ final class AppDayOfWeekViewModel: ObservableObject {
             // Keep string ID mirror in sync
             matTime.appDayOfWeekID = appDayOfWeek.appDayOfWeekID
 
+            // =====================================================
+            // ✅ CLEAN + NORMALIZE RESTRICTION TEXT
+            // =====================================================
+
+            let cleanedRestriction = restrictionDescription
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+
+            // 👉 OPTION A: Preserve exact user input (recommended)
+            let finalRestriction = cleanedRestriction
+
+            // 👉 OPTION B (uncomment if you want auto-capitalization)
+            // let finalRestriction = cleanedRestriction.capitalized
+
+            // 👉 DEBUG (REMOVE LATER)
+            print("🧪 Incoming restrictionDescription:", restrictionDescription)
+            print("🧪 Cleaned restrictionDescription:", cleanedRestriction)
+            print("🧪 Final restrictionDescription:", finalRestriction)
+
+            // =====================================================
+
             matTime.configure(
                 time: time,
                 type: type,
@@ -551,7 +571,7 @@ final class AppDayOfWeekViewModel: ObservableObject {
                 customStyle: customStyle,
                 discipline: discipline,
                 restrictions: restrictions,
-                restrictionDescription: restrictionDescription,
+                restrictionDescription: finalRestriction,
                 goodForBeginners: goodForBeginners,
                 kids: kids,
                 womensOnly: womensOnly
@@ -564,8 +584,6 @@ final class AppDayOfWeekViewModel: ObservableObject {
             return matTime.objectID
         }
     }
-    
-    
     
     // MARK: - Refresh MatTimes
     @MainActor

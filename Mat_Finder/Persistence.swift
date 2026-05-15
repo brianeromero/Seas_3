@@ -63,9 +63,77 @@ final class PersistenceController: ObservableObject {
 
             guard let self else { return }
 
-            if let error {
-                fatalError("❌ Persistent store load error: \(error)")
+            // =====================================================
+            // ✅ HANDLE PERSISTENT STORE ERRORS SAFELY
+            // =====================================================
+
+            if let error = error as NSError? {
+
+                print("❌ PERSISTENT STORE LOAD ERROR")
+                print("❌ Domain:", error.domain)
+                print("❌ Code:", error.code)
+                print("❌ UserInfo:", error.userInfo)
+                print("❌ Localized:", error.localizedDescription)
+
+                // =================================================
+                // ✅ RECOVER FROM CORRUPTED STORE
+                // =================================================
+
+                if let storeURL = description.url {
+
+                    print("🧹 Attempting corrupted store cleanup...")
+
+                    let fileManager = FileManager.default
+
+                    let walURL =
+                        storeURL.appendingPathExtension("wal")
+
+                    let shmURL =
+                        storeURL.appendingPathExtension("shm")
+
+                    do {
+
+                        if fileManager.fileExists(atPath: storeURL.path) {
+                            try fileManager.removeItem(at: storeURL)
+                        }
+
+                    } catch {
+                        print("❌ Failed removing sqlite:", error)
+                    }
+
+                    do {
+
+                        if fileManager.fileExists(atPath: walURL.path) {
+                            try fileManager.removeItem(at: walURL)
+                        }
+
+                    } catch {
+                        print("❌ Failed removing wal:", error)
+                    }
+
+                    do {
+
+                        if fileManager.fileExists(atPath: shmURL.path) {
+                            try fileManager.removeItem(at: shmURL)
+                        }
+
+                    } catch {
+                        print("❌ Failed removing shm:", error)
+                    }
+
+                    print("✅ Corrupted Core Data store removed")
+                    print("⚠️ App restart required")
+    
+                }
+
+                // IMPORTANT:
+                // DO NOT fatalError HERE
+                return
             }
+
+            // =====================================================
+            // ✅ STORE SUCCESSFULLY LOADED
+            // =====================================================
 
             print("✅ Persistent Store Loaded:",
                   description.url?.absoluteString ?? "")
@@ -81,10 +149,12 @@ final class PersistenceController: ObservableObject {
 
             let viewContext = self.container.viewContext
 
-            // ⭐ DEBUGGING IMPROVEMENT
+            // =====================================================
+            // ✅ CONTEXT CONFIGURATION
+            // =====================================================
+
             viewContext.name = "viewContext"
 
-            // 🚀 PERFORMANCE OPTIMIZATIONS (SET FIRST)
             viewContext.mergePolicy =
                 NSMergeByPropertyObjectTrumpMergePolicy
 
@@ -95,21 +165,25 @@ final class PersistenceController: ObservableObject {
             viewContext.automaticallyMergesChangesFromParent = true
 
             viewContext.transactionAuthor = "viewContext"
-
-            // ⭐ RUN MIGRATION AFTER CONTEXT IS CONFIGURED
-            self.migrateMatTimeIfNeeded(context: viewContext)
             
+            
+            self.migrateMatTimeIfNeeded(context: viewContext)
+
+            // =====================================================
+            // ✅ FINALIZE CONTEXT
+            // =====================================================
+
             viewContext.perform {
 
                 viewContext.processPendingChanges()
 
                 print("✅ Core Data fully optimized")
             }
-            
+
             // =====================================================
-            // ✅ APPLE-LEVEL AUTO MERGE FIX (ADD THIS HERE)
+            // ✅ AUTO MERGE FIX
             // =====================================================
-            
+
             NotificationCenter.default.addObserver(
                 forName: .NSManagedObjectContextDidSave,
                 object: nil,
@@ -118,17 +192,14 @@ final class PersistenceController: ObservableObject {
 
                 guard let self else { return }
 
-                // Extract context safely OUTSIDE Task
                 guard let savedContext =
                     notification.object as? NSManagedObjectContext
                 else { return }
 
-                // Ignore viewContext saves
                 if savedContext === self.container.viewContext {
                     return
                 }
 
-                // Hop to MainActor safely
                 Task { @MainActor [weak self] in
 
                     guard let self else { return }
