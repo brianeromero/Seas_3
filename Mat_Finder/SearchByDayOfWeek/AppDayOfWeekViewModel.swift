@@ -324,7 +324,7 @@ final class AppDayOfWeekViewModel: ObservableObject {
             let pirateIslands = try await dataManager.fetchPirateIslandsAsync()
             allIslands = pirateIslands
             isDataLoaded = true
-            print("Fetched Gyms: \(allIslands)")
+            print("Fetched Gyms: \(allIslands.count)")
         } catch {
             allIslands = []
             errorMessage = "Error fetching gyms: \(error.localizedDescription)"

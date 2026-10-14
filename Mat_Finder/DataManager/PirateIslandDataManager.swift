@@ -39,13 +39,21 @@ public class PirateIslandDataManager: ObservableObject {
             if let fetchLimit = fetchLimit {
                 fetchRequest.fetchLimit = fetchLimit
             }
+
             do {
+                let fetchStart = CFAbsoluteTimeGetCurrent()
+
                 let pirateIslands = try self.viewContext.fetch(fetchRequest)
-                print("💾 PirateIslandDataManager: fetched \(pirateIslands.count) islands: \(pirateIslands.map { $0.islandName ?? "Unknown" })")
+
+                let fetchDuration = CFAbsoluteTimeGetCurrent() - fetchStart
+
+                print("⏱️ Core Data fetch: \(pirateIslands.count) islands in \(String(format: "%.3f", fetchDuration)) seconds")
+
                 result = .success(pirateIslands)
             } catch let error {
                 result = .failure(.failedFetchingIslands(error))
             }
+
         }
         return result
     }

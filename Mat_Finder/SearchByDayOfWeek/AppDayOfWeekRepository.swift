@@ -8,13 +8,14 @@ import Foundation
 import SwiftUI
 import CoreData
 import CoreLocation
+import Foundation
 import os
 import OSLog // For better logging in production, though print is fine for debugging
 
 
 @MainActor
 class AppDayOfWeekRepository: ObservableObject {
-    @State private var errorMessage: String?
+    @Published var errorMessage: String?
     private var currentAppDayOfWeek: AppDayOfWeek?
     private var selectedIsland: PirateIsland?
     let logger = OSLog(subsystem: "Mat_Finder.Subsystem", category: "CoreData")

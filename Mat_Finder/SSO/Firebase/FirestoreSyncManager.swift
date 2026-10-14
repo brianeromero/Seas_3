@@ -945,23 +945,52 @@ class FirestoreSyncManager: ObservableObject {
 
         await context.perform {
 
-            let fetchRequest: NSFetchRequest<PirateIsland> =
-                PirateIsland.fetchRequest()
-
-            fetchRequest.predicate =
-                NSPredicate(
-                    format: "islandID == %@",
-                    docSnapshot.documentID
-                )
-
-            fetchRequest.fetchLimit = 1
+            let cacheKey = "FirestoreSyncManager.PirateIslandLookup"
 
             do {
+                let island: PirateIsland
 
-                let island =
-                    try context.fetch(fetchRequest).first
-                    ?? PirateIsland(context: context)
+                if let cachedLookup = context.userInfo[cacheKey]
+                    as? [String: PirateIsland] {
 
+                    if let existingIsland = cachedLookup[docSnapshot.documentID] {
+                        island = existingIsland
+                    } else {
+                        island = PirateIsland(context: context)
+                        island.islandID = docSnapshot.documentID
+
+                        var updatedLookup = cachedLookup
+                        updatedLookup[docSnapshot.documentID] = island
+                        context.userInfo[cacheKey] = updatedLookup
+                    }
+
+                } else {
+                    let fetchRequest: NSFetchRequest<PirateIsland> =
+                        PirateIsland.fetchRequest()
+
+                    let existingIslands = try context.fetch(fetchRequest)
+
+                    var lookup: [String: PirateIsland] = [:]
+                    lookup.reserveCapacity(existingIslands.count + 1)
+
+                    for existingIsland in existingIslands {
+                        if let islandID = existingIsland.islandID {
+                            lookup[islandID] = existingIsland
+                        }
+                    }
+
+                    if let existingIsland = lookup[docSnapshot.documentID] {
+                        island = existingIsland
+                    } else {
+                        island = PirateIsland(context: context)
+                        island.islandID = docSnapshot.documentID
+                        lookup[docSnapshot.documentID] = island
+                    }
+
+                    context.userInfo[cacheKey] = lookup
+                }
+
+  
                 // =====================================================
                 // Map fields
                 // =====================================================

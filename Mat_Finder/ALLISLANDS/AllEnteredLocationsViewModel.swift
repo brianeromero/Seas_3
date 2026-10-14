@@ -26,21 +26,32 @@ final class AllEnteredLocationsViewModel: ObservableObject {
         self.dataManager = dataManager
     }
 
+    
     func fetchPirateIslands() {
+        let loadStart = CFAbsoluteTimeGetCurrent()
+
+        print("⏱️ Gym loading started")
+
         isDataLoaded = false
         errorMessage = nil
-        
+
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
+
             let result = self.dataManager.fetchPirateIslands()
-            
+
             DispatchQueue.main.async {
                 switch result {
                 case .success(let islands):
                     self.allIslands = islands
+
                     withAnimation {
                         self.isDataLoaded = true
                     }
+
+                    let loadDuration = CFAbsoluteTimeGetCurrent() - loadStart
+
+                    print("⏱️ Gym data ready for display: \(islands.count) gyms in \(String(format: "%.3f", loadDuration)) seconds")
 
                     if !self.hasSetInitialRegion {
                         self.cameraPosition = .automatic
@@ -50,10 +61,15 @@ final class AllEnteredLocationsViewModel: ObservableObject {
                 case .failure(let error):
                     self.errorMessage = "Failed to load pirate islands: \(error.localizedDescription)"
                     self.isDataLoaded = true
+
+                    let loadDuration = CFAbsoluteTimeGetCurrent() - loadStart
+
+                    print("⏱️ Gym loading failed after \(String(format: "%.3f", loadDuration)) seconds: \(error.localizedDescription)")
                 }
             }
         }
     }
+
 
     func setRegionToUserLocation(_ location: CLLocationCoordinate2D) {
         guard !hasSetInitialRegion else { return }
